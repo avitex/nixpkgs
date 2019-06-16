@@ -1,0 +1,8 @@
+version: "1"
+rules:
+  - base: master
+    upstream: NixOS:master
+    mergeMethod: hardreset
+  - base: release-19.03
+    upstream: NixOS:release-19.03
+    mergeMethod: hardreset
