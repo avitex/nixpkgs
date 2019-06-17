@@ -9975,6 +9975,8 @@ in
 
   gcab = callPackage ../development/libraries/gcab { };
 
+  gcovr = with python3Packages; toPythonApplication gcovr;
+
   gcr = callPackage ../development/libraries/gcr { };
 
   gdl = callPackage ../development/libraries/gdl { };
@@ -12021,7 +12023,6 @@ in
   openvdb = callPackage ../development/libraries/openvdb {};
 
   inherit (callPackages ../development/libraries/libressl { })
-    libressl_2_7
     libressl_2_8
     libressl_2_9;
 
@@ -14786,6 +14787,7 @@ in
 
     bcc = callPackage ../os-specific/linux/bcc {
       python = python3;
+      llvmPackages = llvmPackages_7;
     };
 
     bpftrace = callPackage ../os-specific/linux/bpftrace { };
@@ -15461,7 +15463,7 @@ in
     stdenv = crossLibcStdenv;
   };
 
-  eudev = callPackage ../os-specific/linux/eudev {};
+  eudev = callPackage ../os-specific/linux/eudev { utillinux = utillinuxMinimal; };
 
   libudev0-shim = callPackage ../os-specific/linux/libudev0-shim { };
 
@@ -17496,6 +17498,8 @@ in
   gitRepo = callPackage ../applications/version-management/git-repo {
     python = python27;
   };
+
+  git-quick-stats = callPackage ../development/tools/git-quick-stats {};
 
   git-review = callPackage ../applications/version-management/git-review { };
 
@@ -20041,13 +20045,15 @@ in
 
   vorbis-tools = callPackage ../applications/audio/vorbis-tools { };
 
-  vscode = callPackage ../applications/editors/vscode { };
+  vscode = callPackage ../applications/editors/vscode/vscode.nix { };
 
   vscode-with-extensions = callPackage ../applications/editors/vscode/with-extensions.nix {};
 
   vscode-utils = callPackage ../misc/vscode-extensions/vscode-utils.nix {};
 
   vscode-extensions = recurseIntoAttrs (callPackage ../misc/vscode-extensions {});
+
+  vscodium = callPackage ../applications/editors/vscode/vscodium.nix { };
 
   vue = callPackage ../applications/misc/vue { };
 
@@ -22599,7 +22605,8 @@ in
     nix
     nix1
     nixStable
-    nixUnstable;
+    nixUnstable
+    nixFlakes;
 
   nixops = callPackage ../tools/package-management/nixops { };
 
@@ -23420,4 +23427,7 @@ in
   newlibCross = callPackage ../development/misc/newlib {
     stdenv = crossLibcStdenv;
   };
+
+  wasmtime = callPackage ../development/interpreters/wasmtime {};
+
 }
