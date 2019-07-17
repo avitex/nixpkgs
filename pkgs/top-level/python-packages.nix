@@ -175,6 +175,8 @@ in {
 
   asana = callPackage ../development/python-modules/asana { };
 
+  asdf = callPackage ../development/python-modules/asdf { };
+
   asciimatics = callPackage ../development/python-modules/asciimatics { };
 
   asciitree = callPackage ../development/python-modules/asciitree { };
@@ -466,6 +468,8 @@ in {
 
   cliff = callPackage ../development/python-modules/cliff { };
 
+  clifford = callPackage ../development/python-modules/clifford { };
+
   clustershell = callPackage ../development/python-modules/clustershell { };
 
   cozy = callPackage ../development/python-modules/cozy { };
@@ -483,6 +487,8 @@ in {
   datamodeldict = callPackage ../development/python-modules/datamodeldict { };
 
   datasette = callPackage ../development/python-modules/datasette { };
+
+  datashader = callPackage ../development/python-modules/datashader { };
 
   dbf = callPackage ../development/python-modules/dbf { };
 
@@ -575,6 +581,8 @@ in {
   gin-config = callPackage ../development/python-modules/gin-config { };
 
   globus-sdk = callPackage ../development/python-modules/globus-sdk { };
+
+  glymur = callPackage ../development/python-modules/glymur { };
 
   glom = callPackage ../development/python-modules/glom { };
 
@@ -840,6 +848,8 @@ in {
 
   pydocumentdb = callPackage ../development/python-modules/pydocumentdb { };
 
+  pydy = callPackage ../development/python-modules/pydy { };
+
   pyexiv2 = disabledIf isPy3k (toPythonModule (callPackage ../development/python-modules/pyexiv2 {}));
 
   py3exiv2 = callPackage ../development/python-modules/py3exiv2 { };
@@ -851,6 +861,8 @@ in {
   pyftdi = callPackage ../development/python-modules/pyftdi { };
 
   pygame = callPackage ../development/python-modules/pygame { };
+
+  pygbm = callPackage ../development/python-modules/pygbm { };
 
   pygame_sdl2 = callPackage ../development/python-modules/pygame_sdl2 { };
 
@@ -1111,6 +1123,8 @@ in {
 
   statistics = callPackage ../development/python-modules/statistics { };
 
+  stumpy = callPackage ../development/python-modules/stumpy { };
+
   sumo = callPackage ../development/python-modules/sumo { };
 
   supervise_api = callPackage ../development/python-modules/supervise_api { };
@@ -1164,6 +1178,8 @@ in {
 
   yarg = callPackage ../development/python-modules/yarg { };
 
+  yt = callPackage ../development/python-modules/yt { };
+
   # packages defined here
 
   aafigure = callPackage ../development/python-modules/aafigure { };
@@ -1193,6 +1209,8 @@ in {
   aiofiles = callPackage ../development/python-modules/aiofiles { };
 
   aioh2 = callPackage ../development/python-modules/aioh2 { };
+
+  aioftp = callPackage ../development/python-modules/aioftp { };
 
   aiohttp = callPackage ../development/python-modules/aiohttp { };
 
@@ -1468,6 +1486,8 @@ in {
   cmarkgfm = callPackage ../development/python-modules/cmarkgfm { };
 
   circus = callPackage ../development/python-modules/circus {};
+
+  colorcet = callPackage ../development/python-modules/colorcet { };
 
   colorclass = callPackage ../development/python-modules/colorclass {};
 
@@ -1881,6 +1901,10 @@ in {
 
   pytest-aiohttp = callPackage ../development/python-modules/pytest-aiohttp { };
 
+  pytest-arraydiff = callPackage ../development/python-modules/pytest-arraydiff { };
+
+  pytest-astropy = callPackage ../development/python-modules/pytest-astropy { };
+
   pytest-benchmark = callPackage ../development/python-modules/pytest-benchmark { };
 
   pytestcache = callPackage ../development/python-modules/pytestcache { };
@@ -1895,6 +1919,8 @@ in {
 
   pytest-django = callPackage ../development/python-modules/pytest-django { };
 
+  pytest-doctestplus = callPackage ../development/python-modules/pytest-doctestplus { };
+
   pytest-faulthandler = callPackage ../development/python-modules/pytest-faulthandler { };
 
   pytest-fixture-config = callPackage ../development/python-modules/pytest-fixture-config { };
@@ -1905,6 +1931,8 @@ in {
 
   pytest-relaxed = callPackage ../development/python-modules/pytest-relaxed { };
 
+  pytest-remotedata = callPackage ../development/python-modules/pytest-remotedata { };
+
   pytest-sanic = callPackage ../development/python-modules/pytest-sanic { };
 
   pytest-flake8 = callPackage ../development/python-modules/pytest-flake8 { };
@@ -1913,7 +1941,11 @@ in {
 
   pytest-isort = callPackage ../development/python-modules/pytest-isort { };
 
+  pytest-mpl = callPackage ../development/python-modules/pytest-mpl { };
+
   pytest-mock = callPackage ../development/python-modules/pytest-mock { };
+
+  pytest-openfiles = callPackage ../development/python-modules/pytest-openfiles { };
 
   pytest-timeout = callPackage ../development/python-modules/pytest-timeout { };
 
@@ -1938,6 +1970,8 @@ in {
   pytest-services = callPackage ../development/python-modules/pytest-services { };
 
   pytest-shutil = callPackage ../development/python-modules/pytest-shutil { };
+
+  pytest-socket = callPackage ../development/python-modules/pytest-socket { };
 
   pytestcov = callPackage ../development/python-modules/pytest-cov { };
 
@@ -2088,6 +2122,8 @@ in {
   urllib3 = callPackage ../development/python-modules/urllib3 {};
 
   dropbox = callPackage ../development/python-modules/dropbox {};
+
+  drms = callPackage ../development/python-modules/drms { };
 
   ds4drv = callPackage ../development/python-modules/ds4drv {
     inherit (pkgs) fetchFromGitHub bluez;
@@ -2576,6 +2612,8 @@ in {
   sarge = callPackage ../development/python-modules/sarge { };
 
   subliminal = callPackage ../development/python-modules/subliminal {};
+
+  sunpy = callPackage ../development/python-modules/sunpy { };
 
   hyperlink = callPackage ../development/python-modules/hyperlink {};
 
@@ -3282,6 +3320,8 @@ in {
 
   isort = callPackage ../development/python-modules/isort {};
 
+  isoweek = callPackage ../development/python-modules/isoweek {};
+
   jabberbot = callPackage ../development/python-modules/jabberbot {};
 
   jedi = callPackage ../development/python-modules/jedi { };
@@ -3581,6 +3621,8 @@ in {
   mock-open = callPackage ../development/python-modules/mock-open { };
 
   mockito = callPackage ../development/python-modules/mockito { };
+
+  modeled = callPackage ../development/python-modules/modeled { };
 
   moderngl = callPackage ../development/python-modules/moderngl { };
 
@@ -3898,6 +3940,8 @@ in {
   parameterized = callPackage ../development/python-modules/parameterized { };
 
   paramz = callPackage ../development/python-modules/paramz { };
+
+  parfive = callPackage ../development/python-modules/parfive { };
 
   parsel = callPackage ../development/python-modules/parsel { };
 
@@ -5929,6 +5973,8 @@ in {
   flickrapi = callPackage ../development/python-modules/flickrapi { };
 
   aioesphomeapi = callPackage ../development/python-modules/aioesphomeapi { };
+
+  mwparserfromhell = callPackage ../development/python-modules/mwparserfromhell { };
 });
 
 in fix' (extends overrides packages)
