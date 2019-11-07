@@ -857,6 +857,8 @@ in
 
   genymotion = callPackage ../development/mobile/genymotion { };
 
+  gaia = callPackage ../development/libraries/gaia { };
+
   gamecube-tools = callPackage ../development/tools/gamecube-tools { };
 
   gams = callPackage ../tools/misc/gams (config.gams or {});
@@ -4659,6 +4661,8 @@ in
 
   libr3 = callPackage ../development/libraries/libr3 { };
 
+  libraspberrypi = callPackage ../development/libraries/libraspberrypi { };
+
   libsidplayfp = callPackage ../development/libraries/libsidplayfp { };
 
   libspf2 = callPackage ../development/libraries/libspf2 { };
@@ -5924,6 +5928,8 @@ in
 
   recordmydesktop = callPackage ../applications/video/recordmydesktop { };
 
+  rx = callPackage ../applications/graphics/rx { };
+
   gtk-recordmydesktop = callPackage ../applications/video/recordmydesktop/gtk.nix {
     jack2 = jack2Full;
   };
@@ -6629,6 +6635,8 @@ in
 
   tmate = callPackage ../tools/misc/tmate { };
 
+  tmate-ssh-server = callPackage ../servers/tmate-ssh-server { };
+
   tmpwatch = callPackage ../tools/misc/tmpwatch  { };
 
   tmux = callPackage ../tools/misc/tmux { };
@@ -6829,6 +6837,8 @@ in
   vacuum = callPackage ../applications/networking/instant-messengers/vacuum {};
 
   vampire = callPackage ../applications/science/logic/vampire {};
+
+  variety = callPackage ../applications/misc/variety {};
 
   vdmfec = callPackage ../applications/backup/vdmfec {};
 
@@ -7574,6 +7584,12 @@ in
   chez = callPackage ../development/compilers/chez {
     inherit (darwin) cctools;
   };
+
+  chez-srfi = callPackage ../development/chez-modules/chez-srfi { };
+
+  chez-mit = callPackage ../development/chez-modules/chez-mit { };
+
+  chez-scmutils = callPackage ../development/chez-modules/chez-scmutils { };
 
   clang = llvmPackages.clang;
   clang-manpages = llvmPackages.clang-manpages;
@@ -9336,6 +9352,8 @@ in
 
   kt = callPackage ../tools/misc/kt {};
 
+  argbash = callPackage ../development/tools/misc/argbash {};
+
   arpa2cm = callPackage ../development/tools/build-managers/arpa2cm { };
 
   asn2quickder = python2Packages.callPackage ../development/tools/asn2quickder {};
@@ -9934,6 +9952,8 @@ in
 
   kind = callPackage ../development/tools/kind {  };
 
+  khronos-ocl-icd-loader = callPackage ../development/libraries/khronos-ocl-icd-loader {  };
+
   kube-aws = callPackage ../development/tools/kube-aws { };
 
   kubectx = callPackage ../development/tools/kubectx { };
@@ -10285,6 +10305,8 @@ in
 
   sselp = callPackage ../tools/X11/sselp{ };
 
+  stm32cubemx = callPackage ../development/tools/misc/stm32cubemx { };
+
   stm32flash = callPackage ../development/tools/misc/stm32flash { };
 
   strace = callPackage ../development/tools/misc/strace { };
@@ -10621,6 +10643,8 @@ in
 
   box2d = callPackage ../development/libraries/box2d { };
 
+  boxfort = callPackage ../development/libraries/boxfort { };
+
   buddy = callPackage ../development/libraries/buddy { };
 
   bulletml = callPackage ../development/libraries/bulletml { };
@@ -10767,6 +10791,8 @@ in
   cracklib = callPackage ../development/libraries/cracklib { };
 
   cre2 = callPackage ../development/libraries/cre2 { };
+
+  criterion = callPackage ../development/libraries/criterion { };
 
   croaring = callPackage ../development/libraries/croaring { };
 
@@ -11875,7 +11901,10 @@ in
 
   libcbor = callPackage ../development/libraries/libcbor { };
 
-  libcec = callPackage ../development/libraries/libcec { };
+  libcec = callPackage ../development/libraries/libcec {
+    libraspberrypi = null;
+  };
+
   libcec_platform = callPackage ../development/libraries/libcec/platform.nix { };
 
   libcef = callPackage ../development/libraries/libcef { inherit (gnome2) GConf; };
@@ -15354,6 +15383,8 @@ in
     boost = boost155;
     inherit (pythonPackages) buildPythonPackage qpid-python;
   };
+
+  qremotecontrol-server = callPackage ../servers/misc/qremotecontrol-server { };
 
   quagga = callPackage ../servers/quagga { };
 
@@ -19609,6 +19640,8 @@ in
   };
 
   loxodo = callPackage ../applications/misc/loxodo { };
+
+  lsd2dsl = libsForQt5.callPackage ../applications/misc/lsd2dsl { };
 
   lrzsz = callPackage ../tools/misc/lrzsz { };
 
