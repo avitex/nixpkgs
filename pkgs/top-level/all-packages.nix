@@ -921,6 +921,8 @@ in
 
   detect-secrets = python3Packages.callPackage ../development/tools/detect-secrets { };
 
+  diskonaut = callPackage ../tools/misc/diskonaut { };
+
   diskus = callPackage ../tools/misc/diskus {
     inherit (darwin.apple_sdk.frameworks) Security;
   };
@@ -3877,6 +3879,8 @@ in
   google-music-scripts = callPackage ../tools/audio/google-music-scripts { };
 
   google-cloud-cpp = callPackage ../development/libraries/google-cloud-cpp { };
+
+  gdown = with python3Packages; toPythonApplication gdown;
 
   gopro = callPackage ../tools/video/gopro { };
 
