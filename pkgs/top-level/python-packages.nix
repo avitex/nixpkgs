@@ -1287,6 +1287,8 @@ in {
 
   pyres = callPackage ../development/python-modules/pyres { };
 
+  PyRMVtransport = callPackage ../development/python-modules/PyRMVtransport { };
+
   pyqt4 = callPackage ../development/python-modules/pyqt/4.x.nix {
     inherit (pkgs) pkgconfig;
   };
@@ -3502,6 +3504,8 @@ in {
   r2pipe = callPackage ../development/python-modules/r2pipe { };
 
   regex = callPackage ../development/python-modules/regex { };
+
+  pygrok = callPackage ../development/python-modules/pygrok { };
 
   regional = callPackage ../development/python-modules/regional { };
 

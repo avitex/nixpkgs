@@ -1042,6 +1042,20 @@ let
     };
   };
 
+  BeanstalkClient = buildPerlPackage {
+    pname = "Beanstalk-Client";
+    version = "1.07";
+    src = fetchurl {
+      url = "mirror://cpan/authors/id/G/GB/GBARR/Beanstalk-Client-1.07.tar.gz";
+      sha256 = "3188ab1127f2caba97df65c84f69db0ec70c64e5d70f296f9a2674fa79c112cc";
+    };
+    propagatedBuildInputs = [ ClassAccessor YAMLSyck ];
+    meta = {
+      description = "Client to communicate with beanstalkd server";
+      license = with stdenv.lib.licenses; [ artistic1 gpl1Plus ];
+    };
+  };
+
   BerkeleyDB = buildPerlPackage {
     pname = "BerkeleyDB";
     version = "0.63";
@@ -21773,6 +21787,7 @@ let
       url = "mirror://cpan/authors/id/T/TO/TODDR/YAML-Syck-1.32.tar.gz";
       sha256 = "1fz9r9vvsmjkzvcbznxw65b319vkmwzd0ck09q9nwip00gn907fv";
     };
+    perlPreHook = stdenv.lib.optionalString stdenv.isDarwin "export LD=$CC";
     meta = {
       description = "Fast, lightweight YAML loader and dumper";
       license = stdenv.lib.licenses.mit;

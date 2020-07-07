@@ -2388,6 +2388,8 @@ in
 
   bdsync = callPackage ../tools/backup/bdsync { };
 
+  beamerpresenter = libsForQt5.callPackage ../applications/office/beamerpresenter { };
+
   beanstalkd = callPackage ../servers/beanstalkd { };
 
   beets = callPackage ../tools/audio/beets {
@@ -10330,7 +10332,9 @@ in
 
   cmake-format = python3Packages.callPackage ../development/tools/cmake-format { };
 
-  cmake-language-server = python3Packages.callPackage ../development/tools/cmake-language-server { };
+  cmake-language-server = python3Packages.callPackage ../development/tools/cmake-language-server {
+    inherit (pkgs) cmake;
+  };
 
   # Does not actually depend on Qt 5
   inherit (kdeFrameworks) extra-cmake-modules kapidox kdoctools;
