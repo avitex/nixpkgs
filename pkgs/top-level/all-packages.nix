@@ -1873,6 +1873,12 @@ in
 
   futhark = haskell.lib.justStaticExecutables haskellPackages.futhark;
 
+  tllist = callPackage ../development/libraries/tllist { };
+
+  fcft = callPackage ../development/libraries/fcft { };
+
+  fuzzel = callPackage ../applications/misc/fuzzel { };
+
   fwup = callPackage ../tools/misc/fwup { };
 
   fx_cast_bridge = callPackage ../tools/misc/fx_cast { };
@@ -2558,15 +2564,19 @@ in
   circus = callPackage ../tools/networking/circus { };
 
   citrix_workspace_unwrapped = callPackage ../applications/networking/remote/citrix-workspace { };
+  citrix_workspace_unwrapped_20_06_0 = citrix_workspace_unwrapped.override { version = "20.06.0"; };
   citrix_workspace_unwrapped_20_04_0 = citrix_workspace_unwrapped.override { version = "20.04.0"; };
   citrix_workspace_unwrapped_19_12_0 = citrix_workspace_unwrapped.override { version = "19.12.0"; };
   citrix_workspace_unwrapped_19_10_0 = citrix_workspace_unwrapped.override { version = "19.10.0"; };
   citrix_workspace_unwrapped_19_8_0 = citrix_workspace_unwrapped.override { version = "19.8.0"; };
   citrix_workspace_unwrapped_19_6_0 = citrix_workspace_unwrapped.override { version = "19.6.0"; };
-  citrix_workspace_unwrapped_19_3_0 = citrix_workspace_unwrapped.override { version = "19.3.0"; };
 
-  citrix_workspace = callPackage ../applications/networking/remote/citrix-workspace/wrapper.nix {
-    citrix_workspace = citrix_workspace_unwrapped;
+  citrix_workspace = citrix_workspace_20_06_0;
+  citrix_workspace_20_06_0 = callPackage ../applications/networking/remote/citrix-workspace/wrapper.nix {
+    citrix_workspace = citrix_workspace_unwrapped_20_06_0;
+  };
+  citrix_workspace_20_04_0 = callPackage ../applications/networking/remote/citrix-workspace/wrapper.nix {
+    citrix_workspace = citrix_workspace_unwrapped_20_04_0;
   };
   citrix_workspace_19_12_0 = callPackage ../applications/networking/remote/citrix-workspace/wrapper.nix {
     citrix_workspace = citrix_workspace_unwrapped_19_12_0;
@@ -2579,9 +2589,6 @@ in
   };
   citrix_workspace_19_6_0 = callPackage ../applications/networking/remote/citrix-workspace/wrapper.nix {
     citrix_workspace = citrix_workspace_unwrapped_19_6_0;
-  };
-  citrix_workspace_19_3_0 = callPackage ../applications/networking/remote/citrix-workspace/wrapper.nix {
-    citrix_workspace = citrix_workspace_unwrapped_19_3_0;
   };
 
   citra = libsForQt5.callPackage ../misc/emulators/citra { };
@@ -3605,7 +3612,13 @@ in
 
   fprintd = callPackage ../tools/security/fprintd { };
 
-  franz = callPackage ../applications/networking/instant-messengers/franz { };
+  ferdi = callPackage ../applications/networking/instant-messengers/ferdi {
+    mkFranzDerivation = callPackage ../applications/networking/instant-messengers/franz/generic.nix { };
+  };
+
+  franz = callPackage ../applications/networking/instant-messengers/franz {
+    mkFranzDerivation = callPackage ../applications/networking/instant-messengers/franz/generic.nix { };
+  };
 
   freedroidrpg = callPackage ../games/freedroidrpg { };
 
@@ -10245,6 +10258,8 @@ in
   cask = callPackage ../development/tools/cask { };
 
   cbrowser = callPackage ../development/tools/misc/cbrowser { };
+
+  cc-tool = callPackage ../development/tools/misc/cc-tool { };
 
   ccache = callPackage ../development/tools/misc/ccache { };
 
@@ -17985,6 +18000,10 @@ in
   aileron = callPackage ../data/fonts/aileron { };
 
   albatross = callPackage ../data/themes/albatross { };
+
+  alegreya = callPackage ../data/fonts/alegreya { };
+
+  alegreya-sans = callPackage ../data/fonts/alegreya-sans { };
 
   amber-theme = callPackage ../data/themes/amber { };
 

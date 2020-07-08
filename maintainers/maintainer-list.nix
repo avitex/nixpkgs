@@ -1680,6 +1680,16 @@
     githubId = 1222362;
     name = "Matías Lang";
   };
+  CRTified = {
+    email = "carl.schneider+nixos@rub.de";
+    github = "CRTified";
+    githubId = 2440581;
+    name = "Carl Richard Theodor Schneider";
+    keys = [{
+      longkeyid = "rsa4096/0x45BCC1E2709B1788";
+      fingerprint = "2017 E152 BB81 5C16 955C  E612 45BC C1E2 709B 1788";
+    }];
+  };
   cryptix = {
     email = "cryptix@riseup.net";
     github = "cryptix";
@@ -2683,6 +2693,12 @@
       longkeyid = "rsa3072/0xA1BC8428323ECFE8";
       fingerprint = "F549 3B7F 9372 5578 FDD3  D0B8 A1BC 8428 323E CFE8";
     }];
+  };
+  fionera = {
+    email = "nix@fionera.de";
+    github = "fionera";
+    githubId = 5741401;
+    name = "Tim Windelschmidt";
   };
   FireyFly = {
     email = "nix@firefly.nu";
