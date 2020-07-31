@@ -1913,6 +1913,8 @@ in
 
   gdrive = callPackage ../applications/networking/gdrive { };
 
+  go-rice = callPackage ../tools/misc/go.rice {};
+
   go-2fa = callPackage ../tools/security/2fa {};
 
   go-dependency-manager = callPackage ../development/tools/gdm { };
@@ -7428,6 +7430,8 @@ in
 
   vcstool = callPackage ../development/tools/vcstool { };
 
+  vend = callPackage ../development/tools/vend { };
+
   verilator = callPackage ../applications/science/electronics/verilator {};
 
   verilog = callPackage ../applications/science/electronics/verilog {};
@@ -9635,6 +9639,8 @@ in
   dhall-bash = haskell.lib.justStaticExecutables haskellPackages.dhall-bash;
 
   dhall-json = haskell.lib.justStaticExecutables haskellPackages.dhall-json;
+
+  dhall-lsp-server = haskell.lib.justStaticExecutables haskellPackages.dhall-lsp-server;
 
   dhall-text = haskell.lib.justStaticExecutables haskellPackages.dhall-text;
 
