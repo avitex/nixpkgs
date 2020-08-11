@@ -5813,6 +5813,8 @@ in
 
   openjade = callPackage ../tools/text/sgml/openjade { };
 
+  openhantek6022 = libsForQt5.callPackage ../applications/science/electronics/openhantek6022 { };
+
   openimagedenoise = callPackage ../development/libraries/openimagedenoise { };
 
   openmvg = callPackage ../applications/science/misc/openmvg { };
@@ -9407,6 +9409,7 @@ in
   cargo-audit = callPackage ../tools/package-management/cargo-audit {
     inherit (darwin.apple_sdk.frameworks) Security;
   };
+  cargo-c = callPackage ../development/tools/rust/cargo-c { };
   cargo-deb = callPackage ../tools/package-management/cargo-deb {
     inherit (darwin.apple_sdk.frameworks) Security;
   };
