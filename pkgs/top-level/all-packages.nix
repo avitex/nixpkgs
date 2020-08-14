@@ -6917,6 +6917,8 @@ in
 
   stdman = callPackage ../data/documentation/stdman { };
 
+  steck = callPackage ../servers/pinnwand/steck.nix { };
+
   stenc = callPackage ../tools/backup/stenc { };
 
   stm32loader = with python3Packages; toPythonApplication stm32loader;
@@ -14623,9 +14625,9 @@ in
 
   libsForQt514 = recurseIntoAttrs (lib.makeScope qt514.newScope mkLibsForQt5);
 
-  # TODO bump to 5.12 on darwin once it's not broken
-  qt5 = qt514;
-  libsForQt5 = libsForQt514;
+  # TODO bump to 5.14 on darwin once it's not broken; see #95199
+  qt5 =        if stdenv.hostPlatform.isDarwin then qt512 else qt514;
+  libsForQt5 = if stdenv.hostPlatform.isDarwin then libsForQt512 else libsForQt514;
 
   qt5ct = libsForQt5.callPackage ../tools/misc/qt5ct { };
 
@@ -19684,8 +19686,6 @@ in
 
   dr14_tmeter = callPackage ../applications/audio/dr14_tmeter { };
 
-  draftsight = callPackage ../applications/graphics/draftsight { };
-
   dragonfly-reverb = callPackage ../applications/audio/dragonfly-reverb { };
 
   drawing = callPackage ../applications/graphics/drawing { };
@@ -24003,7 +24003,7 @@ in
 
   zcash = callPackage ../applications/blockchains/zcash { };
 
-  parity = callPackage ../applications/blockchains/parity { };
+  openethereum = callPackage ../applications/blockchains/openethereum { };
 
   parity-ui = callPackage ../applications/blockchains/parity-ui { };
 
