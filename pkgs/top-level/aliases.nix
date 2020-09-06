@@ -104,6 +104,7 @@ mapAliases ({
   deadbeef-mpris2-plugin = deadbeefPlugins.mpris2; # added 2018-02-23
   deadpixi-sam = deadpixi-sam-unstable;
   debian_devscripts = debian-devscripts; # added 2016-03-23
+  deepin = throw "deepin was a work in progress and it has been canceled and removed https://github.com/NixOS/nixpkgs/issues/94870"; # added 2020-08-31
   desktop_file_utils = desktop-file-utils; # added 2018-02-25
   devicemapper = lvm2; # added 2018-04-25
   digikam5 = digikam; # added 2017-02-18
@@ -187,11 +188,6 @@ mapAliases ({
   googleAuthenticator = google-authenticator; # added 2016-10-16
   grantlee5 = libsForQt5.grantlee;  # added 2015-12-19
   gsettings_desktop_schemas = gsettings-desktop-schemas; # added 2018-02-25
-  gst_plugins_bad = gst-plugins-bad;  # added 2017-02
-  gst_plugins_base = gst-plugins-base;  # added 2017-02
-  gst_plugins_good = gst-plugins-good;  # added 2017-02
-  gst_plugins_ugly = gst-plugins-ugly;  # added 2017-02
-  gst_python = gst-python;  # added 2017-02
   gtk_doc = gtk-doc; # added 2018-02-25
   guileCairo = guile-cairo; # added 2017-09-24
   guileGnome = guile-gnome; # added 2017-09-24
@@ -218,6 +214,7 @@ mapAliases ({
   jikes = throw "deprecated in 2019-10-07: jikes was abandoned by upstream";
   joseki = apache-jena-fuseki; # added 2016-02-28
   json_glib = json-glib; # added 2018-02-25
+  kdecoration-viewer = throw "kdecoration-viewer has been removed from nixpkgs, as there is no upstream activity"; # 2020-06-16
   kdiff3-qt5 = kdiff3; # added 2017-02-18
   keepass-keefox = keepass-keepassrpc; # backwards compatibility alias, added 2018-02
   keepassx-community = keepassxc; # added 2017-11
@@ -326,6 +323,7 @@ mapAliases ({
   nagiosPluginsOfficial = monitoring-plugins;
   ncat = nmap;  # added 2016-01-26
   netcat-openbsd = libressl.nc; # added 2018-04-25
+  netease-cloud-music = throw "netease-cloud-music has been removed together with deepin"; # added 2020-08-31
   networkmanager_fortisslvpn = networkmanager-fortisslvpn; # added 2018-02-25
   networkmanager_iodine = networkmanager-iodine; # added 2018-02-25
   networkmanager_l2tp = networkmanager-l2tp; # added 2018-02-25
@@ -456,6 +454,7 @@ mapAliases ({
   phonon = throw "Please use libsForQt5.phonon, as Qt4 support in this package has been removed."; # added 2019-11-22
   qca-qt5 = libsForQt5.qca-qt5;  # added 2015-12-19
   quake3game = ioquake3; # added 2016-01-14
+  qvim = throw "qvim has been removed."; # added 2020-08-31
   qwt6 = libsForQt5.qwt;  # added 2015-12-19
   qtpfsgui = throw "Is now luminanceHDR"; # added 2019-06-26
   quaternion-git = throw "quaternion-git has been removed in favor of the stable version 'quaternion'"; # added 2020-04-09
@@ -676,18 +675,6 @@ mapAliases ({
     ocamlPackages_4_00_1 ocamlPackages_4_01_0 ocamlPackages_4_02
     ocamlPackages_4_03
     ocamlPackages_latest;
-
-  gst_all = { # added 2018-04-25
-    inherit (pkgs) gstreamer gnonlin gst-python;
-    gstPluginsBase = pkgs.gst-plugins-base;
-    gstPluginsBad = pkgs.gst-plugins-bad;
-    gstPluginsGood = pkgs.gst-plugins-good;
-    gstPluginsUgly = pkgs.gst-plugins-ugly;
-    gst-plugins-base = pkgs.gst-plugins-base;
-    gst-plugins-bad = pkgs.gst-plugins-bad;
-    gst-plugins-good = pkgs.gst-plugins-good;
-    gst-plugins-ugly = pkgs.gst-plugins-ugly;
-  };
 
   # added 2019-08-01
   mumble_git = pkgs.mumble;

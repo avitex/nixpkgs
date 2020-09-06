@@ -173,6 +173,8 @@ let
 
     cryptokit = callPackage ../development/ocaml-modules/cryptokit { };
 
+    csexp = callPackage ../development/ocaml-modules/csexp { };
+
     cstruct =
       if lib.versionAtLeast ocaml.version "4.2"
       then callPackage ../development/ocaml-modules/cstruct {}
@@ -283,6 +285,8 @@ let
     faraday = callPackage ../development/ocaml-modules/faraday { };
 
     farfadet = callPackage ../development/ocaml-modules/farfadet { };
+
+    fdkaac = callPackage ../development/ocaml-modules/fdkaac { };
 
     fiat-p256 = callPackage ../development/ocaml-modules/fiat-p256 { };
 
@@ -753,6 +757,12 @@ let
     piqi = callPackage ../development/ocaml-modules/piqi { };
 
     piqi-ocaml = callPackage ../development/ocaml-modules/piqi-ocaml { };
+
+    posix-base = callPackage ../development/ocaml-modules/posix/base.nix { };
+
+    posix-socket = callPackage ../development/ocaml-modules/posix/socket.nix { };
+
+    posix-types = callPackage ../development/ocaml-modules/posix/types.nix { };
 
     ppxfind = callPackage ../development/ocaml-modules/ppxfind { };
 
