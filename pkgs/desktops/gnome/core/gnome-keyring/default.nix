@@ -21,7 +21,7 @@
 
 ### optionals
 
-, enableSshAgent ? true
+, enableSshAgent ? false
 , extraConfigureFlags ? []
 }:
 
