@@ -18,6 +18,11 @@
 , docbook-xsl-nons
 , docbook_xml_dtd_43
 , gnome
+
+### optionals
+
+, enableSshAgent ? true
+, extraConfigureFlags ? []
 }:
 
 stdenv.mkDerivation rec {
@@ -57,7 +62,9 @@ stdenv.mkDerivation rec {
   configureFlags = [
     "--with-pkcs11-config=${placeholder "out"}/etc/pkcs11/" # installation directories
     "--with-pkcs11-modules=${placeholder "out"}/lib/pkcs11/"
-  ];
+  ]
+  ++ lib.optional (!enableSshAgent) "--disable-ssh-agent"
+  ++ extraConfigureFlags;
 
   # Tends to fail non-deterministically.
   # - https://github.com/NixOS/nixpkgs/issues/55293
