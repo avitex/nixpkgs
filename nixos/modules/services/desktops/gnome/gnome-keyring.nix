@@ -34,6 +34,13 @@ with lib;
         '';
       };
 
+      package = mkOption {
+        description = "gnome-keyring package to use.";
+        type = types.package;
+        default = pkgs.gnome.gnome-keyring;
+        defaultText = "pkgs.gnome.gnome-keyring";
+      };
+
     };
 
   };
@@ -43,16 +50,16 @@ with lib;
 
   config = mkIf config.services.gnome.gnome-keyring.enable {
 
-    environment.systemPackages = [ pkgs.gnome.gnome-keyring ];
+    environment.systemPackages = [ options.package ];
 
-    services.dbus.packages = [ pkgs.gnome.gnome-keyring pkgs.gcr ];
+    services.dbus.packages = [ options.package pkgs.gcr ];
 
-    xdg.portal.extraPortals = [ pkgs.gnome.gnome-keyring ];
+    xdg.portal.extraPortals = [ options.package ];
 
     security.pam.services.login.enableGnomeKeyring = true;
 
     security.wrappers.gnome-keyring-daemon = {
-      source = "${pkgs.gnome.gnome-keyring}/bin/gnome-keyring-daemon";
+      source = "${options.package}/bin/gnome-keyring-daemon";
       capabilities = "cap_ipc_lock=ep";
     };
 
