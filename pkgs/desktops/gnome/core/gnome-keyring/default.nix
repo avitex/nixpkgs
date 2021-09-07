@@ -1,6 +1,7 @@
 { lib
 , stdenv
-, fetchurl
+#, fetchurl
+, fetchgit
 , pkg-config
 , dbus
 , libgcrypt
@@ -15,6 +16,7 @@
 , p11-kit
 , openssh
 , wrapGAppsHook
+, autoreconfHook
 , docbook-xsl-nons
 , docbook_xml_dtd_43
 , gnome
@@ -26,9 +28,15 @@ stdenv.mkDerivation rec {
 
   outputs = [ "out" "dev" ];
 
-  src = fetchurl {
-    url = "mirror://gnome/sources/gnome-keyring/${lib.versions.major version}/${pname}-${version}.tar.xz";
-    sha256 = "0cdrlcw814zayhvlaxqs1sm9bqlfijlp22dzzd0g5zg2isq4vlm3";
+  # src = fetchurl {
+  #   url = "mirror://gnome/sources/gnome-keyring/${lib.versions.major version}/${pname}-${version}.tar.xz";
+  #   sha256 = "0cdrlcw814zayhvlaxqs1sm9bqlfijlp22dzzd0g5zg2isq4vlm3";
+  # };
+
+  src = fetchgit {
+    url = "https://gitlab.gnome.org/avitex/gnome-keyring";
+    rev = "1f12d7acf9723db9fefc892b8b7423b00c7b14e6";
+    sha256 = "YYVh5RI6sHSSD/IbYpcLhXYFaGWQIRQtdnXdoPHjhNk=";
   };
 
   nativeBuildInputs = [
@@ -38,6 +46,7 @@ stdenv.mkDerivation rec {
     docbook-xsl-nons
     docbook_xml_dtd_43
     wrapGAppsHook
+    autoreconfHook
   ];
 
   buildInputs = [
@@ -65,7 +74,12 @@ stdenv.mkDerivation rec {
   doCheck = false;
 
   postPatch = ''
+    patchShebangs autogen.sh
     patchShebangs build
+  '';
+
+  autoreconfPhase = ''
+    sh autogen.sh
   '';
 
   checkPhase = ''

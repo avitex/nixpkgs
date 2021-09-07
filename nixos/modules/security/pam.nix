@@ -318,6 +318,14 @@ let
         '';
       };
 
+      gnomeKeyringComponents = mkOption {
+        default = "pkcs11,secrets";
+        type = types.string;
+        description = ''
+          TODO
+        '';
+      };
+
       gnupg = {
         enable = mkOption {
           type = types.bool;
@@ -433,7 +441,7 @@ let
                 ("auth optional ${pkgs.plasma5Packages.kwallet-pam}/lib/security/pam_kwallet5.so" +
                  " kwalletd=${pkgs.plasma5Packages.kwallet.bin}/bin/kwalletd5")}
               ${optionalString cfg.enableGnomeKeyring
-                "auth optional ${pkgs.gnome.gnome-keyring}/lib/security/pam_gnome_keyring.so"}
+                "auth optional ${pkgs.gnome.gnome-keyring}/lib/security/pam_gnome_keyring.so components=${cfg.gnomeKeyringComponents}"}
               ${optionalString cfg.gnupg.enable
                 "auth optional ${pkgs.pam_gnupg}/lib/security/pam_gnupg.so"
                 + optionalString cfg.gnupg.storeOnly " store-only"
@@ -471,11 +479,11 @@ let
           ${optionalString config.krb5.enable
               "password sufficient ${pam_krb5}/lib/security/pam_krb5.so use_first_pass"}
           ${optionalString cfg.enableGnomeKeyring
-              "password optional ${pkgs.gnome.gnome-keyring}/lib/security/pam_gnome_keyring.so use_authtok"}
+              "password optional ${pkgs.gnome.gnome-keyring}/lib/security/pam_gnome_keyring.so use_authtok components=${cfg.gnomeKeyringComponents}"}
 
           # Session management.
           ${optionalString cfg.setEnvironment ''
-            session required pam_env.so conffile=/etc/pam/environment readenv=0
+            session required pam_env.so conffile=${config.system.build.pamEnvironment} readenv=0
           ''}
           session required pam_unix.so
           ${optionalString cfg.setLoginUid
@@ -512,7 +520,7 @@ let
               ("session optional ${pkgs.plasma5Packages.kwallet-pam}/lib/security/pam_kwallet5.so" +
                " kwalletd=${pkgs.plasma5Packages.kwallet.bin}/bin/kwalletd5")}
           ${optionalString (cfg.enableGnomeKeyring)
-              "session optional ${pkgs.gnome.gnome-keyring}/lib/security/pam_gnome_keyring.so auto_start"}
+              "session optional ${pkgs.gnome.gnome-keyring}/lib/security/pam_gnome_keyring.so auto_start components=${cfg.gnomeKeyringComponents}"}
           ${optionalString cfg.gnupg.enable
               "session optional ${pkgs.pam_gnupg}/lib/security/pam_gnupg.so"
               + optionalString cfg.gnupg.noAutostart " no-autostart"
@@ -828,7 +836,7 @@ in
       };
       challengeResponsePath = mkOption {
         default = null;
-        type = types.nullOr types.path;
+        type = types.path;
         description = ''
           If not null, set the path used by yubico pam module where the challenge expected response is stored.
 
