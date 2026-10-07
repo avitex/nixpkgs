@@ -1,23 +1,24 @@
-{ lib
-, stdenvNoCC
-, fetchFromGitHub
-, nix-update-script
-, gettext
-, meson
-, ninja
-, python3
-, sassc
+{
+  lib,
+  stdenvNoCC,
+  fetchFromGitHub,
+  nix-update-script,
+  gettext,
+  meson,
+  ninja,
+  python3,
+  sassc,
 }:
 
 stdenvNoCC.mkDerivation rec {
   pname = "elementary-gtk-theme";
-  version = "7.3.0";
+  version = "8.2.2";
 
   src = fetchFromGitHub {
     owner = "elementary";
     repo = "stylesheet";
     rev = version;
-    sha256 = "sha256-KrpeDQH43n7seeSPVYKETxy1g0JuUowZerjgktLQg/4=";
+    sha256 = "sha256-ZjeufUC3Eg1do3GKN1kW/EceuWfAsFnOkSCmscL+vxg=";
   };
 
   nativeBuildInputs = [
@@ -37,11 +38,11 @@ stdenvNoCC.mkDerivation rec {
     updateScript = nix-update-script { };
   };
 
-  meta = with lib; {
+  meta = {
     description = "GTK theme designed to be smooth, attractive, fast, and usable";
     homepage = "https://github.com/elementary/stylesheet";
-    license = licenses.gpl3Plus;
-    platforms = platforms.linux;
-    maintainers = teams.pantheon.members;
+    license = lib.licenses.gpl3Plus;
+    platforms = lib.platforms.linux;
+    teams = [ lib.teams.pantheon ];
   };
 }

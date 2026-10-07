@@ -1,31 +1,28 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-# build inputs
-, tqdm
-, portalocker
-, boto3
-# check inputs
-, pytestCheckHook
-, torch
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  # build inputs
+  tqdm,
+  portalocker,
+  boto3,
+  # check inputs
+  pytestCheckHook,
+  torch,
 }:
 let
   pname = "iopath";
-  version = "0.1.9";
+  version = "0.1.10";
 in
 buildPythonPackage {
   inherit pname version;
   format = "setuptools";
 
-  disabled = pythonOlder "3.10";
-
   src = fetchFromGitHub {
     owner = "facebookresearch";
     repo = "iopath";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-Qubf/mWKMgYz9IVoptMZrwy4lQKsNGgdqpJB1j/u5s8=";
+    tag = "v${version}";
+    hash = "sha256-vJV0c+dCFO0wOHahKJ8DbwT2Thx3YjkNLVSpQv9H69g=";
   };
 
   propagatedBuildInputs = [
@@ -50,19 +47,17 @@ buildPythonPackage {
     "tests/async_writes_test.py"
   ];
 
-  pythonImportsCheck = [
-    "iopath"
-  ];
+  pythonImportsCheck = [ "iopath" ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     aws = [ boto3 ];
   };
 
-  meta = with lib; {
-    description = "A python library that provides common I/O interface across different storage backends.";
+  meta = {
+    description = "Python library that provides common I/O interface across different storage backends";
     homepage = "https://github.com/facebookresearch/iopath";
     changelog = "https://github.com/facebookresearch/iopath/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ happysalada ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ happysalada ];
   };
 }

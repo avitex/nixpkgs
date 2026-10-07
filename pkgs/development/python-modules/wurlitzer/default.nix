@@ -1,39 +1,36 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "wurlitzer";
-  version = "3.0.3";
-  format = "setuptools";
+  version = "3.1.1";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-Ik9f5wYYvjhywF393IxFcZHsGHBlRZYnn8we2t6+Pls=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-v7kUSrnwJIfYArn/idvT+jgtCPc+EtuK3EwvsAzTm9k=";
   };
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  build-system = [ setuptools ];
 
-  pythonImportsCheck = [
-    "wurlitzer"
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pytestFlagsArray = [
-    "test.py"
-  ];
+  pythonImportsCheck = [ "wurlitzer" ];
 
-  meta = with lib; {
+  enabledTestPaths = [ "test.py" ];
+
+  meta = {
     description = "Capture C-level output in context managers";
     homepage = "https://github.com/minrk/wurlitzer";
-    changelog = "https://github.com/minrk/wurlitzer/blob/{version}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/minrk/wurlitzer/blob/${finalAttrs.version}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
-}
+})

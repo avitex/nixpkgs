@@ -1,69 +1,92 @@
-{ lib
-, stdenv
-, buildGoModule
-, fetchFromGitHub
-, php
-, testers
-, frankenphp
-, darwin
-, pkg-config
-, makeBinaryWrapper
-, runCommand
-, writeText
+{
+  lib,
+  stdenv,
+  buildGoModule,
+  fetchFromGitHub,
+  php,
+  brotli,
+  watcher,
+  cctools,
+  darwin,
+  libiconv,
+  pkg-config,
+  makeBinaryWrapper,
+  runCommand,
+  writeText,
+  versionCheckHook,
 }:
 
 let
   phpEmbedWithZts = php.override {
     embedSupport = true;
     ztsSupport = true;
-    staticSupport = stdenv.isDarwin;
+    staticSupport = stdenv.hostPlatform.isDarwin;
     zendSignalsSupport = false;
-    zendMaxExecutionTimersSupport = stdenv.isLinux;
+    zendMaxExecutionTimersSupport = stdenv.hostPlatform.isLinux;
   };
   phpUnwrapped = phpEmbedWithZts.unwrapped;
   phpConfig = "${phpUnwrapped.dev}/bin/php-config";
   pieBuild = stdenv.hostPlatform.isMusl;
-in buildGoModule rec {
+in
+buildGoModule (finalAttrs: {
   pname = "frankenphp";
-  version = "1.0.3";
+  version = "1.12.7";
 
   src = fetchFromGitHub {
-    owner = "dunglas";
+    owner = "php";
     repo = "frankenphp";
-    rev = "v${version}";
-    hash = "sha256-DNU127IZ+lw2+NqzrU07ioJKCjjCsnqgS+cqUlX7TUw=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-UDxtI/+QSBRLZouHD3Lxdg4GFpU8tqybyPMvWpP/FA0=";
   };
 
-  sourceRoot = "source/caddy";
+  sourceRoot = "${finalAttrs.src.name}/caddy";
 
   # frankenphp requires C code that would be removed with `go mod tidy`
   # https://github.com/golang/go/issues/26366
   proxyVendor = true;
-  vendorHash = "sha256-ZkbhpY8+BSTSdzQGsvXUfTBdTPUvQ8tHjbnr0lYho5I=";
+  vendorHash = "sha256-RXD7mJIV7cgo1YG8ECepuWtvIiOHbcZ1by/noaQZVFI=";
 
-  buildInputs = [ phpUnwrapped ] ++ phpUnwrapped.buildInputs;
-  nativeBuildInputs = [ makeBinaryWrapper ] ++ lib.optionals stdenv.isDarwin [ pkg-config darwin.cctools darwin.autoSignDarwinBinariesHook ];
+  buildInputs = [
+    phpUnwrapped
+    brotli
+    watcher
+  ]
+  ++ phpUnwrapped.buildInputs;
+  nativeBuildInputs = [
+    makeBinaryWrapper
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
+    pkg-config
+    cctools
+    darwin.autoSignDarwinBinariesHook
+    libiconv
+  ];
 
   subPackages = [ "frankenphp" ];
 
-  tags = [ "cgo" "netgo" "ousergo" "static_build" ];
+  tags = [
+    "cgo"
+    "netgo"
+    "ousergo"
+    "static_build"
+    "nobadger"
+    "nomysql"
+    "nopgx"
+  ];
 
   ldflags = [
     "-s"
     "-w"
-    "-X 'github.com/caddyserver/caddy/v2.CustomVersion=FrankenPHP ${version} PHP ${phpUnwrapped.version} Caddy'"
-    # pie mode is only available with pkgsMusl, it also automaticaly add -buildmode=pie to $GOFLAGS
-  ]  ++ (lib.optional pieBuild [ "-static-pie" ]);
+    "-X 'github.com/caddyserver/caddy/v2.CustomVersion=FrankenPHP ${finalAttrs.version} PHP ${phpUnwrapped.version} Caddy'"
+    # pie mode is only available with pkgsMusl, it also automatically add -buildmode=pie to $GOFLAGS
+  ]
+  ++ (lib.optionals pieBuild [ "-static-pie" ]);
 
   preBuild = ''
     export CGO_CFLAGS="$(${phpConfig} --includes)"
-    export CGO_LDFLAGS="-DFRANKENPHP_VERSION=${version} \
+    export CGO_LDFLAGS="-DFRANKENPHP_VERSION=${finalAttrs.version} \
       $(${phpConfig} --ldflags) \
       $(${phpConfig} --libs)"
-  '' + lib.optionalString stdenv.isDarwin ''
-    # replace hard-code homebrew path
-    substituteInPlace ../frankenphp.go \
-      --replace "-L/opt/homebrew/opt/libiconv/lib" "-L${darwin.libiconv}/lib"
   '';
 
   preFixup = ''
@@ -75,32 +98,34 @@ in buildGoModule rec {
 
   doCheck = false;
 
+  nativeInstallCheckInputs = [ versionCheckHook ];
+  versionCheckProgramArg = "version";
+  doInstallCheck = true;
+
   passthru = {
     php = phpEmbedWithZts;
     tests = {
       # TODO: real NixOS test with Symfony application
-      version = testers.testVersion {
-        inherit version;
-        package = frankenphp;
-        command = "frankenphp version";
-      };
-      phpinfo = runCommand "php-cli-phpinfo" {
-        phpScript = writeText "phpinfo.php" ''
-          <?php phpinfo();
-        '';
-      } ''
-        ${lib.getExe frankenphp} php-cli $phpScript > $out
-      '';
+      phpinfo =
+        runCommand "php-cli-phpinfo"
+          {
+            phpScript = writeText "phpinfo.php" ''
+              <?php phpinfo();
+            '';
+          }
+          ''
+            ${lib.getExe finalAttrs.finalPackage} php-cli $phpScript > $out
+          '';
     };
   };
 
-  meta = with lib; {
-    changelog = "https://github.com/dunglas/frankenphp/releases/tag/v${version}";
-    description = "The modern PHP app server";
-    homepage = "https://github.com/dunglas/frankenphp";
-    license = licenses.mit;
+  meta = {
+    changelog = "https://github.com/php/frankenphp/releases/tag/v${finalAttrs.version}";
+    description = "Modern PHP app server";
+    homepage = "https://github.com/php/frankenphp";
+    license = lib.licenses.mit;
     mainProgram = "frankenphp";
-    maintainers = with maintainers; [ gaelreyrol shyim ];
-    platforms = platforms.linux ++ platforms.darwin;
+    maintainers = [ lib.maintainers.piotrkwiecinski ];
+    platforms = lib.platforms.linux ++ lib.platforms.darwin;
   };
-}
+})

@@ -1,28 +1,40 @@
-{ lib, buildPythonPackage, fetchPypi, msrest
-, mock
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  msrest,
+  mock,
 }:
 
-buildPythonPackage rec {
-  version = "1.0.2";
-  format = "setuptools";
+buildPythonPackage (finalAttrs: {
   pname = "vsts-cd-manager";
+  version = "1.0.2";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
-    sha256 = "0ys4hrmjbxl4qr26qr3dhhs27yfwn1635vwjdqh1qgjmrmcr1c0b";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-C7CQWc1VPhwgbpLvMkyw3PkjNIRtZGxExoT2JWuGRHs=";
   };
 
-  propagatedBuildInputs = [ msrest mock ];
+  build-system = [ setuptools ];
+
+  dependencies = [
+    msrest
+    mock
+  ];
 
   # no tests included
   doCheck = false;
 
   pythonImportsCheck = [ "vsts_cd_manager" ];
 
-  meta = with lib; {
+  meta = {
     description = "Microsoft Azure API Management Client Library for Python";
     homepage = "https://github.com/Azure/azure-sdk-for-python";
-    license = licenses.mit;
-    maintainers = with maintainers; [ jonringer ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
-}
+})

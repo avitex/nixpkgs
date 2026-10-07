@@ -1,31 +1,33 @@
-{ lib, stdenv, hare, hareThirdParty, fetchFromSourcehut }:
+{
+  fetchFromSourcehut,
+  hareHook,
+  lib,
+  stdenv,
+}:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "hare-ssh";
-  version = "unstable-2023-11-16";
+  version = "0.26.0";
 
   src = fetchFromSourcehut {
     owner = "~sircmpwn";
     repo = "hare-ssh";
-    rev = "c6a39e37ba4a42721594e0a907fe016f8e2198a8";
-    hash = "sha256-I43TLPoImBsvkgV3hDy9dw0pXVt4ezINnxFtEV9P2/M=";
+    tag = finalAttrs.version;
+    hash = "sha256-msPY8m7/GDKsGDrhZ1IK65U+6fcI26FW9CONC4w87Pg=";
   };
 
-  nativeBuildInputs = [ hare ];
+  nativeBuildInputs = [ hareHook ];
 
-  makeFlags = [
-    "PREFIX=${builtins.placeholder "out"}"
-    "HARECACHE=.harecache"
-  ];
+  makeFlags = [ "PREFIX=${placeholder "out"}" ];
 
   doCheck = true;
 
-  meta = with lib; {
+  meta = {
     homepage = "https://git.sr.ht/~sircmpwn/hare-ssh/";
     description = "SSH client & server protocol implementation for Hare";
-    license = with licenses; [ mpl20 ];
-    maintainers = with maintainers; [ patwid ];
+    license = lib.licenses.mpl20;
+    maintainers = with lib.maintainers; [ patwid ];
 
-    inherit (hare.meta) platforms badPlatforms;
+    inherit (hareHook.meta) platforms badPlatforms;
   };
 })

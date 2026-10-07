@@ -1,4 +1,11 @@
-{ lib, stdenv, buildPythonPackage, fetchPypi, unittestCheckHook, html-tidy }:
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchPypi,
+  unittestCheckHook,
+  html-tidy,
+}:
 
 buildPythonPackage rec {
   pname = "pytidylib";
@@ -24,10 +31,10 @@ buildPythonPackage rec {
 
   nativeCheckInputs = [ unittestCheckHook ];
 
-  meta = with lib; {
+  meta = {
     description = "Python wrapper for HTML Tidy (tidylib) on Python 2 and 3";
     homepage = "https://countergram.github.io/pytidylib/";
-    license = licenses.mit;
-    maintainers = with maintainers; [ layus ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ layus ];
   };
 }

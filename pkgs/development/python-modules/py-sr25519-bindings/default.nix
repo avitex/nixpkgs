@@ -1,32 +1,29 @@
-{ lib
-, fetchFromGitHub
-, fetchpatch
-, buildPythonPackage
-, pythonOlder
-, pytestCheckHook
-, rustPlatform
-, stdenv
-, py-bip39-bindings
-, libiconv }:
+{
+  lib,
+  fetchFromGitHub,
+  buildPythonPackage,
+  pytestCheckHook,
+  rustPlatform,
+  stdenv,
+  py-bip39-bindings,
+  libiconv,
+}:
 
 buildPythonPackage rec {
   pname = "py-sr25519-bindings";
-  version = "unstable-2023-03-15";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.6";
+  version = "0.2.4";
+  pyproject = true;
 
   src = fetchFromGitHub {
-    owner = "polkascan";
-    repo = "py-sr25519-bindings";
-    rev = "9127501235bf291d7f14f00ec373d0a5000a32cb";
-    hash = "sha256-mxNmiFvMbV9WQhGNIQXxTkOcJHYs0vyOPM6Nd5367RE=";
+    owner = "JAMdotTech";
+    repo = "py-sr25519";
+    tag = "v${version}";
+    hash = "sha256-kCOmmzCCR363J5pYJ99BDUhUWeYniMf+e+NJByRnl+c=";
   };
 
-  cargoDeps = rustPlatform.fetchCargoTarball {
-    inherit src;
-    name = "${pname}-${version}";
-    hash = "sha256-7fDlEYWOiRVpG3q0n3ZSS1dfNCOh0/4pX/PbcDBvoMI=";
+  cargoDeps = rustPlatform.fetchCargoVendor {
+    inherit pname version src;
+    hash = "sha256-3snEx0rpMBRnuWt5WfTWrQkTC9fTsHh6zS4ChaRjVKg=";
   };
 
   nativeBuildInputs = with rustPlatform; [
@@ -34,25 +31,25 @@ buildPythonPackage rec {
     maturinBuildHook
   ];
 
-  buildInputs = lib.optionals stdenv.isDarwin [ libiconv ];
+  buildInputs = lib.optionals stdenv.hostPlatform.isDarwin [ libiconv ];
 
   nativeCheckInputs = [
     pytestCheckHook
     py-bip39-bindings
   ];
 
-  pytestFlagsArray = [
-    "tests.py"
-  ];
+  enabledTestPaths = [ "tests.py" ];
 
-  pythonImportsCheck = [
-    "sr25519"
-  ];
+  pythonImportsCheck = [ "sr25519" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python bindings for sr25519 library";
-    homepage = "https://github.com/polkascan/py-sr25519-bindings";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ onny stargate01 ];
+    homepage = "https://github.com/JAMdotTech/py-sr25519";
+    changelog = "https://github.com/JAMdotTech/py-sr25519/releases/tag/${src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [
+      onny
+      stargate01
+    ];
   };
 }

@@ -1,51 +1,49 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, pythonRelaxDepsHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# build-system
-, pdm-backend
+  # build-system
+  pdm-backend,
 
-# native dependencies
-, glibcLocales
-, git
-, pandoc
-, typogrify
+  # native dependencies
+  glibcLocales,
+  git,
+  pandoc,
+  typogrify,
 
-# dependencies
-, backports-zoneinfo
-, blinker
-, docutils
-, feedgenerator
-, jinja2
-, markdown
-, ordered-set
-, pygments
-, python-dateutil
-, rich
-, tzdata
-, unidecode
-, watchfiles
+  # dependencies
+  blinker,
+  docutils,
+  feedgenerator,
+  jinja2,
+  markdown,
+  ordered-set,
+  pygments,
+  python-dateutil,
+  rich,
+  tzdata,
+  unidecode,
+  watchfiles,
 
-# tests
-, mock
-, pytestCheckHook
-, pytest-xdist
+  # tests
+  beautifulsoup4,
+  lxml,
+  mock,
+  pytestCheckHook,
+  pytest-xdist,
 }:
 
 buildPythonPackage rec {
   pname = "pelican";
-  version = "4.9.1";
+  version = "4.12.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "getpelican";
     repo = "pelican";
-    rev = "refs/tags/${version}";
-    hash = "sha256-nz2OnxJ4mGgnafz4Xp8K/BTyVgXNpNYqteNL1owP8Hk=";
+    tag = version;
+    hash = "sha256-g/wm4ZA4KBMnvpe58ZQ7lTUBF6PywC4IivmBBco4F00=";
     # Remove unicode file names which leads to different checksums on HFS+
     # vs. other filesystems because of unicode normalisation.
     postFetch = ''
@@ -55,17 +53,12 @@ buildPythonPackage rec {
 
   postPatch = ''
     substituteInPlace pelican/tests/test_pelican.py \
-      --replace "'git'" "'${git}/bin/git'"
+      --replace-fail "\"git\"" "'${git}/bin/git'"
   '';
 
-  nativeBuildInputs = [
-    pdm-backend
-    pythonRelaxDepsHook
-  ];
+  build-system = [ pdm-backend ];
 
-  pythonRelaxDeps = [
-    "unidecode"
-  ];
+  pythonRelaxDeps = [ "pygments" ];
 
   buildInputs = [
     glibcLocales
@@ -75,7 +68,7 @@ buildPythonPackage rec {
     typogrify
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     blinker
     docutils
     feedgenerator
@@ -87,20 +80,20 @@ buildPythonPackage rec {
     tzdata
     unidecode
     watchfiles
-  ] ++ lib.optionals (pythonOlder "3.9") [
-    backports-zoneinfo
   ];
+
+  optional-dependencies = {
+    markdown = [ markdown ];
+  };
 
   nativeCheckInputs = [
+    beautifulsoup4
+    git
+    lxml
     mock
+    pandoc
     pytest-xdist
     pytestCheckHook
-    pandoc
-  ];
-
-  pytestFlagsArray = [
-    # DeprecationWarning: 'jinja2.Markup' is deprecated and...
-    "-W ignore::DeprecationWarning"
   ];
 
   disabledTests = [
@@ -123,10 +116,13 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "pelican" ];
 
-  meta = with lib; {
+  meta = {
     description = "Static site generator that requires no database or server-side logic";
     homepage = "https://getpelican.com/";
-    license = licenses.agpl3;
-    maintainers = with maintainers; [ offline prikhi ];
+    changelog = "https://github.com/getpelican/pelican/blob/${src.tag}/docs/changelog.rst";
+    license = lib.licenses.agpl3Only;
+    maintainers = with lib.maintainers; [
+      prikhi
+    ];
   };
 }

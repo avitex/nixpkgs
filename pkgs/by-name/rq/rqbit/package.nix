@@ -1,36 +1,113 @@
-{ lib, stdenv, rustPlatform, fetchFromGitHub, pkg-config, openssl, darwin }:
-
-rustPlatform.buildRustPackage rec {
+{
+  lib,
+  stdenv,
+  rustPlatform,
+  fetchFromGitHub,
+  installShellFiles,
+  pkg-config,
+  openssl,
+  buildNpmPackage,
+  nodejs,
+  nix-update-script,
+  nixosTests,
+  versionCheckHook,
+}:
+let
   pname = "rqbit";
-  version = "5.4.2";
+
+  version = "9.0.1";
 
   src = fetchFromGitHub {
     owner = "ikatson";
     repo = "rqbit";
     rev = "v${version}";
-    hash = "sha256-ZC68RQi0UcdALKVgwRUyO0+ZmKtGMjudYQabsAnghzg=";
+    hash = "sha256-biF8AtHl2aYdxmuu0UNqN3Id2R0WoCOb5nKpdhCnKNY=";
   };
 
-  cargoLock = {
-    lockFile = ./Cargo.lock;
-    outputHashes = {
-      "network-interface-1.1.1" = "sha256-9fWdR5nr73oFP9FzHhDsbA4ifQf3LkzBygspxI9/ufs=";
+  rqbit-webui = buildNpmPackage {
+    pname = "rqbit-webui";
+
+    inherit version src nodejs;
+
+    npmWorkspace = [ "crates/librqbit/webui" ];
+
+    npmDepsHash = "sha256-4q8u2B3HB19mBaEAVl9EDtt38e8aYHpUMADNaT98P7M=";
+
+    installPhase = ''
+      runHook preInstall
+
+      mkdir -p $out/dist
+      cp -r ./crates/librqbit/webui/dist/** $out/dist
+
+      runHook postInstall
+    '';
+  };
+in
+rustPlatform.buildRustPackage {
+  inherit pname version src;
+
+  cargoHash = "sha256-BnHAv1PnsNmqVNxiA7KRHvl89cHISUMhITQ8DZu73zA=";
+
+  nativeBuildInputs = [
+    installShellFiles
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isLinux [ pkg-config ];
+
+  buildInputs = lib.optionals stdenv.hostPlatform.isLinux [ openssl ];
+
+  preConfigure = ''
+    mkdir -p crates/librqbit/webui/dist
+    cp -R ${rqbit-webui}/dist/** crates/librqbit/webui/dist
+  '';
+
+  postPatch = ''
+    # This script fascilitates the build of the webui,
+    #  we've already built that
+    rm crates/librqbit/build.rs
+  '';
+
+  postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
+    for shell in bash fish zsh; do
+      installShellCompletion --cmd rqbit --$shell <($out/bin/rqbit completions $shell)
+    done
+  '';
+
+  nativeInstallCheckInputs = [
+    versionCheckHook
+  ];
+  doInstallCheck = true;
+
+  checkFlags = [
+    # skip these tests since they require internet access
+    "--skip=tests::e2e::test_e2e_download_tcp"
+    "--skip=tests::e2e::test_e2e_download_utp"
+    "--skip=tests::e2e_stream::test_e2e_stream"
+    "--skip=upnp_server_adapter::tests::test_browse"
+  ];
+
+  # required by test `read_buf::tests::can_read_long_metainfo_correctlyv` in `aarch64-darwin`(sandbox=relaxed)
+  __darwinAllowLocalNetworking = true;
+
+  passthru = {
+    webui = rqbit-webui;
+    updateScript = nix-update-script {
+      extraArgs = [
+        "--subpackage"
+        "webui"
+      ];
     };
+    tests.testService = nixosTests.rqbit;
   };
 
-  nativeBuildInputs = lib.optionals stdenv.isLinux [ pkg-config ];
-
-  buildInputs = lib.optionals stdenv.isLinux [ openssl ]
-    ++ lib.optionals stdenv.isDarwin [ darwin.apple_sdk.frameworks.SystemConfiguration ];
-
-  doCheck = false;
-
-  meta = with lib; {
-    description = "A bittorrent client in Rust";
+  meta = {
+    description = "Bittorrent client in Rust";
     homepage = "https://github.com/ikatson/rqbit";
     changelog = "https://github.com/ikatson/rqbit/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ marsam ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [
+      cafkafk
+      toasteruwu
+    ];
     mainProgram = "rqbit";
   };
 }

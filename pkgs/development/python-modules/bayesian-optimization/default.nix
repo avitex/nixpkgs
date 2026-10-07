@@ -1,46 +1,71 @@
-{ stdenv
-, lib
-, buildPythonPackage
-, fetchFromGitHub
-, scikit-learn
-, scipy
-, colorama
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  uv-build,
+
+  # dependencies
+  scikit-learn,
+  numpy,
+  scipy,
+  colorama,
+  packaging,
+
+  # tests
+  jupyter,
+  matplotlib,
+  nbconvert,
+  nbformat,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "bayesian-optimization";
-  version = "1.4.3";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "3.4.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "bayesian-optimization";
     repo = "BayesianOptimization";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-Bp/ZhVSW5lTGwnsd/doOXu++Gxw/51owCfMm96Qmgd4=";
+    tag = "v${version}";
+    hash = "sha256-LaOTjVFWl5IbILBIT66+olzbiuqYeXd0zuHuezLnXoc=";
   };
 
-  propagatedBuildInputs = [
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail "uv_build>=0.7.21,<0.8.0" "uv_build"
+  '';
+
+  build-system = [ uv-build ];
+
+  dependencies = [
     scikit-learn
+    numpy
     scipy
     colorama
+    packaging
   ];
 
-  nativeCheckInputs = [ pytestCheckHook ];
+  nativeCheckInputs = [
+    jupyter
+    matplotlib
+    nbconvert
+    nbformat
+    pytestCheckHook
+  ];
 
   pythonImportsCheck = [ "bayes_opt" ];
 
-  meta = with lib; {
-    broken = stdenv.isLinux && stdenv.isAarch64;
-    description = ''
-      A Python implementation of global optimization with gaussian processes
-    '';
+  __darwinAllowLocalNetworking = true;
+
+  meta = {
+    description = "Python implementation of global optimization with gaussian processes";
     homepage = "https://github.com/bayesian-optimization/BayesianOptimization";
-    changelog = "https://github.com/bayesian-optimization/BayesianOptimization/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = [ maintainers.juliendehos ];
+    changelog = "https://github.com/bayesian-optimization/BayesianOptimization/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = [ lib.maintainers.juliendehos ];
   };
 }

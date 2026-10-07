@@ -1,42 +1,101 @@
-{ stdenv, lib, substituteAll, fetchPypi, buildPythonPackage, SDL2, SDL2_ttf, SDL2_image, SDL2_gfx, SDL2_mixer }:
+{
+  stdenv,
+  lib,
+  replaceVars,
+  fetchFromGitHub,
+  buildPythonPackage,
+  setuptools,
 
-buildPythonPackage rec {
-  pname = "PySDL2";
-  version = "0.9.15";
+  # native dependencies
+  SDL2,
+  SDL2_ttf,
+  SDL2_image,
+  SDL2_gfx,
+  SDL2_mixer,
 
-  # The tests use OpenGL using find_library, which would have to be
-  # patched; also they seem to actually open X windows and test stuff
-  # like "screensaver disabling", which would have to be cleverly
-  # sandboxed. Disable for now.
-  doCheck = false;
-  pythonImportsCheck = [ "sdl2" ];
+  # tests
+  numpy,
+  pillow,
+  pytestCheckHook,
+}:
 
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-kIp946iMKyKiwhppkXxTIVKJW9GkkFJ6Jw7hTK1A5kc=";
+buildPythonPackage (finalAttrs: {
+  pname = "pysdl2";
+  version = "0.9.17-unstable-2025-11-18";
+  pyproject = true;
+  __structuredAttrs = true;
+
+  src = fetchFromGitHub {
+    owner = "py-sdl";
+    repo = "py-sdl2";
+    rev = "3d0672135fab3ca58e2f00c0a76b7b25cb818784";
+    hash = "sha256-SgorCWZmJk13LNlTmh5Aomik14PTZdWliU3GWtkTASE=";
   };
 
-  # Deliberately not in propagated build inputs; users can decide
-  # which library they want to include.
-  buildInputs = [ SDL2_ttf SDL2_image SDL2_gfx SDL2_mixer ];
-  propagatedBuildInputs = [ SDL2 ];
   patches = [
-    (substituteAll ({
-      src = ./PySDL2-dll.patch;
-    } // builtins.mapAttrs (_: pkg: "${pkg}/lib/lib${pkg.pname}${stdenv.hostPlatform.extensions.sharedLibrary}") {
-      # substituteAll keys must start lowercase
-      sdl2 = SDL2;
-      sdl2_ttf = SDL2_ttf;
-      sdl2_image = SDL2_image;
-      sdl2_gfx = SDL2_gfx;
-      sdl2_mixer = SDL2_mixer;
-    }))
+    (replaceVars ./PySDL2-dll.patch (
+      (builtins.mapAttrs
+        (_: pkg: "${pkg}/lib/lib${pkg.pname}${stdenv.hostPlatform.extensions.sharedLibrary}")
+        {
+          inherit
+            SDL2_ttf
+            SDL2_image
+            SDL2_gfx
+            SDL2_mixer
+            ;
+        }
+      )
+      // {
+        # sdl2-compat has the pname sdl2-compat,
+        # but the shared object is named libSDL2.so for compatibility reasons.
+        # This requires making the shared object path for SDL2 not depend on pname.
+        SDL2 = (pkg: "${pkg}/lib/libSDL2${stdenv.hostPlatform.extensions.sharedLibrary}") SDL2;
+      }
+    ))
+  ];
+
+  build-system = [ setuptools ];
+
+  buildInputs = [
+    SDL2
+    SDL2_ttf
+    SDL2_image
+    SDL2_gfx
+    SDL2_mixer
+  ];
+
+  env = {
+    SDL_VIDEODRIVER = "dummy";
+    SDL_AUDIODRIVER = "dummy";
+    SDL_RENDER_DRIVER = "software";
+    PYTHONFAULTHANDLER = "1";
+  };
+
+  pythonImportsCheck = [ "sdl2" ];
+
+  nativeCheckInputs = [
+    numpy
+    pillow
+    pytestCheckHook
+  ];
+
+  disabledTests = [
+    # GetPrefPath for OrgName/AppName is None
+    "test_SDL_GetPrefPath"
+
+    # AssertionError:
+    # clip: Could not set clip rect SDL_Rect(x=2, y=2, w=0, h=0)
+    "test_SDL_GetSetClipRect"
+
+    # AssertionError: That operation is not supported
+    "test_SDL_GetSetWindowMouseRect"
   ];
 
   meta = {
-    description = "A wrapper around the SDL2 library and as such similar to the discontinued PySDL project";
-    homepage = "https://github.com/marcusva/py-sdl2";
+    changelog = "https://github.com/py-sdl/py-sdl2/compare/0.9.17..${finalAttrs.src.rev}";
+    description = "Wrapper around the SDL2 library and as such similar to the discontinued PySDL project";
+    homepage = "https://github.com/py-sdl/py-sdl2";
     license = lib.licenses.publicDomain;
     maintainers = with lib.maintainers; [ pmiddend ];
   };
-}
+})

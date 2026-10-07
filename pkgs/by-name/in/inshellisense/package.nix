@@ -1,23 +1,31 @@
-{ lib, buildNpmPackage, fetchFromGitHub }:
+{
+  lib,
+  buildNpmPackage,
+  fetchFromGitHub,
+  nodejs_22,
+}:
 
 buildNpmPackage rec {
   pname = "inshellisense";
-  version = "0.0.1-rc.4";
+  version = "0.0.4";
 
   src = fetchFromGitHub {
     owner = "microsoft";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-PYSonVyclGSH3ArbqJuKrBNGbJaQEp6XemwnHboVwPk=";
+    repo = "inshellisense";
+    tag = version;
+    hash = "sha256-5gVFP1AFFP4o9MNUqkRtgrTkKuMb37CU/c8TcrwZkRY=";
   };
 
-  npmDepsHash = "sha256-sjr4Hy1/zWPAlVGsMkyQIQcBT86KLaN2/UAaAd7Mn6Q=";
+  # Building against nodejs-24 is not yet supported by upstream.
+  # https://github.com/microsoft/inshellisense/issues/369
+  nodejs = nodejs_22;
 
-  meta = with lib; {
+  npmDepsHash = "sha256-JP9m624XxR6M18+jSWEh/E8WxIUjHnPN1eKW4iqUmSc=";
+
+  meta = {
     description = "IDE style command line auto complete";
     homepage = "https://github.com/microsoft/inshellisense";
-    license = licenses.mit;
-    maintainers = [ maintainers.malo ];
+    license = lib.licenses.mit;
+    maintainers = [ lib.maintainers.malo ];
   };
 }
-

@@ -1,15 +1,16 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, unstableGitUpdater
-, poetry-core
-, nixops
-, digital-ocean
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  unstableGitUpdater,
+  poetry-core,
+  nixops,
+  python-digitalocean,
 }:
 
 buildPythonPackage {
   pname = "nixops-digitalocean";
-  version = "unstable-2022-08-14";
+  version = "0.1.0-unstable-2022-08-14";
   pyproject = true;
 
   src = fetchFromGitHub {
@@ -34,17 +35,17 @@ buildPythonPackage {
   ];
 
   propagatedBuildInputs = [
-    digital-ocean
+    python-digitalocean
   ];
 
   pythonImportsCheck = [ "nixops_digitalocean" ];
 
-  passthru.updateScript = unstableGitUpdater {};
+  passthru.updateScript = unstableGitUpdater { };
 
-  meta = with lib; {
+  meta = {
     description = "NixOps Digitalocean plugin";
     homepage = "https://github.com/nix-community/nixops-digitalocean";
-    license = licenses.lgpl3Only;
-    maintainers = with maintainers; [ kiwi ];
+    license = lib.licenses.lgpl3Only;
+    maintainers = [ ];
   };
 }

@@ -1,13 +1,18 @@
-{ lib, buildPythonPackage, fetchPypi, numpy, pytestCheckHook }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  numpy,
+}:
 
 buildPythonPackage rec {
   pname = "jplephem";
-  version = "2.21";
+  version = "2.24";
   format = "setuptools";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-NBlLYQaV8huJIXuYUrjautvOgISMs2nZVn7xLcSCjVU=";
+    hash = "sha256-NU/hra4CImSrRvGK+2ryYhEnfP17PvkEAHVfyr6TvBE=";
   };
 
   propagatedBuildInputs = [ numpy ];
@@ -20,10 +25,10 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "jplephem" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/brandon-rhodes/python-jplephem/";
     description = "Python version of NASA DE4xx ephemerides, the basis for the Astronomical Alamanac";
-    license = licenses.mit;
-    maintainers = with maintainers; [ zane ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ zane ];
   };
 }

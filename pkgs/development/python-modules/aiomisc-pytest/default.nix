@@ -1,48 +1,40 @@
-{ lib
-, aiomisc
-, buildPythonPackage
-, fetchPypi
-, poetry-core
-, pytest
-, pythonOlder
+{
+  lib,
+  aiomisc,
+  buildPythonPackage,
+  fetchPypi,
+  hatchling,
+  pytest,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "aiomisc-pytest";
-  version = "1.1.1";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "2.0.0";
+  pyproject = true;
 
   src = fetchPypi {
     pname = "aiomisc_pytest";
-    inherit version;
-    hash = "sha256-LDeMQbB4wFdgJ95r9/vFN6fmkoXSPq9NRXONXQ3lbdM=";
+    inherit (finalAttrs) version;
+    hash = "sha256-cbYrkO6YRSPFfhjgdXzuVA2wY5RyEmWcG+myGZu1TGU=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  pythonRelaxDeps = [ "pytest" ];
 
-  buildInputs = [
-    pytest
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
-    aiomisc
-  ];
+  buildInputs = [ pytest ];
 
-  pythonImportsCheck = [
-    "aiomisc_pytest"
-  ];
+  dependencies = [ aiomisc ];
+
+  pythonImportsCheck = [ "aiomisc_pytest" ];
 
   # Module has no tests
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "Pytest integration for aiomisc";
-    homepage = "https://github.com/aiokitchen/aiomisc";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    homepage = "https://github.com/aiokitchen/aiomisc-pytest";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

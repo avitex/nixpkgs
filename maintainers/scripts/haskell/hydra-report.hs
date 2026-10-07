@@ -1,6 +1,7 @@
 #! /usr/bin/env nix-shell
+#! nix-shell -I nixpkgs=.
 #! nix-shell -p "haskellPackages.ghcWithPackages (p: [p.aeson p.req])"
-#! nix-shell -p hydra-unstable
+#! nix-shell -p nix-eval-jobs
 #! nix-shell -i runhaskell
 
 {-
@@ -33,19 +34,23 @@ Because step 1) is quite expensive and takes roughly ~5 minutes the result is ca
 import Control.Monad (forM_, forM, (<=<))
 import Control.Monad.Trans (MonadIO (liftIO))
 import Data.Aeson (
-   FromJSON,
+   FromJSON (..),
+   withObject,
+   (.:),
    FromJSONKey,
    ToJSON,
    decodeFileStrict',
-   eitherDecodeStrict',
    encodeFile,
  )
-import Data.Foldable (Foldable (toList), foldl')
+import Data.Aeson.Decoding (eitherDecodeStrictText)
+import Data.Foldable (Foldable (toList))
+import Data.Either (rights)
+import Data.Functor ((<&>))
 import Data.List.NonEmpty (NonEmpty, nonEmpty)
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
-import Data.Maybe (fromMaybe, mapMaybe, isNothing)
+import Data.Maybe (fromMaybe, mapMaybe, isNothing, catMaybes)
 import Data.Monoid (Sum (Sum, getSum))
 import Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
@@ -53,7 +58,6 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as Text
-import Data.Text.Encoding (encodeUtf8)
 import qualified Data.Text.IO as Text
 import Data.Time (defaultTimeLocale, formatTime, getCurrentTime)
 import Data.Time.Clock (UTCTime)
@@ -78,12 +82,13 @@ import Network.HTTP.Req (
  )
 import System.Directory (XdgDirectory (XdgCache), getXdgDirectory)
 import System.Environment (getArgs)
+import System.Exit (die)
 import System.Process (readProcess)
 import Prelude hiding (id)
 import Data.List (sortOn)
 import Control.Concurrent.Async (concurrently)
 import Control.Exception (evaluate)
-import qualified Data.IntMap.Strict as IntMap
+import qualified Data.IntMap.Lazy as IntMap
 import qualified Data.IntSet as IntSet
 import Data.Bifunctor (second)
 import Data.Data (Proxy)
@@ -155,17 +160,20 @@ data Build = Build
 data HydraSlownessWorkaroundFlag = HydraSlownessWorkaround | NoHydraSlownessWorkaround
 data RequestLogsFlag = RequestLogs | NoRequestLogs
 
+usage :: IO a
+usage = die "Usage: get-report [--slow] [EVAL-ID] | ping-maintainers | mark-broken-list [--no-request-logs] | eval-info"
+
 main :: IO ()
 main = do
    args <- getArgs
    case args of
-      ["get-report", "--slow"] -> getBuildReports HydraSlownessWorkaround
-      ["get-report"] -> getBuildReports NoHydraSlownessWorkaround
+      "get-report":"--slow":id -> getBuildReports HydraSlownessWorkaround id
+      "get-report":id -> getBuildReports NoHydraSlownessWorkaround id
       ["ping-maintainers"] -> printMaintainerPing
       ["mark-broken-list", "--no-request-logs"] -> printMarkBrokenList NoRequestLogs
       ["mark-broken-list"] -> printMarkBrokenList RequestLogs
       ["eval-info"] -> printEvalInfo
-      _ -> putStrLn "Usage: get-report [--slow] | ping-maintainers | mark-broken-list [--no-request-logs] | eval-info"
+      _ -> usage
 
 reportFileName :: IO FilePath
 reportFileName = getXdgDirectory XdgCache "haskell-updates-build-report.json"
@@ -173,23 +181,26 @@ reportFileName = getXdgDirectory XdgCache "haskell-updates-build-report.json"
 showT :: Show a => a -> Text
 showT = Text.pack . show
 
-getBuildReports :: HydraSlownessWorkaroundFlag -> IO ()
-getBuildReports opt = runReq defaultHttpConfig do
-   evalMay <- Seq.lookup 0 . evals <$> hydraJSONQuery mempty ["jobset", "nixpkgs", "haskell-updates", "evals"]
-   eval@Eval{id} <- maybe (liftIO $ fail "No Evaluation found") pure evalMay
+getBuildReports :: HydraSlownessWorkaroundFlag -> [String] -> IO ()
+getBuildReports opt args = runReq defaultHttpConfig do
+   eval@Eval{id} <- case args of
+      [id] -> hydraJSONQuery mempty ["eval", Text.pack id]
+      [] -> do
+         evalMay <- Seq.lookup 0 . evals <$> hydraJSONQuery mempty ["jobset", "nixpkgs", "haskell-updates", "evals"]
+         maybe (liftIO $ fail "No Evaluation found") pure evalMay
+      _ -> liftIO usage
    liftIO . putStrLn $ "Fetching evaluation " <> show id <> " from Hydra. This might take a few minutes..."
-   buildReports <- getEvalBuilds opt id
+   buildReports <- getEvalBuilds opt eval
    liftIO do
       fileName <- reportFileName
       putStrLn $ "Finished fetching all builds from Hydra, saving report as " <> fileName
       now <- getCurrentTime
       encodeFile fileName (eval, now, buildReports)
 
-getEvalBuilds :: HydraSlownessWorkaroundFlag -> Int -> Req (Seq Build)
-getEvalBuilds NoHydraSlownessWorkaround id =
+getEvalBuilds :: HydraSlownessWorkaroundFlag -> Eval -> Req (Seq Build)
+getEvalBuilds NoHydraSlownessWorkaround Eval{id} =
   hydraJSONQuery mempty ["eval", showT id, "builds"]
-getEvalBuilds HydraSlownessWorkaround id = do
-  Eval{builds} <- hydraJSONQuery mempty [ "eval", showT id ]
+getEvalBuilds HydraSlownessWorkaround Eval{builds} = do
   forM builds $ \buildId -> do
     liftIO $ putStrLn $ "Querying build " <> show buildId
     hydraJSONQuery mempty [ "build", showT buildId ]
@@ -199,7 +210,7 @@ hydraQuery responseType option query = do
   let customHeaderOpt =
         header
           "User-Agent"
-          "hydra-report.hs/v1 (nixpkgs;maintainers/scripts/haskell) pls fix https://github.com/NixOS/nixos-org-configurations/issues/270"
+          "hydra-report.hs/v1 (nixpkgs;maintainers/scripts/haskell)"
       customTimeoutOpt = responseTimeout 900_000_000 -- 15 minutes
       opts = customHeaderOpt <> customTimeoutOpt <> option
       url = foldl' (/:) (https "hydra.nixos.org") query
@@ -211,11 +222,22 @@ hydraJSONQuery = hydraQuery jsonResponse
 hydraPlainQuery :: [Text] -> Req ByteString
 hydraPlainQuery = hydraQuery bsResponse mempty
 
-hydraEvalCommand :: FilePath
-hydraEvalCommand = "hydra-eval-jobs"
+nixEvalJobsCommand :: FilePath
+nixEvalJobsCommand = "nix-eval-jobs"
 
-hydraEvalParams :: [String]
-hydraEvalParams = ["-I", ".", "pkgs/top-level/release-haskell.nix"]
+nixEvalJobsParams :: [String]
+nixEvalJobsParams =
+  [
+    -- options necessary to make nix-eval-jobs behave like hydra-eval-jobs used to
+    -- https://github.com/NixOS/hydra/commit/d84ff32ce600204c6473889a3ff16cd6053533c9
+    "--meta",
+    "--force-recurse",
+    "--no-instantiate",
+    "--workers", "3",
+
+    "-I", ".",
+   "pkgs/top-level/release-haskell.nix"
+  ]
 
 nixExprCommand :: FilePath
 nixExprCommand = "nix-instantiate"
@@ -223,54 +245,34 @@ nixExprCommand = "nix-instantiate"
 nixExprParams :: [String]
 nixExprParams = ["--eval", "--strict", "--json"]
 
--- | This newtype is used to parse a Hydra job output from @hydra-eval-jobs@.
--- The only field we are interested in is @maintainers@, which is why this
--- is just a newtype.
+-- | Holds a list of the GitHub handles of the maintainers of a given 'JobName'.
 --
--- Note that there are occasionally jobs that don't have a maintainers
--- field, which is why this has to be @Maybe Text@.
-newtype Maintainers = Maintainers { maintainers :: Maybe Text }
+--   @
+--     JobMaintainers (JobName "haskellPackages.cabal-install.x86_64-linux") ["sternenseemann"]
+--   @
+data JobMaintainers = JobMaintainers JobName [Text]
   deriving stock (Generic, Show)
-  deriving anyclass (FromJSON, ToJSON)
 
--- | This is a 'Map' from Hydra job name to maintainer email addresses.
---
--- It has values similar to the following:
---
--- @@
---  fromList
---    [ ("arion.aarch64-linux", Maintainers (Just "robert@example.com"))
---    , ("bench.x86_64-linux", Maintainers (Just ""))
---    , ("conduit.x86_64-linux", Maintainers (Just "snoy@man.com, web@ber.com"))
---    , ("lens.x86_64-darwin", Maintainers (Just "ek@category.com"))
---    ]
--- @@
---
--- Note that Hydra jobs without maintainers will have an empty string for the
--- maintainer list.
-type HydraJobs = Map JobName Maintainers
+-- | Parse the entries produced by @nix-eval-jobs@, discarding all information
+--   except the name of the job (@attr@) and the @github@ attributes of the
+--   maintainer objects in @meta.maintainers@.
+instance FromJSON JobMaintainers where
+  parseJSON = withObject "HydraJob" $ \h -> do
+    jobName <- h .: "attr"
+    maintainers <- (h .: "meta")
+      >>= (withObject "Meta" $ \meta ->
+        meta .: "maintainers"
+        >>= mapM (withObject "Maintainer" $ \mt -> mt .: "github"))
+    pure $ JobMaintainers jobName maintainers
 
--- | Map of email addresses to GitHub handles.
--- This is built from the file @../../maintainer-list.nix@.
---
--- It has values similar to the following:
---
--- @@
---  fromList
---    [ ("robert@example.com", "rob22")
---    , ("ek@category.com", "edkm")
---    ]
--- @@
-type EmailToGitHubHandles = Map Text Text
-
--- | Map of Hydra jobs to maintainer GitHub handles.
+-- | Map of maintained Hydra jobs to maintainer GitHub handles.
 --
 -- It has values similar to the following:
 --
 -- @@
 --  fromList
 --    [ ("arion.aarch64-linux", ["rob22"])
---    , ("conduit.x86_64-darwin", ["snoyb", "webber"])
+--    , ("conduit.aarch64-darwin", ["snoyb", "webber"])
 --    ]
 -- @@
 type MaintainerMap = Map JobName (NonEmpty Text)
@@ -299,7 +301,7 @@ calculateReverseDependencies depMap =
    Map.fromDistinctAscList $ zip keys (zip (rdepMap False) (rdepMap True))
  where
     -- This code tries to efficiently invert the dependency map and calculate
-    -- it’s transitive closure by internally identifying every pkg with it’s index
+    -- its transitive closure by internally identifying every pkg with its index
     -- in the package list and then using memoization.
     keys :: [PkgName]
     keys = Map.keys depMap
@@ -317,29 +319,23 @@ calculateReverseDependencies depMap =
     intDeps :: [(Int, (Bool, [Int]))]
     intDeps = zip [0..] (fmap depInfoToIdx depInfos)
 
-    rdepMap onlyUnbroken = IntSet.size <$> resultList
+    rdepMap onlyUnbroken = IntSet.size <$> IntMap.elems resultList
      where
-       resultList = go <$> [0..]
+       resultList = IntMap.fromDistinctAscList [(i, go i) | i <- [0..length keys - 1]]
        oneStepMap = IntMap.fromListWith IntSet.union $ (\(key,(_,deps)) -> (,IntSet.singleton key) <$> deps) <=< filter (\(_, (broken,_)) -> not (broken && onlyUnbroken)) $ intDeps
-       go pkg = IntSet.unions (oneStep:((resultList !!) <$> IntSet.toList oneStep))
+       go pkg = IntSet.unions (oneStep:((resultList IntMap.!) <$> IntSet.toList oneStep))
         where oneStep = IntMap.findWithDefault mempty pkg oneStepMap
 
--- | Generate a mapping of Hydra job names to maintainer GitHub handles. Calls
--- hydra-eval-jobs and the nix script ./maintainer-handles.nix.
+-- | Generate a mapping of Hydra job names to maintainer GitHub handles.
 getMaintainerMap :: IO MaintainerMap
-getMaintainerMap = do
-   hydraJobs :: HydraJobs <-
-      readJSONProcess hydraEvalCommand hydraEvalParams "Failed to decode hydra-eval-jobs output: "
-   handlesMap :: EmailToGitHubHandles <-
-      readJSONProcess nixExprCommand ("maintainers/scripts/haskell/maintainer-handles.nix":nixExprParams) "Failed to decode nix output for lookup of github handles: "
-   pure $ Map.mapMaybe (splitMaintainersToGitHubHandles handlesMap) hydraJobs
-  where
-   -- Split a comma-spearated string of Maintainers into a NonEmpty list of
-   -- GitHub handles.
-   splitMaintainersToGitHubHandles
-      :: EmailToGitHubHandles -> Maintainers -> Maybe (NonEmpty Text)
-   splitMaintainersToGitHubHandles handlesMap (Maintainers maint) =
-      nonEmpty .  mapMaybe (`Map.lookup` handlesMap) .  Text.splitOn ", " $ fromMaybe "" maint
+getMaintainerMap =
+  readJSONLinesProcess nixEvalJobsCommand nixEvalJobsParams
+  -- we ignore unparseable lines since fromJSON will fail on { "attr": …, "error": … }
+  -- entries since they don't have a @meta@ attribute.
+  <&> rights
+  <&> map (\(JobMaintainers name maintainers) -> (,) name <$> nonEmpty maintainers)
+  <&> catMaybes
+  <&> Map.fromList
 
 -- | Get the a map of all dependencies of every package by calling the nix
 -- script ./dependencies.nix.
@@ -362,10 +358,22 @@ readJSONProcess
    -> IO a
 readJSONProcess exe args err = do
    output <- readProcess exe args ""
-   let eitherDecodedOutput = eitherDecodeStrict' . encodeUtf8 . Text.pack $ output
+   let eitherDecodedOutput = eitherDecodeStrictText . Text.pack $ output
    case eitherDecodedOutput of
      Left decodeErr -> error $ err <> decodeErr <> "\nRaw: '" <> take 1000 output <> "'"
      Right decodedOutput -> pure decodedOutput
+
+-- | Run a process that produces many JSON values, one per line.
+--   Error and success is reported per line via a list of 'Either's.
+readJSONLinesProcess
+   :: FromJSON a
+   => FilePath -- ^ Filename of executable.
+   -> [String] -- ^ Arguments
+   -> IO [Either String a]
+readJSONLinesProcess exe args = do
+  output <- readProcess exe args ""
+  -- TODO: slow, doesn't stream at all
+  pure . map (eitherDecodeStrictText . Text.pack) . lines $ output
 
 -- BuildStates are sorted by subjective importance/concerningness
 data BuildState
@@ -396,15 +404,13 @@ platformIcon :: Platform -> Text
 platformIcon (Platform x) = case x of
    "x86_64-linux" -> "🐧"
    "aarch64-linux" -> "📱"
-   "x86_64-darwin" -> "🍎"
-   "aarch64-darwin" -> "🍏"
+   "aarch64-darwin" -> "🍎"
    _ -> x
 
 platformIsOS :: OS -> Platform -> Bool
 platformIsOS os (Platform x) = case (os, x) of
    (Linux, "x86_64-linux") -> True
    (Linux, "aarch64-linux") -> True
-   (Darwin, "x86_64-darwin") -> True
    (Darwin, "aarch64-darwin") -> True
    _ -> False
 

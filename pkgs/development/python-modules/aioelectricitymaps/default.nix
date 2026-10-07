@@ -1,55 +1,61 @@
-{ lib
-, aiohttp
-, aresponses
-, buildPythonPackage
-, dataclasses-json
-, fetchFromGitHub
-, poetry-core
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, syrupy
+{
+  lib,
+  aiohttp,
+  aioresponses,
+  buildPythonPackage,
+  fetchFromGitHub,
+  mashumaro,
+  orjson,
+  poetry-core,
+  pytest-asyncio,
+  pytest-cov-stub,
+  pytestCheckHook,
+  syrupy,
 }:
 
 buildPythonPackage rec {
   pname = "aioelectricitymaps";
-  version = "0.1.6";
+  version = "1.1.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.10";
 
   src = fetchFromGitHub {
     owner = "jpbede";
     repo = "aioelectricitymaps";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-SyI+2hxKOiSdx5e+vkHLsIk5xj4gNvmfZTYZ10oJhfc=";
+    tag = "v${version}";
+    hash = "sha256-6d9StqUMOGWyK5KAY+S0QE0c6Mi+XDUUAyzRt9RG52Q=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail 'version = "0.0.0"' 'version = "${version}"'
+  '';
 
-  propagatedBuildInputs = [
+  build-system = [ poetry-core ];
+
+  dependencies = [
     aiohttp
-    dataclasses-json
+    mashumaro
+    orjson
   ];
 
   nativeCheckInputs = [
-    aresponses
+    aioresponses
     pytest-asyncio
+    pytest-cov-stub
     pytestCheckHook
     syrupy
   ];
 
-  pythonImportsCheck = [
-    "aioelectricitymaps"
-  ];
+  pythonImportsCheck = [ "aioelectricitymaps" ];
 
-  meta = with lib; {
+  # https://github.com/jpbede/aioelectricitymaps/pull/415
+  pytestFlags = [ "--snapshot-update" ];
+
+  meta = {
     description = "Module for interacting with Electricity maps";
     homepage = "https://github.com/jpbede/aioelectricitymaps";
     changelog = "https://github.com/jpbede/aioelectricitymaps/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

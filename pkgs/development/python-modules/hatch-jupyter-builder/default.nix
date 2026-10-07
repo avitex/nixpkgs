@@ -1,46 +1,46 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, hatchling
-, pytest-mock
-, pytestCheckHook
-, tomli
-, twine
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  pytest-mock,
+  pytestCheckHook,
+  twine,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "hatch-jupyter-builder";
-  version = "0.8.3";
-  format = "pyproject";
+  version = "0.9.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "jupyterlab";
     repo = "hatch-jupyter-builder";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-UywhFJ8d1+lSFOF5ECsknDeQuO7ppckdy5IqAT14ius=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-QDWHVdjtexUNGRL+dVehdBwahSW2HmNkZKkQyuOghyI=";
   };
 
-  nativeBuildInputs = [
-    hatchling
-  ];
+  build-system = [ hatchling ];
+
+  dependencies = [ hatchling ];
 
   nativeCheckInputs = [
     pytest-mock
     pytestCheckHook
-    tomli
     twine
   ];
 
   disabledTests = [
-    # tests pip install, which unsuprisingly fails
+    # tests pip install, which unsurprisingly fails
     "test_hatch_build"
   ];
 
-  meta = with lib; {
-    changelog = "https://github.com/jupyterlab/hatch-jupyter-builder/releases/tag/v${version}";
-    description = "hatch plugin to help build Jupyter packages";
+  meta = {
+    changelog = "https://github.com/jupyterlab/hatch-jupyter-builder/releases/tag/v${finalAttrs.version}";
+    description = "Hatch plugin to help build Jupyter packages";
+    mainProgram = "hatch-jupyter-builder";
     homepage = "https://github.com/jupyterlab/hatch-jupyter-builder";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
-}
+})

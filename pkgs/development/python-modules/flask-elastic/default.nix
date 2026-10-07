@@ -1,5 +1,10 @@
-{ lib, buildPythonPackage, fetchPypi
-, flask, elasticsearch }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  flask,
+  elasticsearch,
+}:
 
 buildPythonPackage rec {
   pname = "flask-elastic";
@@ -12,13 +17,16 @@ buildPythonPackage rec {
     hash = "sha256-XwGm/FQbXSV2qbAlHyAbT4DLcQnIseDm1Qqdb5zjE0M=";
   };
 
-  propagatedBuildInputs = [ flask elasticsearch ];
+  propagatedBuildInputs = [
+    flask
+    elasticsearch
+  ];
   doCheck = false; # no tests
 
-  meta = with lib; {
+  meta = {
     description = "Integrates official client for Elasticsearch into Flask";
-    license = licenses.bsd3;
-    maintainers = [ maintainers.mic92 ];
+    license = lib.licenses.bsd3;
+    maintainers = [ lib.maintainers.mic92 ];
     homepage = "https://github.com/marceltschoppch/flask-elastic";
   };
 }

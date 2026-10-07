@@ -1,15 +1,16 @@
-{ lib
-, stdenv
-, blas
-, lapack
-, openfst
-, icu
-, pkg-config
-, fetchFromGitHub
-, python3
-, openblas
-, zlib
-, gfortran
+{
+  lib,
+  stdenv,
+  blas,
+  lapack,
+  openfst,
+  icu,
+  pkg-config,
+  fetchFromGitHub,
+  python,
+  openblas,
+  zlib,
+  gfortran,
 }:
 
 let
@@ -55,7 +56,7 @@ stdenv.mkDerivation rec {
 
   nativeBuildInputs = [
     pkg-config
-    python3
+    python
     gfortran
   ];
 
@@ -101,11 +102,11 @@ stdenv.mkDerivation rec {
       $out/lib/*
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Speech Recognition Toolkit";
     homepage = "https://kaldi-asr.org";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ckie ];
-    platforms = platforms.linux;
+    license = lib.licenses.mit;
+    maintainers = [ ];
+    platforms = lib.platforms.linux;
   };
 }

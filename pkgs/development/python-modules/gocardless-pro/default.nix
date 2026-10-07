@@ -1,24 +1,27 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, requests
-, six
-, pytestCheckHook
-, responses
-, nose
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  requests,
+  six,
+  setuptools,
+  pytestCheckHook,
+  responses,
 }:
 
 buildPythonPackage rec {
   pname = "gocardless-pro";
-  version = "1.50.0";
-  format = "setuptools";
+  version = "3.3.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "gocardless";
     repo = "gocardless-pro-python";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-eYuXHqJyThXKKGubCn8aoBZZ7lyXtpzlomaLNus+oJQ=";
+    tag = "v${version}";
+    hash = "sha256-XD5GUiSHTq/DLrKo6FY4moNnbFpXkVJWM13Yu6c+tZw=";
   };
+
+  build-system = [ setuptools ];
 
   propagatedBuildInputs = [
     requests
@@ -30,15 +33,13 @@ buildPythonPackage rec {
   nativeCheckInputs = [
     pytestCheckHook
     responses
-    nose
   ];
 
-  meta = with lib; {
-    description = "A client library for the GoCardless Pro API";
+  meta = {
+    description = "Client library for the GoCardless Pro API";
     homepage = "https://github.com/gocardless/gocardless-pro-python";
-    changelog = "https://github.com/gocardless/gocardless-pro-python/blob/${src.rev}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ blaggacao ];
+    changelog = "https://github.com/gocardless/gocardless-pro-python/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }
-

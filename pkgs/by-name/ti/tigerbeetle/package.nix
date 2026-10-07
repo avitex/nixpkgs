@@ -1,50 +1,64 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, zig_0_11
-, testers
-, tigerbeetle
-, nix-update-script
+{
+  lib,
+  stdenvNoCC,
+  fetchzip,
+  testers,
+  tigerbeetle,
+  nix-update-script,
 }:
 let
-  # Read [these comments](pkgs/development/compilers/zig/hook.nix#L12-L30) on the default Zig flags, and the associated links. tigerbeetle stopped exposing the `-Doptimize` build flag, so we can't use the default Nixpkgs zig hook as-is. tigerbeetle only exposes a boolean `-Drelease` flag which we'll add in the tigerbeetle derivation in this file.
-  custom_zig_hook = zig_0_11.hook.overrideAttrs (previousAttrs: {
-    zig_default_flags = builtins.filter (flag: builtins.match "-Doptimize.*" flag == null) previousAttrs.zig_default_flags;
-  });
+  platform =
+    if stdenvNoCC.hostPlatform.isDarwin then "universal-macos" else stdenvNoCC.hostPlatform.system;
+  hash = builtins.getAttr platform {
+    "universal-macos" = "sha256-kvTRqAZ1kX9ojZdto5sRxPm/sUU8dRGb31GKszr5KTo=";
+    "x86_64-linux" = "sha256-fuNmpCZ/0cV+AuOLeG5RvBxFd/hGYrx005QJWCihPpY=";
+    "aarch64-linux" = "sha256-4mSFOvgoz7d14iKWl6B6jYwkEz1Yud8Apt9yT/E7ynY=";
+  };
 in
-stdenv.mkDerivation (finalAttrs: {
+stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "tigerbeetle";
-  version = "0.14.175";
+  version = "0.17.9";
 
-  src = fetchFromGitHub {
-    owner = "tigerbeetle";
-    repo = "tigerbeetle";
-    rev = "refs/tags/${finalAttrs.version}";
-    hash = "sha256-MabY6kfK/SZ2ps8RZkI6cDhMdHasc1fk6+PKBfVMRm0=";
+  src = fetchzip {
+    url = "https://github.com/tigerbeetle/tigerbeetle/releases/download/${finalAttrs.version}/tigerbeetle-${platform}.zip";
+    inherit hash;
   };
 
-  nativeBuildInputs = [ custom_zig_hook ];
+  dontUnpack = true;
+  dontConfigure = true;
+  dontBuild = true;
 
-  zigBuildFlags = [
-    "-Drelease"
-    "-Dgit-commit=0000000000000000000000000000000000000000"
-    "-Dversion=${finalAttrs.version}"
-  ];
+  installPhase = ''
+    runHook preInstall
+
+    mkdir -p $out/bin
+    cp $src/tigerbeetle $out/bin/tigerbeetle
+
+    runHook postInstall
+  '';
 
   passthru = {
     tests.version = testers.testVersion {
       package = tigerbeetle;
       command = "tigerbeetle version";
     };
-    updateScript = nix-update-script { };
+    updateScript = ./update.sh;
   };
 
   meta = {
     homepage = "https://tigerbeetle.com/";
-    description = "A financial accounting database designed to be distributed and fast";
+    description = "Financial accounting database designed to be distributed and fast";
     license = lib.licenses.asl20;
-    maintainers = with lib.maintainers; [ danielsidhion ];
-    platforms = lib.platforms.linux;
+    maintainers = with lib.maintainers; [
+      danielsidhion
+      nwjsmith
+    ];
+    platforms = [
+      "x86_64-linux"
+      "aarch64-linux"
+    ]
+    ++ lib.platforms.darwin;
+    sourceProvenance = [ lib.sourceTypes.binaryNativeCode ];
     mainProgram = "tigerbeetle";
   };
 })

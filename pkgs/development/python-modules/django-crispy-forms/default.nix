@@ -1,22 +1,23 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, django
-, setuptools
-, pytestCheckHook
-, pytest-django
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  django,
+  setuptools,
+  pytestCheckHook,
+  pytest-django,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "django-crispy-forms";
-  version = "2.1";
-  format = "pyproject";
+  version = "2.7";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "django-crispy-forms";
     repo = "django-crispy-forms";
-    rev = "refs/tags/${version}";
-    hash = "sha256-UQ5m0JWir20TdLgS+DVVLcMBlIEIfmzv8pkMJtaC0LA=";
+    tag = finalAttrs.version;
+    hash = "sha256-Fi4g1jAMUZP3th22TS/n8nIKz8yKgJDj4oJq0+5+W4I=";
   };
 
   propagatedBuildInputs = [
@@ -32,17 +33,20 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  pytestFlagsArray = [
+  pytestFlags = [
     "--ds=crispy_forms.tests.test_settings"
+  ];
+
+  enabledTestPaths = [
     "crispy_forms/tests/"
   ];
 
   pythonImportsCheck = [ "crispy_forms" ];
 
-  meta = with lib; {
-    description = "The best way to have DRY Django forms.";
+  meta = {
+    description = "Best way to have DRY Django forms";
     homepage = "https://django-crispy-forms.readthedocs.io/en/latest/";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ambroisie ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ ambroisie ];
   };
-}
+})

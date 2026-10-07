@@ -1,4 +1,4 @@
-import ./make-test-python.nix ({ pkgs, ... }:
+{ pkgs, ... }:
 
 let
   exampleScript = pkgs.writeTextFile {
@@ -31,22 +31,24 @@ in
 {
   name = "systemd-misc";
 
-  nodes.machine = { pkgs, lib, ... }: {
-    boot.extraSystemdUnitPaths = [ "/etc/systemd-rw/system" ];
+  nodes.machine =
+    { pkgs, lib, ... }:
+    {
+      boot.extraSystemdUnitPaths = [ "/etc/systemd-rw/system" ];
 
-    users.users.limited = {
-      isNormalUser = true;
-      uid = 1000;
-    };
+      users.users.limited = {
+        isNormalUser = true;
+        uid = 1000;
+      };
 
-    systemd.units."user-1000.slice.d/limits.conf" = {
-      text = ''
-        [Slice]
-        TasksAccounting=yes
-        TasksMax=100
-      '';
+      systemd.units."user-1000.slice.d/limits.conf" = {
+        text = ''
+          [Slice]
+          TasksAccounting=yes
+          TasksMax=100
+        '';
+      };
     };
-  };
 
   testScript = ''
     machine.wait_for_unit("multi-user.target")
@@ -58,5 +60,10 @@ in
     machine.succeed("systemctl status example.service | grep 'Active: active'")
 
     machine.succeed("systemctl show --property TasksMax --value user-1000.slice | grep 100")
+
+    with subtest("modprobe@ services work"):
+      modprobe_service_status = machine.succeed("systemctl show --property ExecMainStatus modprobe@configfs.service")
+      print(modprobe_service_status)
+      t.assertEqual("ExecMainStatus=0\n", modprobe_service_status)
   '';
-})
+}

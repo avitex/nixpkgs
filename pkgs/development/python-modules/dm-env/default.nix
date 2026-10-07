@@ -1,10 +1,11 @@
-{ lib
-, fetchPypi
-, buildPythonPackage
-, dm-tree
-, numpy
-, absl-py
-, pytestCheckHook
+{
+  lib,
+  fetchPypi,
+  buildPythonPackage,
+  dm-tree,
+  numpy,
+  absl-py,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
@@ -23,18 +24,14 @@ buildPythonPackage rec {
     numpy
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "dm_env"
-  ];
+  pythonImportsCheck = [ "dm_env" ];
 
-  meta = with lib; {
+  meta = {
     description = "Pure Python client for Apache Kafka";
     homepage = "https://github.com/dpkp/kafka-python";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ onny ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ onny ];
   };
 }

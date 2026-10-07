@@ -1,8 +1,9 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools
-, sphinx
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  sphinx,
 }:
 
 buildPythonPackage rec {
@@ -16,22 +17,18 @@ buildPythonPackage rec {
     hash = "sha256-m4wWOcNDwCw/PbffZg3fb1M7VFTukqX3sC7apXP+0+Y=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
   doCheck = false; # no tests
 
   propagatedBuildInputs = [ sphinx ];
 
-  pythonImportsCheck = [
-    "guzzle_sphinx_theme"
-  ];
+  pythonImportsCheck = [ "guzzle_sphinx_theme" ];
 
-  meta = with lib; {
+  meta = {
     description = "Sphinx theme used by Guzzle: http://guzzlephp.org";
     homepage = "https://github.com/guzzle/guzzle_sphinx_theme/";
-    license = licenses.mit;
-    maintainers = with maintainers; [ flokli ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ flokli ];
   };
 }

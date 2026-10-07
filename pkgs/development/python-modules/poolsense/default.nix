@@ -1,7 +1,8 @@
-{ lib
-, aiohttp
-, buildPythonPackage
-, fetchPypi
+{
+  lib,
+  aiohttp,
+  buildPythonPackage,
+  fetchPypi,
 }:
 
 buildPythonPackage rec {
@@ -20,10 +21,10 @@ buildPythonPackage rec {
   doCheck = false;
   pythonImportsCheck = [ "poolsense" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python module to access PoolSense device";
     homepage = "https://github.com/haemishkyd/poolsense";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

@@ -1,18 +1,22 @@
-{ lib, stdenv, buildDunePackage, dune-configurator, pkg-config, fetchFromGitHub, callPackage
-, AudioToolbox, VideoToolbox
-, ffmpeg-base ? callPackage ./base.nix { }
-, ffmpeg
+{
+  lib,
+  buildDunePackage,
+  dune-configurator,
+  pkg-config,
+  callPackage,
+  ffmpeg-base ? callPackage ./base.nix { },
+  ffmpeg,
 }:
 
 buildDunePackage {
   pname = "ffmpeg-avutil";
 
-  minimalOCamlVersion = "4.08";
+  minimalOCamlVersion = "4.12";
 
   inherit (ffmpeg-base) version src;
 
   nativeBuildInputs = [ pkg-config ];
-  buildInputs = [ dune-configurator ] ++ lib.optionals stdenv.isDarwin [ AudioToolbox VideoToolbox ];
+  buildInputs = [ dune-configurator ];
   propagatedBuildInputs = [ ffmpeg.dev ];
 
   doCheck = true;

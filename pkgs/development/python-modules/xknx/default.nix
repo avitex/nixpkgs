@@ -1,76 +1,63 @@
-{ lib
-, async-timeout
-, buildPythonPackage
-, fetchFromGitHub
-, fetchpatch
-, cryptography
-, ifaddr
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, setuptools
-, wheel
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  cryptography,
+  ifaddr,
+  freezegun,
+  pytest-asyncio,
+  pytestCheckHook,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "xknx";
-  version = "2.11.2";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "3.20.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "XKNX";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-rKvHb0wkWVuZO8M8uIQdOiY1N6DmGSpqUgz4YYbUfSM=";
+    repo = "xknx";
+    tag = finalAttrs.version;
+    hash = "sha256-/KUFf1d2+IcqGiLyX5mls7sMhfHU9KBgK1c/t2835WA=";
   };
 
-  patches = [
-    (fetchpatch {
-      name = "unpin-setuptools.patch";
-      url = "https://github.com/XKNX/xknx/commit/c0826aec52ab69b8bd81f600bea154fae16f334e.patch";
-      hash = "sha256-EpfgEq4pIx7ahqJZalzo30ruj8NlZYHcKHxFXCGL98w=";
-    })
-  ];
+  build-system = [ setuptools ];
 
-  nativeBuildInputs = [
-    setuptools
-    wheel
-  ];
-
-  propagatedBuildInputs = [
-    async-timeout
+  dependencies = [
     cryptography
     ifaddr
   ];
 
   nativeCheckInputs = [
+    freezegun
     pytest-asyncio
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "xknx"
-  ];
+  pytestFlags = [ "--asyncio-mode=auto" ];
+
+  pythonImportsCheck = [ "xknx" ];
 
   disabledTests = [
     # Test requires network access
+    "test_routing_indication_multicast"
     "test_scan_timeout"
+    "test_start_secure_routing_explicit_keyring"
     "test_start_secure_routing_knx_keys"
     "test_start_secure_routing_manual"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "KNX Library Written in Python";
     longDescription = ''
       XKNX is an asynchronous Python library for reading and writing KNX/IP
       packets. It provides support for KNX/IP routing and tunneling devices.
     '';
     homepage = "https://github.com/XKNX/xknx";
-    changelog = "https://github.com/XKNX/xknx/releases/tag/${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
-    platforms = platforms.linux;
+    changelog = "https://github.com/XKNX/xknx/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
+    platforms = lib.platforms.linux;
   };
-}
+})

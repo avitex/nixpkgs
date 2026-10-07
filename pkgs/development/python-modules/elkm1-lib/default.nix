@@ -1,52 +1,41 @@
-{ lib
-, async-timeout
-, buildPythonPackage
-, fetchFromGitHub
-, fetchpatch
-, poetry-core
-, pyserial-asyncio
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  pyserial-asyncio-fast,
+  pytest-asyncio,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "elkm1-lib";
-  version = "2.2.6";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.9";
+  version = "2.2.15";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "gwww";
     repo = "elkm1";
-    rev = "refs/tags/${version}";
-    hash = "sha256-5Jmn/ywyg6fmp0ZxPf79ET+JWPF4VjDJMwj/qU6ckS0=";
+    tag = finalAttrs.version;
+    hash = "sha256-LDzc/njgPGjc9uhNMHG4NOn9P2Sy3lFHgwV9oJJLl2o=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
-    async-timeout
-    pyserial-asyncio
-  ];
+  dependencies = [ pyserial-asyncio-fast ];
 
   nativeCheckInputs = [
     pytest-asyncio
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "elkm1_lib"
-  ];
+  pythonImportsCheck = [ "elkm1_lib" ];
 
-  meta = with lib; {
-    description = "Python module for interacting with ElkM1 alarm/automation panel";
+  meta = {
+    description = "Module for interacting with ElkM1 alarm/automation panel";
     homepage = "https://github.com/gwww/elkm1";
-    changelog = "https://github.com/gwww/elkm1/blob/${version}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/gwww/elkm1/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

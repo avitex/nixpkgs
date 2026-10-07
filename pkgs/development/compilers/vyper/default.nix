@@ -1,27 +1,27 @@
-{ lib
-, asttokens
-, buildPythonPackage
-, cbor2
-, fetchPypi
-, git
-, importlib-metadata
-, packaging
-, pycryptodome
-, pytest-runner
-, pythonOlder
-, pythonRelaxDepsHook
-, recommonmark
-, setuptools-scm
-, sphinx
-, sphinx-rtd-theme
-, writeText
+{
+  lib,
+  lark,
+  asttokens,
+  buildPythonPackage,
+  cbor2,
+  fetchPypi,
+  git,
+  immutables,
+  importlib-metadata,
+  packaging,
+  pycryptodome,
+  recommonmark,
+  setuptools-scm,
+  sphinx,
+  sphinx-rtd-theme,
+  writeText,
 }:
 
 let
   sample-contract = writeText "example.vy" ''
     count: int128
 
-    @external
+    @deploy
     def __init__(foo: address):
         self.count = 1
   '';
@@ -29,20 +29,18 @@ let
 in
 buildPythonPackage rec {
   pname = "vyper";
-  version = "0.3.10";
+  version = "0.4.3";
   pyproject = true;
-
-  disabled = pythonOlder "3.10";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-jcH1AcqrQX+wzpxoppRFh/AUfsfMfTiJzzpFwZRm5Ik=";
+    hash = "sha256-IqdXNldAHYo7xpDWXWt3QWgABxgJeMOgX5iS2zHV3PU=";
   };
 
   postPatch = ''
     # pythonRelaxDeps doesn't work
     substituteInPlace setup.py \
-      --replace "setuptools_scm>=7.1.0,<8.0.0" "setuptools_scm>=7.1.0"
+      --replace-fail "setuptools_scm>=7.1.0,<8.0.0" "setuptools_scm>=7.1.0"
   '';
 
   nativeBuildInputs = [
@@ -50,18 +48,19 @@ buildPythonPackage rec {
     # ever since https://github.com/vyperlang/vyper/pull/2816
     git
 
-    pythonRelaxDepsHook
-    pytest-runner
     setuptools-scm
   ];
 
   pythonRelaxDeps = [
     "asttokens"
+    "packaging"
   ];
 
   propagatedBuildInputs = [
+    lark
     asttokens
     cbor2
+    immutables
     importlib-metadata
     packaging
     pycryptodome
@@ -80,11 +79,11 @@ buildPythonPackage rec {
     "vyper"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Pythonic Smart Contract Language for the EVM";
     homepage = "https://github.com/vyperlang/vyper";
     changelog = "https://github.com/vyperlang/vyper/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ siraben ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ siraben ];
   };
 }

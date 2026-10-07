@@ -1,29 +1,25 @@
-{ lib
-, attrs
-, buildPythonPackage
-, deprecated
-, fetchFromGitHub
-, fetchPypi
-, hatch-vcs
-, hatchling
-, hepunits
-, pandas
-, pytestCheckHook
-, pythonOlder
-, setuptools-scm
-, tabulate
+{
+  lib,
+  attrs,
+  buildPythonPackage,
+  deprecated,
+  fetchPypi,
+  hatch-vcs,
+  hatchling,
+  hepunits,
+  pandas,
+  pytestCheckHook,
+  tabulate,
 }:
 
 buildPythonPackage rec {
   pname = "particle";
-  version = "0.23.1";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.9";
+  version = "1.0.1";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-7uKLDoRr/qTf1w6exf/jJEYT2wi2tqm3c/VaQxB1L6s=";
+    hash = "sha256-Py7E27iVPJC6g7iR1lNM2C3Brs5BEbeZmP8oTON3qSI=";
   };
 
   postPatch = ''
@@ -33,12 +29,12 @@ buildPythonPackage rec {
       --replace '"--benchmark-disable",' ""
   '';
 
-  nativeBuildInputs = [
+  build-system = [
     hatch-vcs
     hatchling
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     attrs
     deprecated
     hepunits
@@ -50,19 +46,19 @@ buildPythonPackage rec {
     pandas
   ];
 
-  pythonImportsCheck = [
-    "particle"
-  ];
+  pythonImportsCheck = [ "particle" ];
 
   disabledTestPaths = [
+    # Requires pytest-benchmark and pytest-cov which we want to avoid using, as
+    # it doesn't really test functionality.
     "tests/particle/test_performance.py"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Package to deal with particles, the PDG particle data table and others";
     homepage = "https://github.com/scikit-hep/particle";
     changelog = "https://github.com/scikit-hep/particle/releases/tag/v${version}";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ doronbehar ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ doronbehar ];
   };
 }

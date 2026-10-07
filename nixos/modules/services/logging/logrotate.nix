@@ -1,61 +1,99 @@
-{ config, lib, pkgs, utils, ... }:
-
-with lib;
-
+{
+  config,
+  lib,
+  pkgs,
+  utils,
+  ...
+}:
 let
   cfg = config.services.logrotate;
 
-  generateLine = n: v:
-    if builtins.elem n [ "files" "priority" "enable" "global" ] || v == null then null
-    else if builtins.elem n [ "frequency" ] then "${v}\n"
-    else if builtins.elem n [ "firstaction" "lastaction" "prerotate" "postrotate" "preremove" ]
-         then "${n}\n    ${v}\n  endscript\n"
-    else if isInt v then "${n} ${toString v}\n"
-    else if v == true then "${n}\n"
-    else if v == false then "no${n}\n"
-    else "${n} ${v}\n";
-  generateSection = indent: settings: concatStringsSep (fixedWidthString indent " " "") (
-    filter (x: x != null) (mapAttrsToList generateLine settings)
-  );
+  generateLine =
+    n: v:
+    if
+      builtins.elem n [
+        "files"
+        "priority"
+        "enable"
+        "global"
+      ]
+      || v == null
+    then
+      null
+    else if builtins.elem n [ "frequency" ] then
+      "${v}\n"
+    else if
+      builtins.elem n [
+        "firstaction"
+        "lastaction"
+        "prerotate"
+        "postrotate"
+        "preremove"
+      ]
+    then
+      "${n}\n    ${v}\n  endscript\n"
+    else if lib.isInt v then
+      "${n} ${toString v}\n"
+    else if v == true then
+      "${n}\n"
+    else if v == false then
+      "no${n}\n"
+    else
+      "${n} ${v}\n";
+  generateSection =
+    indent: settings:
+    lib.concatStringsSep (lib.fixedWidthString indent " " "") (
+      lib.filter (x: x != null) (lib.mapAttrsToList generateLine settings)
+    );
 
   # generateSection includes a final newline hence weird closing brace
-  mkConf = settings:
-    if settings.global or false then generateSection 0 settings
-    else ''
-      ${concatMapStringsSep "\n" (files: ''"${files}"'') (toList settings.files)} {
-        ${generateSection 2 settings}}
-    '';
+  mkConf =
+    settings:
+    if settings.global or false then
+      generateSection 0 settings
+    else
+      ''
+        ${lib.concatMapStringsSep "\n" (files: ''"${files}"'') (lib.toList settings.files)} {
+          ${generateSection 2 settings}}
+      '';
 
-  settings = sortProperties (attrValues (filterAttrs (_: settings: settings.enable) (
-    foldAttrs recursiveUpdate { } [
-      {
-        header = {
-          enable = true;
-          missingok = true;
-          notifempty = true;
-          frequency = "weekly";
-          rotate = 4;
-        };
-      }
-      cfg.settings
-      { header = { global = true; priority = 100; }; }
-    ]
-  )));
+  settings = lib.sortProperties (
+    lib.attrValues (
+      lib.filterAttrs (_: settings: settings.enable) (
+        lib.foldAttrs lib.recursiveUpdate { } [
+          {
+            header = {
+              enable = true;
+              missingok = true;
+              notifempty = true;
+              frequency = "weekly";
+              rotate = 4;
+            };
+          }
+          cfg.settings
+          {
+            header = {
+              global = true;
+              priority = 100;
+            };
+          }
+        ]
+      )
+    )
+  );
   configFile = pkgs.writeTextFile {
     name = "logrotate.conf";
-    text = concatStringsSep "\n" (
-      map mkConf settings
-    );
-    checkPhase = optionalString cfg.checkConfig ''
+    text = lib.concatStringsSep "\n" (map mkConf settings);
+    checkPhase = lib.optionalString cfg.checkConfig ''
       # logrotate --debug also checks that users specified in config
       # file exist, but we only have sandboxed users here so brown these
       # out. according to man page that means su, create and createolddir.
       # files required to exist also won't be present, so missingok is forced.
       user=$(${pkgs.buildPackages.coreutils}/bin/id -un)
       group=$(${pkgs.buildPackages.coreutils}/bin/id -gn)
-      sed -e "s/\bsu\s.*/su $user $group/" \
-          -e "s/\b\(create\s\+[0-9]*\s*\|createolddir\s\+[0-9]*\s\+\).*/\1$user $group/" \
-          -e "1imissingok" -e "s/\bnomissingok\b//" \
+      sed -E -e "s/\bsu\s.*/su $user $group/" \
+             -e "s/\b((create|createolddir)\b(\s+[0-9]+)?).*/\1 $user $group/" \
+             -e "1imissingok" -e "s/\bnomissingok\b//" \
           $out > logrotate.conf
       # Since this makes for very verbose builds only show real error.
       # There is no way to control log level, but logrotate hardcodes
@@ -82,33 +120,55 @@ let
     '';
   };
 
-  mailOption =
-    optionalString (foldr (n: a: a || (n.mail or false) != false) false (attrValues cfg.settings))
-    "--mail=${pkgs.mailutils}/bin/mail";
+  mailOption = lib.optionalString (lib.foldr (n: a: a || (n.mail or false) != false) false (
+    lib.attrValues cfg.settings
+  )) "--mail=${pkgs.mailutils}/bin/mail";
 in
 {
   imports = [
-    (mkRemovedOptionModule [ "services" "logrotate" "config" ] "Modify services.logrotate.settings.header instead")
-    (mkRemovedOptionModule [ "services" "logrotate" "extraConfig" ] "Modify services.logrotate.settings.header instead")
-    (mkRemovedOptionModule [ "services" "logrotate" "paths" ] "Add attributes to services.logrotate.settings instead")
+    (lib.mkRemovedOptionModule [
+      "services"
+      "logrotate"
+      "config"
+    ] "Modify services.logrotate.settings.header instead")
+    (lib.mkRemovedOptionModule [
+      "services"
+      "logrotate"
+      "extraConfig"
+    ] "Modify services.logrotate.settings.header instead")
+    (lib.mkRemovedOptionModule [
+      "services"
+      "logrotate"
+      "paths"
+    ] "Add attributes to services.logrotate.settings instead")
+    (lib.mkRemovedOptionModule [
+      "services"
+      "logrotate"
+      "configFile"
+    ] "Use services.logrotate.settings instead to specify extra configuration")
   ];
 
   options = {
     services.logrotate = {
-      enable = mkEnableOption (lib.mdDoc "the logrotate systemd service") // {
-        default = foldr (n: a: a || n.enable) false (attrValues cfg.settings);
-        defaultText = literalExpression "cfg.settings != {}";
+      enable = lib.mkEnableOption "the logrotate systemd service" // {
+        default = lib.foldr (n: a: a || n.enable) false (lib.attrValues cfg.settings);
+        defaultText = lib.literalExpression "cfg.settings != {}";
       };
 
-      settings = mkOption {
+      allowNetworking = lib.mkEnableOption "network access for logrotate";
+
+      settings = lib.mkOption {
         default = { };
-        description = lib.mdDoc ''
+        description = ''
           logrotate freeform settings: each attribute here will define its own section,
-          ordered by priority, which can either define files to rotate with their settings
+          ordered by {option}`services.logrotate.settings.<name>.priority`,
+          which can either define files to rotate with their settings
           or settings common to all further files settings.
-          Refer to <https://linux.die.net/man/8/logrotate> for details.
+          All attribute names not explicitly defined as sub-options here are passed through
+          as logrotate config directives,
+          refer to <https://linux.die.net/man/8/logrotate> for details.
         '';
-        example = literalExpression ''
+        example = lib.literalExpression ''
           {
             # global options
             header = {
@@ -125,85 +185,85 @@ in
                 "/var/log/second.log"
               ];
             };
-          };
-          '';
-        type = types.attrsOf (types.submodule ({ name, ... }: {
-          freeformType = with types; attrsOf (nullOr (oneOf [ int bool str ]));
-
-          options = {
-            enable = mkEnableOption (lib.mdDoc "setting individual kill switch") // {
-              default = true;
-            };
-
-            global = mkOption {
-              type = types.bool;
-              default = false;
-              description = lib.mdDoc ''
-                Whether this setting is a global option or not: set to have these
-                settings apply to all files settings with a higher priority.
-              '';
-            };
-            files = mkOption {
-              type = with types; either str (listOf str);
-              default = name;
-              defaultText = ''
-                The attrset name if not specified
-              '';
-              description = lib.mdDoc ''
-                Single or list of files for which rules are defined.
-                The files are quoted with double-quotes in logrotate configuration,
-                so globs and spaces are supported.
-                Note this setting is ignored if globals is true.
-              '';
-            };
-
-            frequency = mkOption {
-              type = types.nullOr types.str;
-              default = null;
-              description = lib.mdDoc ''
-                How often to rotate the logs. Defaults to previously set global setting,
-                which itself defaults to weekly.
-              '';
-            };
-
-            priority = mkOption {
-              type = types.int;
-              default = 1000;
-              description = lib.mdDoc ''
-                Order of this logrotate block in relation to the others. The semantics are
-                the same as with `lib.mkOrder`. Smaller values are inserted first.
-              '';
+            # specify custom order of sections
+            "/var/log/myservice/*.log" = {
+              # ensure lower priority
+              priority = 110;
+              postrotate = '''
+                systemctl reload myservice
+              ''';
             };
           };
-
-        }));
-      };
-
-      configFile = mkOption {
-        type = types.path;
-        default = configFile;
-        defaultText = ''
-          A configuration file automatically generated by NixOS.
         '';
-        description = lib.mdDoc ''
-          Override the configuration file used by logrotate. By default,
-          NixOS generates one automatically from [](#opt-services.logrotate.settings).
-        '';
-        example = literalExpression ''
-          pkgs.writeText "logrotate.conf" '''
-            missingok
-            "/var/log/*.log" {
-              rotate 4
-              weekly
+        type = lib.types.attrsOf (
+          lib.types.submodule (
+            { name, ... }:
+            {
+              freeformType =
+                with lib.types;
+                attrsOf (
+                  nullOr (oneOf [
+                    int
+                    bool
+                    str
+                  ])
+                );
+
+              options = {
+                enable = lib.mkEnableOption "setting individual kill switch" // {
+                  default = true;
+                };
+
+                global = lib.mkOption {
+                  type = lib.types.bool;
+                  default = false;
+                  description = ''
+                    Whether this setting is a global option or not: set to have these
+                    settings apply to all files settings with a higher priority.
+                  '';
+                };
+                files = lib.mkOption {
+                  type = with lib.types; either str (listOf str);
+                  default = name;
+                  defaultText = ''
+                    The attrset name if not specified
+                  '';
+                  description = ''
+                    Single or list of files for which rules are defined.
+                    The files are quoted with double-quotes in logrotate configuration,
+                    so globs and spaces are supported.
+                    Note this setting is ignored if globals is true.
+                  '';
+                };
+
+                frequency = lib.mkOption {
+                  type = lib.types.nullOr lib.types.str;
+                  default = null;
+                  description = ''
+                    How often to rotate the logs. Defaults to previously set global setting,
+                    which itself defaults to weekly.
+                  '';
+                };
+
+                priority = lib.mkOption {
+                  type = lib.types.int;
+                  default = 1000;
+                  description = ''
+                    Order of this logrotate block in relation to the others. The semantics are
+                    the same as with `lib.mkOrder`. Smaller values are inserted first.
+                  '';
+                };
+              };
+
             }
-          ''';
-        '';
+          )
+        );
       };
 
-      checkConfig = mkOption {
-        type = types.bool;
+      checkConfig = lib.mkOption {
+        type = lib.types.bool;
         default = true;
-        description = lib.mdDoc ''
+        description = ''
           Whether the config should be checked at build time.
 
           Some options are not checkable at build time because of the build sandbox:
@@ -213,7 +273,7 @@ in
           and users are replaced by dummy users), so tests are complemented by a
           logrotate-checkconf service that is enabled by default.
           This extra check can be disabled by disabling it at the systemd level with the
-          {option}`services.systemd.services.logrotate-checkconf.enable` option.
+          {option}`systemd.services.logrotate-checkconf.enable` option.
 
           Conversely there are still things that might make this check fail incorrectly
           (e.g. a file path where we don't have access to intermediate directories):
@@ -223,21 +283,81 @@ in
 
       extraArgs = lib.mkOption {
         type = lib.types.listOf lib.types.str;
-        default = [];
+        default = [ ];
         description = "Additional command line arguments to pass on logrotate invocation";
       };
     };
   };
 
-  config = mkIf cfg.enable {
+  config = lib.mkIf cfg.enable {
+    # logrotate config has an include directive. As such, always generate the built-in config
+    # in case it is useful to the user.
+    # Users could choose to disable it with environment.etc."logrotate.conf".enable = false;
+    environment.etc."logrotate.conf" = {
+      source = configFile;
+      # logrotate mandates that its config is always owned by root.
+      # Copy into /etc to avoid user namespacing issues.
+      mode = "0644";
+      user = "root";
+      group = "root";
+    };
+
     systemd.services.logrotate = {
       description = "Logrotate Service";
+      documentation = [
+        "man:logrotate(8)"
+        "man:logrotate(5)"
+      ];
       startAt = "hourly";
 
       serviceConfig = {
-        Restart = "no";
-        User = "root";
-        ExecStart = "${pkgs.logrotate}/sbin/logrotate ${utils.escapeSystemdExecArgs cfg.extraArgs} ${mailOption} ${cfg.configFile}";
+        Type = "oneshot";
+        ExecStart = "${lib.getExe pkgs.logrotate} ${utils.escapeSystemdExecArgs cfg.extraArgs} ${mailOption} /etc/logrotate.conf";
+
+        # performance
+        Nice = 19;
+        IOSchedulingClass = "best-effort";
+        IOSchedulingPriority = 7;
+
+        # hardening
+        CapabilityBoundingSet = [
+          "CAP_CHOWN"
+          "CAP_DAC_OVERRIDE"
+          "CAP_FOWNER"
+          "CAP_KILL"
+          "CAP_SETUID"
+          "CAP_SETGID"
+        ];
+        DevicePolicy = "closed";
+        LockPersonality = true;
+        MemoryDenyWriteExecute = true;
+        NoNewPrivileges = true;
+        PrivateDevices = true;
+        PrivateTmp = true;
+        ProcSubset = "pid";
+        ProtectClock = true;
+        ProtectControlGroups = true;
+        ProtectHome = true;
+        ProtectHostname = true;
+        ProtectKernelLogs = true;
+        ProtectKernelModules = true;
+        ProtectKernelTunables = true;
+        ProtectProc = "invisible";
+        ProtectSystem = "full";
+        RestrictNamespaces = true;
+        RestrictRealtime = true;
+        RestrictSUIDSGID = false; # can create sgid directories
+        SystemCallArchitectures = "native";
+        SystemCallFilter = [
+          "@system-service"
+          "~@privileged @resources"
+          "@chown @setuid"
+        ];
+        UMask = "0027";
+      }
+      // lib.optionalAttrs (!cfg.allowNetworking) {
+        PrivateNetwork = true; # e.g. mail delivery
+        RestrictAddressFamilies = [ "AF_UNIX" ];
       };
     };
     systemd.services.logrotate-checkconf = {
@@ -246,7 +366,7 @@ in
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
-        ExecStart = "${pkgs.logrotate}/sbin/logrotate ${utils.escapeSystemdExecArgs cfg.extraArgs} --debug ${cfg.configFile}";
+        ExecStart = "${pkgs.logrotate}/sbin/logrotate ${utils.escapeSystemdExecArgs cfg.extraArgs} --debug /etc/logrotate.conf";
       };
     };
   };

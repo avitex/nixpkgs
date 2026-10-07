@@ -1,37 +1,33 @@
-{ lib
-, buildPythonPackage
-, django
-, fetchFromGitHub
-, python
-, pythonOlder
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  django,
+  fetchFromGitHub,
+  hatch-vcs,
+  hatchling,
+  python,
 }:
 
 buildPythonPackage rec {
   pname = "django-pwa";
-  version = "1.1.0";
+  version = "2.0.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "silviolleite";
     repo = "django-pwa";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-tP1+Jm9hdvN/ZliuVHN8tqy24/tOK1LUUiJv1xUqRrY=";
+    tag = version;
+    hash = "sha256-EAjDK3rkjoPw8jyVVZdhMNHmTqr0/ERiMwGMxmVbsls=";
   };
 
-  nativeBuildInputs = [
-    setuptools
+  build-system = [
+    hatch-vcs
+    hatchling
   ];
 
-  propagatedBuildInputs = [
-    django
-  ];
+  dependencies = [ django ];
 
-  pyImportCheck = [
-    "pwa"
-  ];
+  pythonImportsCheck = [ "pwa" ];
 
   checkPhase = ''
     runHook preCheck
@@ -39,11 +35,11 @@ buildPythonPackage rec {
     runHook postCheck
   '';
 
-  meta = with lib; {
-    description = "A Django app to include a manifest.json and Service Worker instance to enable progressive web app behavoir";
+  meta = {
+    description = "Django app to include a manifest.json and Service Worker instance to enable progressive web app behavior";
     homepage = "https://github.com/silviolleite/django-pwa";
-    changelog = "https://github.com/silviolleite/django-pwa/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ derdennisop ];
+    changelog = "https://github.com/silviolleite/django-pwa/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ derdennisop ];
   };
 }

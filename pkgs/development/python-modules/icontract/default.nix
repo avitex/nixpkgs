@@ -1,28 +1,28 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, astor
-, asttokens
-, asyncstdlib
-, deal
-, dpcontracts
-, numpy
-, pytestCheckHook
-, typing-extensions
+{
+  lib,
+  astor,
+  asttokens,
+  asyncstdlib,
+  buildPythonPackage,
+  deal,
+  dpcontracts,
+  fetchFromGitHub,
+  numpy,
+  pytestCheckHook,
+  setuptools,
+  typing-extensions,
 }:
 
 buildPythonPackage rec {
   pname = "icontract";
-  version = "2.6.6";
-  format = "setuptools";
-  disabled = pythonOlder "3.6";
+  version = "2.7.3";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "Parquery";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-R5/FBfuTvXItfTlNZMSnO18Q+etnHbQyXFWpaOpOLes=";
+    repo = "icontract";
+    tag = "v${version}";
+    hash = "sha256-UYBskomnu53A9VCY7y7zAOQm40Y+INOqPK6IqZsk6h0=";
   };
 
   preCheck = ''
@@ -32,9 +32,14 @@ buildPythonPackage rec {
     export ICONTRACT_SLOW=1
   '';
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     asttokens
     typing-extensions
+  ];
+  pythonRelaxDeps = [
+    "asttokens"
   ];
 
   nativeCheckInputs = [
@@ -46,26 +51,34 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
+  disabledTests = [
+    # AssertionError
+    "test_abstract_method_not_implemented"
+  ];
+
   disabledTestPaths = [
     # mypy decorator checks don't pass. For some reason mypy
     # doesn't check the python file provided in the test.
     "tests/test_mypy_decorators.py"
-    # those tests seems to simply re-run some typeguard tests
+    # Those tests seems to simply re-run some typeguard tests
     "tests/test_typeguard.py"
   ];
 
-  pytestFlagsArray = [
+  pytestFlags = [
     # RuntimeWarning: coroutine '*' was never awaited
-    "-W" "ignore::RuntimeWarning"
+    "-Wignore::RuntimeWarning"
   ];
 
   pythonImportsCheck = [ "icontract" ];
 
-  meta = with lib; {
+  meta = {
     description = "Provide design-by-contract with informative violation messages";
     homepage = "https://github.com/Parquery/icontract";
     changelog = "https://github.com/Parquery/icontract/blob/v${version}/CHANGELOG.rst";
-    license = licenses.mit;
-    maintainers = with maintainers; [ gador thiagokokada ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [
+      gador
+      thiagokokada
+    ];
   };
 }

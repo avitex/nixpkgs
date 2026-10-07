@@ -1,38 +1,35 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, setuptools
-, ipython
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  flit-core,
+  ipython,
 }:
 
 buildPythonPackage rec {
   pname = "jupyter-ui-poll";
-  version = "0.2.2";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.6";
+  version = "1.1.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "Kirill888";
     repo = "jupyter-ui-poll";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-DWZFvzx0aNTmf1x8Rq19OT0PFRxdpKefWYFh8C116Fw";
+    tag = "v${version}";
+    hash = "sha256-Q+y0Xr7wuo8ZwCHEELSi0QSXa8DLtfZ8XQc48eOk4bw=";
   };
 
-  nativeBuildInputs = [ setuptools ];
-  propagatedBuildInputs = [
-    ipython
-  ];
+  build-system = [ flit-core ];
 
-  doCheck = false;  # no tests in package :(
+  dependencies = [ ipython ];
+
+  doCheck = false; # no tests in package :(
   pythonImportsCheck = [ "jupyter_ui_poll" ];
 
-  meta = with lib; {
+  meta = {
     description = "Block jupyter cell execution while interacting with widgets";
     homepage = "https://github.com/Kirill888/jupyter-ui-poll";
-    changelog = "https://github.com/Kirill888/jupyter-ui-poll/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ bcdarwin ];
+    changelog = "https://github.com/Kirill888/jupyter-ui-poll/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ bcdarwin ];
   };
 }

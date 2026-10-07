@@ -1,50 +1,49 @@
-{ lib
-, buildDunePackage
-, fetchurl
-, mirage-crypto
-, mirage-clock
-, x509
-, logs
-, fmt
-, bos
-, astring
-, cmdliner
-, alcotest
+{
+  lib,
+  buildDunePackage,
+  fetchurl,
+  digestif,
+  mirage-ptime,
+  x509,
+  logs,
+  fmt,
+  bos,
+  cmdliner,
+  alcotest,
 }:
 
-buildDunePackage rec {
+buildDunePackage (finalAttrs: {
   pname = "ca-certs-nss";
-  version = "3.92";
+  version = "3.129-1";
 
-  minimalOCamlVersion = "4.08";
+  minimalOCamlVersion = "4.13";
 
   src = fetchurl {
-    url = "https://github.com/mirage/ca-certs-nss/releases/download/v${version}/ca-certs-nss-${version}.tbz";
-    hash = "sha256-F6eF5jQO9qJACQldad8va5jXPj05o61L8Bp1SDXHBTg=";
+    url = "https://github.com/mirage/ca-certs-nss/releases/download/v${finalAttrs.version}/ca-certs-nss-${finalAttrs.version}.tbz";
+    hash = "sha256-ann6i152EHfGzYgft4syqB8lKk7fnHwAJwe6a7XnRFk=";
   };
 
   propagatedBuildInputs = [
-    mirage-crypto
-    mirage-clock
+    mirage-ptime
     x509
+    digestif
   ];
 
   buildInputs = [
     logs
     fmt
     bos
-    astring
     cmdliner
   ];
 
   doCheck = true;
   checkInputs = [ alcotest ];
 
-  meta = with lib; {
+  meta = {
     description = "X.509 trust anchors extracted from Mozilla's NSS";
     homepage = "https://github.com/mirage/ca-certs-nss";
-    license = licenses.isc;
-    maintainers = [ maintainers.sternenseemann ];
+    license = lib.licenses.isc;
+    maintainers = [ lib.maintainers.sternenseemann ];
     mainProgram = "extract-from-certdata";
   };
-}
+})

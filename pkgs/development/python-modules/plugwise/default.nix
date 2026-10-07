@@ -1,58 +1,45 @@
- { lib
-, aiohttp
-, async-timeout
-, buildPythonPackage
-, crcmod
-, defusedxml
-, fetchFromGitHub
-, freezegun
-, jsonpickle
-, munch
-, pyserial
-, pytest-aiohttp
-, pytest-asyncio
-, pytestCheckHook
-, python-dateutil
-, pythonOlder
-, semver
-, setuptools
-, wheel
+{
+  lib,
+  aiofiles,
+  aiohttp,
+  buildPythonPackage,
+  defusedxml,
+  fetchFromGitHub,
+  freezegun,
+  jsonpickle,
+  munch,
+  pytest-aiohttp,
+  pytest-asyncio,
+  pytestCheckHook,
+  python-dateutil,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "plugwise";
-  version = "0.36.3";
+  version = "1.14.7";
   pyproject = true;
-
-  disabled = pythonOlder "3.11";
 
   src = fetchFromGitHub {
     owner = "plugwise";
     repo = "python-plugwise";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-LhwrrGle9B2zGhlgPLH+uB6ZiWbNPm1GbPXuUh8RLyo=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-SkV64GrVHp9WqWXaZ1IbpfhabBUTEiMBP2QIFWTFSJ0=";
   };
 
   postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace "setuptools~=68.0" "setuptools" \
-      --replace "wheel~=0.40.0" "wheel"
+    # setuptools and wheel
+    sed -i -e "s/~=[0-9.]*//g" pyproject.toml
   '';
 
-  nativeBuildInputs = [
-    setuptools
-    wheel
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
+    aiofiles
     aiohttp
-    async-timeout
-    crcmod
     defusedxml
     munch
-    pyserial
     python-dateutil
-    semver
   ];
 
   nativeCheckInputs = [
@@ -63,17 +50,15 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "plugwise"
-  ];
+  pythonImportsCheck = [ "plugwise" ];
 
   __darwinAllowLocalNetworking = true;
 
-  meta = with lib; {
+  meta = {
     description = "Python module for Plugwise Smiles, Stretch and USB stick";
     homepage = "https://github.com/plugwise/python-plugwise";
-    changelog = "https://github.com/plugwise/python-plugwise/releases/tag/v${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/plugwise/python-plugwise/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

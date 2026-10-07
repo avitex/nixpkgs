@@ -1,30 +1,26 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, setuptools
-, setuptools-scm
-, wheel
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  hatch-vcs,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "astropy-iers-data";
-  version = "0.2023.12.04.00.30.20";
+  version = "0.2026.6.22.1.23.34";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "astropy";
     repo = "astropy-iers-data";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-r4YCBeAyqzwQghLK56d+nJ/TkoSIHmtiW5Gi5xXM2QM=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-q3uW3G3WTHpaRC54tO7ytmSg65SMaOQKO5KbqaSxeq4=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-    setuptools-scm
-    wheel
+  build-system = [
+    hatchling
+    hatch-vcs
   ];
 
   pythonImportsCheck = [ "astropy_iers_data" ];
@@ -32,10 +28,11 @@ buildPythonPackage rec {
   # no tests
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
+    changelog = "https://github.com/astropy/astropy-iers-data/releases/tag/${finalAttrs.src.tag}";
     description = "IERS data maintained by @astrofrog and astropy.utils.iers maintainers";
     homepage = "https://github.com/astropy/astropy-iers-data";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
-}
+})

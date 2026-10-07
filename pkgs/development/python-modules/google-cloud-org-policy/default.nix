@@ -1,31 +1,38 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, google-api-core
-, proto-plus
-, protobuf
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  google-api-core,
+  proto-plus,
+  protobuf,
+  pytest-asyncio,
+  pytestCheckHook,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "google-cloud-org-policy";
-  version = "1.10.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "1.18.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-PnJ01fMsTaUupgaI1W5mIn39hA3NAVGGdLywVDcTDRY=";
+    pname = "google_cloud_org_policy";
+    inherit (finalAttrs) version;
+    hash = "sha256-QeMwz8gzhj0QprX1/6oqEtD+Lwj6A9YZ+qrXRK6Nkis=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  pythonRelaxDeps = [
+    "protobuf"
+  ];
+
+  dependencies = [
     google-api-core
     proto-plus
     protobuf
-  ] ++ google-api-core.optional-dependencies.grpc;
+  ]
+  ++ google-api-core.optional-dependencies.grpc;
 
   nativeCheckInputs = [
     pytest-asyncio
@@ -37,15 +44,13 @@ buildPythonPackage rec {
     rm -r google
   '';
 
-  pythonImportsCheck = [
-    "google.cloud.orgpolicy"
-  ];
+  pythonImportsCheck = [ "google.cloud.orgpolicy" ];
 
-  meta = with lib; {
-    description = "Protobufs for Google Cloud Organization Policy";
-    homepage = "https://github.com/googleapis/python-org-policy";
-    changelog = "https://github.com/googleapis/python-org-policy/blob/v${version}/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ austinbutler ];
+  meta = {
+    description = "Python Client for Organization Policy";
+    homepage = "https://github.com/googleapis/google-cloud-python/blob/main/packages/${finalAttrs.pname}";
+    changelog = "https://github.com/googleapis/google-cloud-python/blob/${finalAttrs.pname}-v${finalAttrs.version}/packages/${finalAttrs.pname}/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ austinbutler ];
   };
-}
+})

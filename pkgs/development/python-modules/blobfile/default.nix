@@ -1,28 +1,31 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, filelock
-, lxml
-, pycryptodomex
-, pythonOlder
-, urllib3
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  filelock,
+  lxml,
+  pycryptodomex,
+  urllib3,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "blobfile";
-  version = "2.0.2";
-  format = "setuptools";
+  version = "3.2.0";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "christopher-hesse";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-vVoiNIN/LNdbedaOQ+gtj4jhzmrGri49fftHKG+K/fg=";
+    repo = "blobfile";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-6WECMS05upC+M81EtOlEs1K3NKD/z073PqutA/OCMiE=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     pycryptodomex
     filelock
     urllib3
@@ -32,15 +35,13 @@ buildPythonPackage rec {
   # Tests require a running Docker instance
   doCheck = false;
 
-  pythonImportsCheck = [
-    "blobfile"
-  ];
+  pythonImportsCheck = [ "blobfile" ];
 
-  meta = with lib; {
+  meta = {
     description = "Read Google Cloud Storage, Azure Blobs, and local paths with the same interface";
     homepage = "https://github.com/christopher-hesse/blobfile";
-    changelog = "https://github.com/christopher-hesse/blobfile/blob/v${version}/CHANGES.md";
-    license = licenses.unlicense;
-    maintainers = with maintainers; [ happysalada ];
+    changelog = "https://github.com/christopher-hesse/blobfile/blob/${finalAttrs.src.tag}/CHANGES.md";
+    license = lib.licenses.unlicense;
+    maintainers = with lib.maintainers; [ happysalada ];
   };
-}
+})

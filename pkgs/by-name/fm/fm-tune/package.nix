@@ -1,21 +1,31 @@
-{ lib, stdenv, fetchFromGitHub, pkg-config, liquid-dsp, soapysdr }:
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  pkg-config,
+  liquid-dsp,
+  soapysdr,
+}:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "fm-tune";
-  version = "1.1";
+  version = "1.2";
 
   src = fetchFromGitHub {
     owner = "viraptor";
     repo = "fm_tune";
-    rev = version;
-    sha256 = "pwL2G1Ni1Ixw/N0diSoGGIoVrtmF92mWZ5i57OOvkX4=";
+    rev = finalAttrs.version;
+    hash = "sha256-kjTcg8nvhPgpsopIjYsaIsEszYPh86ilkSXMMk+z3x0=";
   };
 
   nativeBuildInputs = [ pkg-config ];
 
-  buildInputs = [ liquid-dsp soapysdr ];
+  buildInputs = [
+    liquid-dsp
+    soapysdr
+  ];
 
-  meta = with lib; {
+  meta = {
     description = "Find initial calibration offset for SDR devices";
     longDescription = ''
       fm_tune finds the initial offset for calibrating an SDR device. This is
@@ -24,9 +34,9 @@ stdenv.mkDerivation rec {
       cannot correct for very large errors.
     '';
     homepage = "https://github.com/viraptor/fm_tune";
-    license = licenses.asl20;
-    platforms = platforms.unix;
-    maintainers = with maintainers; [ viraptor ];
+    license = lib.licenses.asl20;
+    platforms = lib.platforms.unix;
+    maintainers = with lib.maintainers; [ viraptor ];
     mainProgram = "fm_tune";
   };
-}
+})

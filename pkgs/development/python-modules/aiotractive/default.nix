@@ -1,47 +1,50 @@
-{ lib
-, aiohttp
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, setuptools
-, yarl
+{
+  lib,
+  aiohttp,
+  buildPythonPackage,
+  fetchFromGitHub,
+  orjson,
+  pyprojectVersionPatchHook,
+  setuptools,
+  yarl,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "aiotractive";
-  version = "0.5.7";
+  version = "1.0.3";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "zhulik";
     repo = "aiotractive";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-fIdIFG1OpAN1R2L2RryTzYZyqGLo3tqAAkRC8UUFM4k=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-wRV/ZQ2T3Dlrmq6jY5IatrGr07uxPFWcVoMiJN+md88=";
   };
 
+  build-system = [ setuptools ];
+
   nativeBuildInputs = [
-    setuptools
+    pyprojectVersionPatchHook
   ];
 
-  propagatedBuildInputs = [
+  pythonRelaxDeps = [ "orjson" ];
+
+  dependencies = [
     aiohttp
+    orjson
     yarl
   ];
 
   # Project has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "aiotractive"
-  ];
+  pythonImportsCheck = [ "aiotractive" ];
 
-  meta = with lib; {
-    changelog = "https://github.com/zhulik/aiotractive/releases/tag/v${version}";
+  meta = {
     description = "Python client for the Tractive REST API";
     homepage = "https://github.com/zhulik/aiotractive";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/zhulik/aiotractive/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

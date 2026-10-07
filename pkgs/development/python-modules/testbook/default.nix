@@ -1,25 +1,24 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, nbformat
-, nbclient
-, ipykernel
-, pandas
-, pytestCheckHook
-, traitlets
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  nbformat,
+  nbclient,
+  ipykernel,
+  pandas,
+  pytestCheckHook,
+  setuptools,
+  traitlets,
 }:
 
 buildPythonPackage rec {
   pname = "testbook";
   version = "0.4.2";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.6";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "nteract";
-    repo = pname;
+    repo = "testbook";
     rev = version;
     hash = "sha256-qaDgae/5TRpjmjOf7aom7TC5HLHp0PHM/ds47AKtq8U=";
   };
@@ -29,6 +28,8 @@ buildPythonPackage rec {
     nbformat
   ];
 
+  nativeBuildInputs = [ setuptools ];
+
   nativeCheckInputs = [
     ipykernel
     pandas
@@ -36,14 +37,12 @@ buildPythonPackage rec {
     traitlets
   ];
 
-  pythonImportsCheck = [
-    "testbook"
-  ];
+  pythonImportsCheck = [ "testbook" ];
 
-  meta = with lib; {
-    description = "A unit testing framework extension for testing code in Jupyter Notebooks";
+  meta = {
+    description = "Unit testing framework extension for testing code in Jupyter Notebooks";
     homepage = "https://testbook.readthedocs.io/";
-    license = with licenses; [ bsd3 ];
-    maintainers = with maintainers; [ djacu ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ djacu ];
   };
 }

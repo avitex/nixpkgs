@@ -1,40 +1,45 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools
-, urllib3
-, six
-, certifi
-, python-dateutil
-, asn1crypto
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  urllib3,
+  six,
+  certifi,
+  python-dateutil,
+  asn1crypto,
 }:
 
 buildPythonPackage rec {
   pname = "ionoscloud";
-  version = "6.1.8";
+  version = "6.1.13";
   pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash= "sha256-QQNDqKZ+X+w5vHFXr793QqRjShNBZ182DyD3fUUxqkc=";
+    hash = "sha256-8QgweGXPWcvGQcp22yo4KovkVXrDI2eSWNMUnGhDWEI=";
   };
 
   nativeBuildInputs = [ setuptools ];
 
-  propagatedBuildInputs = [ urllib3 six certifi python-dateutil asn1crypto ];
+  propagatedBuildInputs = [
+    urllib3
+    six
+    certifi
+    python-dateutil
+    asn1crypto
+  ];
 
   # upstream only has codecoverage tests, but no actual tests to go with them
   doCheck = false;
 
-  pythonImportsCheck = [
-    "ionoscloud"
-  ];
+  pythonImportsCheck = [ "ionoscloud" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/ionos-cloud/sdk-python";
     description = "Python API client for ionoscloud";
     changelog = "https://github.com/ionos-cloud/sdk-python/blob/v${version}/docs/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ hexchen ];
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
 }

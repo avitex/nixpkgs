@@ -1,22 +1,23 @@
-{ lib
-, fetchFromGitHub
-, jre
-, makeWrapper
-, maven
-, icoutils
-, copyDesktopItems
-, makeDesktopItem
+{
+  lib,
+  fetchFromGitHub,
+  jre,
+  makeWrapper,
+  maven,
+  icoutils,
+  copyDesktopItems,
+  makeDesktopItem,
 }:
 
 maven.buildMavenPackage rec {
   pname = "bytecode-viewer";
-  version = "2.12";
+  version = "2.13.2";
 
   src = fetchFromGitHub {
     owner = "Konloch";
     repo = "bytecode-viewer";
     rev = "v${version}";
-    hash = "sha256-opAUmkEcWPOrcxAL+I1rBQXwHmvzbu0+InTnsg9r+z8=";
+    hash = "sha256-PWL9fFBWksIfCZuVH/QV0j47stZ4CFY24SIunp+DuUI=";
   };
 
   desktopItems = [
@@ -36,7 +37,7 @@ maven.buildMavenPackage rec {
     ./make-deterministic.patch
   ];
 
-  mvnHash = "sha256-iAxzFq8nR9UiH8y3ZWmGuChZEMwQBAkN8wD+t9q/RWY=";
+  mvnHash = "sha256-NmSme8Jea2VGE0HvdqfhAs+CI1ZD+5jqD06pFSfSr1o=";
 
   mvnParameters = "-Dproject.build.outputTimestamp=1980-01-01T00:00:02Z";
 
@@ -66,16 +67,18 @@ maven.buildMavenPackage rec {
     runHook postInstall
   '';
 
-  meta = with lib; {
+  meta = {
     homepage = "https://bytecodeviewer.com";
-    description = "A lightweight user-friendly Java/Android Bytecode Viewer, Decompiler & More";
+    description = "Lightweight user-friendly Java/Android Bytecode Viewer, Decompiler & More";
     mainProgram = "bytecode-viewer";
-    maintainers = with maintainers; [ shard7 d3vil0p3r ];
-    platforms = platforms.unix;
-    sourceProvenance = with sourceTypes; [
-      fromSource
-      binaryBytecode  # deps
+    maintainers = with lib.maintainers; [
+      shard7
     ];
-    license = with licenses; [ gpl3Only ];
+    platforms = lib.platforms.unix;
+    sourceProvenance = with lib.sourceTypes; [
+      fromSource
+      binaryBytecode # deps
+    ];
+    license = lib.licenses.gpl3Only;
   };
 }

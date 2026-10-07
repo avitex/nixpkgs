@@ -1,40 +1,51 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, cvxopt
-, cvxpy
-, cython
-, fetchFromGitHub
-, ipython
-, matplotlib
-, numpy
-, packaging
-, pytest-rerunfailures
-, pytestCheckHook
-, python
-, pythonOlder
-, scipy
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  cython,
+  oldest-supported-numpy,
+  setuptools,
+
+  # dependencies
+  numpy,
+  packaging,
+  scipy,
+
+  # tests
+  pytestCheckHook,
+  pytest-rerunfailures,
+  writableTmpDirAsHomeHook,
+  python,
+
+  # optional-dependencies
+  matplotlib,
+  ipython,
+  cvxopt,
+  cvxpy,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "qutip";
-  version = "4.7.4";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "5.3.1";
+  pyproject = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
-    owner = pname;
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-gfWYlQoGESE+EryLVfsnmBq9xFf3d92xOmEz4A32iqU=";
+    owner = "qutip";
+    repo = "qutip";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-MegIeAI1euGRV0MymhDp6/ncyvFHoIz0td68hZzhNGs=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     cython
+    oldest-supported-numpy
+    setuptools
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     numpy
     packaging
     scipy
@@ -43,20 +54,15 @@ buildPythonPackage rec {
   nativeCheckInputs = [
     pytestCheckHook
     pytest-rerunfailures
-  ] ++ lib.flatten (builtins.attrValues passthru.optional-dependencies);
-
-  # Disabling OpenMP support on Darwin.
-  setupPyGlobalFlags = lib.optionals (!stdenv.isDarwin) [
-    "--with-openmp"
-  ];
+    writableTmpDirAsHomeHook
+  ]
+  ++ lib.concatAttrValues finalAttrs.passthru.optional-dependencies;
 
   # QuTiP tries to access the home directory to create an rc file for us.
   # We need to go to another directory to run the tests from there.
   # This is due to the Cython-compiled modules not being in the correct location
   # of the source tree.
   preCheck = ''
-    export HOME=$(mktemp -d);
-    export OMP_NUM_THREADS=$NIX_BUILD_CORES
     mkdir -p test && cd test
   '';
 
@@ -67,28 +73,31 @@ buildPythonPackage rec {
     runHook postCheck
   '';
 
-  pythonImportsCheck = [
-    "qutip"
-  ];
+  pythonImportsCheck = [ "qutip" ];
 
-  passthru.optional-dependencies = {
-    graphics = [
-      matplotlib
-    ];
-    ipython = [
-      ipython
-    ];
+  optional-dependencies = {
+    graphics = [ matplotlib ];
+    ipython = [ ipython ];
     semidefinite = [
-      cvxpy
       cvxopt
+      cvxpy
     ];
   };
 
-  meta = with lib; {
+  meta = {
     description = "Open-source software for simulating the dynamics of closed and open quantum systems";
     homepage = "https://qutip.org/";
-    changelog = "https://github.com/qutip/qutip/releases/tag/v${version}";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ fabiangd ];
+    changelog = "https://github.com/qutip/qutip/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
+    badPlatforms = [
+      # Tests fail at ~80%
+      # ../tests/test_animation.py::test_result_state Fatal Python error: Aborted
+      lib.systems.inspect.patterns.isDarwin
+
+      # Several tests fail with a segfault
+      # ../tests/test_random.py::test_rand_super_bcsz[int-CSR-choi-None-rep(1)] Fatal Python error: Aborted
+      "aarch64-linux"
+    ];
   };
-}
+})

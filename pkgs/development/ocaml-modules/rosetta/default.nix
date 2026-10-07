@@ -1,18 +1,19 @@
-{ buildDunePackage
-, coin
-, fetchzip
-, lib
-, yuscii
-, uuuu
+{
+  buildDunePackage,
+  coin,
+  fetchzip,
+  lib,
+  yuscii,
+  uuuu,
 }:
 
-buildDunePackage rec {
+buildDunePackage (finalAttrs: {
   pname = "rosetta";
-  version = "0.3.0";
+  version = "0.4.0";
 
   src = fetchzip {
-    url = "https://github.com/mirage/rosetta/releases/download/v${version}/rosetta-v${version}.tbz";
-    sha256 = "1gzp3fbk8qd207cm25dgj9kj7b44ldqpjs63pl6xqvi9hx60m3ij";
+    url = "https://github.com/mirage/rosetta/releases/download/v${finalAttrs.version}/rosetta-${finalAttrs.version}.tbz";
+    hash = "sha256-LFdkwHBppDXE5q6mcDPWX1PreSVEsV9msq6rEmCWVwA=";
   };
 
   duneVersion = "3";
@@ -29,6 +30,6 @@ buildDunePackage rec {
     description = "Universal decoder of an encoded flow (UTF-7, ISO-8859 and KOI8) to Unicode";
     license = lib.licenses.mit;
     homepage = "https://github.com/mirage/rosetta";
-    maintainers = with lib.maintainers; [ ];
+    maintainers = [ ];
   };
-}
+})

@@ -1,31 +1,30 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchPypi
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# build-system
-, setuptools
+  # build-system
+  setuptools,
 
-# docs
-, python
-, sphinx
-, sphinx-rtd-theme
+  # docs
+  sphinxHook,
+  sphinx-rtd-theme,
 
-# tests
-, hypothesis
-, pytestCheckHook
+  # tests
+  hypothesis,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "mutagen";
-  version = "1.47.0";
-  format = "pyproject";
+  version = "1.48.1";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-cZ+t7wqXjDG0zzyVYmGzxYtpSLMgIweKIRex3gnw/Jk=";
+  src = fetchFromGitHub {
+    owner = "quodlibet";
+    repo = "mutagen";
+    tag = "release-${finalAttrs.version}";
+    hash = "sha256-CasNC5oW59WOUr7WSu4lUnYYzs6ow8RuJAylqNW7geA=";
   };
 
   outputs = [
@@ -33,34 +32,23 @@ buildPythonPackage rec {
     "doc"
   ];
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
-    sphinx
-    sphinx-rtd-theme
   ];
 
-  postInstall = ''
-    ${python.pythonOnBuildForHost.interpreter} setup.py build_sphinx --build-dir=$doc
-  '';
+  nativeBuildInputs = [
+    sphinxHook
+    sphinx-rtd-theme
+  ];
 
   nativeCheckInputs = [
     hypothesis
     pytestCheckHook
   ];
 
-  disabledTests = [
-    # Hypothesis produces unreliable results: Falsified on the first call but did not on a subsequent one
-    "test_test_fileobj_save"
-    "test_test_fileobj_load"
-    "test_test_fileobj_delete"
-    "test_mock_fileobj"
-  ];
+  pythonImportsCheck = [ "mutagen" ];
 
-  pythonImportsCheck = [
-    "mutagen"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Python module for handling audio metadata";
     longDescription = ''
       Mutagen is a Python module to handle audio metadata. It supports
@@ -73,8 +61,10 @@ buildPythonPackage rec {
       manipulate Ogg streams on an individual packet/page level.
     '';
     homepage = "https://mutagen.readthedocs.io";
-    changelog = "https://mutagen.readthedocs.io/en/latest/changelog.html#release-${lib.replaceStrings [ "." ] [ "-" ] version}";
-    license = licenses.gpl2Plus;
-    maintainers = with maintainers; [ ];
+    changelog = "https://mutagen.readthedocs.io/en/latest/changelog.html#release-${
+      lib.replaceString "." "-" finalAttrs.version
+    }";
+    license = lib.licenses.gpl2Plus;
+    maintainers = [ lib.maintainers.dotlambda ];
   };
-}
+})

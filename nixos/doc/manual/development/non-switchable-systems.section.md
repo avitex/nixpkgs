@@ -8,8 +8,9 @@ If you want to build such a system, you can use the `image-based-appliance`
 profile:
 
 ```nix
-{ modulesPath, ... }: {
-  imports = [ "${modulesPath}/profiles/image-based-appliance.nix" ]
+{ modulesPath, ... }:
+{
+  imports = [ "${modulesPath}/profiles/image-based-appliance.nix" ];
 }
 ```
 

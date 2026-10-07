@@ -1,33 +1,40 @@
-{ lib
-, mkDerivation
-, fetchFromGitHub
-, cmake
-, pkg-config
-, glib
-, lxqt-build-tools
-, lxqt-menu-data
-, qtbase
-, qtx11extras
-, qttools
-, qtsvg
-, kwindowsystem
-, libkscreen
-, liblxqt
-, libqtxdg
-, xkeyboard_config
-, xorg
-, gitUpdater
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  cmake,
+  glib,
+  kwindowsystem,
+  libxscrnsaver,
+  libxcursor,
+  libxdmcp,
+  libkscreen,
+  liblxqt,
+  libpthread-stubs,
+  libqtxdg,
+  libxcb,
+  lxqt-build-tools,
+  lxqt-menu-data,
+  pkg-config,
+  qtbase,
+  qtsvg,
+  qttools,
+  qtwayland,
+  wrapQtAppsHook,
+  xf86-input-libinput,
+  xkeyboard_config,
+  gitUpdater,
 }:
 
-mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "lxqt-config";
-  version = "1.4.0";
+  version = "2.4.0";
 
   src = fetchFromGitHub {
     owner = "lxqt";
-    repo = pname;
-    rev = version;
-    hash = "sha256-ypHjUYRtrWx1Cp9KGSqsWpRHg7zoV0YDW6P4amJKapI=";
+    repo = "lxqt-config";
+    tag = finalAttrs.version;
+    hash = "sha256-BG3+/QZkqCZp7kdaHgiruOMq506l8+9KKNq+IUgoTPw=";
   };
 
   nativeBuildInputs = [
@@ -35,45 +42,48 @@ mkDerivation rec {
     pkg-config
     lxqt-build-tools
     qttools
+    wrapQtAppsHook
   ];
 
   buildInputs = [
     glib.bin
-    qtbase
-    qtx11extras
-    qtsvg
     kwindowsystem
+    libxscrnsaver
+    libxcursor
+    libxdmcp
     libkscreen
     liblxqt
+    libpthread-stubs
     libqtxdg
+    libxcb
     lxqt-menu-data
-    xorg.libpthreadstubs
-    xorg.libXdmcp
-    xorg.libXScrnSaver
-    xorg.libxcb
-    xorg.libXcursor
-    xorg.xf86inputlibinput
-    xorg.xf86inputlibinput.dev
+    qtbase
+    qtsvg
+    qtwayland
+    xf86-input-libinput
+    xf86-input-libinput.dev
   ];
+
+  cmakeFlags = [ "-DCMAKE_CXX_STANDARD=20" ];
 
   postPatch = ''
     substituteInPlace lxqt-config-appearance/configothertoolkits.cpp \
-      --replace 'QStringLiteral("gsettings' \
+      --replace-fail 'QStringLiteral("gsettings' \
                 'QStringLiteral("${glib.bin}/bin/gsettings'
 
     substituteInPlace lxqt-config-input/keyboardlayoutconfig.h \
-      --replace '/usr/share/X11/xkb/rules/base.lst' \
+      --replace-fail '/usr/share/X11/xkb/rules/base.lst' \
                 '${xkeyboard_config}/share/X11/xkb/rules/base.lst'
   '';
 
   passthru.updateScript = gitUpdater { };
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/lxqt/lxqt-config";
     description = "Tools to configure LXQt and the underlying operating system";
-    license = licenses.lgpl21Plus;
-    platforms = platforms.linux;
-    maintainers = teams.lxqt.members;
+    license = lib.licenses.lgpl21Plus;
+    platforms = lib.platforms.linux;
+    teams = [ lib.teams.lxqt ];
   };
 
-}
+})

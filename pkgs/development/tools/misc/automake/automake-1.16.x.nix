@@ -1,16 +1,27 @@
-{ lib, stdenv, fetchurl, perl, autoconf }:
+{
+  lib,
+  stdenv,
+  fetchurl,
+  perl,
+  autoconf,
+  updateAutotoolsGnuConfigScriptsHook,
+}:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "automake";
   version = "1.16.5";
 
   src = fetchurl {
-    url = "mirror://gnu/automake/automake-${version}.tar.xz";
-    sha256 = "0sdl32qxdy7m06iggmkkvf7j520rmmgbsjzbm7fgnxwxdp6mh7gh";
+    url = "mirror://gnu/automake/automake-${finalAttrs.version}.tar.xz";
+    hash = "sha256-8B1YzW2dd/vcqetLvV6tGYgij9tz1veiAfX41rEYtGk=";
   };
 
   strictDeps = true;
-  nativeBuildInputs = [ autoconf perl ];
+  nativeBuildInputs = [
+    updateAutotoolsGnuConfigScriptsHook
+    autoconf
+    perl
+  ];
   buildInputs = [ autoconf ];
 
   setupHook = ./setup-hook.sh;
@@ -25,16 +36,18 @@ stdenv.mkDerivation rec {
   # "fixed" path in generated files!
   dontPatchShebangs = true;
 
-  meta = with lib; {
+  __structuredAttrs = true;
+
+  meta = {
     branch = "1.16";
     homepage = "https://www.gnu.org/software/automake/";
     description = "GNU standard-compliant makefile generator";
-    license = licenses.gpl2Plus;
+    license = lib.licenses.gpl2Plus;
     longDescription = ''
       GNU Automake is a tool for automatically generating
       `Makefile.in' files compliant with the GNU Coding
       Standards.  Automake requires the use of Autoconf.
     '';
-    platforms = platforms.all;
+    platforms = lib.platforms.all;
   };
-}
+})

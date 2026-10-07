@@ -1,14 +1,29 @@
-{ config, lib, pkgs, options }:
+{
+  config,
+  lib,
+  pkgs,
+  options,
+  ...
+}:
 let
   cfg = config.services.prometheus.exporters.mysqld;
-  inherit (lib) types mkOption mdDoc mkIf mkForce cli concatStringsSep optionalString escapeShellArgs;
-in {
+  inherit (lib)
+    types
+    mkOption
+    mkIf
+    mkForce
+    concatStringsSep
+    optionalString
+    escapeShellArgs
+    ;
+in
+{
   port = 9104;
   extraOpts = {
     telemetryPath = mkOption {
       type = types.str;
       default = "/metrics";
-      description = mdDoc ''
+      description = ''
         Path under which to expose metrics.
       '';
     };
@@ -16,7 +31,7 @@ in {
     runAsLocalSuperUser = mkOption {
       type = types.bool;
       default = false;
-      description = mdDoc ''
+      description = ''
         Whether to run the exporter as {option}`services.mysql.user`.
       '';
     };
@@ -24,7 +39,7 @@ in {
     configFile = mkOption {
       type = types.path;
       example = "/var/lib/prometheus-mysqld-exporter.cnf";
-      description = mdDoc ''
+      description = ''
         Path to the services config file.
 
         See <https://github.com/prometheus/mysqld_exporter#running> for more information about
@@ -47,7 +62,7 @@ in {
         "${pkgs.prometheus-mysqld-exporter}/bin/mysqld_exporter"
         "--web.listen-address=${cfg.listenAddress}:${toString cfg.port}"
         "--web.telemetry-path=${cfg.telemetryPath}"
-        (optionalString (cfg.configFile != null) ''--config.my-cnf=''${CREDENTIALS_DIRECTORY}/config'')
+        (optionalString (cfg.configFile != null) "--config.my-cnf=\${CREDENTIALS_DIRECTORY}/config")
         (escapeShellArgs cfg.extraFlags)
       ];
       RestrictAddressFamilies = [
@@ -57,4 +72,3 @@ in {
     };
   };
 }
-

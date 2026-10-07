@@ -1,18 +1,18 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pyopenssl
-, tldextract
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  pyopenssl,
+  tldextract,
+  pytest-cov-stub,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage {
   pname = "certauth";
   version = "1.3.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "ikreymer";
@@ -22,10 +22,7 @@ buildPythonPackage rec {
     hash = "sha256-Rso5N0jb9k7bdorjPIUMNiZZPnzwbkxFNiTpsJ9pco0=";
   };
 
-  postPatch = ''
-    substituteInPlace setup.py \
-      --replace "--cov certauth " ""
-  '';
+  nativeBuildInputs = [ setuptools ];
 
   propagatedBuildInputs = [
     pyopenssl
@@ -33,14 +30,16 @@ buildPythonPackage rec {
   ];
 
   nativeCheckInputs = [
+    pytest-cov-stub
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "certauth"
-  ];
+  pythonImportsCheck = [ "certauth" ];
 
   disabledTests = [
+    # https://github.com/ikreymer/certauth/issues/23
+    "test_ca_cert_in_mem"
+    "test_custom_not_before_not_after"
     # Tests want to download Public Suffix List
     "test_file_wildcard"
     "test_file_wildcard_subdomains"
@@ -49,10 +48,12 @@ buildPythonPackage rec {
     "test_in_mem_parent_wildcard_cert_2"
   ];
 
-  meta = with lib; {
+  meta = {
+    broken = lib.versionAtLeast pyopenssl.version "26.3";
     description = "Simple CertificateAuthority and host certificate creation, useful for man-in-the-middle HTTPS proxy";
+    mainProgram = "certauth";
     homepage = "https://github.com/ikreymer/certauth";
-    license = licenses.mit;
-    maintainers = with maintainers; [ Luflosi ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ Luflosi ];
   };
 }

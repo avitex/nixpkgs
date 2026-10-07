@@ -1,41 +1,38 @@
-{ lib
-, aiohttp
-, aresponses
-, async-modbus
-, async-timeout
-, asyncclick
-, buildPythonPackage
-, construct
-, exceptiongroup
-, fetchFromGitHub
-, pandas
-, pytest-asyncio
-, pytestCheckHook
-, python-slugify
-, pythonOlder
-, setuptools
-, tenacity
+{
+  lib,
+  aresponses,
+  async-modbus,
+  async-timeout,
+  asyncclick,
+  buildPythonPackage,
+  construct,
+  exceptiongroup,
+  fetchFromGitHub,
+  pandas,
+  pytest-asyncio,
+  pytestCheckHook,
+  python-slugify,
+  setuptools,
+  tenacity,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "nibe";
-  version = "2.7.0";
+  version = "2.25.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
     owner = "yozik04";
     repo = "nibe";
-    rev = "refs/tags/${version}";
-    hash = "sha256-hNxOB/H/KK9qHd+3FQHn9zjmCZRtY6H0nYKNqUc0FIg=";
+    tag = finalAttrs.version;
+    hash = "sha256-KilNRw/pO0a/x75yCUic58wyf7AD2sFyax+jk+mdxQc=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  pythonRelaxDeps = [ "async-modbus" ];
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     async-modbus
     async-timeout
     construct
@@ -43,31 +40,28 @@ buildPythonPackage rec {
     tenacity
   ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     convert = [
       pandas
       python-slugify
     ];
-    cli = [
-      asyncclick
-    ];
+    cli = [ asyncclick ];
   };
 
   nativeCheckInputs = [
     aresponses
     pytest-asyncio
     pytestCheckHook
-  ];
+  ]
+  ++ lib.flatten (builtins.attrValues finalAttrs.passthru.optional-dependencies);
 
-  pythonImportsCheck = [
-    "nibe"
-  ];
+  pythonImportsCheck = [ "nibe" ];
 
-  meta = with lib; {
+  meta = {
     description = "Library for the communication with Nibe heatpumps";
     homepage = "https://github.com/yozik04/nibe";
-    changelog = "https://github.com/yozik04/nibe/releases/tag/${version}";
-    license = with licenses; [ gpl3Plus ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/yozik04/nibe/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.gpl3Plus;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

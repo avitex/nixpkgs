@@ -1,80 +1,112 @@
-{ gtk3
-, gdk-pixbuf
-, librsvg
-, webp-pixbuf-loader
-, gobject-introspection
-, glib-networking
-, glib
-, shared-mime-info
-, gsettings-desktop-schemas
-, wrapGAppsHook
-, gtk-layer-shell
-, gnome
-, libxkbcommon
-, openssl
-, pkg-config
-, hicolor-icon-theme
-, rustPlatform
-, lib
-, fetchFromGitHub
+{
+  gtk4,
+  gdk-pixbuf,
+  librsvg,
+  webp-pixbuf-loader,
+  gobject-introspection,
+  glib-networking,
+  glib,
+  shared-mime-info,
+  gsettings-desktop-schemas,
+  wrapGAppsHook4,
+  gtk4-layer-shell,
+  adwaita-icon-theme,
+  libxkbcommon,
+  pkg-config,
+  hicolor-icon-theme,
+  rustPlatform,
+  lib,
+  fetchFromGitHub,
+  luajit,
+  luajitPackages,
+  libpulseaudio,
+  libinput,
+  libevdev,
+  features ? [ ],
+  systemd,
+  dbus,
 }:
 
+let
+  hasFeature = f: features == [ ] || builtins.elem f features;
+in
 rustPlatform.buildRustPackage rec {
   pname = "ironbar";
-  version = "0.14.0";
+  version = "0.19.1";
 
   src = fetchFromGitHub {
     owner = "JakeStanger";
     repo = "ironbar";
     rev = "v${version}";
-    hash = "sha256-NRQAR412m14SHozYjJmlnb/TJyCroiWdqY0NLvCOQSE=";
+    hash = "sha256-JBUpT7eJTRXUe5xLmzDr/MnoFgqyp9LjfI9aY0tWqsg=";
   };
 
-  cargoHash = "sha256-EzLcmOppzUtTg1dOdZcx2rweiELPXv2Mt/we7hMr4m4=";
+  cargoHash = "sha256-pcPHatZVGRxqu0TmZ8+ZXV/XOj829LDhg9mB1Jt7yhg=";
 
   buildInputs = [
-    gtk3
+    gtk4
     gdk-pixbuf
     glib
-    gtk-layer-shell
+    gtk4-layer-shell
     glib-networking
     shared-mime-info
-    gnome.adwaita-icon-theme
+    adwaita-icon-theme
     hicolor-icon-theme
     gsettings-desktop-schemas
     libxkbcommon
-    openssl
+    systemd
+    dbus
+  ]
+  ++ lib.optionals (hasFeature "volume") [ libpulseaudio ]
+  ++ lib.optionals (hasFeature "cairo") [ luajit ]
+  ++ lib.optionals (hasFeature "keyboard") [
+    libinput
+    libevdev
   ];
 
   nativeBuildInputs = [
     pkg-config
-    wrapGAppsHook
+    wrapGAppsHook4
     gobject-introspection
   ];
+  propagatedBuildInputs = [ gtk4 ];
 
-  propagatedBuildInputs = [
-    gtk3
-  ];
+  runtimeDeps = [ luajitPackages.lgi ];
+
+  buildNoDefaultFeatures = features != [ ];
+  buildFeatures = features;
+
+  gappsWrapperArgs = ''
+    # Thumbnailers
+    --prefix XDG_DATA_DIRS : "${gdk-pixbuf}/share"
+    --prefix XDG_DATA_DIRS : "${librsvg}/share"
+    --prefix XDG_DATA_DIRS : "${webp-pixbuf-loader}/share"
+    --prefix XDG_DATA_DIRS : "${shared-mime-info}/share"
+
+    # gtk-launch
+    --suffix PATH : "${lib.makeBinPath [ gtk4 ]}"
+  ''
+  + lib.optionalString (hasFeature "cairo") ''
+    --prefix LUA_PATH : "./?.lua;${luajitPackages.lgi}/share/lua/5.1/?.lua;${luajitPackages.lgi}/share/lua/5.1/?/init.lua;${luajit}/share/lua/5.1/\?.lua;${luajit}/share/lua/5.1/?/init.lua"
+    --prefix LUA_CPATH : "./?.so;${luajitPackages.lgi}/lib/lua/5.1/?.so;${luajit}/lib/lua/5.1/?.so;${luajit}/lib/lua/5.1/loadall.so"
+  '';
 
   preFixup = ''
     gappsWrapperArgs+=(
-      # Thumbnailers
-      --prefix XDG_DATA_DIRS : "${gdk-pixbuf}/share"
-      --prefix XDG_DATA_DIRS : "${librsvg}/share"
-      --prefix XDG_DATA_DIRS : "${webp-pixbuf-loader}/share"
-      --prefix XDG_DATA_DIRS : "${shared-mime-info}/share"
-
-      # gtk-launch
-      --suffix PATH : "${lib.makeBinPath [ gtk3 ]}"
+      ${gappsWrapperArgs}
     )
   '';
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/JakeStanger/ironbar";
     description = "Customizable gtk-layer-shell wlroots/sway bar written in Rust";
-    license = licenses.mit;
-    platforms = platforms.linux;
-    maintainers = with maintainers; [ yavko donovanglover jakestanger ];
+    license = lib.licenses.mit;
+    platforms = lib.platforms.linux;
+    maintainers = with lib.maintainers; [
+      yavko
+      donovanglover
+      jakestanger
+    ];
     mainProgram = "ironbar";
   };
 }

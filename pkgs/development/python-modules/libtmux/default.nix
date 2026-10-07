@@ -1,69 +1,74 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, buildPythonPackage
-, poetry-core
-, pytest-rerunfailures
-, pytestCheckHook
-, procps
-, tmux
-, ncurses
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  ncurses,
+  procps,
+  pytest-rerunfailures,
+  pytest-xdist,
+  pytestCheckHook,
+  tmux,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "libtmux";
-  version = "0.25.0";
-  format = "pyproject";
+  version = "0.61.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "tmux-python";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-cAogRdhJdXC0lMQRlWwSHQj205mG9uwd1XkFJYsAetA=";
+    repo = "libtmux";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-ZhVwe6JQTDQDozHHOpwkzWsfSxiP43W4asRngokC7gU=";
   };
+
+  patches = [ ./0001-fix-test_control_mode_stdout_preserves_non_ascii_out.patch ];
 
   postPatch = ''
-    sed -i '/addopts/d' pyproject.toml
+    substituteInPlace pyproject.toml \
+      --replace-fail '"--doctest-docutils-modules",' ""
   '';
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ hatchling ];
 
   nativeCheckInputs = [
-    procps
-    tmux
     ncurses
-    pytest-rerunfailures
+    procps
     pytestCheckHook
+    pytest-rerunfailures
+    pytest-xdist
+    tmux
   ];
 
-  pytestFlagsArray = [ "tests" ];
+  enabledTestPaths = [ "tests" ];
 
-  disabledTests = [
+  disabledTestPaths = lib.optionals stdenv.hostPlatform.isDarwin [ "tests/test/test_retry.py" ];
+  disabledTests = lib.optionals stdenv.hostPlatform.isDarwin [
+    # basename for sleep is coreutils, not sleep
+    "test_break_pane_no_name_uses_natural_name"
     # Fail with: 'no server running on /tmp/tmux-1000/libtmux_test8sorutj1'.
     "test_new_session_width_height"
-    # Assertion error
+    # AssertionError: assert '' == '$'
+    "test_capture_pane"
+    # AssertionError: assert '' == '$'
     "test_capture_pane_start"
-  ] ++ lib.optionals stdenv.isDarwin [
-    # tests/test_pane.py:113: AssertionError
-    "test_capture_pane_start"
+    # AssertionError: assert '' == '$'
+    "test_capture_pane_end"
+    # IndexError: list index out of range
+    "test_new_window_with_environment"
   ];
 
-  disabledTestPaths = lib.optionals stdenv.isDarwin [
-    "tests/test_test.py"
-    "tests/legacy_api/test_test.py"
-  ];
+  pythonImportsCheck = [ "libtmux" ];
 
-  pythonImportsCheck = [
-    "libtmux"
-  ];
+  __darwinAllowLocalNetworking = true;
 
-  meta = with lib; {
+  meta = {
     description = "Typed scripting library / ORM / API wrapper for tmux";
     homepage = "https://libtmux.git-pull.com/";
-    changelog = "https://github.com/tmux-python/libtmux/raw/v${version}/CHANGES";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/tmux-python/libtmux/raw/${finalAttrs.src.tag}/CHANGES";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ otavio ];
   };
-}
+})

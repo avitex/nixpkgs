@@ -1,30 +1,33 @@
-{ lib
-, mkDerivation
-, fetchFromGitHub
-, cmake
-, kwindowsystem
-, libexif
-, libfm-qt
-, lxqt-qtplugin
-, menu-cache
-, qtx11extras
-, gitUpdater
-, extraQtStyles ? []
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  cmake,
+  kwindowsystem,
+  libexif,
+  libfm-qt,
+  lxqt-qtplugin,
+  menu-cache,
+  qtbase,
+  wrapQtAppsHook,
+  gitUpdater,
+  extraQtStyles ? [ ],
 }:
 
-mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "xdg-desktop-portal-lxqt";
-  version = "0.5.0";
+  version = "1.4.0";
 
   src = fetchFromGitHub {
     owner = "lxqt";
-    repo = pname;
-    rev = version;
-    hash = "sha256-6yfLjDK8g8cpeeyuFUEjERTLLn6h3meKjD2Eb7Cj9qY=";
+    repo = "xdg-desktop-portal-lxqt";
+    tag = finalAttrs.version;
+    hash = "sha256-GtpOBnRa10xFpd0FHWJge9RtS58hdOawFQmDH6yD1yU=";
   };
 
   nativeBuildInputs = [
     cmake
+    wrapQtAppsHook
   ];
 
   buildInputs = [
@@ -33,17 +36,17 @@ mkDerivation rec {
     libfm-qt
     lxqt-qtplugin
     menu-cache
-    qtx11extras
+    qtbase
   ]
   ++ extraQtStyles;
 
   passthru.updateScript = gitUpdater { };
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/lxqt/xdg-desktop-portal-lxqt";
     description = "Backend implementation for xdg-desktop-portal that is using Qt/KF5/libfm-qt";
-    license = licenses.lgpl21Plus;
-    platforms = platforms.linux;
-    maintainers = with maintainers; [ romildo ];
+    license = lib.licenses.lgpl21Plus;
+    platforms = lib.platforms.linux;
+    maintainers = [ lib.maintainers.romildo ];
   };
-}
+})

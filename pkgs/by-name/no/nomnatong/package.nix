@@ -1,22 +1,25 @@
-{ lib
-, stdenvNoCC
-, fetchFromGitHub
-, python3Packages
-, nix-update-script
+{
+  lib,
+  stdenvNoCC,
+  fetchFromGitHub,
+  python3Packages,
+  nix-update-script,
+  installFonts,
 }:
 
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "nomnatong";
-  version = "5.08";
+  version = "5.18";
 
   src = fetchFromGitHub {
     owner = "nomfoundation";
     repo = "font";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-WtAxnTFrgXdG2T1vqfRc31tNKbZagDSO9lycKxn8dKg=";
+    hash = "sha256-4kBEWYm7OvJbPFqum0zYTclsVpK4BECHtYoaH84ZyGo=";
   };
 
   nativeBuildInputs = [
+    installFonts
     python3Packages.afdko
     python3Packages.fonttools
   ];
@@ -33,22 +36,13 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     runHook postBuild
   '';
 
-  installPhase = ''
-    runHook preInstall
-
-    install -Dm444 NomNaTong-Regular.otf -t $out/share/fonts/opentype/
-    install -Dm444 NomNaTong-Regular.ttf -t $out/share/fonts/truetype/
-
-    runHook postInstall
-  '';
-
   passthru.updateScript = nix-update-script { };
 
   meta = {
-    homepage = "http://nomfoundation.org/nom-tools/Nom-Font";
-    description = "The Hán-Nôm Coded Character Set and Nom Na Tong Regular Reference Font";
+    homepage = "https://nomfoundation.org/nom-tools/Nom-Font";
+    description = "Hán-Nôm Coded Character Set and Nom Na Tong Regular Reference Font";
     license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ eclairevoyant ];
+    maintainers = [ lib.maintainers.eclairevoyant ];
     platforms = lib.platforms.all;
   };
 })

@@ -1,27 +1,33 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "bnunicodenormalizer";
-  version = "0.1.6";
-  format = "setuptools";
+  version = "0.1.7";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-qVC6+0SnAs25DFzKPHFUOoYPlrRvkGWFptjIVom8wJM=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-hqNInMgcc9KvtOJlvS0Ni8UvyKI3TiEMiZ4CYJQLwJE=";
   };
+
+  build-system = [ setuptools ];
 
   nativeCheckInputs = [ pytestCheckHook ];
 
   pythonImportsCheck = [ "bnunicodenormalizer" ];
 
-  meta = with lib; {
+  meta = {
     description = "Bangla Unicode Normalization Toolkit";
     homepage = "https://github.com/mnansary/bnUnicodeNormalizer";
-    license = licenses.mit;
-    maintainers = teams.tts.members;
+    license = lib.licenses.mit;
+    teams = [ lib.teams.tts ];
   };
-}
+})

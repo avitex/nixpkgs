@@ -1,4 +1,14 @@
-{ lib, buildDunePackage, cohttp, lwt, uri, ppx_sexp_conv, logs, sexplib0 }:
+{
+  lib,
+  buildDunePackage,
+  cohttp,
+  ipaddr,
+  lwt,
+  uri,
+  ppx_sexp_conv,
+  logs,
+  sexplib0,
+}:
 
 buildDunePackage {
   pname = "cohttp-lwt";
@@ -7,12 +17,17 @@ buildDunePackage {
     src
     ;
 
-  duneVersion = "3";
-
   buildInputs = [ ppx_sexp_conv ];
 
   propagatedBuildInputs = [
-    cohttp lwt logs sexplib0 uri
+    cohttp
+    lwt
+    logs
+    sexplib0
+    uri
+  ]
+  ++ lib.optionals (lib.versionAtLeast cohttp.version "6.0.0") [
+    ipaddr
   ];
 
   meta = cohttp.meta // {

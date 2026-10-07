@@ -1,25 +1,46 @@
-{ lib, buildDunePackage, fetchurl
-, ke, duff, decompress, cstruct, optint, bigstringaf
-, checkseum, logs, psq, fmt
-, result, rresult, fpath, base64, bos, digestif, alcotest
-, crowbar, alcotest-lwt, lwt, findlib, mirage-flow, cmdliner, hxd
-, getconf, substituteAll
+{
+  lib,
+  buildDunePackage,
+  fetchurl,
+  ke,
+  duff,
+  decompress,
+  cstruct,
+  optint,
+  bigstringaf,
+  checkseum,
+  logs,
+  psq,
+  fmt,
+  result,
+  rresult,
+  fpath,
+  base64,
+  bos,
+  digestif,
+  alcotest,
+  crowbar,
+  alcotest-lwt,
+  lwt,
+  findlib,
+  mirage-flow,
+  cmdliner,
+  hxd,
+  getconf,
+  replaceVars,
 }:
 
-buildDunePackage rec {
+buildDunePackage (finalAttrs: {
   pname = "carton";
   version = "0.7.0";
 
-  minimalOCamlVersion = "4.08";
-
   src = fetchurl {
-    url = "https://github.com/mirage/ocaml-git/releases/download/${pname}-v${version}/git-${pname}-v${version}.tbz";
+    url = "https://github.com/mirage/ocaml-git/releases/download/carton-v${finalAttrs.version}/git-carton-v${finalAttrs.version}.tbz";
     hash = "sha256-vWkBJdP4ZpRCEwzrFMzsdHay4VyiXix/+1qzk+7yDvk=";
   };
 
   patches = [
-    (substituteAll {
-      src = ./carton-find-getconf.patch;
+    (replaceVars ./carton-find-getconf.patch {
       getconf = "${getconf}";
     })
   ];
@@ -51,7 +72,8 @@ buildDunePackage rec {
     fmt
   ];
 
-  doCheck = true;
+  # Alcotest depends on cmdliner ≥ 2.0
+  doCheck = false;
   nativeBuildInputs = [
     findlib
   ];
@@ -64,10 +86,10 @@ buildDunePackage rec {
     mirage-flow
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Implementation of PACKv2 file in OCaml";
-    license = licenses.mit;
+    license = lib.licenses.mit;
     homepage = "https://github.com/mirage/ocaml-git";
-    maintainers = [ maintainers.sternenseemann ];
+    maintainers = [ lib.maintainers.sternenseemann ];
   };
-}
+})

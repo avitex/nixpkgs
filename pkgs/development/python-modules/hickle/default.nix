@@ -1,34 +1,33 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, h5py
-, numpy
-, dill
-, astropy
-, scipy
-, pandas
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  h5py,
+  numpy,
+  dill,
+  astropy,
+  scipy,
+  pandas,
+  pytestCheckHook,
+  pytest-cov-stub,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "hickle";
-  version = "5.0.2";
-  format = "setuptools";
+  version = "5.0.3-unstable-2026-07-25";
+  pyproject = true;
 
-  disabled = pythonOlder "3.5";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-2+7OF/a89jK/zLhbk/Q2A+zsKnfRbq3YMKGycEWsLEQ=";
+  src = fetchFromGitHub {
+    owner = "telegraphic";
+    repo = "hickle";
+    rev = "cd92308f564223be999230aeb708988cfb14c2e7";
+    hash = "sha256-+W2svifU1yY4RfxX8zC+8g0h7pjP2hIP6DW4AJSfrVg=";
   };
 
-  postPatch = ''
-    substituteInPlace tox.ini \
-      --replace "--cov=./hickle" ""
-  '';
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     dill
     h5py
     numpy
@@ -38,29 +37,17 @@ buildPythonPackage rec {
     astropy
     pandas
     pytestCheckHook
+    pytest-cov-stub
     scipy
   ];
 
-  pythonImportsCheck = [
-    "hickle"
-  ];
+  pythonImportsCheck = [ "hickle" ];
 
-  disabledTests = [
-    # broken in 5.0.2 with recent NumPy
-    # see https://github.com/telegraphic/hickle/issues/174
-    "test_scalar_compression"
-    # broken in 5.0.2 with Python 3.11
-    # see https://github.com/telegraphic/hickle/issues/169
-    "test_H5NodeFilterProxy"
-    # broken in 5.0.2
-    "test_slash_dict_keys"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Serialize Python data to HDF5";
     homepage = "https://github.com/telegraphic/hickle";
     changelog = "https://github.com/telegraphic/hickle/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ bcdarwin ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ bcdarwin ];
   };
 }

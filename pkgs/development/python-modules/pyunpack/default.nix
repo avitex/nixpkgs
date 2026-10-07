@@ -1,12 +1,13 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools
-, pytestCheckHook
-, easyprocess
-, entrypoint2
-, patool
-, cabextract
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  pytestCheckHook,
+  easyprocess,
+  entrypoint2,
+  patool,
+  cabextract,
 }:
 
 buildPythonPackage rec {
@@ -17,20 +18,20 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "ponty";
     repo = "pyunpack";
-    rev = "refs/tags/${version}";
+    tag = version;
     hash = "sha256-1MAdiX6+u35f6S8a0ZcIIebZE8bbxTy+0TnMohJ7J6s=";
   };
 
   postPatch = ''
     substituteInPlace pyunpack/__init__.py \
-      --replace \
+      --replace-fail \
        '_exepath("patool")' \
        '"${lib.getBin patool}/bin/.patool-wrapped"'
   '';
 
   nativeBuildInputs = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     easyprocess
     entrypoint2
   ];
@@ -40,9 +41,14 @@ buildPythonPackage rec {
     cabextract
   ];
 
-  pytestFlagsArray = [ "-x" ];
+  pytestFlags = [ "-x" ];
 
   pythonImportsCheck = [ "pyunpack" ];
+
+  disabledTests = [
+    # pinning test of `--help` sensitive to python version
+    "test_help"
+  ];
 
   disabledTestPaths = [
     # unfree
@@ -56,10 +62,10 @@ buildPythonPackage rec {
     "tests/test_zippw.py"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Unpack archive files in python";
     homepage = "https://github.com/ponty/pyunpack";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ pbsds ];
+    license = lib.licenses.bsd2;
+    maintainers = with lib.maintainers; [ pbsds ];
   };
 }

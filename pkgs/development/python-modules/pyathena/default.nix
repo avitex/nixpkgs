@@ -1,54 +1,48 @@
-{ lib
-, boto3
-, botocore
-, buildPythonPackage
-, fastparquet
-, fetchPypi
-, fsspec
-, pandas
-, poetry-core
-, pyarrow
-, pythonOlder
-, sqlalchemy
-, tenacity
+{
+  lib,
+  boto3,
+  botocore,
+  buildPythonPackage,
+  fastparquet,
+  fetchPypi,
+  fsspec,
+  hatchling,
+  hatch-vcs,
+  pandas,
+  pyarrow,
+  python-dateutil,
+  sqlalchemy,
+  tenacity,
 }:
 
 buildPythonPackage rec {
   pname = "pyathena";
-  version = "3.1.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "3.36.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-cOTkKKeNzHcqRDfZaXR0CrL75SgH5102H89tuF4L9M4=";
+    hash = "sha256-AN2Y/6d/HKMLMLNVXru04vccVdMt2LJKCDioE1k/J94=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
+  build-system = [
+    hatchling
+    hatch-vcs
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     boto3
     botocore
     fsspec
     tenacity
+    python-dateutil
   ];
 
-  passthru.optional-dependencies = {
-    pandas = [
-      pandas
-    ];
-    sqlalchemy = [
-      sqlalchemy
-    ];
-    arrow = [
-      pyarrow
-    ];
-    fastparquet = [
-      fastparquet
-    ];
+  optional-dependencies = {
+    pandas = [ pandas ];
+    sqlalchemy = [ sqlalchemy ];
+    arrow = [ pyarrow ];
+    fastparquet = [ fastparquet ];
   };
 
   # Nearly all tests depend on a working AWS Athena instance,
@@ -56,15 +50,13 @@ buildPythonPackage rec {
   # https://github.com/laughingman7743/PyAthena/#testing
   doCheck = false;
 
-  pythonImportsCheck = [
-    "pyathena"
-  ];
+  pythonImportsCheck = [ "pyathena" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python DB API 2.0 (PEP 249) client for Amazon Athena";
     homepage = "https://github.com/laughingman7743/PyAthena/";
     changelog = "https://github.com/laughingman7743/PyAthena/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ turion ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

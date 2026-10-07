@@ -1,42 +1,34 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
-, pythonAtLeast
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "w3lib";
-  version = "2.1.2";
-  format = "setuptools";
+  version = "2.4.1";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-7Vt06ZfuoqvjwTIfkW40QUTujpBypvM0Y+6OV/hYpLE=";
+  src = fetchFromGitHub {
+    owner = "scrapy";
+    repo = "w3lib";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-RcjsuzlHx3vp0tBucCQZQTVq9FsxSpY9iLwlvoo02cE=";
   };
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  build-system = [ hatchling ];
 
-  pythonImportsCheck = [
-    "w3lib"
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  disabledTests = lib.optionals (pythonAtLeast "3.11") [
-    # regressed on Python 3.11.4
-    # https://github.com/scrapy/w3lib/issues/212
-    "test_safe_url_string_url"
-  ];
+  pythonImportsCheck = [ "w3lib" ];
 
-  meta = with lib; {
+  meta = {
     description = "Library of web-related functions";
     homepage = "https://github.com/scrapy/w3lib";
-    changelog = "https://github.com/scrapy/w3lib/blob/v${version}/NEWS";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/scrapy/w3lib/blob/${finalAttrs.src.tag}/NEWS";
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
-}
+})

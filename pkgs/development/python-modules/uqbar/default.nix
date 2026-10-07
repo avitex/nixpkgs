@@ -1,29 +1,36 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, unidecode
-, sphinx
-, pythonAtLeast
-, pythonOlder
-, pytestCheckHook
-, pytest-cov
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  pytest-asyncio,
+  pythonAtLeast,
+  defusedxml,
+  setuptools,
+  sphinx,
+  typing-extensions,
+  unidecode,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "uqbar";
-  version = "0.7.0";
-  format = "pyproject";
+  version = "0.9.6";
+  pyproject = true;
 
-  disabled = pythonOlder "3.8";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-cEhWXGtMSXVjT5QigDedjT/lwYQnVqPCE5vbctXWznk=";
+  src = fetchFromGitHub {
+    owner = "supriya-project";
+    repo = "uqbar";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-1rK40lwZ3YmQZXhia2+iYRZxDCYvijXgBMIL5p7KmR0=";
   };
 
   postPatch = ''
-    sed -i '/"black"/d' pyproject.toml
+    sed -i  pyproject.toml \
+    -e '/"black"/d' \
+    -e "/--cov/d"
   '';
+
+  nativeBuildInputs = [ setuptools ];
 
   propagatedBuildInputs = [
     unidecode
@@ -32,22 +39,16 @@ buildPythonPackage rec {
 
   nativeCheckInputs = [
     pytestCheckHook
-    pytest-cov
+    pytest-asyncio
   ];
 
-  pytestFlagsArray = [
-    "tests/"
-    "-vv"
-    "-rf"
-    "--cov-branch"
-    "--cov-report=html"
-    "--cov-report=term"
-    "--doctest-modules"
+  checkInputs = [
+    defusedxml
+    typing-extensions
   ];
 
   disabledTests = [
-    # UnboundLocalError: local variable 'output_path' referenced before
-    # assignment
+    # UnboundLocalError: local variable 'output_path' referenced before assignment
     "test_01"
     # AssertionError: assert False
     "test_sphinx_book_html_cached"
@@ -56,18 +57,33 @@ buildPythonPackage rec {
     # assert not ["\x1b[91mWARNING: dot command 'dot' cannot be run (needed for
     # graphviz output), check the graphviz_dot setting\x1b[39;49;00m"]
     "test_sphinx_style_latex"
+    # Fails with line wrapping differences
+    "test_sphinx_api_2"
+    # Fails with changed wording in the summary (but semantically equivalent output)
+    # https://github.com/supriya-project/uqbar/issues/107
+    "SummarizingRootDocumenter"
   ]
-  # assert not '\x1b[91m/build/uqbar-0.7.0/tests/fake_package/enums.py:docstring
-  ++ lib.optional (pythonAtLeast "3.11") "test_sphinx_style";
+  ++ lib.optionals (pythonAtLeast "3.11") [
+    # assert not '\x1b[91m/build/uqbar-0.7.0/tests/fake_package/enums.py:docstring
+    "test_sphinx_style"
+  ]
+  ++ lib.optionals (pythonAtLeast "3.12") [
+    # https://github.com/supriya-project/uqbar/issues/93
+    "objects.get_vars"
+  ]
+  ++ lib.optionals (pythonAtLeast "3.14") [
+    # https://github.com/supriya-project/uqbar/issues/106
+    "test_04"
+    "SummarizingClassDocumenter"
+  ];
 
   pythonImportsCheck = [ "uqbar" ];
 
   meta = {
     description = "Tools for creating Sphinx and Graphviz documentation";
+    homepage = "https://github.com/supriya-project/uqbar";
+    changelog = "https://github.com/supriya-project/uqbar/releases/tag/${finalAttrs.src.tag}";
     license = lib.licenses.mit;
-    homepage = "https://github.com/josiah-wolf-oberholtzer/uqbar";
-    changelog =
-      "https://github.com/josiah-wolf-oberholtzer/uqbar/releases/tag/v${version}";
-    maintainers = [ lib.maintainers.davisrichard437 ];
+    maintainers = [ ];
   };
-}
+})

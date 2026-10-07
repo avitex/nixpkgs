@@ -1,32 +1,39 @@
-{ lib
-, buildPythonPackage
-, decorator
-, fetchPypi
-, pythonOlder
-, requests
- }:
+{
+  lib,
+  buildPythonPackage,
+  decorator,
+  fetchPypi,
+  setuptools,
+  requests,
+}:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "stashy";
   version = "0.7";
-  format = "setuptools";
-  disabled = pythonOlder "3.4";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
-    sha256 = "1x89zazwxnsx6rdfw8nfr372hj4sk8nrcs5hsjxpcxcva0calrcr";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-mWWqGFCbdXa71LBoli2amkgozsjOIu5aNl3bzr/6CfU=";
   };
 
-  propagatedBuildInputs = [ decorator requests ];
+  build-system = [ setuptools ];
+
+  dependencies = [
+    decorator
+    requests
+  ];
 
   # Tests require internet connection
   doCheck = false;
   pythonImportsCheck = [ "stashy" ];
 
-  meta = with lib; {
-    description = "Python client for the Atlassian Bitbucket Server (formerly known as Stash) REST API.";
+  meta = {
+    description = "Python client for the Atlassian Bitbucket Server (formerly known as Stash) REST API";
     homepage = "https://github.com/cosmin/stashy";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ mupdt ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ mupdt ];
   };
-}
+})

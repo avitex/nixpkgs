@@ -1,71 +1,74 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
 
-# build
-, poetry-core
+  # build
+  pdm-backend,
 
-# propagates
-, aiohttp
-, authlib
-, pydantic
-, toml
+  # propagates
+  aiohttp,
+  aiohttp-retry,
+  authlib,
+  pydantic,
+  python-dateutil,
+  toml,
+  typing-extensions,
 
-# tests
-, pytest-asyncio
-, pytest-mock
-, pytestCheckHook
+  # tests
+  openapi-spec-validator,
+  pytest-asyncio,
+  pytest-mock,
+  pytestCheckHook,
 }:
 
-let
+buildPythonPackage rec {
   pname = "kanidm";
-  version = "0.0.3-unstable-2023-08-23";
-in
-buildPythonPackage {
-  inherit pname version;
+  version = "1.3.0";
   pyproject = true;
 
-  disabled = pythonOlder "3.9";
-
-  src = fetchFromGitHub {
-    owner = "kanidm";
-    repo = "kanidm";
-    rev = "def4420c4c5c3ec4f9b02776e1d5fdb07aa3a729";
-    hash = "sha256-5qQb+Itguw2v1Wdvc2vp00zglfvNd3LFEDvaweRJcOc=";
+  src = fetchPypi {
+    inherit pname version;
+    hash = "sha256-KlUxW/bJByQnzPdRd9Z5pStH27SpWrCijZc5jlVT5jE=";
   };
 
-  sourceRoot = "source/pykanidm";
+  build-system = [ pdm-backend ];
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
-
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
+    aiohttp-retry
     authlib
     pydantic
+    python-dateutil
     toml
+    typing-extensions
   ];
 
   nativeCheckInputs = [
+    openapi-spec-validator
     pytest-asyncio
     pytest-mock
     pytestCheckHook
   ];
 
-  pytestFlagsArray = [
-    "-m 'not network'"
+  disabledTests = [
+    "test_tokenstuff"
   ];
 
-  pythonImportsCheck = [
-    "kanidm"
+  disabledTestMarks = [
+    "network"
+    "openapi"
   ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "kanidm" ];
+
+  meta = {
     description = "Kanidm client library";
     homepage = "https://github.com/kanidm/kanidm/tree/master/pykanidm";
-    license = licenses.mpl20;
-    maintainers = with maintainers; [ arianvp hexa ];
+    license = lib.licenses.mpl20;
+    maintainers = with lib.maintainers; [
+      arianvp
+      hexa
+    ];
   };
 }

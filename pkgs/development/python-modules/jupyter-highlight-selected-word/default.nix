@@ -1,6 +1,7 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 }:
 
 buildPythonPackage rec {
@@ -11,7 +12,7 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "jcb91";
     repo = "jupyter_highlight_selected_word";
-    rev = "refs/tags/${version}";
+    tag = version;
     hash = "sha256-KgM//SIfES46uZySwNR4ZOcolnJORltvThsmEvxXoIs=";
   };
 
@@ -20,10 +21,10 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "jupyter_highlight_selected_word" ];
 
-  meta = with lib; {
+  meta = {
     description = "Jupyter notebook extension that enables highlighting every instance of the current word in the notebook";
     homepage = "https://github.com/jcb91/jupyter_highlight_selected_word";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ GaetanLepage ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ GaetanLepage ];
   };
 }

@@ -1,22 +1,22 @@
-{ lib
-, stdenv
-, fetchurl
-, python
-, makeWrapper
-, gawk
-, bash
-, getopt
-, procps
-, which
-, jre
-, nixosTests
-  # generation is the attribute version suffix such as 3_11 in pkgs.cassandra_3_11
-, generation
-, version
-, sha256
-, extraMeta ? { }
-, callPackage
-, ...
+{
+  lib,
+  stdenv,
+  fetchurl,
+  python3Packages,
+  makeWrapper,
+  gawk,
+  bash,
+  getopt,
+  procps,
+  which,
+  jre,
+  nixosTests,
+  # generation is the attribute version suffix such as 4 in pkgs.cassandra_4
+  generation,
+  version,
+  sha256,
+  extraMeta ? { },
+  callPackage,
 }:
 
 let
@@ -40,7 +40,11 @@ stdenv.mkDerivation rec {
     url = "mirror://apache/cassandra/${version}/apache-cassandra-${version}-bin.tar.gz";
   };
 
-  nativeBuildInputs = [ makeWrapper ];
+  pythonPath = with python3Packages; [ cassandra-driver ];
+
+  nativeBuildInputs = [ python3Packages.wrapPython ];
+
+  buildInputs = [ python3Packages.python ] ++ pythonPath;
 
   installPhase = ''
     runHook preInstall
@@ -98,15 +102,24 @@ stdenv.mkDerivation rec {
       fi
     done
 
-    wrapProgram $out/bin/cqlsh --prefix PATH : ${python}/bin
-
     runHook postInstall
+  '';
+
+  postFixup = ''
+    # Remove cassandra bash script wrapper.
+    # The wrapper searches for a suitable python version and is not necessary with Nix.
+    rm $out/bin/cqlsh
+    # Make "cqlsh.py" accessible by invoking "cqlsh"
+    ln -s $out/bin/cqlsh.py $out/bin/cqlsh
+    # Use nixpkgs Python packages instead of bundled zips
+    makeWrapperArgs+=("--set" "CQLSH_NO_BUNDLED" "1")
+    wrapPythonPrograms
   '';
 
   passthru = {
     tests =
       let
-        test = nixosTests."cassandra_${generation}";
+        test = nixosTests.cassandra;
       in
       {
         nixos =
@@ -117,11 +130,18 @@ stdenv.mkDerivation rec {
     updateScript = callPackage ./update-script.nix { inherit generation; };
   };
 
-  meta = with lib; {
-    homepage = "https://cassandra.apache.org/";
-    description = "A massively scalable open source NoSQL database";
-    platforms = platforms.unix;
-    license = licenses.asl20;
-    maintainers = [ maintainers.roberth ];
-  } // extraMeta;
+  meta =
+
+    {
+      homepage = "https://cassandra.apache.org/";
+      description = "Massively scalable open source NoSQL database";
+      platforms = lib.platforms.unix;
+      license = lib.licenses.asl20;
+      sourceProvenance = with lib.sourceTypes; [
+        binaryBytecode
+        binaryNativeCode # bundled dependency libsigar
+      ];
+      maintainers = [ lib.maintainers.roberth ];
+    }
+    // extraMeta;
 }

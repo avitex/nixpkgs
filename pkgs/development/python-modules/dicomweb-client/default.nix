@@ -1,30 +1,36 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, pytestCheckHook
-, pytest-localserver
-, numpy
-, pillow
-, pydicom
-, requests
-, retrying
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  uv-dynamic-versioning,
+  pytestCheckHook,
+  pytest-localserver,
+  numpy,
+  pillow,
+  pydicom,
+  requests,
+  retrying,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "dicomweb-client";
-  version = "0.59.1";
-  disabled = pythonOlder "3.6";
-  format = "setuptools";
+  version = "0.61.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "ImagingDataCommons";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-h9gFCBmutTGNJ3wP2AGPfiUtA49yywUlNKiSh/x9kFE=";
+    repo = "dicomweb-client";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-zFOnj8rzr2MUqcRFv9j7gXQHi9I7HwCmS1oNOKIkS5k=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [
+    hatchling
+    uv-dynamic-versioning
+  ];
+
+  dependencies = [
     numpy
     pillow
     pydicom
@@ -37,15 +43,14 @@ buildPythonPackage rec {
     pytest-localserver
   ];
 
-  pythonImportsCheck = [
-    "dicomweb_client"
-  ];
+  pythonImportsCheck = [ "dicomweb_client" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python client for DICOMweb RESTful services";
     homepage = "https://dicomweb-client.readthedocs.io";
-    license = licenses.mit;
-    maintainers = with maintainers; [ bcdarwin ];
+    changelog = "https://github.com/ImagingDataCommons/dicomweb-client/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ bcdarwin ];
     mainProgram = "dicomweb_client";
   };
-}
+})

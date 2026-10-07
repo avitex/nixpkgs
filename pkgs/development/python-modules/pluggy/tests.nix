@@ -1,12 +1,13 @@
-{ buildPythonPackage
-, pluggy
-, pytestCheckHook
+{
+  buildPythonPackage,
+  pluggy,
+  pytestCheckHook,
 }:
 
 buildPythonPackage {
   pname = "pluggy-tests";
   inherit (pluggy) version;
-  format = "other";
+  pyproject = false;
 
   inherit (pluggy) src;
 

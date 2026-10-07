@@ -1,14 +1,15 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, autoreconfHook
-, libassuan
-, libgpg-error
-, libiconv
-, texinfo
-, common-updater-scripts
-, writers
-, Cocoa
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  autoreconfHook,
+  libassuan,
+  libgpg-error,
+  makeBinaryWrapper,
+  texinfo,
+  common-updater-scripts,
+  writers,
+  re-plistbuddy,
 }:
 
 stdenv.mkDerivation rec {
@@ -25,26 +26,42 @@ stdenv.mkDerivation rec {
     sha256 = "sha256-QnDuqFrI/U7aZ5WcOCp5vLE+w59LVvDGOFNQy9fSy70=";
   };
 
+  patches = [
+    ./gettext-0.25.patch
+  ];
+
   # use pregenerated nib files because generating them requires XCode
   postPatch = ''
     cp -r ${./mac/Main.nib} macosx/Main.nib
     cp -r ${./mac/Pinentry.nib} macosx/Pinentry.nib
     chmod -R u+w macosx/*.nib
+    # pinentry_mac requires updated macros to correctly detect v2 API support in libassuan 3.x.
+    cp '${lib.getDev libassuan}/share/aclocal/libassuan.m4' m4/libassuan.m4
+    substituteInPlace macosx/copyInfoPlist.sh \
+      --replace-fail "/usr/libexec/PlistBuddy" "PlistBuddy"
   '';
 
-  # Unfortunately, PlistBuddy from xcbuild is not compatible enough pinentry-mac’s build process.
-  sandboxProfile = ''
-    (allow process-exec (literal "/usr/libexec/PlistBuddy"))
-  '';
+  strictDeps = true;
+  nativeBuildInputs = [
+    autoreconfHook
+    makeBinaryWrapper
+    texinfo
+    re-plistbuddy
+  ];
 
-  nativeBuildInputs = [ autoreconfHook texinfo ];
-  buildInputs = [ libassuan libgpg-error libiconv Cocoa ];
-
-  configureFlags = [ "--enable-maintainer-mode" "--disable-ncurses" ];
+  configureFlags = [
+    "--enable-maintainer-mode"
+    "--disable-ncurses"
+    "--with-libgpg-error-prefix=${libgpg-error.dev}"
+    "--with-libassuan-prefix=${libassuan.dev}"
+  ];
 
   installPhase = ''
-    mkdir -p $out/Applications
+    mkdir -p $out/Applications $out/bin
     mv macosx/pinentry-mac.app $out/Applications
+
+    # Compatibility with `lib.getExe`
+    makeWrapper $out/Applications/pinentry-mac.app/Contents/MacOS/pinentry-mac $out/bin/pinentry-mac
   '';
 
   enableParallelBuilding = true;
@@ -83,8 +100,8 @@ stdenv.mkDerivation rec {
   meta = {
     description = "Pinentry for GPG on Mac";
     license = lib.licenses.gpl2Plus;
-    homepage = "https://github.com/GPGTools/pinentry-mac";
+    homepage = "https://github.com/GPGTools/pinentry";
     platforms = lib.platforms.darwin;
-    mainProgram = passthru.binaryPath;
+    mainProgram = "pinentry-mac";
   };
 }

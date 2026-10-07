@@ -1,10 +1,15 @@
-{ lib, stdenv, nodejs }:
+{
+  lib,
+  stdenv,
+  nodejs,
+}:
 
 stdenv.mkDerivation {
   pname = "corepack-nodejs";
   inherit (nodejs) version;
 
-  nativeBuildInputs = [ nodejs ];
+  nativeBuildInputs = [ nodejs.corepack ];
+  buildInputs = [ nodejs ];
 
   dontUnpack = true;
 

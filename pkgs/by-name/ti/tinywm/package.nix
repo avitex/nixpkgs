@@ -1,7 +1,8 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, libX11
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  libx11,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -15,7 +16,7 @@ stdenv.mkDerivation (finalAttrs: {
     hash = "sha256-q2DEMTxIp/nwTBTGEZMHEAqQs99iJwQgimHS0YQj+eg=";
   };
 
-  buildInputs = [ libX11 ];
+  buildInputs = [ libx11 ];
 
   strictDeps = true;
 
@@ -24,7 +25,7 @@ stdenv.mkDerivation (finalAttrs: {
   buildPhase = ''
     runHook preBuild
 
-    $CC -Wall -pedantic -I${libX11}/include tinywm.c -L${libX11}/lib -lX11 -o tinywm
+    $CC -Wall -pedantic -I${libx11}/include tinywm.c -L${libx11}/lib -lX11 -o tinywm
 
     runHook postBuild
   '';
@@ -42,7 +43,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   meta = {
     homepage = "http://incise.org/tinywm.html";
-    description = "A tiny window manager for X11";
+    description = "Tiny window manager for X11";
     longDescription = ''
       TinyWM is a tiny window manager that I created as an exercise in
       minimalism. It is also maybe helpful in learning some of the very basics
@@ -59,7 +60,7 @@ stdenv.mkDerivation (finalAttrs: {
     '';
     license = lib.licenses.publicDomain;
     mainProgram = "tinywm";
-    maintainers = with lib.maintainers; [ AndersonTorres ];
-    inherit (libX11.meta) platforms;
+    maintainers = [ ];
+    inherit (libx11.meta) platforms;
   };
 })

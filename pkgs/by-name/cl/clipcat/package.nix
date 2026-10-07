@@ -1,26 +1,37 @@
-{ lib
-, fetchFromGitHub
-, rustPlatform
-, protobuf
-, installShellFiles
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  rustPlatform,
+  protobuf,
+  installShellFiles,
+  writableTmpDirAsHomeHook,
 }:
 
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "clipcat";
-  version = "0.16.4";
+  version = "0.26.0";
+
+  strictDeps = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "xrelkd";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-gYg1czSwUm1zJUkw5SMk6C4yDfHcwjWnnHJftDLNvfs=";
+    repo = "clipcat";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-M7B6QLyABsGoy6dbKsCx1AKEfEoDhkY/cbzGbk59TiU=";
   };
 
-  cargoHash = "sha256-e32DGV7/ueT25Lx318aGZEHRnUGxCn0J5/K3dgT02Ug=";
+  cargoHash = "sha256-YYlNH95A2aGVWd0vw2vmTMXTA3ornCBHbcFrg59uh3I=";
 
   nativeBuildInputs = [
     protobuf
     installShellFiles
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
+    # fix following error on darwin:
+    # objc/notify.h:1:9: fatal error: could not build module 'Cocoa'
+    writableTmpDirAsHomeHook
   ];
 
   checkFlags = [
@@ -29,7 +40,7 @@ rustPlatform.buildRustPackage rec {
     "--skip=test_x11_primary"
   ];
 
-  postInstall = ''
+  postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
     for cmd in clipcatd clipcatctl clipcat-menu clipcat-notify; do
       installShellCompletion --cmd $cmd \
         --bash <($out/bin/$cmd completions bash) \
@@ -38,12 +49,15 @@ rustPlatform.buildRustPackage rec {
     done
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Clipboard Manager written in Rust Programming Language";
     homepage = "https://github.com/xrelkd/clipcat";
-    license = licenses.gpl3Only;
-    platforms = platforms.linux;
-    maintainers = with maintainers; [ xrelkd ];
+    license = lib.licenses.gpl3Only;
+    platforms = lib.platforms.linux ++ lib.platforms.darwin;
+    maintainers = with lib.maintainers; [
+      xrelkd
+      bot-wxt1221
+    ];
     mainProgram = "clipcatd";
   };
-}
+})

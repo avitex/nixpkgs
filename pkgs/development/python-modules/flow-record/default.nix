@@ -1,77 +1,86 @@
-{ lib
-, buildPythonPackage
-, elasticsearch
-, fastavro
-, fetchFromGitHub
-, lz4
-, msgpack
-, pytestCheckHook
-, pythonOlder
-, setuptools
-, setuptools-scm
-, wheel
-, zstandard
+{
+  lib,
+  buildPythonPackage,
+  duckdb,
+  elastic-transport,
+  elasticsearch,
+  fastavro,
+  fetchFromGitHub,
+  httpx,
+  lz4,
+  maxminddb,
+  msgpack,
+  pytest7CheckHook,
+  pytz,
+  setuptools-scm,
+  setuptools,
+  structlog,
+  tqdm,
+  zstandard,
 }:
 
 buildPythonPackage rec {
   pname = "flow-record";
-  version = "3.14";
+  version = "3.21";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "fox-it";
     repo = "flow.record";
-    rev = "refs/tags/${version}";
-    hash = "sha256-8XQeXfrgTk+jHR1ABlEEIn3E/MkUkGnvkgzePws4qhQ=";
+    tag = version;
+    hash = "sha256-hJZCWF81pMeHOZGc6zTA046hV1J0PNQGMlPD3mgyrRI=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     setuptools-scm
-    wheel
   ];
 
-  propagatedBuildInputs = [
-    msgpack
-  ];
+  dependencies = [ msgpack ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     compression = [
       lz4
       zstandard
     ];
-    elastic = [
-      elasticsearch
+    duckdb = [
+      duckdb
+      pytz
     ];
-    avro = [
-      fastavro
-    ] ++ fastavro.optional-dependencies.snappy;
+    elastic = [ elasticsearch ];
+    geoip = [ maxminddb ];
+    avro = [ fastavro ] ++ fastavro.optional-dependencies.snappy;
+    splunk = [ httpx ];
+    # xlsx = [ openpyxl ]; # Not available
+    full = [
+      structlog
+      tqdm
+    ]
+    ++ optional-dependencies.compression;
   };
 
   nativeCheckInputs = [
-    pytestCheckHook
-  ] ++ lib.flatten (builtins.attrValues passthru.optional-dependencies);
+    elastic-transport
+    pytest7CheckHook
+  ]
+  ++ lib.concatAttrValues optional-dependencies;
 
-  pythonImportsCheck = [
-    "flow.record"
-  ];
+  pythonImportsCheck = [ "flow.record" ];
 
   disabledTestPaths = [
-    # Test requires rdump
-    "tests/test_rdump.py"
+    # Input not available
+    "tests/adapter/test_xlsx.py"
+    # Requires rdump
+    "tests/tools/test_rdump.py"
   ];
 
-  disabledTests = [
-    "test_rdump_fieldtype_path_json"
-  ];
+  disabledTests = [ "test_rdump_fieldtype_path_json" ];
 
-  meta = with lib; {
+  meta = {
     description = "Library for defining and creating structured data";
     homepage = "https://github.com/fox-it/flow.record";
-    changelog = "https://github.com/fox-it/flow.record/releases/tag/${version}";
-    license = licenses.agpl3Only;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/fox-it/flow.record/releases/tag/${src.tag}";
+    license = lib.licenses.agpl3Only;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

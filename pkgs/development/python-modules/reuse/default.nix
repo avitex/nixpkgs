@@ -1,53 +1,101 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, binaryornot
-, boolean-py
-, debian
-, jinja2
-, license-expression
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  sphinxHook,
+  furo,
+  myst-parser,
+  pbr,
+  sphinxcontrib-apidoc,
+
+  # dependencies
+  attrs,
+  binaryornot,
+  boolean-py,
+  click,
+  python-debian,
+  jinja2,
+  license-expression,
+  python-magic,
+  tomlkit,
+
+  # test dependencies
+  freezegun,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "reuse";
-  version = "3.0.1";
-  format = "pyproject";
+  version = "6.2.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "fsfe";
     repo = "reuse-tool";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-hDvOT9BP/E95FTa8rvtdxQoEDYgfMAkCSbX5KKV3qbQ=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-J49RIt7MxnsMJqJAaGvYgUzXMHAT9/frMmrkhWXe5tQ=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
+  outputs = [
+    "out"
+    "doc"
+    "man"
   ];
 
-  propagatedBuildInputs = [
+  build-system = [
+    poetry-core
+    sphinxHook
+    furo
+    myst-parser
+    pbr
+    sphinxcontrib-apidoc
+  ];
+
+  dependencies = [
+    attrs
     binaryornot
     boolean-py
-    debian
+    click
+    python-debian
     jinja2
     license-expression
+    python-magic
+    tomlkit
   ];
 
-  nativeCheckInputs = [ pytestCheckHook ];
+  nativeCheckInputs = [
+    pytestCheckHook
+    freezegun
+  ];
 
   disabledTestPaths = [
     # pytest wants to execute the actual source files for some reason, which fails with ImportPathMismatchError()
     "src/reuse"
   ];
 
+  sphinxBuilders = [
+    "html"
+    "man"
+  ];
+  sphinxRoot = "docs";
+
   pythonImportsCheck = [ "reuse" ];
 
-  meta = with lib; {
-    description = "A tool for compliance with the REUSE Initiative recommendations";
+  meta = {
+    description = "Tool for compliance with the REUSE Initiative recommendations";
     homepage = "https://github.com/fsfe/reuse-tool";
-    license = with licenses; [ asl20 cc-by-sa-40 cc0 gpl3Plus ];
-    maintainers = with maintainers; [ FlorianFranzen Luflosi ];
+    changelog = "https://github.com/fsfe/reuse-tool/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = with lib.licenses; [
+      asl20
+      cc-by-sa-40
+      cc0
+      gpl3Plus
+    ];
+    maintainers = with lib.maintainers; [
+      FlorianFranzen
+      Luflosi
+    ];
     mainProgram = "reuse";
   };
-}
+})

@@ -1,22 +1,28 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, withBanner ? "Grub Bootloader" # use override to specify your own banner text
-, withStyle ? "white" # use override to specify one of "dark" / "orange" / "bigSur"
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  withBanner ? "Grub Bootloader", # use override to specify your own banner text
+  withStyle ? "light", # use override to specify one of "dark" / "orange" / "bigSur"
 }:
 
-assert builtins.any (s: withStyle == s) ["white" "dark" "orange" "bigSur"];
+assert builtins.elem withStyle [
+  "light"
+  "dark"
+  "orange"
+  "bigSur"
+];
 
 stdenv.mkDerivation {
   pname = "sleek-grub-theme";
-  version = "unstable-2022-06-04";
+  version = "0-unstable-2025-05-21";
 
-  src = fetchFromGitHub ({
+  src = fetchFromGitHub {
     owner = "sandesh236";
     repo = "sleek--themes";
-    rev = "981326a8e35985dc23f1b066fdbe66ff09df2371";
-    hash = "sha256-yD4JuoFGTXE/aI76EtP4rEWCc5UdFGi7Ojys6Yp8Z58=";
-  });
+    rev = "e103aa4cd655be6a38dbab37b1911c6ed9ef7765";
+    hash = "sha256-E3DSOZlszBRy2F172L7ZSSsDlkk3n9jGXl4hRWv2WF8=";
+  };
 
   installPhase = ''
     runHook preInstall

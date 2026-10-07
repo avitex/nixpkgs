@@ -1,67 +1,66 @@
-{ lib
-, buildPythonPackage
-, click
-, defusedxml
-, fetchFromGitHub
-, httpx
-, poetry-core
-, pydantic
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, respx
+{
+  lib,
+  aiohttp,
+  aiointercept,
+  aioresponses,
+  buildPythonPackage,
+  click,
+  defusedxml,
+  fetchFromGitHub,
+  mashumaro,
+  pyprojectVersionPatchHook,
+  pytest-asyncio,
+  pytestCheckHook,
+  uv-build,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "sfrbox-api";
-  version = "0.0.9";
+  version = "0.1.2";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "hacf-fr";
     repo = "sfrbox-api";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-rMfX9vA8IuWxXvVs4WYNHO6neeoie/3gABwhXyJoAF8=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-yyfCc36egn5qKZwPpWTndfq0ShacEEEV2PW8FMzjF6k=";
   };
 
   postPatch = ''
     substituteInPlace pyproject.toml \
-      --replace 'pydantic = ">=1.10.2"' 'pydantic = "*"'
+      --replace-fail "uv_build>=0.12.21,<0.13" "uv_build"
   '';
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ uv-build ];
 
-  propagatedBuildInputs = [
+  nativeBuildInputs = [ pyprojectVersionPatchHook ];
+
+  dependencies = [
+    aiohttp
     defusedxml
-    httpx
-    pydantic
+    mashumaro
   ];
 
-  passthru.optional-dependencies = {
-    cli = [
-      click
-    ];
+  optional-dependencies = {
+    cli = [ click ];
   };
 
   nativeCheckInputs = [
+    aiointercept
+    aioresponses
     pytest-asyncio
     pytestCheckHook
-    respx
-  ] ++ lib.flatten (builtins.attrValues passthru.optional-dependencies);
+  ]
+  ++ lib.flatten (builtins.attrValues finalAttrs.passthru.optional-dependencies);
 
-  pythonImportsCheck = [
-    "sfrbox_api"
-  ];
+  pythonImportsCheck = [ "sfrbox_api" ];
 
-  meta = with lib; {
+  meta = {
     description = "Module for the SFR Box API";
     homepage = "https://github.com/hacf-fr/sfrbox-api";
-    changelog = "https://github.com/hacf-fr/sfrbox-api/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/hacf-fr/sfrbox-api/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
+    mainProgram = "sfrbox-api";
   };
-}
+})

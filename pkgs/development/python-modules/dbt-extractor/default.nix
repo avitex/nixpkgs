@@ -1,27 +1,26 @@
-{ stdenv
-, lib
-, buildPythonPackage
-, fetchPypi
-, rustPlatform
-, libiconv
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchPypi,
+  libiconv,
+  rustPlatform,
 }:
 
 buildPythonPackage rec {
   pname = "dbt-extractor";
-  version = "0.4.1";
-  format = "setuptools";
+  version = "0.6.0";
+  pyproject = true;
 
   src = fetchPypi {
     pname = "dbt_extractor";
     inherit version;
-    hash = "sha256-dbHGZWmewPH/zhuj13b3386AIVbyLnCnucjwtNfoD0I=";
+    hash = "sha256-1s8I7Hk7i8K9biYO+BgjCuaKT3FDb6SJ8I19saUuL/4=";
   };
 
-  cargoDeps = rustPlatform.importCargoLock {
-    lockFile = ./Cargo.lock;
-    outputHashes = {
-      "tree-sitter-jinja2-0.1.0" = "sha256-lzA2iq4AK0iNwkLvbIt7Jm5WGFbMPFDi6i4AFDm0FOU=";
-    };
+  cargoDeps = rustPlatform.fetchCargoVendor {
+    inherit pname version src;
+    hash = "sha256-6Y4zfqhj1/IeEX+Ve49jblxeW565Q2ypNClb/Ej0xoc=";
   };
 
   nativeBuildInputs = [
@@ -29,21 +28,20 @@ buildPythonPackage rec {
     rustPlatform.maturinBuildHook
   ];
 
-  buildInputs = lib.optionals stdenv.isDarwin [
-    libiconv
-  ];
+  buildInputs = lib.optionals stdenv.hostPlatform.isDarwin [ libiconv ];
 
   # no python tests exist
   doCheck = false;
 
-  pythonImportsCheck = [
-    "dbt_extractor"
-  ];
+  pythonImportsCheck = [ "dbt_extractor" ];
 
-  meta = with lib; {
-    description = "A tool that processes the most common jinja value templates in dbt model files";
+  meta = {
+    description = "Tool that processes the most common jinja value templates in dbt model files";
     homepage = "https://github.com/dbt-labs/dbt-extractor";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ mausch tjni ];
+    changelog = "https://github.com/dbt-labs/dbt-extractor/blob/main/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [
+      mausch
+    ];
   };
 }

@@ -1,45 +1,37 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, pytest
-, pythonOlder
-, setuptoolsBuildHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  uv-build,
+  pytest,
 }:
 
 buildPythonPackage rec {
   pname = "pytest-socket";
-  version = "0.6.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "0.8.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "miketheman";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-RPHpqknjpuAMXYg4nFOtLp8CXh10/w0RuO/bseTBN5o=";
+    repo = "pytest-socket";
+    tag = version;
+    hash = "sha256-UFUh0FhIEakAY1NZQD6hFY7wnnPs2NjjsfionIg0jRs=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  nativeBuildInputs = [ uv-build ];
 
-  buildInputs = [
-    pytest
-  ];
+  buildInputs = [ pytest ];
 
   # pytest-socket require network for majority of tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "pytest_socket"
-  ];
+  pythonImportsCheck = [ "pytest_socket" ];
 
-  meta = with lib; {
+  meta = {
     description = "Pytest Plugin to disable socket calls during tests";
     homepage = "https://github.com/miketheman/pytest-socket";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/miketheman/pytest-socket/blob/${version}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

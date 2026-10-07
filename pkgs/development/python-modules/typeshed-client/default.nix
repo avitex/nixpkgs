@@ -1,51 +1,41 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, importlib-resources
-, pytestCheckHook
-, pythonOlder
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  setuptools,
+  typing-extensions,
 }:
 
 buildPythonPackage rec {
   pname = "typeshed-client";
-  version = "2.4.0";
+  version = "2.13.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "JelleZijlstra";
     repo = "typeshed_client";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-g3FECKebKeM3JPWem6+Y9T27PcAxVxj1SiBd5siLSJ4=";
+    tag = "v${version}";
+    hash = "sha256-n7iWe4zh2TqJD0Sv5L5BSHqxOcAmsZ8VLNfSOiPte4A=";
   };
 
-  nativeBuildInputs = [
-    setuptools
+  build-system = [ setuptools ];
+
+  dependencies = [
+    typing-extensions
   ];
 
-  propagatedBuildInputs = [
-    importlib-resources
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  pythonImportsCheck = [ "typeshed_client" ];
 
-  pythonImportsCheck = [
-    "typeshed_client"
-  ];
+  enabledTestPaths = [ "tests/test.py" ];
 
-  pytestFlagsArray = [
-    "tests/test.py"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Retrieve information from typeshed and other typing stubs";
     homepage = "https://github.com/JelleZijlstra/typeshed_client";
-    changelog = "https://github.com/JelleZijlstra/typeshed_client/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/JelleZijlstra/typeshed_client/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

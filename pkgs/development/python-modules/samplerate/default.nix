@@ -1,56 +1,81 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchFromGitHub
-, cffi
-, numpy
-, libsamplerate
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  cmake,
+  setuptools,
+  setuptools-scm,
+  pybind11,
+
+  # dependencies
+  cffi,
+  numpy,
+
+  # native dependencies
+  libsamplerate,
+
+  # tests
+  pytestCheckHook,
+  pythonAtLeast,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "samplerate";
-  version = "0.1.0";
-  format = "setuptools";
+  version = "0.2.4";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "tuxu";
     repo = "python-samplerate";
-    rev = "refs/tags/${version}";
-    hash = "sha256-lHZ9SVnKcsEsnKYXR/QocGbKPEoA7yCZxXvrNPeH1rA=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-wetpPAoCenzOo6pD3+F0YNb/fc1BvaeKiw325C19rS0=";
   };
 
+  # unvendor pybind11, libsamplerate
   postPatch = ''
-    substituteInPlace setup.py \
-      --replace ", 'pytest-runner'" ""
-
-    substituteInPlace samplerate/lowlevel.py --replace \
-      "lib_filename = _find_library('samplerate')" \
-      'lib_filename = "${libsamplerate.out}/lib/libsamplerate${stdenv.hostPlatform.extensions.sharedLibrary}"'
+    rm -r external
+    substituteInPlace CMakeLists.txt \
+      --replace-fail "add_subdirectory(external)" "find_package(pybind11 REQUIRED)"
   '';
 
-  propagatedBuildInputs = [
+  build-system = [
+    cmake
+    setuptools
+    setuptools-scm
+    pybind11
+  ];
+
+  dontUseCmakeConfigure = true;
+
+  buildInputs = [ libsamplerate ];
+
+  dependencies = [
     cffi
     numpy
   ];
 
-  pythonImportsCheck = [
-    "samplerate"
-  ];
+  pythonImportsCheck = [ "samplerate" ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   preCheck = ''
     rm -rf samplerate
   '';
 
-  meta = with lib; {
+  disabledTests = lib.optionals (pythonAtLeast "3.14") [
+    # ValueError: cannot resize an array that references or is referenced
+    "test_callback_with_2x"
+    "test_process"
+    "test_resize"
+  ];
+
+  meta = {
     description = "Python bindings for libsamplerate based on CFFI and NumPy";
     homepage = "https://github.com/tuxu/python-samplerate";
-    changelog = "https://github.com/tuxu/python-samplerate/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ hexa ];
+    changelog = "https://github.com/tuxu/python-samplerate/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ hexa ];
   };
-}
+})

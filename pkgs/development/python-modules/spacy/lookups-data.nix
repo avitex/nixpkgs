@@ -1,9 +1,9 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, spacy
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  spacy,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
@@ -11,12 +11,10 @@ buildPythonPackage rec {
   version = "1.0.5";
   format = "setuptools";
 
-  disabled = pythonOlder "3.6";
-
   src = fetchFromGitHub {
     owner = "explosion";
     repo = "spacy-lookups-data";
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     hash = "sha256-6sKZ+GgCjLWYnV96nub4xEUFh1qpPQpbnoxyOVrvcD0=";
   };
 
@@ -27,10 +25,10 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "spacy_lookups_data" ];
 
-  meta = with lib; {
+  meta = {
     description = "Additional lookup tables and data resources for spaCy";
     homepage = "https://pypi.org/project/spacy-lookups-data";
-    license = licenses.mit;
-    maintainers = with maintainers; [ jboy ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ jboy ];
   };
 }

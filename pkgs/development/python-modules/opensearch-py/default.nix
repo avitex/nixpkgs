@@ -1,45 +1,53 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fetchpatch,
 
-# build-system
-, setuptools
+  # build-system
+  setuptools,
 
-# dependencies
-, certifi
-, python-dateutil
-, requests
-, six
-, urllib3
+  # dependencies
+  certifi,
+  python-dateutil,
+  requests,
+  six,
+  urllib3,
+  events,
 
-# optional-dependencies
-, aiohttp
+  # optional-dependencies
+  aiohttp,
 
-# tests
-, botocore
-, mock
-, pytest-asyncio
-, pytest-mock
-, pytestCheckHook
-, pyyaml
-, pytz
+  # tests
+  botocore,
+  mock,
+  pytest-asyncio,
+  pytest-mock,
+  pytestCheckHook,
+  pyyaml,
+  pytz,
 }:
 
 buildPythonPackage rec {
   pname = "opensearch-py";
-  version = "2.4.2";
+  version = "3.0.0";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "opensearch-project";
     repo = "opensearch-py";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-MPuHdjhsrccKYUIDlDYGoXBbBu/V+q43Puf0e5j8vhU=";
+    tag = "v${version}";
+    hash = "sha256-IAEh+rB26Zqv7j5g2YIRZRCAtFbBngoh+w8Z4e2bY+M=";
   };
 
-  nativeBuildInputs = [
-    setuptools
+  patches = [
+    # Remove delete event_loop fixture to fix test with pytest-asyncio 1.x
+    # reference: https://github.com/opensearch-project/opensearch-py/pull/936
+    ./remove-delete-event-loop-fixture.patch
   ];
+
+  nativeBuildInputs = [ setuptools ];
 
   propagatedBuildInputs = [
     certifi
@@ -47,11 +55,10 @@ buildPythonPackage rec {
     requests
     six
     urllib3
+    events
   ];
 
-  passthru.optional-dependencies.async = [
-    aiohttp
-  ];
+  optional-dependencies.async = [ aiohttp ];
 
   nativeCheckInputs = [
     botocore
@@ -61,7 +68,10 @@ buildPythonPackage rec {
     pytestCheckHook
     pyyaml
     pytz
-  ] ++ passthru.optional-dependencies.async;
+  ]
+  ++ optional-dependencies.async;
+
+  __darwinAllowLocalNetworking = true;
 
   disabledTestPaths = [
     # require network
@@ -75,12 +85,21 @@ buildPythonPackage rec {
     # finds our ca-bundle, but expects something else (/path/to/clientcert/dir or None)
     "test_ca_certs_ssl_cert_dir"
     "test_no_ca_certs"
+
+    # Failing tests, issue opened at https://github.com/opensearch-project/opensearch-py/issues/849
+    "test_basicauth_in_request_session"
+    "test_callable_in_request_session"
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
+    # Flaky tests: OSError: [Errno 48] Address already in use
+    "test_redirect_failure_when_allow_redirect_false"
+    "test_redirect_success_when_allow_redirect_true"
   ];
 
   meta = {
     description = "Python low-level client for OpenSearch";
     homepage = "https://github.com/opensearch-project/opensearch-py";
-    changelog = "https://github.com/opensearch-project/opensearch-py/releases/tag/v${version}";
+    changelog = "https://github.com/opensearch-project/opensearch-py/releases/tag/${src.tag}";
     license = lib.licenses.asl20;
     maintainers = with lib.maintainers; [ mcwitt ];
   };

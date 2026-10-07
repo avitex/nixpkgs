@@ -1,31 +1,46 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, backports-zoneinfo
-, python-dateutil
-, pytz
-, hypothesis
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonOlder,
+  hatch-vcs,
+  hatchling,
+  python-dateutil,
+  typing-extensions,
+  tzdata,
+  hypothesis,
+  pyprojectVersionPatchHook,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
-  version = "5.0.10";
+buildPythonPackage (finalAttrs: {
+  version = "7.2.2";
   pname = "icalendar";
-  format = "setuptools";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "collective";
     repo = "icalendar";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-sRsUjNClJ58kmCRiwSe7oq20eamj95Vwy/o0xPU8qPw=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-QDxyMotlG50khBP9luRwoXa9YyZ5qOA/vbdHMwFXv3g=";
   };
 
-  propagatedBuildInputs = [
+  nativeBuildInputs = [
+    pyprojectVersionPatchHook
+  ];
+
+  build-system = [
+    hatch-vcs
+    hatchling
+  ];
+
+  dependencies = [
     python-dateutil
-    pytz
-  ] ++ lib.optionals (pythonOlder "3.9") [
-    backports-zoneinfo
+    tzdata
+  ]
+  ++ lib.optionals (pythonOlder "3.13") [
+    # typing.TypeIs arrived in Python 3.13.
+    typing-extensions
   ];
 
   nativeCheckInputs = [
@@ -33,14 +48,20 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  pytestFlagsArray = [ "src/icalendar" ];
+  disabledTests = [
+    # AssertionError: assert {'Atlantic/Jan_Mayen'} == {'Arctic/Longyearbyen'}
+    "test_dateutil_timezone_is_matched_with_tzname"
+    "test_docstring_of_python_file"
+  ];
 
-  meta = with lib; {
-    changelog = "https://github.com/collective/icalendar/blob/v${version}/CHANGES.rst";
-    description = "A parser/generator of iCalendar files";
+  enabledTestPaths = [ "src/icalendar" ];
+
+  meta = {
+    changelog = "https://github.com/collective/icalendar/blob/${finalAttrs.src.tag}/CHANGES.rst";
+    description = "Parser/generator of iCalendar files";
+    mainProgram = "icalendar";
     homepage = "https://github.com/collective/icalendar";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ olcai ];
+    license = lib.licenses.bsd2;
+    maintainers = with lib.maintainers; [ olcai ];
   };
-
-}
+})

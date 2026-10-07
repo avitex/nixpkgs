@@ -1,29 +1,26 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, flit-core
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  flit-core,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "rkm-codes";
-  version = "0.6";
-  format = "pyproject";
+  version = "1.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "KenKundert";
     repo = "rkm_codes";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-CkLLZuWcNL8sqAupc7lHXu0DXUXrX3qwd1g/ekyHdw4=";
+    tag = "v${version}";
+    hash = "sha256-S1ng2eTR+dNg7TkkpLTtJvX105FOqCi2eiMdRaqQrVg=";
   };
 
-  nativeBuildInputs = [
-    flit-core
-  ];
+  nativeBuildInputs = [ flit-core ];
 
-  propagatedBuildInputs = [
-    setuptools
-  ];
+  propagatedBuildInputs = [ setuptools ];
 
   # this has a circular dependency on quantiphy
   preBuild = ''
@@ -36,10 +33,10 @@ buildPythonPackage rec {
   # tests require quantiphy import
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "QuantiPhy support for RKM codes";
     homepage = "https://github.com/kenkundert/rkm_codes/";
-    license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ jpetrucciani ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ jpetrucciani ];
   };
 }

@@ -1,50 +1,51 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, setuptools
-, typing-extensions
-, pip
-, pylint
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  pip,
+  pylint,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "astroid";
-  version = "3.0.1"; # Check whether the version is compatible with pylint
+  version = "4.2.0"; # Check whether the version is compatible with pylint
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "PyCQA";
     repo = "astroid";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-z6FmB3I3VmiIx0MSsrkvHmDVv2h3CaaeXlDG3DewGXw=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-PwKGAk9tiQzxWydEREg0l0cF4J56SNRwhGRCVjmRoCo=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
-
-  propagatedBuildInputs = lib.optionals (pythonOlder "3.11") [
-    typing-extensions
-  ];
+  build-system = [ setuptools ];
 
   nativeCheckInputs = [
     pip
     pytestCheckHook
   ];
 
+  disabledTests = [
+    # UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html.
+    "test_identify_old_namespace_package_protocol"
+  ];
+
+  disabledTestPaths = [
+    # requires mypy
+    "tests/test_raw_building.py"
+  ];
+
   passthru.tests = {
     inherit pylint;
   };
 
-  meta = with lib; {
-    changelog = "https://github.com/PyCQA/astroid/blob/${src.rev}/ChangeLog";
-    description = "An abstract syntax tree for Python with inference support";
+  meta = {
+    changelog = "https://github.com/PyCQA/astroid/blob/${finalAttrs.src.tag}/ChangeLog";
+    description = "Abstract syntax tree for Python with inference support";
     homepage = "https://github.com/PyCQA/astroid";
-    license = licenses.lgpl21Plus;
-    maintainers = with maintainers; [ GaetanLepage ];
+    license = lib.licenses.lgpl21Plus;
+    maintainers = with lib.maintainers; [ GaetanLepage ];
   };
-}
+})

@@ -1,35 +1,36 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# bring your own
-, django
+  # build-system
+  setuptools,
 
-# propagates
-, python-stdnum
+  # dependencies
+  django,
+  python-stdnum,
 
-# tests
-, pytest-django
-, pytestCheckHook
+  # tests
+  pytest-django,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "django-localflavor";
-  version = "4.0";
-  format = "setuptools";
+  version = "5.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "django";
     repo = "django-localflavor";
-    rev = "refs/tags/${version}";
-    hash = "sha256-UWp3ei1VlEsEfjbJIE+MpffSzYF4X1HEQw+z+5kZoP0=";
+    tag = version;
+    hash = "sha256-pvfXZVHL1/uXibfhimF3T76w2KwlwEVhJFe2VXWM55k=";
   };
 
-  buildInputs = [
-    django
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
+    django
     python-stdnum
   ];
 
@@ -44,17 +45,18 @@ buildPythonPackage rec {
     "localflavor.za"
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     pytest-django
     pytestCheckHook
   ];
 
-  DJANGO_SETTINGS_MODULE = "tests.settings";
+  env.DJANGO_SETTINGS_MODULE = "tests.settings";
 
-  meta = with lib; {
+  meta = {
+    changelog = "https://github.com/django/django-localflavor/blob/${src.tag}/docs/changelog.rst";
     description = "Country-specific Django helpers";
     homepage = "https://github.com/django/django-localflavor";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ hexa ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ hexa ];
   };
 }

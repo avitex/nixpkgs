@@ -1,54 +1,44 @@
-{ lib
-, buildPythonPackage
-, callPackage
-, fetchPypi
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  callPackage,
+  fetchPypi,
 
-# build-system
-, setuptools
+  # build-system
+  setuptools,
 
-# dependencies
-, packaging
-, typing-extensions
-, tomli
+  # dependencies
+  vcs-versioning,
 
-# optional-dependencies
-, rich
+  # optional-dependencies
+  rich,
 }:
 
 buildPythonPackage rec {
   pname = "setuptools-scm";
-  version = "8.0.4";
+  version = "10.0.5";
   pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-tfQ/9oAGaVlRk/0JiRVk7p0dfcsZbKtLJQbVOi4clcc=";
+    pname = "setuptools_scm";
+    inherit version;
+    hash = "sha256-u7qP51RRbN79AX9EVnIXdebvlmK9eIf7Uq4mgT1IOMM=";
   };
 
-  nativeBuildInputs = [
+  postPatch = null;
+
+  build-system = [ setuptools ];
+
+  dependencies = [
     setuptools
-  ] ++ lib.optionals (pythonOlder "3.11") [
-    tomli
+    vcs-versioning
   ];
 
-  propagatedBuildInputs = [
-    packaging
-    setuptools
-    typing-extensions
-  ] ++ lib.optionals (pythonOlder "3.11") [
-    tomli
-  ];
-
-  passthru.optional-dependencies = {
-    rich = [
-      rich
-    ];
+  optional-dependencies = {
+    rich = [ rich ];
   };
 
-  pythonImportsCheck = [
-    "setuptools_scm"
-  ];
+  pythonImportsCheck = [ "setuptools_scm" ];
 
   # check in passthru.tests.pytest to escape infinite recursion on pytest
   doCheck = false;
@@ -59,11 +49,11 @@ buildPythonPackage rec {
 
   setupHook = ./setup-hook.sh;
 
-  meta = with lib; {
+  meta = {
     changelog = "https://github.com/pypa/setuptools_scm/blob/${version}/CHANGELOG.md";
     homepage = "https://github.com/pypa/setuptools_scm/";
     description = "Handles managing your python package versions in scm metadata";
-    license = licenses.mit;
-    maintainers = with maintainers; [ nickcao ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ nickcao ];
   };
 }

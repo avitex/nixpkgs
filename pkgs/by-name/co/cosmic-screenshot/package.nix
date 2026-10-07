@@ -1,25 +1,35 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, rustPlatform
-, just
-, pkg-config
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  rustPlatform,
+  just,
+  pkg-config,
+  nixosTests,
+  nix-update-script,
 }:
 
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "cosmic-screenshot";
-  version = "unstable-2023-11-08";
+  version = "1.9.0";
 
+  # nixpkgs-update: no auto update
   src = fetchFromGitHub {
     owner = "pop-os";
-    repo = pname;
-    rev = "b413a7128ddcdfb3c63e84bdade5c5b90b163a9a";
-    hash = "sha256-SDxBBhmnqNDX95Rb7QiI46sAxrfodB5tSq8AbXAU480=";
+    repo = "cosmic-screenshot";
+    tag = "epoch-${finalAttrs.version}";
+    hash = "sha256-ww6QsrdDp19w3IDSWDm5mC9g6ze92ktPJ1Qyh5kUQS0=";
   };
 
-  cargoHash = "sha256-ZRsAhIWPm38Ys9jM/3yVJLW818lUGLCcSfFZb+UTbnU=";
+  cargoHash = "sha256-q0RJST1yeqPBjU5MseNZIrZw+brfDtQLKiw7wyViflE=";
 
-  nativeBuildInputs = [ just pkg-config ];
+  separateDebugInfo = true;
+  __structuredAttrs = true;
+
+  nativeBuildInputs = [
+    just
+    pkg-config
+  ];
 
   dontUseJustBuild = true;
 
@@ -28,16 +38,34 @@ rustPlatform.buildRustPackage rec {
     "prefix"
     (placeholder "out")
     "--set"
-    "bin-src"
-    "target/${stdenv.hostPlatform.rust.cargoShortTarget}/release/cosmic-screenshot"
+    "cargo-target-dir"
+    "target/${stdenv.hostPlatform.rust.cargoShortTarget}"
   ];
 
-  meta = with lib; {
+  passthru = {
+    tests = {
+      inherit (nixosTests)
+        cosmic
+        cosmic-autologin
+        cosmic-noxwayland
+        cosmic-autologin-noxwayland
+        ;
+    };
+
+    updateScript = nix-update-script {
+      extraArgs = [
+        "--version-regex"
+        "epoch-(.*)"
+      ];
+    };
+  };
+
+  meta = {
     homepage = "https://github.com/pop-os/cosmic-screenshot";
     description = "Screenshot tool for the COSMIC Desktop Environment";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ nyanbinary ];
-    platforms = platforms.linux;
+    license = lib.licenses.gpl3Only;
+    teams = [ lib.teams.cosmic ];
+    platforms = lib.platforms.linux;
     mainProgram = "cosmic-screenshot";
   };
-}
+})

@@ -1,35 +1,32 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pytestCheckHook,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "mock";
-  version = "5.1.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.6";
+  version = "5.2.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    sha256 = "sha256-Xpaq1czaRxjgointlLICTfdcwtVVdbpXYtMfV2e4dn0=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-TkYOgYYptLFz8y0IvzDTr4Ejr7uOBLtXB6H9R5nlA/A=";
   };
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  build-system = [ setuptools ];
 
-  pythonImportsCheck = [
-    "mock"
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "mock" ];
+
+  meta = {
     description = "Rolling backport of unittest.mock for all Pythons";
     homepage = "https://github.com/testing-cabal/mock";
-    changelog = "https://github.com/testing-cabal/mock/blob/${version}/CHANGELOG.rst";
-    license = licenses.bsd2;
+    changelog = "https://github.com/testing-cabal/mock/blob/${finalAttrs.version}/CHANGELOG.rst";
+    license = lib.licenses.bsd2;
     maintainers = [ ];
   };
-}
+})

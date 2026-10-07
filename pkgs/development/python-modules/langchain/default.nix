@@ -1,193 +1,169 @@
-{ lib
-, bash
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, pythonRelaxDepsHook
-, poetry-core
-, aiohttp
-, async-timeout
-, dataclasses-json
-, jsonpatch
-, langsmith
-, langchain-core
-, langchain-community
-, numpy
-, pydantic
-, pyyaml
-, requests
-, sqlalchemy
-, tenacity
-  # optional dependencies
-, azure-core
-, azure-cosmos
-, azure-identity
-, chardet
-, clarifai
-, cohere
-, esprima
-, huggingface-hub
-, lark
-, manifest-ml
-, nlpcloud
-, openai
-, qdrant-client
-, sentence-transformers
-, tiktoken
-, torch
-, transformers
-, typer
-  # test dependencies
-, freezegun
-, pandas
-, pytest-asyncio
-, pytest-mock
-, pytest-socket
-, pytestCheckHook
-, requests-mock
-, responses
-, syrupy
-, toml
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  hatchling,
+
+  # dependencies
+  langchain-core,
+  langgraph,
+  pydantic,
+
+  # Optional dependencies
+  langchain-anthropic,
+  langchain-aws,
+  langchain-community,
+  langchain-deepseek,
+  langchain-fireworks,
+  langchain-google-genai,
+  langchain-groq,
+  langchain-huggingface,
+  langchain-mistralai,
+  langchain-ollama,
+  langchain-openai,
+  langchain-perplexity,
+  langchain-xai,
+
+  # runtime
+  runtimeShell,
+
+  # tests
+  blockbuster,
+  langchain-tests,
+  pytest-asyncio,
+  pytest-mock,
+  pytest-socket,
+  pytest-xdist,
+  pytestCheckHook,
+  syrupy,
+  toml,
+
+  # passthru
+  gitUpdater,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "langchain";
-  version = "0.1.1";
+  version = "1.4.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "langchain-ai";
     repo = "langchain";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-cQz4u6FeVZLNbix4pyc6ulfj+nb/tARMJniusy7Q46A=";
+    tag = "langchain==${finalAttrs.version}";
+    hash = "sha256-p4YqDRa37QC0diLMUPUX1J8Rc3q+DFxjPU+w8M0EJtY=";
   };
 
-  sourceRoot = "${src.name}/libs/langchain";
+  sourceRoot = "${finalAttrs.src.name}/libs/langchain_v1";
 
-  nativeBuildInputs = [
-    poetry-core
-    pythonRelaxDepsHook
-  ];
+  postPatch = ''
+    substituteInPlace langchain/agents/middleware/shell_tool.py \
+      --replace-fail '"/bin/bash"' '"${runtimeShell}"'
+  '';
 
-  buildInputs = [
-    bash
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     langchain-core
-    langchain-community
+    langgraph
     pydantic
-    sqlalchemy
-    requests
-    pyyaml
-    numpy
-    aiohttp
-    tenacity
-    jsonpatch
-    dataclasses-json
-    langsmith
-  ] ++ lib.optionals (pythonOlder "3.11") [
-    async-timeout
   ];
 
-  passthru.optional-dependencies = {
-    llms = [
-      clarifai
-      cohere
-      openai
-      # openlm
-      nlpcloud
-      huggingface-hub
-      manifest-ml
-      torch
-      transformers
-    ];
-    qdrant = [
-      qdrant-client
-    ];
-    openai = [
-      openai
-      tiktoken
-    ];
-    text_helpers = [
-      chardet
-    ];
-    clarifai = [
-      clarifai
-    ];
-    cohere = [
-      cohere
-    ];
-    docarray = [
-      # docarray
-    ];
-    embeddings = [
-      sentence-transformers
-    ];
-    javascript = [
-      esprima
-    ];
-    azure = [
-      azure-identity
-      azure-cosmos
-      openai
-      azure-core
-      # azure-ai-formrecognizer
-      # azure-ai-vision
-      # azure-cognitiveservices-speech
-      # azure-search-documents
-      # azure-ai-textanalytics
-    ];
-    all = [
-    ];
-    cli = [
-      typer
-    ];
+  optional-dependencies = {
+    anthropic = [ langchain-anthropic ];
+    aws = [ langchain-aws ];
+    # azure-ai = [langchain-azure-ai];
+    community = [ langchain-community ];
+    deepseek = [ langchain-deepseek ];
+    fireworks = [ langchain-fireworks ];
+    google-genai = [ langchain-google-genai ];
+    # google-vertexai = [langchain-google-vertexai];
+    groq = [ langchain-groq ];
+    huggingface = [ langchain-huggingface ];
+    mistralai = [ langchain-mistralai ];
+    ollama = [ langchain-ollama ];
+    openai = [ langchain-openai ];
+    perplexity = [ langchain-perplexity ];
+    # together = [langchain-together];
+    xai = [ langchain-xai ];
   };
 
   nativeCheckInputs = [
-    freezegun
-    lark
-    pandas
+    blockbuster
+    langchain-tests
+    # langchain-openai -- causes recursion error
     pytest-asyncio
     pytest-mock
     pytest-socket
+    pytest-xdist
     pytestCheckHook
-    requests-mock
-    responses
     syrupy
     toml
   ];
 
-  pytestFlagsArray = [
-    # integration_tests have many network, db access and require `OPENAI_API_KEY`, etc.
-    "tests/unit_tests"
+  pytestFlags = [
     "--only-core"
   ];
 
+  # Note: Not testing with optional dependencies due to mutual recursion
+  enabledTestPaths = [
+    # integration_tests require network access, database access and require `OPENAI_API_KEY`, etc.
+    "tests/unit_tests"
+  ];
+
+  # All pass with sandbox=false
   disabledTests = [
-    # these tests have db access
-    "test_table_info"
-    "test_sql_database_run"
-
-    # these tests have network access
-    "test_socket_disabled"
-
-    # this test may require a specific version of langchain-community
-    "test_compatible_vectorstore_documentation"
+    # Depends on shell's truncation style
+    "test_truncation_indicator_present"
+    "test_truncation_by_bytes"
+    # Depends on the sleep shell command
+    "test_timeout_returns_error"
+    # Can't see the shell session results when sandboxed
+    "test_startup_and_shutdown_commands"
+    # Timing sensitive tests
+    "test_tool_retry_constant_backoff"
+    # AttributeError: 'ImportErrorProfileModel' object has no attribute 'profile'
+    # https://github.com/langchain-ai/langchain/issues/36312
+    "test_summarization_middleware_missing_profile"
+    # langchain.mcp requires fastmcp>=4 (nixpkgs has 3.x) and jsonschema
+    "test_import_all"
+    "test_import_all_using_dir"
   ];
 
-  pythonImportsCheck = [
-    "langchain"
+  disabledTestPaths = [
+    # Requires fastmcp>=4 (nixpkgs has 3.x) and jsonschema
+    "tests/unit_tests/mcp"
+
+    # Their configuration tests don't place nicely with nixpkgs
+    "tests/unit_tests/test_pytest_config.py"
+
+    # Timing sensitive tests
+    "tests/unit_tests/agents/middleware/implementations/test_model_retry.py"
   ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "langchain" ];
+
+  passthru = {
+    skipBulkUpdate = true;
+    updateScript = gitUpdater {
+      rev-prefix = "langchain==";
+      ignoredVersions = "a|b|dev|rc";
+    };
+  };
+
+  __darwinAllowLocalNetworking = true;
+
+  meta = {
     description = "Building applications with LLMs through composability";
     homepage = "https://github.com/langchain-ai/langchain";
-    changelog = "https://github.com/langchain-ai/langchain/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ natsukium ];
+    changelog = "https://github.com/langchain-ai/langchain/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [
+      natsukium
+      sarahec
+    ];
   };
-}
+})

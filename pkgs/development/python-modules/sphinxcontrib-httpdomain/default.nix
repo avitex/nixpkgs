@@ -1,7 +1,8 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, sphinx
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  sphinx,
 }:
 
 buildPythonPackage rec {
@@ -22,10 +23,9 @@ buildPythonPackage rec {
 
   pythonNamespaces = [ "sphinxcontrib" ];
 
-  meta = with lib; {
+  meta = {
     description = "Provides a Sphinx domain for describing RESTful HTTP APIs";
     homepage = "https://bitbucket.org/birkenfeld/sphinx-contrib";
-    license = licenses.bsd0;
+    license = lib.licenses.bsd0;
   };
-
 }

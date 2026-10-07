@@ -1,69 +1,75 @@
-{ stdenv
-, lib
-, fetchFromGitHub
-, fetchpatch
-, meson
-, ninja
-, pkg-config
-, wayfire
-, wf-config
-, gtkmm3
-, gtk-layer-shell
-, libevdev
-, libinput
-, libxkbcommon
-, xcbutilwm
+{
+  stdenv,
+  lib,
+  fetchFromGitHub,
+  meson,
+  ninja,
+  pkg-config,
+  wayfire,
+  wayland-scanner,
+  wf-config,
+  boost,
+  libdrm,
+  libevdev,
+  libinput,
+  libxkbcommon,
+  vulkan-headers,
+  libxcb-wm,
+  gtkmm3,
+  withFiltersPlugin ? true,
+  withFocusRequestPlugin ? true,
+  withPixdecorPlugin ? true,
+  withWayfireShadowsPlugin ? true,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "wayfire-plugins-extra";
-  version = "0.8.0";
+  version = "0.10.0";
 
   src = fetchFromGitHub {
     owner = "WayfireWM";
     repo = "wayfire-plugins-extra";
     rev = "v${finalAttrs.version}";
+    hash = "sha256-C5dgs81R4XuPjIm7sj1Mtu4IMIRBEYU6izg2olymeVI=";
     fetchSubmodules = true;
-    hash = "sha256-OVyP1AgZ1d9DXFkbHnROwtSQIquEX5ccVIkcmCdDZtA=";
   };
-
-  patches = [
-    (fetchpatch {
-      name = "check-dependency-libevdev.patch";
-      url = "https://github.com/WayfireWM/wayfire-plugins-extra/commit/f3bbf1fcbafd28016e36be7a5043bd82574ac9e4.patch";
-      hash = "sha256-8X1lpf8H8NuA845cIslahKDQKW/IA/KiMExU4Snk72o=";
-    })
-  ];
-
-  postPatch = ''
-    substituteInPlace metadata/meson.build \
-      --replace "wayfire.get_variable(pkgconfig: 'metadatadir')" "join_paths(get_option('prefix'), 'share/wayfire/metadata')"
-  '';
 
   nativeBuildInputs = [
     meson
     ninja
     pkg-config
+    wayland-scanner
   ];
 
   buildInputs = [
     wayfire
     wf-config
+    boost
+    libdrm
     libevdev
     libinput
     libxkbcommon
-    xcbutilwm
+    vulkan-headers
+    libxcb-wm
     gtkmm3
-    gtk-layer-shell
   ];
 
-  mesonFlags = [ "--sysconfdir /etc" ];
+  mesonFlags = [
+    (lib.mesonBool "enable_filters" withFiltersPlugin)
+    (lib.mesonBool "enable_focus_request" withFocusRequestPlugin)
+    (lib.mesonBool "enable_pixdecor" withPixdecorPlugin)
+    (lib.mesonBool "enable_wayfire_shadows" withWayfireShadowsPlugin)
+  ];
+
+  env = {
+    PKG_CONFIG_WAYFIRE_METADATADIR = "${placeholder "out"}/share/wayfire/metadata";
+  };
 
   meta = {
     homepage = "https://github.com/WayfireWM/wayfire-plugins-extra";
     description = "Additional plugins for Wayfire";
     license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ rewine ];
+    maintainers = with lib.maintainers; [ wineee ];
     inherit (wayfire.meta) platforms;
   };
 })

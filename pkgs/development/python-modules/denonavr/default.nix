@@ -1,46 +1,41 @@
-{ lib
-, async-timeout
-, asyncstdlib
-, attrs
-, buildPythonPackage
-, defusedxml
-, fetchFromGitHub
-, httpx
-, netifaces
-, pytest-asyncio
-, pytestCheckHook
-, pytest-httpx
-, pytest-timeout
-, pythonOlder
-, setuptools
+{
+  lib,
+  asyncstdlib,
+  attrs,
+  buildPythonPackage,
+  defusedxml,
+  fetchFromGitHub,
+  ftfy,
+  httpx,
+  netifaces,
+  pytest-asyncio,
+  pytest-httpx,
+  pytest-timeout,
+  pytestCheckHook,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "denonavr";
-  version = "0.11.4";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "1.3.3";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "ol-iver";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-0+BjakGGnCbmiSHSipRifPkasfP1vvAWGvzyRufpsOk=";
+    repo = "denonavr";
+    tag = finalAttrs.version;
+    hash = "sha256-5yjrBG7Vufi+O4mHV1yGvunUJY38eWc5ZIoeoZyG5ak=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     asyncstdlib
     attrs
     defusedxml
+    ftfy
     httpx
     netifaces
-  ] ++ lib.optionals (pythonOlder "3.11") [
-    async-timeout
   ];
 
   nativeCheckInputs = [
@@ -50,15 +45,13 @@ buildPythonPackage rec {
     pytest-timeout
   ];
 
-  pythonImportsCheck = [
-    "denonavr"
-  ];
+  pythonImportsCheck = [ "denonavr" ];
 
-  meta = with lib; {
+  meta = {
     description = "Automation Library for Denon AVR receivers";
     homepage = "https://github.com/ol-iver/denonavr";
-    changelog = "https://github.com/ol-iver/denonavr/releases/tag/${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ colemickens ];
+    changelog = "https://github.com/ol-iver/denonavr/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
-}
+})

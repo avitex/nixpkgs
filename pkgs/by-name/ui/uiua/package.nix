@@ -1,55 +1,95 @@
-{ lib
-, stdenv
-, rustPlatform
-, fetchFromGitHub
-, pkg-config
-, audioSupport ? true
-, darwin
-, alsa-lib
+{
+  uiua_versionType ? "stable",
 
-# passthru.tests.run
-, runCommand
-, uiua
+  lib,
+  stdenv,
+  rustPlatform,
+  fetchFromGitHub,
+  pkg-config,
+  versionCheckHook,
+
+  libffi,
+  audioSupport ? true,
+  alsa-lib,
+  webcamSupport ? false,
+  libGL,
+  libxkbcommon,
+  wayland,
+  libxrandr,
+  libxi,
+  libxcursor,
+  libx11,
+  windowSupport ? false,
+
+  runCommand,
 }:
 
-rustPlatform.buildRustPackage rec {
+let
+  versionInfo =
+    {
+      "stable" = import ./stable.nix;
+      "unstable" = import ./unstable.nix;
+    }
+    .${uiua_versionType};
+in
+
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "uiua";
-  version = "0.7.1";
+  inherit (versionInfo) version cargoHash patches;
 
   src = fetchFromGitHub {
     owner = "uiua-lang";
     repo = "uiua";
-    rev = version;
-    hash = "sha256-cBwQdArVRiXH8TmgBSPpcB5oNu3Q/+Us9Azzw0lV5Vs=";
+    inherit (versionInfo) tag hash;
   };
 
-  cargoHash = "sha256-7cgKiEqklvUw64a6+lbHA9t6QWiTquYVi0evXkONEag=";
+  nativeBuildInputs =
+    lib.optionals (webcamSupport || stdenv.hostPlatform.isDarwin) [ rustPlatform.bindgenHook ]
+    ++ lib.optionals audioSupport [ pkg-config ];
 
-  nativeBuildInputs = lib.optionals stdenv.isDarwin [
-    rustPlatform.bindgenHook
-  ] ++ lib.optionals audioSupport [
-    pkg-config
-  ];
+  buildInputs = [
+    libffi
+  ] # we force dynamic linking our own libffi below
+  ++ lib.optionals (audioSupport && stdenv.hostPlatform.isLinux) [ alsa-lib ];
 
-  buildInputs = lib.optionals stdenv.isDarwin [
-    darwin.apple_sdk.frameworks.CoreServices
-  ] ++ lib.optionals (audioSupport && stdenv.isDarwin) [
-    darwin.apple_sdk.frameworks.AudioUnit
-  ] ++ lib.optionals (audioSupport && stdenv.isLinux) [
-    alsa-lib
-  ];
+  buildFeatures = [
+    "libffi/system"
+  ] # force libffi to be linked dynamically instead of rebuilding it
+  ++ lib.optional audioSupport "audio"
+  ++ lib.optional webcamSupport "webcam"
+  ++ lib.optional windowSupport "window";
 
-  buildFeatures = lib.optional audioSupport "audio";
+  postFixup =
+    let
+      runtimeDependencies = lib.optionals windowSupport [
+        libGL
+        libxkbcommon
+        wayland
+        libx11
+        libxcursor
+        libxi
+        libxrandr
+      ];
+    in
+    lib.optionalString (runtimeDependencies != [ ] && stdenv.hostPlatform.isLinux) ''
+      patchelf --add-rpath ${lib.makeLibraryPath runtimeDependencies} $out/bin/uiua
+    '';
 
-  passthru.tests.run = runCommand "uiua-test-run" { nativeBuildInputs = [ uiua ]; } ''
-    uiua init;
-    diff -U3 --color=auto <(uiua run main.ua) <(echo '"Hello, World!"')
-    touch $out;
-  '';
+  nativeInstallCheckInputs = [ versionCheckHook ];
+  doInstallCheck = true;
+
+  passthru.updateScript = versionInfo.updateScript;
+  passthru.tests.run =
+    runCommand "uiua-test-run" { nativeBuildInputs = [ finalAttrs.finalPackage ]; }
+      ''
+        echo '&p "Hello, World!"' > test.ua
+        diff -U3 --color=auto <(uiua run test.ua) <(echo 'Hello, World!')
+        touch $out
+      '';
 
   meta = {
-    changelog = "https://github.com/uiua-lang/uiua/blob/${src.rev}/changelog.md";
-    description = "A stack-oriented array programming language with a focus on simplicity, beauty, and tacit code";
+    changelog = "https://github.com/uiua-lang/uiua/blob/${finalAttrs.src.rev}/changelog.md";
+    description = "Stack-oriented array programming language with a focus on simplicity, beauty, and tacit code";
     longDescription = ''
       Uiua combines the stack-oriented and array-oriented paradigms in a single
       language. Combining these already terse paradigms results in code with a very
@@ -58,6 +98,10 @@ rustPlatform.buildRustPackage rec {
     homepage = "https://www.uiua.org/";
     license = lib.licenses.mit;
     mainProgram = "uiua";
-    maintainers = with lib.maintainers; [ cafkafk tomasajt defelo ];
+    maintainers = with lib.maintainers; [
+      cafkafk
+      tomasajt
+      defelo
+    ];
   };
-}
+})

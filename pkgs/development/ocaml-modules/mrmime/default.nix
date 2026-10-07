@@ -1,72 +1,65 @@
-{ afl-persistent
-, alcotest
-, angstrom
-, base64
-, bigarray-compat
-, bigarray-overlap
-, bigstringaf
-, buildDunePackage
-, cmdliner
-, emile
-, fetchzip
-, fmt
-, fpath
-, hxd
-, ipaddr
-, jsonm
-, ke
-, lib
-, mirage-crypto-rng
-, ocaml
-, pecu
-, prettym
-, ptime
-, rosetta
-, rresult
-, unstrctrd
-, uutf
+{
+  afl-persistent,
+  alcotest,
+  angstrom,
+  base64,
+  bigarray-overlap,
+  bigstringaf,
+  buildDunePackage,
+  cmdliner,
+  emile,
+  fetchurl,
+  fpath,
+  hxd,
+  ipaddr,
+  jsonm,
+  ke,
+  lib,
+  mirage-crypto-rng,
+  pecu,
+  prettym,
+  ptime,
+  rosetta,
+  unstrctrd,
+  uutf,
 }:
 
-buildDunePackage rec {
+buildDunePackage (finalAttrs: {
   pname = "mrmime";
-  version = "0.5.0";
+  version = "0.7.0";
 
-  src = fetchzip {
-    url = "https://github.com/mirage/mrmime/releases/download/v${version}/mrmime-v${version}.tbz";
-    sha256 = "14k67v0b39b8jq3ny2ymi8g8sqx2gd81mlzsjphdzdqnlx6fk716";
+  src = fetchurl {
+    url = "https://github.com/mirage/mrmime/releases/download/v${finalAttrs.version}/mrmime-${finalAttrs.version}.tbz";
+    hash = "sha256-w23xtro9WgyLLwqdwfqLMN/ZDqwpvFcEvurbsqnsJLc=";
   };
-
-  duneVersion = "3";
-
-  buildInputs = [ cmdliner hxd ];
 
   propagatedBuildInputs = [
     angstrom
     base64
     emile
-    fmt
     ipaddr
     ke
     pecu
     prettym
     ptime
     rosetta
-    rresult
     unstrctrd
     uutf
-    afl-persistent
-    bigarray-compat
     bigarray-overlap
     bigstringaf
-    fpath
-    mirage-crypto-rng
   ];
 
   checkInputs = [
+    afl-persistent
     alcotest
+    cmdliner
+    fpath
+    hxd
     jsonm
+    mirage-crypto-rng
   ];
-  doCheck = lib.versionOlder ocaml.version "5.0";
+  # Checks are not compatible with mirage-crypto-rng ≥ 1.0
+  doCheck = false;
 
   meta = {
     description = "Parser and generator of mail in OCaml";
@@ -75,4 +68,4 @@ buildDunePackage rec {
     maintainers = [ ];
     mainProgram = "mrmime.generate";
   };
-}
+})

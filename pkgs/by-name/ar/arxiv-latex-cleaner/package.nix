@@ -1,20 +1,26 @@
-{ lib
-, python3
-, python3Packages
-, fetchFromGitHub
+{
+  lib,
+  python3,
+  python3Packages,
+  fetchFromGitHub,
 }:
-python3Packages.buildPythonApplication rec {
+python3Packages.buildPythonApplication (finalAttrs: {
   pname = "arxiv-latex-cleaner";
-  version = "1.0.3";
+  version = "1.0.11";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "google-research";
     repo = "arxiv-latex-cleaner";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-kM1eCzXipJ6GuYFA9Na2C0HtwHLotmE63nyUZ+9wkkk=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-Q3vNGF9uOForLawJtp424Tv3MaVfUSqk4orv9gojm3M=";
   };
 
-  propagatedBuildInputs = with python3Packages; [
+  build-system = with python3Packages; [
+    setuptools
+  ];
+
+  dependencies = with python3Packages; [
     pillow
     pyyaml
     regex
@@ -27,10 +33,11 @@ python3Packages.buildPythonApplication rec {
     runHook postCheck
   '';
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/google-research/arxiv-latex-cleaner";
     description = "Easily clean the LaTeX code of your paper to submit to arXiv";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ arkivm ];
+    mainProgram = "arxiv_latex_cleaner";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ arkivm ];
   };
-}
+})

@@ -1,44 +1,49 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools-scm
-, elementpath
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  elementpath,
+  pyyaml,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "yangson";
-  version = "1.4.19";
-  format = "setuptools";
+  version = "1.7.8";
+  pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-rYUxv3TEdyr2D3UEmmHcJJtlG6gXJnp1c2pez4H13SU=";
+  src = fetchFromGitHub {
+    owner = "CZ-NIC";
+    repo = "yangson";
+    tag = version;
+    hash = "sha256-otvKjMsH2A4Zxs1ZeafTSDNUroSmxzOhw8P+V13uN88=";
   };
 
-  nativeBuildInputs = [
-    setuptools-scm
-  ];
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     elementpath
+    pyyaml
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  pythonRelaxDeps = [ "elementpath" ];
 
-  pythonImportsCheck = [
-    "yangson"
-  ];
+  # only used for docs build
+  pythonRemoveDeps = [ "sphinxcontrib-shtest" ];
 
-  meta = with lib; {
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  pythonImportsCheck = [ "yangson" ];
+
+  meta = {
     description = "Library for working with data modelled in YANG";
+    mainProgram = "yangson";
     homepage = "https://github.com/CZ-NIC/yangson";
-    license = with licenses; [
+    license = with lib.licenses; [
       gpl3Plus
       lgpl3Plus
     ];
-    maintainers = with maintainers; [ ];
+    maintainers = [ ];
   };
 }

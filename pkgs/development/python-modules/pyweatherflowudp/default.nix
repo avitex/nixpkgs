@@ -1,33 +1,33 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pint
-, poetry-core
-, psychrolib
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  pint,
+  psychrolib,
+  pytest-asyncio,
+  pytestCheckHook,
+  uv-dynamic-versioning,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pyweatherflowudp";
-  version = "1.4.5";
+  version = "1.6.3";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "briis";
     repo = "pyweatherflowudp";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-aTwGFYTtd07BsWFaFc7ns+8oh2AxTUfRFSu81Zv5OoA=";
+    tag = finalAttrs.version;
+    hash = "sha256-9qpbLDoDDFGe3rIbiMuKd7LgspxTwCmZBhtQYvaxlZE=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
+  build-system = [
+    hatchling
+    uv-dynamic-versioning
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     pint
     psychrolib
   ];
@@ -37,9 +37,7 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "pyweatherflowudp"
-  ];
+  pythonImportsCheck = [ "pyweatherflowudp" ];
 
   disabledTests = [
     # Tests require network access
@@ -51,12 +49,13 @@ buildPythonPackage rec {
     "test_invalid_messages"
   ];
 
-  meta = with lib; {
+  __darwinAllowLocalNetworking = true;
+
+  meta = {
     description = "Library to receive UDP Packets from Weatherflow Weatherstations";
     homepage = "https://github.com/briis/pyweatherflowudp";
-    changelog = "https://github.com/briis/pyweatherflowudp/blob/${version}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/briis/pyweatherflowudp/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
-
+})

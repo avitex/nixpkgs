@@ -1,38 +1,46 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, marshmallow
-, packaging
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  flit-core,
+  marshmallow,
+  packaging,
+  pytestCheckHook,
+  setuptools,
+  validators,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "faraday-agent-parameters-types";
-  version = "1.3.1";
-  format = "setuptools";
+  version = "1.9.1";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    pname = "faraday_agent_parameters_types";
-    inherit version;
-    hash = "sha256-yWDZPa9+DZh2Bj9IIeIVFpAt9nhQOk2tTZh02difsCs=";
+  src = fetchFromGitHub {
+    owner = "infobyte";
+    repo = "faraday_agent_parameters_types";
+    tag = finalAttrs.version;
+    hash = "sha256-Oe/9/zKOoCLK3JHMacOhk2+d91MrhzkBTW3POoFm71M=";
   };
 
-  propagatedBuildInputs = [
-    marshmallow
-    packaging
-  ];
-
-  nativeCheckInputs = [
-    pytestCheckHook
+  pythonRelaxDeps = [
+    "marshmallow"
+    "validators"
   ];
 
   postPatch = ''
     substituteInPlace setup.py \
-      --replace '"pytest-runner",' ""
+      --replace-warn '"pytest-runner",' ""
   '';
+
+  build-system = [ setuptools ];
+
+  dependencies = [
+    marshmallow
+    packaging
+    validators
+  ];
+
+  nativeCheckInputs = [ pytestCheckHook ];
 
   pythonImportsCheck = [
     "faraday_agent_parameters_types"
@@ -42,13 +50,17 @@ buildPythonPackage rec {
   disabledTests = [
     # assert 'Version requested not valid' in "Invalid version: 'hola'"
     "test_incorrect_version_requested"
+    # Tests are outdated
+    "test_deserialize"
+    "test_invalid_data"
+    "test_serialize"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Collection of Faraday agent parameters types";
     homepage = "https://github.com/infobyte/faraday_agent_parameters_types";
-    changelog = "https://github.com/infobyte/faraday_agent_parameters_types/blob/${version}/CHANGELOG.md";
-    license = with licenses; [ gpl3Plus ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/infobyte/faraday_agent_parameters_types/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.gpl3Plus;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

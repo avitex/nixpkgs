@@ -1,42 +1,52 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, isPyPy
-, pytestCheckHook
-, cython
-, toolz
-, python
-, isPy27
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  cython,
+  setuptools,
+  toolz,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "cytoolz";
-  version = "0.12.2";
-  format = "setuptools";
-  disabled = isPy27 || isPyPy;
+  version = "1.1.0";
+  pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-MdSwRV1y2RRkX4A9kX2vTzFNEVxw3gV404IN64sQH2Y=";
+  src = fetchFromGitHub {
+    owner = "pytoolz";
+    repo = "cytoolz";
+    tag = finalAttrs.version;
+    hash = "sha256-beOEhm7+Nq7oA7iDcdORz03D1InHmypqsYUDUXEUPC0=";
   };
 
-  nativeBuildInputs = [ cython ];
+  postPatch = ''
+    sed -i "/setuptools-git-versioning >=/d" pyproject.toml
+    substituteInPlace pyproject.toml \
+      --replace-fail "dynamic = [\"version\"]" "version = \"${finalAttrs.version}\""
+  '';
 
-  propagatedBuildInputs = [ toolz ];
+  build-system = [
+    cython
+    setuptools
+  ];
 
-  # tests are located in cytoolz/tests, however we can't import cytoolz
-  # from $PWD, as it will break relative imports
+  dependencies = [ toolz ];
+
+  # tests are located in cytoolz/tests, but we need to prevent import from the cytoolz source
   preCheck = ''
-    cd cytoolz
-    export PYTHONPATH=$out/${python.sitePackages}:$PYTHONPATH
+    mv cytoolz/tests tests
+    rm -rf cytoolz
+    sed -i "/testpaths/d" pyproject.toml
   '';
 
   nativeCheckInputs = [ pytestCheckHook ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/pytoolz/cytoolz/";
+    changelog = "https://github.com/pytoolz/cytoolz/releases/tag/${finalAttrs.src.tag}";
     description = "Cython implementation of Toolz: High performance functional utilities";
-    license = licenses.bsd3;
-    maintainers = with lib.maintainers; [ fridh ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ sarahec ];
   };
-}
+})

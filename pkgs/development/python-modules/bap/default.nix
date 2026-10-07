@@ -1,24 +1,43 @@
-{lib, buildPythonPackage, fetchFromGitHub, bap, requests}:
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  bap,
+  requests,
+}:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "bap";
   version = "1.3.1";
-  format = "setuptools";
+  pyproject = true;
+
+  __structuredAttrs = true;
+
   src = fetchFromGitHub {
     owner = "BinaryAnalysisPlatform";
     repo = "bap-python";
-    rev = version;
-    sha256 = "1ahkrmcn7qaivps1gar8wd9mq2qqyx6zzvznf5r9rr05h17x5lbp";
+    tag = finalAttrs.version;
+    hash = "sha256-d9HST4AF5Jxycfbv/033GAtcU+Moqxf03VHhY1nNE6o=";
   };
 
-  propagatedBuildInputs = [bap requests];
+  postPatch = ''
+    substituteInPlace setup.py --replace-fail '1.1.0' ${finalAttrs.version}
+  '';
+
+  build-system = [ setuptools ];
+
+  dependencies = [
+    bap
+    requests
+  ];
 
   doCheck = false;
 
-  meta = with lib; {
-    description = "Platform for binary analysis. It is written in OCaml, but can be used from other languages.";
+  meta = {
+    description = "Platform for binary analysis. It is written in OCaml, but can be used from other languages";
     homepage = "https://github.com/BinaryAnalysisPlatform/bap/";
-    maintainers = [ maintainers.maurer ];
-    license = licenses.mit;
+    maintainers = [ lib.maintainers.maurer ];
+    license = lib.licenses.mit;
   };
-}
+})

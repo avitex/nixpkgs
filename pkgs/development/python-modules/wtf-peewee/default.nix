@@ -1,27 +1,28 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools
-, peewee
-, wtforms
-, python
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  peewee,
+  wtforms,
+  python,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "wtf-peewee";
-  version = "3.0.5";
-  format = "pyproject";
+  version = "3.2.1";
+  pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-LQbOWg65rPTSLRVK5vvqmdsRsXaDgcYZ54oqxgpWGRU=";
+  src = fetchFromGitHub {
+    owner = "coleifer";
+    repo = "wtf-peewee";
+    tag = finalAttrs.version;
+    hash = "sha256-G/yhQ+/xKdK15YU3Ms5E2FLUk6ncJYd0Ys54R61jBtc=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     peewee
     wtforms
   ];
@@ -32,10 +33,10 @@ buildPythonPackage rec {
     runHook postCheck
   '';
 
-  meta = with lib; {
+  meta = {
     description = "WTForms integration for peewee models";
     homepage = "https://github.com/coleifer/wtf-peewee/";
-    license = licenses.mit;
+    license = lib.licenses.mit;
     maintainers = [ ];
   };
-}
+})

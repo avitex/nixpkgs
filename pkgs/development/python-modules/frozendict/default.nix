@@ -1,23 +1,21 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, pythonAtLeast
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "frozendict";
-  version = "2.4.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.6";
+  version = "2.4.7";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "Marco-Sulla";
     repo = "python-frozendict";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-mC5udKWez1s9JiVthtzCwEUPLheJpxRmcL3KdRiYP18=";
+    tag = "v${version}";
+    hash = "sha256-ehx8X3jbKls/DVgCzWJ+nTX+m/Cdknnu/sjrAMxnJFo=";
   };
 
   # build C version if it exists
@@ -32,19 +30,17 @@ buildPythonPackage rec {
     fi
   '';
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeBuildInputs = [ setuptools ];
 
-  pythonImportsCheck = [
-    "frozendict"
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "frozendict" ];
+
+  meta = {
     description = "Module for immutable dictionary";
     homepage = "https://github.com/Marco-Sulla/python-frozendict";
     changelog = "https://github.com/Marco-Sulla/python-frozendict/releases/tag/v${version}";
-    license = licenses.lgpl3Only;
-    maintainers = with maintainers; [ pbsds ];
+    license = lib.licenses.lgpl3Only;
+    maintainers = with lib.maintainers; [ pbsds ];
   };
 }

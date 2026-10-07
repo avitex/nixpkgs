@@ -2,30 +2,38 @@
 # generic MySQL backend (gmysql) to connect to a
 # MariaDB server using UNIX sockets authentication.
 
-import ./make-test-python.nix ({ pkgs, lib, ... }: {
+{ pkgs, lib, ... }:
+{
   name = "powerdns";
 
-  nodes.server = { ... }: {
-    services.powerdns.enable = true;
-    services.powerdns.extraConfig = ''
-      launch=gmysql
-      gmysql-user=pdns
-      zone-cache-refresh-interval=0
-    '';
+  nodes.server =
+    { ... }:
+    {
+      services.powerdns.enable = true;
+      services.powerdns.extraConfig = ''
+        launch=gmysql
+        gmysql-user=pdns
+        zone-cache-refresh-interval=0
+      '';
 
-    services.mysql = {
-      enable = true;
-      package = pkgs.mariadb;
-      ensureDatabases = [ "powerdns" ];
-      ensureUsers = lib.singleton
-        { name = "pdns";
-          ensurePermissions = { "powerdns.*" = "ALL PRIVILEGES"; };
+      services.mysql = {
+        enable = true;
+        package = pkgs.mariadb;
+        ensureDatabases = [ "powerdns" ];
+        ensureUsers = lib.singleton {
+          name = "pdns";
+          ensurePermissions = {
+            "powerdns.*" = "ALL PRIVILEGES";
+          };
         };
-    };
+      };
 
-    environment.systemPackages = with pkgs;
-      [ dnsutils powerdns mariadb ];
-  };
+      environment.systemPackages = with pkgs; [
+        dnsutils
+        pdns
+        mariadb
+      ];
+    };
 
   testScript = ''
     with subtest("PowerDNS database exists"):
@@ -35,7 +43,7 @@ import ./make-test-python.nix ({ pkgs, lib, ... }: {
     with subtest("Loading the MySQL schema works"):
         server.succeed(
             "sudo -u pdns mysql -u pdns -D powerdns <"
-            "${pkgs.powerdns}/share/doc/pdns/schema.mysql.sql"
+            "${pkgs.pdns}/share/doc/pdns/schema.mysql.sql"
         )
 
     with subtest("PowerDNS server starts"):
@@ -45,8 +53,8 @@ import ./make-test-python.nix ({ pkgs, lib, ... }: {
     with subtest("Adding an example zone works"):
         # Extract configuration file needed by pdnsutil
         pdnsutil = "sudo -u pdns pdnsutil "
-        server.succeed(f"{pdnsutil} create-zone example.com ns1.example.com")
-        server.succeed(f"{pdnsutil} add-record  example.com ns1 A 192.168.1.2")
+        server.succeed(f"{pdnsutil} zone  create example.com ns1.example.com")
+        server.succeed(f"{pdnsutil} rrset add    example.com ns1.example.com A 192.168.1.2")
 
     with subtest("Querying the example zone works"):
         reply = server.succeed("dig +noall +answer ns1.example.com @127.0.0.1")
@@ -59,4 +67,4 @@ import ./make-test-python.nix ({ pkgs, lib, ... }: {
           Reply:
             {reply}"""
   '';
-})
+}

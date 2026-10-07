@@ -1,51 +1,63 @@
-{ lib
-, aiohttp
-, arrow
-, buildPythonPackage
-, fetchFromGitHub
-, pyotp
-, pytestCheckHook
-, pythonOlder
-, setuptools
+{
+  lib,
+  aiohttp,
+  aiozoneinfo,
+  arrow,
+  buildPythonPackage,
+  cryptography,
+  fetchFromGitHub,
+  pyotp,
+  pytest-asyncio,
+  python-dotenv,
+  pytestCheckHook,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "opower";
-  version = "0.2.0";
+  version = "0.22.2";
   pyproject = true;
-
-  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
     owner = "tronikos";
     repo = "opower";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-OT+QCbHQbL3vCfPuyzxBKqUJ2EtFn+PslrKGlrC6Ip8=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-JqCKQSMzrShQkpkeNROm9oRVw4xuAZ83YmBSn6Nb00I=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
+    aiozoneinfo
     arrow
+    cryptography
     pyotp
   ];
 
   nativeCheckInputs = [
+    pytest-asyncio
     pytestCheckHook
+    python-dotenv
   ];
 
-  pythonImportsCheck = [
-    "opower"
+  disabledTestPaths = [
+    # network access
+    "tests/test_opower.py"
   ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "opower" ];
+
+  disabledTests = [
+    # Tests require network access
+    "test_invalid_auth"
+  ];
+
+  meta = {
     description = "Module for getting historical and forecasted usage/cost from utilities that use opower.com";
     homepage = "https://github.com/tronikos/opower";
-    changelog = "https://github.com/tronikos/opower/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/tronikos/opower/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

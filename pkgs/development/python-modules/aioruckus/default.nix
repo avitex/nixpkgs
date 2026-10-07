@@ -1,67 +1,64 @@
-{ lib
-, aiohttp
-, buildPythonPackage
-, fetchFromGitHub
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, setuptools
-, wheel
-, xmltodict
+{
+  lib,
+  aiohttp,
+  aioresponses,
+  buildPythonPackage,
+  cryptography,
+  fetchFromGitHub,
+  hatch-vcs,
+  hatchling,
+  pytest-asyncio,
+  pytestCheckHook,
+  xmltodict,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "aioruckus";
-  version = "0.34";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.10";
+  version = "0.49";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "ms264556";
     repo = "aioruckus";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-SPj1w1jAJFBsWj1+N8srAbvlh+yB3ZTT7aDcZTnmUto=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-z3OmAwnm+3DUhsD7bD4fuMzy0+uN56xO9WYajteqtyw=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace "setuptools>=68.1" "setuptools"
-  '';
-
-  nativeBuildInputs = [
-    setuptools
-    wheel
+  build-system = [
+    hatch-vcs
+    hatchling
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
+    cryptography
     xmltodict
   ];
 
-  pythonImportsCheck = [
-    "aioruckus"
-  ];
-
   nativeCheckInputs = [
+    aioresponses
     pytest-asyncio
     pytestCheckHook
   ];
 
+  pythonImportsCheck = [ "aioruckus" ];
+
   disabledTests = [
-    # these require a local ruckus device
+    # Those tests require a local ruckus device
     "test_ap_info"
     "test_authentication_error"
     "test_connect_success"
     "test_current_active_clients"
     "test_mesh_info"
     "test_system_info"
+    # Network access to Ruckus Cloud API
+    "test_r1_connect_no_webserver_error"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Python client for Ruckus Unleashed and Ruckus ZoneDirector";
     homepage = "https://github.com/ms264556/aioruckus";
-    license = licenses.bsd0;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.bsd0;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

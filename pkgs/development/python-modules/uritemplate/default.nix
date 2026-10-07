@@ -1,40 +1,35 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
-, pythonOlder
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pytestCheckHook,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "uritemplate";
-  version = "4.1.1";
+  version = "4.2.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.6";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-Q0bt/Fw7efaUvM1tYJmjIrvrYo2/LNhu6lWkVs5RJPA=";
+    hash = "sha256-SAwu0YCHiVWGMyPuoxsO3maHld4YJhf++cbKCebsnQ4=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "uritemplate"
-  ];
+  pythonImportsCheck = [ "uritemplate" ];
 
-  meta = with lib; {
+  meta = {
     description = "Implementation of RFC 6570 URI templates";
     homepage = "https://github.com/python-hyper/uritemplate";
     changelog = "https://github.com/python-hyper/uritemplate/blob/${version}/HISTORY.rst";
-    license = with licenses; [ asl20 bsd3 ];
-    maintainers = with maintainers; [ matthiasbeyer ];
+    license = with lib.licenses; [
+      asl20
+      bsd3
+    ];
+    maintainers = with lib.maintainers; [ matthiasbeyer ];
   };
 }

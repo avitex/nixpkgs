@@ -1,8 +1,14 @@
-{ lib, fetchFromGitHub, fetchpatch, buildDunePackage
-, angstrom, faraday, result, alcotest
+{
+  lib,
+  fetchFromGitHub,
+  buildDunePackage,
+  angstrom,
+  faraday,
+  result,
+  alcotest,
 }:
 
-buildDunePackage rec {
+buildDunePackage (finalAttrs: {
   pname = "httpaf";
   version = "0.7.1";
 
@@ -10,19 +16,23 @@ buildDunePackage rec {
 
   src = fetchFromGitHub {
     owner = "inhabitedtype";
-    repo = pname;
-    rev = version;
+    repo = "httpaf";
+    rev = finalAttrs.version;
     sha256 = "0zk78af3qyvf6w66mg8sxygr6ndayzqw5s3zfxibvn121xwni26z";
   };
 
   checkInputs = [ alcotest ];
-  propagatedBuildInputs = [ angstrom faraday result ];
+  propagatedBuildInputs = [
+    angstrom
+    faraday
+    result
+  ];
   doCheck = true;
 
   meta = {
-    description = "A high-performance, memory-efficient, and scalable web server for OCaml";
+    description = "High-performance, memory-efficient, and scalable web server for OCaml";
     license = lib.licenses.bsd3;
     maintainers = [ lib.maintainers.vbgl ];
-    inherit (src.meta) homepage;
+    inherit (finalAttrs.src.meta) homepage;
   };
-}
+})

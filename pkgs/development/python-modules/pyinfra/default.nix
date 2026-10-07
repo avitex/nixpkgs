@@ -1,65 +1,76 @@
-{ lib
-, buildPythonPackage
-, click
-, colorama
-, configparser
-, distro
-, fetchFromGitHub
-, fetchpatch
-, gevent
-, jinja2
-, paramiko
-, pytestCheckHook
-, python-dateutil
-, pythonOlder
-, pywinrm
-, pyyaml
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  hatchling,
+  uv-dynamic-versioning,
+
+  # dependencies
+  click,
+  distro,
+  gevent,
+  jinja2,
+  packaging,
+  paramiko,
+  pydantic,
+  python-dateutil,
+  typeguard,
+  types-paramiko,
+
+  # tests
+  freezegun,
+  pyinfra-testgen,
+  pytest-testinfra,
+  pytestCheckHook,
+  versionCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pyinfra";
-  version = "2.8";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "3.9.2";
+  pyproject = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
-    owner = "Fizzadar";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-BYd2UYQJD/HsmpnlQjZvjfg17ShPuA3j4rtv6fTQK/A=";
+    owner = "pyinfra-dev";
+    repo = "pyinfra";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-5qgPfBtPqysEtNCLFAgGAxlVK/CRH9VYmiC/98VWomI=";
   };
 
-  patches = [
-    # https://github.com/Fizzadar/pyinfra/pull/1018
-    (fetchpatch {
-      name = "bump-paramiko-major-version.patch";
-      url = "https://github.com/Fizzadar/pyinfra/commit/62a8f081279779c4f1eed246139f615cf5fed642.patch";
-      hash = "sha256-aT9SeSqXOD76LFzf6R/MWTtavcW6fZT7chkVg9aXiBg=";
-    })
+  build-system = [
+    hatchling
+    uv-dynamic-versioning
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     click
-    colorama
-    configparser
     distro
     gevent
     jinja2
+    packaging
     paramiko
+    pydantic
     python-dateutil
-    pywinrm
-    pyyaml
-    setuptools
+    typeguard
+    types-paramiko
   ];
 
   nativeCheckInputs = [
+    freezegun
+    pyinfra-testgen
+    pytest-testinfra
     pytestCheckHook
+    versionCheckHook
   ];
 
-  pythonImportsCheck = [
-    "pyinfra"
+  pythonImportsCheck = [ "pyinfra" ];
+
+  pythonRelaxDeps = [
+    "paramiko"
+    "types-paramiko"
   ];
 
   disabledTests = [
@@ -67,7 +78,7 @@ buildPythonPackage rec {
     "test_load_ssh_config"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Python-based infrastructure automation";
     longDescription = ''
       pyinfra automates/provisions/manages/deploys infrastructure. It can be used for
@@ -75,8 +86,12 @@ buildPythonPackage rec {
     '';
     homepage = "https://pyinfra.com";
     downloadPage = "https://pyinfra.com/Fizzadar/pyinfra/releases";
-    changelog = "https://github.com/Fizzadar/pyinfra/blob/v${version}/CHANGELOG.md";
-    maintainers = with maintainers; [ totoroot ];
-    license = licenses.mit;
+    changelog = "https://github.com/pyinfra-dev/pyinfra/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [
+      robsliwi
+      totoroot
+    ];
+    mainProgram = "pyinfra";
   };
-}
+})

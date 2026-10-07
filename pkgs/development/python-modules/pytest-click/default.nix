@@ -1,17 +1,16 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, pytest
-, click
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytest,
+  click,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "pytest-click";
   version = "1.1.0";
   format = "setuptools";
-  disabled = pythonOlder "3.5";
 
   src = fetchFromGitHub {
     owner = "Stranger6667";
@@ -22,17 +21,15 @@ buildPythonPackage rec {
 
   buildInputs = [ pytest ];
 
-  propagatedBuildInputs = [
-    click
-  ];
+  propagatedBuildInputs = [ click ];
 
   nativeCheckInputs = [ pytestCheckHook ];
 
-  meta = with lib; {
-    description = "pytest plugin for click";
+  meta = {
+    description = "Pytest plugin for click";
     homepage = "https://github.com/Stranger6667/pytest-click";
     changelog = "https://github.com/Stranger6667/pytest-click/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

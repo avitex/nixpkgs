@@ -1,47 +1,44 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, requests
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  requests,
 }:
 
 buildPythonPackage rec {
   pname = "pyosf";
   version = "1.0.5";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "psychopy";
-    repo = pname;
-    rev = "refs/tags/v${version}";
+    repo = "pyosf";
+    tag = "v${version}";
     hash = "sha256-Yhb6HSnLdFzWouse/RKZ8SIbMia/hhD8TAovdqmvd7o=";
   };
 
   postPatch = ''
     substituteInPlace setup.py \
-      --replace "'pytest-runner', " ""
+      --replace-fail "'pytest-runner', " ""
   '';
 
   preBuild = "export HOME=$TMP";
 
-  propagatedBuildInputs = [
-    requests
-  ];
+  build-system = [ setuptools ];
+
+  dependencies = [ requests ];
 
   # Tests require network access
   doCheck = false;
 
-  pythonImportsCheck = [
-    "pyosf"
-  ];
+  pythonImportsCheck = [ "pyosf" ];
 
-  meta = with lib; {
+  meta = {
     description = "Pure Python library for simple sync with Open Science Framework";
     homepage = "https://github.com/psychopy/pyosf";
     changelog = "https://github.com/psychopy/pyosf/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ bcdarwin ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ bcdarwin ];
   };
 }

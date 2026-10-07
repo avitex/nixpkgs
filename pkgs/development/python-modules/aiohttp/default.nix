@@ -1,64 +1,80 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, substituteAll
-, llhttp
-# build_requires
-, cython
-, setuptools
-# install_requires
-, attrs
-, multidict
-, async-timeout
-, yarl
-, frozenlist
-, aiosignal
-, aiodns
-, brotli
-# tests_require
-, gunicorn
-, pytest-mock
-, pytestCheckHook
-, python-on-whales
-, re-assert
-, time-machine
-, trustme
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  isPyPy,
+  pythonOlder,
+
+  # build-system
+  cython,
+  pkgconfig,
+  setuptools,
+
+  # native dependencies
+  llhttp,
+
+  # dependencies
+  aiohappyeyeballs,
+  aiosignal,
+  attrs,
+  backports-zstd,
+  frozenlist,
+  multidict,
+  propcache,
+  yarl,
+
+  # optional dependencies
+  aiodns,
+  brotli,
+  brotlicffi,
+
+  # tests
+  blockbuster,
+  freezegun,
+  gunicorn,
+  isal,
+  proxy-py,
+  pytest-codspeed,
+  pytest-cov-stub,
+  pytest-mock,
+  pytest-timeout,
+  pytest-xdist,
+  pytestCheckHook,
+  re-assert,
+  trustme,
+  zlib-ng,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "aiohttp";
-  version = "3.9.1";
+  version = "3.14.3";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "aio-libs";
     repo = "aiohttp";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-uiqBUDbmROrhkanfBz4avvTSrnKxgVqw54k4jKhfRGY=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-n8LH34N9V2Smqc23q/49gqRbP0U1glJAYiyPEGFtEmM=";
   };
 
-  patches = [
-    (substituteAll {
-      src = ./unvendor-llhttp.patch;
-      llhttpDev = lib.getDev llhttp;
-      llhttpLib = lib.getLib llhttp;
-    })
-  ];
-
   postPatch = ''
-    sed -i '/--cov/d' setup.cfg
-
     rm -r vendor
     patchShebangs tools
     touch .git  # tools/gen.py uses .git to find the project root
+
+    # don't install Cython using pip
+    substituteInPlace Makefile \
+      --replace-fail "cythonize: .install-cython" "cythonize:"
+
+    # don't depend on coverage for tests
+    substituteInPlace setup.cfg \
+      --replace-fail "ignore:Couldn't import C tracer:coverage.exceptions.CoverageWarning" ""
   '';
 
-  nativeBuildInputs = [
+  build-system = [
     cython
+    pkgconfig
     setuptools
   ];
 
@@ -66,29 +82,46 @@ buildPythonPackage rec {
     make cythonize
   '';
 
-  propagatedBuildInputs = [
-    attrs
-    multidict
-    async-timeout
-    yarl
-    frozenlist
-    aiosignal
-    aiodns
-    brotli
+  buildInputs = [
+    llhttp
   ];
 
-  # NOTE: pytest-xdist cannot be added because it is flaky. See https://github.com/NixOS/nixpkgs/issues/230597 for more info.
+  env.AIOHTTP_USE_SYSTEM_DEPS = true;
+
+  dependencies = [
+    aiohappyeyeballs
+    aiosignal
+    attrs
+    frozenlist
+    multidict
+    propcache
+    yarl
+  ]
+  ++ finalAttrs.passthru.optional-dependencies.speedups;
+
+  optional-dependencies.speedups = [
+    aiodns
+    (if isPyPy then brotlicffi else brotli)
+  ]
+  ++ lib.optionals (pythonOlder "3.14") [
+    backports-zstd
+  ];
+
   nativeCheckInputs = [
+    blockbuster
+    freezegun
     gunicorn
+    isal
+    proxy-py
+    pytest-codspeed
+    pytest-cov-stub
     pytest-mock
+    pytest-timeout
+    pytest-xdist
     pytestCheckHook
-    python-on-whales
     re-assert
-    time-machine
-  ] ++ lib.optionals (!(stdenv.isDarwin && stdenv.isAarch64)) [
-    # Optional test dependency. Depends indirectly on pyopenssl, which is
-    # broken on aarch64-darwin.
     trustme
+    zlib-ng
   ];
 
   disabledTests = [
@@ -96,43 +129,46 @@ buildPythonPackage rec {
     "test_client_session_timeout_zero"
     "test_mark_formdata_as_processed"
     "test_requote_redirect_url_default"
-    # Disable tests that trigger deprecation warnings in pytest
-    "test_async_with_session"
-    "test_session_close_awaitable"
-    "test_close_run_until_complete_not_deprecated"
-    # https://github.com/aio-libs/aiohttp/issues/7130
-    "test_static_file_if_none_match"
-    "test_static_file_if_match"
-    "test_static_file_if_modified_since_past_date"
+    "test_tcp_connector_ssl_shutdown_timeout_nonzero_passed"
+    "test_tcp_connector_ssl_shutdown_timeout_zero_not_passed"
+    "test_invalid_idna"
     # don't run benchmarks
     "test_import_time"
-  ] ++ lib.optionals stdenv.is32bit [
-    "test_cookiejar"
-  ] ++ lib.optionals stdenv.isDarwin [
-    "test_addresses"  # https://github.com/aio-libs/aiohttp/issues/3572, remove >= v4.0.0
+    "test_cookie_pattern_performance"
+    "test_forwarded_re_performance"
+    "test_regex_performance"
+    # racy
+    "test_uvloop_secure_https_proxy"
+    # Cannot connect to host example.com:443 ssl:default [Could not contact DNS servers]
+    "test_tcp_connector_ssl_shutdown_timeout_passed_to_create_connection"
+    # Fails with http.cookies.CookieError: Control characters are not allowed in cookies
+    "test_parse_set_cookie_headers_uses_unquote_with_octal"
+  ]
+  ++ lib.optionals stdenv.hostPlatform.is32bit [ "test_cookiejar" ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
+    "test_addresses" # https://github.com/aio-libs/aiohttp/issues/3572, remove >= v4.0.0
     "test_close"
-  ];
-
-  disabledTestPaths = [
-    "tests/test_proxy_functional.py" # FIXME package proxy.py
   ];
 
   __darwinAllowLocalNetworking = true;
 
-  # aiohttp in current folder shadows installed version
   preCheck = ''
+    # aiohttp in current folder shadows installed version
     rm -r aiohttp
     touch tests/data.unknown_mime_type # has to be modified after 1 Jan 1990
-  '' + lib.optionalString stdenv.isDarwin ''
+
+    export HOME=$(mktemp -d)
+  ''
+  + lib.optionalString stdenv.hostPlatform.isDarwin ''
     # Work around "OSError: AF_UNIX path too long"
     export TMPDIR="/tmp"
   '';
 
-  meta = with lib; {
-    changelog = "https://github.com/aio-libs/aiohttp/blob/v${version}/CHANGES.rst";
+  meta = {
+    changelog = "https://docs.aiohttp.org/en/${finalAttrs.src.tag}/changes.html";
     description = "Asynchronous HTTP Client/Server for Python and asyncio";
-    license = licenses.asl20;
+    license = lib.licenses.asl20;
     homepage = "https://github.com/aio-libs/aiohttp";
-    maintainers = with maintainers; [ dotlambda ];
+    maintainers = with lib.maintainers; [ dotlambda ];
   };
-}
+})

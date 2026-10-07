@@ -1,31 +1,40 @@
-{ lib
-, fetchPypi
-, buildPythonPackage
+{
+  lib,
+  fetchPypi,
+  buildPythonPackage,
 
-, matplotlib
-, numpy
-, scipy
-, tqdm
-, scikit-learn
-, scikit-image
+  setuptools,
 
-, pytestCheckHook
-, pythonOlder
+  matplotlib,
+  numpy,
+  scipy,
+  tqdm,
+  scikit-learn,
+  scikit-image,
+
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "lime";
   version = "0.2.0.1";
-  format = "setuptools";
+  pyproject = true;
 
-  disabled = pythonOlder "3.5";
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
+    inherit (finalAttrs) pname version;
     hash = "sha256-dpYOTwVf61Pom1AiODuvyHtj8lusYmWYSwozPRpX94E=";
   };
 
-  propagatedBuildInputs =  [
+  postPatch = ''
+    substituteInPlace lime/tests/test_scikit_image.py \
+      --replace-fail "random_seed" "rng"
+  '';
+
+  build-system = [ setuptools ];
+
+  dependencies = [
     matplotlib
     numpy
     scipy
@@ -34,13 +43,13 @@ buildPythonPackage rec {
     scikit-image
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   disabledTestPaths = [
     # touches network
     "lime/tests/test_lime_text.py"
+    # slightly flaky
+    "lime/tests/test_lime_tabular.py::TestLimeTabular::test_lime_explainer_entropy_discretizer"
   ];
 
   pythonImportsCheck = [
@@ -51,11 +60,11 @@ buildPythonPackage rec {
     "lime.lime_text"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Local Interpretable Model-Agnostic Explanations for machine learning classifiers";
     homepage = "https://github.com/marcotcr/lime";
-    changelog = "https://github.com/marcotcr/lime/releases/tag/${version}";
-    license = licenses.bsd2;
+    changelog = "https://github.com/marcotcr/lime/releases/tag/${finalAttrs.version}";
+    license = lib.licenses.bsd2;
     maintainers = with lib.maintainers; [ khaser ];
   };
-}
+})

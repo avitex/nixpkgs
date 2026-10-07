@@ -1,33 +1,29 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, hyperopt
-, mock
-, numpy
-, poetry-core
-, prometheus-client
-, pytestCheckHook
-, pythonOlder
-, requests
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hyperopt,
+  mock,
+  numpy,
+  poetry-core,
+  prometheus-client,
+  pytestCheckHook,
+  requests,
 }:
 
 buildPythonPackage rec {
   pname = "gradient-utils";
   version = "0.5.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.6";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "Paperspace";
-    repo = pname;
-    rev = "refs/tags/v${version}";
+    repo = "gradient-utils";
+    tag = "v${version}";
     hash = "sha256-swnl0phdOsBSP8AX/OySI/aYI9z60Ss3SsJox/mb9KY=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  nativeBuildInputs = [ poetry-core ];
 
   propagatedBuildInputs = [
     hyperopt
@@ -59,15 +55,13 @@ buildPythonPackage rec {
     "tests/integration/test_metrics.py"
   ];
 
-  pythonImportsCheck = [
-    "gradient_utils"
-  ];
+  pythonImportsCheck = [ "gradient_utils" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python utils and helpers library for Gradient";
     homepage = "https://github.com/Paperspace/gradient-utils";
-    license = licenses.mit;
-    maintainers = with maintainers; [ freezeboy ];
-    platforms = platforms.unix;
+    license = lib.licenses.mit;
+    maintainers = [ ];
+    platforms = lib.platforms.unix;
   };
 }

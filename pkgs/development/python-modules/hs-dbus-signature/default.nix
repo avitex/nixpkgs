@@ -1,8 +1,9 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
-, hypothesis
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pytestCheckHook,
+  hypothesis,
 }:
 
 buildPythonPackage rec {
@@ -22,10 +23,10 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "hs_dbus_signature" ];
 
-  meta = with lib; {
-    description = "A Hypothesis Strategy for Generating Arbitrary DBus Signatures";
+  meta = {
+    description = "Hypothesis Strategy for Generating Arbitrary DBus Signatures";
     homepage = "https://github.com/stratis-storage/hs-dbus-signature";
-    license = licenses.mpl20;
-    maintainers = with maintainers; [ nickcao ];
+    license = lib.licenses.mpl20;
+    maintainers = with lib.maintainers; [ nickcao ];
   };
 }

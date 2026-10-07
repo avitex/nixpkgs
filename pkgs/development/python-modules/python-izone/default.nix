@@ -1,36 +1,39 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, aiohttp
-, netifaces
-, pytest-aio
-, pytest-asyncio
-, pytestCheckHook
-, setuptools-scm
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  aiohttp,
+  ifaddr,
+  pytest-aio,
+  pytest-asyncio,
+  pytestCheckHook,
+  pythonOlder,
+  hatchling,
+  hatch-vcs,
 }:
 
 buildPythonPackage rec {
   pname = "python-izone";
-  version = "1.2.9";
-  format = "setuptools";
+  version = "1.3.10";
+  pyproject = true;
 
-  disabled = pythonOlder "3.8";
+  disabled = pythonOlder "3.14";
 
   src = fetchFromGitHub {
     owner = "Swamp-Ig";
     repo = "pizone";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-0rj+tKn2pbFe+nczTMGLwIwmc4jCznGGF4/IMjlEvQg=";
+    tag = "v${version}";
+    hash = "sha256-X5yH3mzevCq4hO1IikfcvXmk9rTfL3jiMaf7mACZ+k0=";
   };
 
-  nativeBuildInputs = [
-    setuptools-scm
+  build-system = [
+    hatchling
+    hatch-vcs
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
-    netifaces
+    ifaddr
   ];
 
   nativeCheckInputs = [
@@ -41,14 +44,12 @@ buildPythonPackage rec {
 
   doCheck = false; # most tests access network
 
-  pythonImportsCheck = [
-    "pizone"
-  ];
+  pythonImportsCheck = [ "pizone" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python interface to the iZone airconditioner controller";
     homepage = "https://github.com/Swamp-Ig/pizone";
-    license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ dotlambda ];
+    license = lib.licenses.gpl3Plus;
+    maintainers = with lib.maintainers; [ dotlambda ];
   };
 }

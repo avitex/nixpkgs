@@ -1,38 +1,46 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, cmake
-, ninja
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  cmake,
+  ninja,
+  nix-update-script,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "pioasm";
-  version = "1.5.1";
+  version = "2.3.1";
 
   src = fetchFromGitHub {
     owner = "raspberrypi";
     repo = "pico-sdk";
-    rev = finalAttrs.version;
-    hash = "sha256-JNcxd86XNNiPkvipVFR3X255boMmq+YcuJXUP4JwInU=";
+    tag = finalAttrs.version;
+    hash = "sha256-UWWrZT7Mg2yei/LlDxgei3yXWaP9ETMlgiVOFFAEMZ8=";
   };
+
   sourceRoot = "${finalAttrs.src.name}/tools/pioasm";
 
-  nativeBuildInputs = [ cmake ninja ];
+  nativeBuildInputs = [
+    cmake
+    ninja
+  ];
 
-  installPhase = ''
-    runHook preInstall
+  cmakeFlags = [
+    (lib.cmakeFeature "PIOASM_VERSION_STRING" finalAttrs.version)
+  ];
 
-    install -D pioasm $out/bin/pioasm
+  passthru.updateScript = nix-update-script { };
 
-    runHook postInstall
-  '';
-
-  meta = with lib; {
+  meta = {
     description = "Assemble PIO programs for Raspberry Pi Pico";
     homepage = "https://github.com/raspberrypi/pico-sdk";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ emilytrau ];
-    platforms = platforms.unix;
+    changelog = "https://github.com/raspberrypi/pico-sdk/releases/tag/${finalAttrs.version}";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [
+      emilytrau
+      nulleric
+    ];
+    platforms = lib.platforms.unix;
     mainProgram = "pioasm";
   };
 })

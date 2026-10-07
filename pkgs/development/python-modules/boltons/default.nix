@@ -1,36 +1,42 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fetchpatch,
+  flit-core,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "boltons";
-  version = "23.0.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "25.0.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "mahmoud";
     repo = "boltons";
-    rev = "refs/tags/${version}";
-    hash = "sha256-NqlCu0W/BQkLiaLYs9DB1RrEya6KGPfNtpAzKXxoRD0=";
+    tag = version;
+    hash = "sha256-kBOU17/jRRAGb4MGawY0PY31OJf5arVz+J7xGBoMBkg=";
   };
 
-  nativeCheckInputs = [
-    pytestCheckHook
+  patches = [
+    (fetchpatch {
+      name = "pytest9-compat.patch";
+      url = "https://github.com/mahmoud/boltons/commit/a2af58548936c51a3d859f780e54ba170a6829bb.patch";
+      hash = "sha256-NRjfEKb0doJEtS5GyrF0dJYYr2u+ukogfUmmVnsHAwM=";
+    })
   ];
+
+  build-system = [ flit-core ];
+
+  nativeCheckInputs = [ pytestCheckHook ];
 
   # Tests bind to localhost
   __darwinAllowLocalNetworking = true;
 
-  pythonImportsCheck = [
-    "boltons"
-  ];
+  pythonImportsCheck = [ "boltons" ];
 
-  meta = with lib; {
+  meta = {
     description = "Constructs, recipes, and snippets extending the Python standard library";
     longDescription = ''
       Boltons is a set of over 200 BSD-licensed, pure-Python utilities
@@ -49,7 +55,7 @@ buildPythonPackage rec {
     '';
     homepage = "https://github.com/mahmoud/boltons";
     changelog = "https://github.com/mahmoud/boltons/blob/${version}/CHANGELOG.md";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ twey ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ twey ];
   };
 }

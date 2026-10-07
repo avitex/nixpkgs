@@ -1,60 +1,53 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, cryptography
-, cython_3
-, poetry-core
-, pytestCheckHook
-, pythonOlder
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  cryptography,
+  cython,
+  poetry-core,
+  pytest-codspeed,
+  pytest-cov-stub,
+  pytestCheckHook,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "bluetooth-data-tools";
-  version = "1.19.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.9";
+  version = "1.29.24";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "Bluetooth-Devices";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-G345Nz0iVUQWOCEnf5UqUa49kAXCmNY22y4v+J2/G2Q=";
+    repo = "bluetooth-data-tools";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-NPr9jZbqO78FUxJgGApkqdmU5V9BSZ3qpP9cbwCIqEA=";
   };
 
   # The project can build both an optimized cython version and an unoptimized
   # python version. This ensures we fail if we build the wrong one.
   env.REQUIRE_CYTHON = 1;
 
-  nativeBuildInputs = [
-    cython_3
+  build-system = [
+    cython
     poetry-core
     setuptools
   ];
 
-  propagatedBuildInputs = [
-    cryptography
-  ];
+  dependencies = [ cryptography ];
 
   nativeCheckInputs = [
+    pytest-codspeed
+    pytest-cov-stub
     pytestCheckHook
   ];
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace " --cov=bluetooth_data_tools --cov-report=term-missing:skip-covered" ""
-  '';
+  pythonImportsCheck = [ "bluetooth_data_tools" ];
 
-  pythonImportsCheck = [
-    "bluetooth_data_tools"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Library for converting bluetooth data and packets";
     homepage = "https://github.com/Bluetooth-Devices/bluetooth-data-tools";
-    changelog = "https://github.com/Bluetooth-Devices/bluetooth-data-tools/blob/v${version}/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/Bluetooth-Devices/bluetooth-data-tools/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

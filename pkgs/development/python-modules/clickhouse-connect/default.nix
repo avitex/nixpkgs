@@ -1,42 +1,40 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
   # build_requires
-, cython_3
+  cython,
   # install_requires
-, certifi
-, importlib-metadata
-, urllib3
-, pytz
-, zstandard
-, lz4
+  certifi,
+  importlib-metadata,
+  urllib3,
+  pytz,
+  zstandard,
+  lz4,
   # extras_require
-, sqlalchemy
-, numpy
-, pandas
-, pyarrow
-, orjson
+  sqlalchemy,
+  numpy,
+  pandas,
+  pyarrow,
+  orjson,
   # not in tests_require, but should be
-, pytest-dotenv
+  pytest-dotenv,
 }:
 buildPythonPackage rec {
   pname = "clickhouse-connect";
-  version = "0.6.23";
+  version = "0.10.0";
 
   format = "setuptools";
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     repo = "clickhouse-connect";
     owner = "ClickHouse";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-Gaiq5t/u5LJeJR5nNNfBvdNaFEycqgxVCHFETIvsUUU=";
+    tag = "v${version}";
+    hash = "sha256-D2D0sOFb0gcbLfMigYn0/GrT8zJav2Q6T39dONLxui4=";
   };
 
-  nativeBuildInputs = [ cython_3 ];
+  nativeBuildInputs = [ cython ];
   setupPyBuildFlags = [ "--inplace" ];
   enableParallelBuilding = true;
 
@@ -49,14 +47,18 @@ buildPythonPackage rec {
     lz4
   ];
 
-  nativeCheckInputs = [ pytestCheckHook pytest-dotenv ]
-    ++ passthru.optional-dependencies.sqlalchemy
-    ++ passthru.optional-dependencies.numpy;
+  nativeCheckInputs = [
+    pytestCheckHook
+    pytest-dotenv
+  ]
+  ++ optional-dependencies.sqlalchemy
+  ++ optional-dependencies.numpy
+  ++ optional-dependencies.pandas;
 
-  # these tests require a running clickhouse instance
+  # These tests require a running ClickHouse instance or a reachable HTTP endpoint.
   disabledTestPaths = [
     "tests/integration_tests"
-    "tests/tls"
+    "tests/unit_tests/test_driver/test_httpclient.py"
   ];
 
   pythonImportsCheck = [
@@ -66,20 +68,18 @@ buildPythonPackage rec {
     "clickhouse_connect.driverc.npconv"
   ];
 
-  passthru = {
-    optional-dependencies = {
-      sqlalchemy = [ sqlalchemy ];
-      numpy = [ numpy ];
-      pandas = [ pandas ];
-      arrow = [ pyarrow ];
-      orjson = [ orjson ];
-    };
+  optional-dependencies = {
+    sqlalchemy = [ sqlalchemy ];
+    numpy = [ numpy ];
+    pandas = [ pandas ];
+    arrow = [ pyarrow ];
+    orjson = [ orjson ];
   };
 
-  meta = with lib; {
+  meta = {
     description = "ClickHouse Database Core Driver for Python, Pandas, and Superset";
     homepage = "https://github.com/ClickHouse/clickhouse-connect";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ cpcloud ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ cpcloud ];
   };
 }

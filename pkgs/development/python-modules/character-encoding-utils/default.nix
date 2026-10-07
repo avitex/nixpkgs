@@ -1,33 +1,29 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
-, pythonOlder
-, nix-update-script
-, hatch-vcs
-, hatchling
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  nix-update-script,
+  uv-build,
 }:
 
 buildPythonPackage rec {
   pname = "character-encoding-utils";
-  version = "0.0.6";
+  version = "0.0.12";
+  pyproject = true;
 
-  disabled = pythonOlder "3.11";
-
-  src = fetchPypi {
-    pname = "character_encoding_utils";
-    inherit version;
-    hash = "sha256-ugzWiSpa/xxlraVyVPTSq/uxPg11kOyePgb1cmzX3ug=";
+  src = fetchFromGitHub {
+    owner = "TakWolf";
+    repo = "character-encoding-utils";
+    tag = version;
+    hash = "sha256-4WaVvr6/d/oePtmwpGJ/D6tv10V/ok9iN4BrqGk97f0=";
   };
 
-  format = "pyproject";
+  build-system = [ uv-build ];
 
-  nativeBuildInputs = [
-    hatch-vcs
-    hatchling
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  checkInputs = [ pytestCheckHook ];
+  pythonImportsCheck = [ "character_encoding_utils" ];
 
   passthru.updateScript = nix-update-script { };
 
@@ -36,6 +32,9 @@ buildPythonPackage rec {
     description = "Some character encoding utils";
     platforms = lib.platforms.all;
     license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ h7x4 ];
+    maintainers = with lib.maintainers; [
+      TakWolf
+      h7x4
+    ];
   };
 }

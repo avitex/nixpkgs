@@ -1,12 +1,13 @@
-{ lib
-, buildGoModule
-, fetchFromGitHub
-, makeBinaryWrapper
-, installShellFiles
-, git
+{
+  lib,
+  buildGoModule,
+  fetchFromGitHub,
+  makeBinaryWrapper,
+  installShellFiles,
+  git,
 }:
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "fac";
   version = "2.0.0-unstable-2023-12-29";
 
@@ -33,11 +34,11 @@ buildGoModule rec {
   '';
 
   meta = {
-    changelog = "https://github.com/mkchoi212/fac/releases/tag/v${version}";
+    changelog = "https://github.com/mkchoi212/fac/releases/tag/v${finalAttrs.version}";
     description = "CUI for fixing git conflicts";
     homepage = "https://github.com/mkchoi212/fac";
     license = lib.licenses.mit;
     mainProgram = "fac";
-    maintainers = with lib.maintainers; [ dtzWill ];
+    maintainers = [ ];
   };
-}
+})

@@ -1,88 +1,77 @@
-{ stdenv
-, lib
-, buildPythonPackage
-, fetchFromGitHub
-, cargo
-, rustPlatform
-, rustc
-, libiconv
-, typing-extensions
-, pytestCheckHook
-, hypothesis
-, pytest-timeout
-, pytest-mock
-, dirty-equals
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  rustPlatform,
+  typing-extensions,
+  pytestCheckHook,
+  hypothesis,
+  inline-snapshot,
+  pytest-benchmark,
+  pytest-run-parallel,
+  pytest-timeout,
+  pytest-mock,
+  dirty-equals,
+  pydantic,
+  typing-inspection,
 }:
 
 let
   pydantic-core = buildPythonPackage rec {
     pname = "pydantic-core";
-    version = "2.14.5";
-    format = "pyproject";
+    version = "2.46.4";
+    pyproject = true;
 
     src = fetchFromGitHub {
       owner = "pydantic";
-      repo = "pydantic-core";
-      rev = "refs/tags/v${version}";
-      hash = "sha256-UguZpA3KEutOgIavjx8Ie//0qJq+4FTZNQTwb/ZIgb8=";
+      repo = "pydantic";
+      tag = "core-v${version}";
+      hash = "sha256-G4Xo6BF6tOn4g/qG3RNDP3/+lYnCOuw3AB1OrVOGcSA=";
     };
 
-    patches = [
-      ./01-remove-benchmark-flags.patch
-    ];
+    sourceRoot = "${src.name}/pydantic-core";
 
-    cargoDeps = rustPlatform.fetchCargoTarball {
-      inherit src;
-      name = "${pname}-${version}";
-      hash = "sha256-mMgw922QjHmk0yimXfolLNiYZntTsGydQywe7PTNnwc=";
+    cargoDeps = rustPlatform.fetchCargoVendor {
+      inherit
+        pname
+        version
+        src
+        sourceRoot
+        ;
+      hash = "sha256-5L317YTV7/Bc/YJLLzc745oJntiYkcZupdeUxiQwcOU=";
     };
 
     nativeBuildInputs = [
-      cargo
       rustPlatform.cargoSetupHook
       rustPlatform.maturinBuildHook
-      rustc
-      typing-extensions
     ];
 
-    buildInputs = lib.optionals stdenv.isDarwin [
-      libiconv
-    ];
-
-    propagatedBuildInputs = [
-      typing-extensions
-    ];
+    dependencies = [ typing-extensions ];
 
     pythonImportsCheck = [ "pydantic_core" ];
 
-    # escape infinite recursion with pydantic via dirty-equals
+    # escape infinite recursion with pydantic via inline-snapshot
     doCheck = false;
-    passthru.tests.pytest = pydantic-core.overrideAttrs { doCheck = true; };
+    passthru.tests.pytest = pydantic-core.overridePythonAttrs { doCheck = true; };
 
     nativeCheckInputs = [
       pytestCheckHook
       hypothesis
+      inline-snapshot
       pytest-timeout
       dirty-equals
+      pytest-benchmark
       pytest-mock
+      pytest-run-parallel
+      typing-inspection
     ];
 
-    disabledTests = [
-      # RecursionError: maximum recursion depth exceeded while calling a Python object
-      "test_recursive"
-    ];
-
-    disabledTestPaths = [
-      # no point in benchmarking in nixpkgs build farm
-      "tests/benchmarks"
-    ];
-
-    meta = with lib; {
-      changelog = "https://github.com/pydantic/pydantic-core/releases/tag/v${version}";
+    meta = {
       description = "Core validation logic for pydantic written in rust";
-      homepage = "https://github.com/pydantic/pydantic-core";
-      license = licenses.mit;
-      maintainers = with maintainers; [ blaggacao ];
+      homepage = "https://github.com/pydantic/pydantic/tree/main/pydantic-core";
+      license = lib.licenses.mit;
+      inherit (pydantic.meta) maintainers;
     };
   };
-in pydantic-core
+in
+pydantic-core

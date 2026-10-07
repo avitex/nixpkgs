@@ -1,64 +1,55 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
 
-# build-system
-, setuptools
+  # build-system
+  setuptools,
 
-# dependencies
-, importlib-metadata
-, importlib-resources
-, mako
-, sqlalchemy
-, typing-extensions
+  # dependencies
+  mako,
+  sqlalchemy,
+  typing-extensions,
 
-# tests
-, pytestCheckHook
-, pytest-xdist
-, python-dateutil
+  # tests
+  black,
+  pytestCheckHook,
+  pytest-xdist,
+  python-dateutil,
 }:
 
 buildPythonPackage rec {
   pname = "alembic";
-  version = "1.13.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.6";
+  version = "1.18.1";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-q0s7lNLh5fgeNL6Km3t1dfyd1TmPzLC+81HsmxSHJiM=";
+    hash = "sha256-g6xrgTWVloFvs7iTCZhBoIYvIReyljJY6WXXDcYvuGY=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     mako
     sqlalchemy
     typing-extensions
-  ] ++ lib.optionals (pythonOlder "3.9") [
-    importlib-resources
-    importlib-metadata
   ];
 
-  pythonImportsCheck = [
-    "alembic"
-  ];
+  pythonImportsCheck = [ "alembic" ];
 
   nativeCheckInputs = [
+    black
     pytestCheckHook
     pytest-xdist
     python-dateutil
   ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://bitbucket.org/zzzeek/alembic";
-    description = "A database migration tool for SQLAlchemy";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    description = "Database migration tool for SQLAlchemy";
+    license = lib.licenses.mit;
+    maintainers = [ ];
     mainProgram = "alembic";
   };
 }

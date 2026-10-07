@@ -1,64 +1,66 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchFromGitHub
-, fetchpatch
-, pythonOlder
-, build
-, git
-, pytest-mock
-, pytestCheckHook
-, setuptools
-, tomli-w
-, virtualenv
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  build,
+  gitMinimal,
+  pytest-cov-stub,
+  pytest-mock,
+  pytestCheckHook,
+  setuptools,
+  tomli-w,
+  trove-classifiers,
+  virtualenv,
 }:
 
 buildPythonPackage rec {
   pname = "poetry-core";
-  version = "1.8.1";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "2.4.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "python-poetry";
-    repo = pname;
-    rev = version;
-    hash = "sha256-RnCJ67jaL2knwv+Uo7p0zOejHAT73f40weaJnfqOYoM=";
+    repo = "poetry-core";
+    tag = version;
+    hash = "sha256-Io2VpLxnJesO4QohsunD7ogr87NiNjGeTmEl9wFswkw=";
   };
 
   nativeCheckInputs = [
     build
-    git
+    gitMinimal
     pytest-mock
+    pytest-cov-stub
     pytestCheckHook
     setuptools
     tomli-w
+    trove-classifiers
     virtualenv
   ];
 
-  # Requires git history to work correctly
   disabledTests = [
+    # Requires git history to work correctly
     "default_with_excluded_data"
     "default_src_with_excluded_data"
+    "test_package_with_include"
+    # Distribution timestamp mismatches, as we operate on 1980-01-02
+    "test_sdist_mtime_zero"
+    "test_sdist_members_mtime_default"
+    "test_dist_info_date_time_default_value"
   ];
 
-  pythonImportsCheck = [
-    "poetry.core"
-  ];
+  pythonImportsCheck = [ "poetry.core" ];
 
-  # Allow for package to use pep420's native namespaces
-  pythonNamespaces = [
-    "poetry"
-  ];
+  # Allow for packages to use PEP420's native namespace
+  pythonNamespaces = [ "poetry" ];
 
   env.NIX_CFLAGS_COMPILE = lib.optionalString stdenv.cc.isClang "-Wno-int-conversion";
 
-  meta = with lib; {
-    changelog = "https://github.com/python-poetry/poetry-core/blob/${src.rev}/CHANGELOG.md";
-    description = "Core utilities for Poetry";
+  meta = {
+    changelog = "https://github.com/python-poetry/poetry-core/blob/${src.tag}/CHANGELOG.md";
+    description = "Poetry PEP 517 Build Backend";
     homepage = "https://github.com/python-poetry/poetry-core/";
-    license = licenses.mit;
-    maintainers = with maintainers; [ jonringer ];
+    license = lib.licenses.mit;
+    teams = [ lib.teams.python ];
   };
 }

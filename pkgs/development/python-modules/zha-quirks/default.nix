@@ -1,58 +1,65 @@
-{ lib
-, aiohttp
-, buildPythonPackage
-, fetchFromGitHub
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, setuptools
-, zigpy
+{
+  lib,
+  aiohttp,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytest-asyncio,
+  pytestCheckHook,
+  pythonOlder,
+  setuptools,
+  time-machine,
+  zha,
+  zigpy,
 }:
 
 buildPythonPackage rec {
   pname = "zha-quirks";
-  version = "0.0.109";
+  version = "2.2.2";
   pyproject = true;
 
-  disabled = pythonOlder "3.8";
+  disabled = pythonOlder "3.12";
 
   src = fetchFromGitHub {
     owner = "zigpy";
     repo = "zha-device-handlers";
-    rev = "refs/tags/${version}";
-    hash = "sha256-fkE44j+wXdIJekJJNoO67YzsghalTUpyNx9R/B2Vn1Y=";
+    tag = version;
+    hash = "sha256-3EcRB412I+0yazAXX2qtqhrSzR8D/52b4HZkuAmQaoM=";
   };
 
   postPatch = ''
     substituteInPlace pyproject.toml \
-      --replace ', "setuptools-git-versioning<2"' "" \
-      --replace 'dynamic = ["version"]' 'version = "${version}"'
+      --replace-fail ', "setuptools-git-versioning<2"' "" \
+      --replace-fail 'dynamic = ["version"]' 'version = "${version}"'
   '';
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
+    zha
     zigpy
   ];
 
   nativeCheckInputs = [
     pytest-asyncio
     pytestCheckHook
+    time-machine
   ];
 
-  pythonImportsCheck = [
-    "zhaquirks"
+  disabledTests = [
+    # AssertionError: expected call not found
+    "test_tuya_mcu_set_time"
+    "test_moes"
   ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "zhaquirks" ];
+
+  meta = {
     description = "ZHA Device Handlers are custom quirks implementations for Zigpy";
-    homepage = "https://github.com/dmulcahey/zha-device-handlers";
-    changelog = "https://github.com/zigpy/zha-device-handlers/releases/tag/${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
-    platforms = platforms.linux;
+    homepage = "https://github.com/zigpy/zha-device-handlers";
+    changelog = "https://github.com/zigpy/zha-device-handlers/releases/tag/${src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
+    platforms = lib.platforms.linux;
   };
 }

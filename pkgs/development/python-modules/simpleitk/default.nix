@@ -1,20 +1,22 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, cmake
-, swig4
-, elastix
-, itk
-, numpy
-, simpleitk
-, scikit-build
+{
+  buildPythonPackage,
+  cmake,
+  swig,
+  elastix,
+  itk,
+  numpy,
+  simpleitk,
+  scikit-build,
 }:
 
 buildPythonPackage rec {
-  inherit (simpleitk) pname version src meta;
-  format = "pyproject";
-  disabled = pythonOlder "3.8";
+  inherit (simpleitk)
+    pname
+    version
+    src
+    meta
+    ;
+  pyproject = true;
 
   sourceRoot = "${src.name}/Wrapping/Python";
   preBuild = ''
@@ -23,9 +25,14 @@ buildPythonPackage rec {
 
   nativeBuildInputs = [
     cmake
-    swig4
+    swig
     scikit-build
   ];
+
+  cmakeFlags = [
+    "-DSimpleITK_BUILD_DISTRIBUTE=ON"
+  ];
+
   propagatedBuildInputs = [
     elastix
     itk

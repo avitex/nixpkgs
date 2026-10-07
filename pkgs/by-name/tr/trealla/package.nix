@@ -1,41 +1,46 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, libffi
-, openssl
-, readline
-, valgrind
-, xxd
-, gitUpdater
-, checkLeaks ? false
-, enableFFI ? true
-, enableSSL ? true
-, enableThreads ? true
-, lineEditingLibrary ? "isocline"
+{
+  lib,
+  fetchFromGitHub,
+  libffi,
+  nix-update-script,
+  openssl,
+  readline,
+  stdenv,
+  testers,
+  valgrind,
+  xxd,
+  # Boolean flags
+  checkLeaks ? false,
+  enableFFI ? true,
+  enableSSL ? true,
+  enableThreads ? true,
+  # Configurable inputs
+  lineEditingLibrary ? "isocline",
 }:
 
-assert lib.elem lineEditingLibrary [ "isocline" "readline" ];
+assert lib.elem lineEditingLibrary [
+  "isocline"
+  "readline"
+];
 stdenv.mkDerivation (finalAttrs: {
   pname = "trealla";
-  version = "2.34.0";
+  version = "3.12.6";
 
   src = fetchFromGitHub {
     owner = "trealla-prolog";
     repo = "trealla";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-cqIiPeQO/M8MtpHRomN/fzxIq7TgUwZSvL3PFCVsEnY=";
+    hash = "sha256-muCId5CcFtFsCO41KtjAPmlsddJpNnMMH9Wk2LQbRg0=";
   };
 
   postPatch = ''
-    substituteInPlace Makefile \
-      --replace '-I/usr/local/include' "" \
-      --replace '-L/usr/local/lib' "" \
-      --replace 'GIT_VERSION :=' 'GIT_VERSION ?='
+    substituteInPlace GNUmakefile \
+      --replace-fail '-I/usr/local/include' "" \
+      --replace-fail '-I/usr/local/opt/libffi/include' "" \
+      --replace-fail '-L/usr/local/lib' ""
   '';
 
-  nativeBuildInputs = [
-    xxd
-  ];
+  nativeBuildInputs = [ xxd ];
 
   buildInputs =
     lib.optionals enableFFI [ libffi ]
@@ -46,35 +51,42 @@ stdenv.mkDerivation (finalAttrs: {
 
   strictDeps = true;
 
+  env.LC_ALL = if stdenv.hostPlatform.isDarwin then "en_US.UTF-8" else "C.UTF-8";
+
   makeFlags = [
     "GIT_VERSION=\"v${finalAttrs.version}\""
+    "PREFIX=$(out)"
   ]
   ++ lib.optionals (lineEditingLibrary == "isocline") [ "ISOCLINE=1" ]
   ++ lib.optionals (!enableFFI) [ "NOFFI=1" ]
   ++ lib.optionals (!enableSSL) [ "NOSSL=1" ]
-  ++ lib.optionals enableThreads [ "THREADS=1" ];
+  ++ lib.optionals (!enableThreads) [ "NOTHREADS=1" ];
 
   enableParallelBuilding = true;
 
-  installPhase = ''
-    runHook preInstall
-    install -Dm755 -t $out/bin tpl
-    runHook postInstall
+  postInstall = ''
+    find $out/share/trealla/library -type f \
+      \( -name '*.c' -o -name '*.d' -o -name '*.o' \) -delete
   '';
 
   doCheck = !valgrind.meta.broken;
 
-  checkFlags = [
-    "test"
-  ] ++ lib.optionals checkLeaks [ "leaks" ];
+  checkFlags = [ "test" ] ++ lib.optionals checkLeaks [ "leaks" ];
 
-  passthru.updateScript = gitUpdater {
-    rev-prefix = "v";
+  passthru = {
+    updateScript = nix-update-script { };
+
+    tests = {
+      version = testers.testVersion {
+        package = finalAttrs.finalPackage;
+        version = "v${finalAttrs.version}";
+      };
+    };
   };
 
   meta = {
     homepage = "https://trealla-prolog.github.io/trealla/";
-    description = "A compact, efficient Prolog interpreter written in ANSI C";
+    description = "Compact, efficient Prolog interpreter written in ANSI C";
     longDescription = ''
       Trealla is a compact, efficient Prolog interpreter with ISO Prolog
       aspirations.
@@ -88,9 +100,10 @@ stdenv.mkDerivation (finalAttrs: {
     '';
     changelog = "https://github.com/trealla-prolog/trealla/releases/tag/v${finalAttrs.version}";
     license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ siraben AndersonTorres ];
+    maintainers = with lib.maintainers; [
+      siraben
+    ];
     mainProgram = "tpl";
     platforms = lib.platforms.all;
-    broken = stdenv.isDarwin && stdenv.isx86_64;
   };
 })

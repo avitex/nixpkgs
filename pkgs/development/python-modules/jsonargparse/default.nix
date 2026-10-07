@@ -1,109 +1,91 @@
-{ lib
-, argcomplete
-, attrs
-, buildPythonPackage
-, docstring-parser
-, fetchFromGitHub
-, fsspec
-, jsonnet
-, jsonschema
-, omegaconf
-, pydantic
-, pytest-subtests
-, pytestCheckHook
-, pythonOlder
-, pyyaml
-, reconplogger
-, requests
-, responses
-, ruyaml
-, setuptools
-, types-pyyaml
-, types-requests
-, typeshed-client
+{
+  lib,
+  argcomplete,
+  buildPythonPackage,
+  docstring-parser,
+  fetchFromGitHub,
+  fsspec,
+  jsonnet,
+  jsonschema,
+  omegaconf,
+  pytestCheckHook,
+  pythonAtLeast,
+  pyyaml,
+  reconplogger,
+  requests,
+  ruyaml,
+  setuptools,
+  toml,
+  types-pyyaml,
+  types-requests,
+  typeshed-client,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "jsonargparse";
-  version = "4.27.2";
+  version = "4.50.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.11";
 
   src = fetchFromGitHub {
     owner = "omni-us";
     repo = "jsonargparse";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-qvc0HpwgYXDayA0q0D598rCb+I3LuaPm2tmmd0E3rrk=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-jrNFznghoSon6ivFbtT90x1B/0HUn18KWkNPFLwxhMs=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
-    pyyaml
-  ];
+  dependencies = [ pyyaml ];
 
-  passthru.optional-dependencies = {
-    all = [
-      argcomplete
-      fsspec
-      jsonnet
-      jsonschema
-      omegaconf
-      ruyaml
-      docstring-parser
-      typeshed-client
-      requests
-    ];
-    argcomplete = [
-      argcomplete
-    ];
-    fsspec = [
-      fsspec
-    ];
+  optional-dependencies = lib.fix (self: {
+    all =
+      self.argcomplete
+      ++ self.fsspec
+      ++ self.jsonnet
+      ++ self.jsonschema
+      ++ self.omegaconf
+      ++ self.reconplogger
+      ++ self.ruyaml
+      ++ self.signatures
+      ++ self.toml
+      ++ self.urls;
+    argcomplete = [ argcomplete ];
+    fsspec = [ fsspec ];
     jsonnet = [
       jsonnet
       # jsonnet-binary
     ];
-    jsonschema = [
-      jsonschema
-    ];
-    omegaconf = [
-      omegaconf
-    ];
-    reconplogger = [
-      reconplogger
-    ];
-    ruyaml = [
-      ruyaml
-    ];
+    jsonschema = [ jsonschema ];
+    omegaconf = [ omegaconf ];
+    reconplogger = [ reconplogger ];
+    ruyaml = [ ruyaml ];
     signatures = [
       docstring-parser
       typeshed-client
     ];
-    urls = [
-      requests
-    ];
-  };
+    toml = [ toml ];
+    urls = [ requests ];
+  });
 
   nativeCheckInputs = [
-    pytest-subtests
     pytestCheckHook
     types-pyyaml
     types-requests
   ];
 
-  pythonImportsCheck = [
-    "jsonargparse"
+  disabledTests = lib.optionals (pythonAtLeast "3.14") [
+    # _pickle.PicklingError: Can't pickle local object ...
+    "test_get_argument_group_class_underscores_to_dashes"
+    "test_pickle_parser"
   ];
 
-  meta = with lib; {
-    description = "Module to mplement minimal boilerplate CLIs derived from various sources";
+  pythonImportsCheck = [ "jsonargparse" ];
+
+  meta = {
+    description = "Module to implement minimal boilerplate CLIs derived from various sources";
     homepage = "https://github.com/omni-us/jsonargparse";
-    changelog = "https://github.com/omni-us/jsonargparse/blob/${version}/CHANGELOG.rst";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/omni-us/jsonargparse/blob/${finalAttrs.src.tag}/CHANGELOG.rst";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

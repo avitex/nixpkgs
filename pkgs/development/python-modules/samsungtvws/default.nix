@@ -1,45 +1,49 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, isPy27
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# propagates:
-, requests
-, websocket-client
+  # build system
+  setuptools,
 
-# extras: async
-, aiohttp
-, websockets
+  # propagates:
+  requests,
+  websocket-client,
 
-# extras: encrypted
-, cryptography
-, py3rijndael
+  # extras: async
+  aiohttp,
+  websockets,
 
-# tests
-, aioresponses
-, pytest-asyncio
-, pytestCheckHook
+  # extras: encrypted
+  cryptography,
+  py3rijndael,
+
+  # tests
+  aioresponses,
+  pytest-asyncio,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "samsungtvws";
-  version = "2.6.0";
-  format = "setuptools";
-  disabled = isPy27;
+  version = "3.0.5";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "xchwarze";
     repo = "samsung-tv-ws-api";
-    rev = "v${version}";
-    hash = "sha256-mkjfimzu7paz+ZskartL052AfUBtL1xU0eOlrHgD1UE=";
+    tag = "v${version}";
+    hash = "sha256-8DDxon6ZGP0dToYxa2ZkvKl+1aFpvS1Zs+w7Hsozwdw=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     requests
     websocket-client
   ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     async = [
       aiohttp
       websockets
@@ -55,16 +59,16 @@ buildPythonPackage rec {
     pytest-asyncio
     pytestCheckHook
   ]
-  ++ passthru.optional-dependencies.async
-  ++ passthru.optional-dependencies.encrypted;
+  ++ optional-dependencies.async
+  ++ optional-dependencies.encrypted;
 
   pythonImportsCheck = [ "samsungtvws" ];
 
-  meta = with lib; {
+  meta = {
     description = "Samsung Smart TV WS API wrapper";
     homepage = "https://github.com/xchwarze/samsung-tv-ws-api";
     changelog = "https://github.com/xchwarze/samsung-tv-ws-api/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ hexa ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ hexa ];
   };
 }

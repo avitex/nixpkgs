@@ -1,37 +1,54 @@
-{ lib, buildDunePackage, ocaml, fetchurl
-, ctypes, result
-, alcotest
-, file
+{
+  lib,
+  buildDunePackage,
+  fetchurl,
+  ctypes,
+  result,
+  alcotest,
+  file,
 }:
 
-buildDunePackage rec {
+buildDunePackage (finalAttrs: {
   pname = "luv";
-  version = "0.5.12";
-
-  minimalOCamlVersion = "4.03";
+  version = "0.5.14";
 
   src = fetchurl {
-    url = "https://github.com/aantron/luv/releases/download/${version}/luv-${version}.tar.gz";
-    sha256 = "sha256-dp9qCIYqSdROIAQ+Jw73F3vMe7hnkDe8BgZWImNMVsA=";
+    url = "https://github.com/aantron/luv/releases/download/${finalAttrs.version}/luv-${finalAttrs.version}.tar.gz";
+    hash =
+      {
+        "0.5.14" = "sha256-jgG0pQyIds3ZjY4kXAaHxNxNiDrtFhrZxazh+x/arpk=";
+        "0.5.12" = "sha256-dp9qCIYqSdROIAQ+Jw73F3vMe7hnkDe8BgZWImNMVsA=";
+      }
+      ."${finalAttrs.version}";
   };
 
+  patches = lib.optional (lib.versionOlder finalAttrs.version "0.5.14") ./incompatible-pointer-type-fix.diff;
+
   postConfigure = ''
-    for f in src/c/vendor/configure/{ltmain.sh,configure}; do
-      substituteInPlace "$f" --replace /usr/bin/file file
-    done
+    substituteInPlace "src/c/vendor/configure/ltmain.sh" --replace-fail /usr/bin/file file
   '';
 
   nativeBuildInputs = [ file ];
-  propagatedBuildInputs = [ ctypes result ];
+  propagatedBuildInputs = [
+    ctypes
+    result
+  ];
   checkInputs = [ alcotest ];
-  # Alcotest depends on fmt that needs 4.08 or newer
-  doCheck = lib.versionAtLeast ocaml.version "4.08";
+  doCheck = true;
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/aantron/luv";
     description = "Binding to libuv: cross-platform asynchronous I/O";
     # MIT-licensed, extra licenses apply partially to libuv vendor
-    license = with licenses; [ mit bsd2 bsd3 cc-by-sa-40 ];
-    maintainers = with maintainers; [ locallycompact sternenseemann ];
+    license = with lib.licenses; [
+      mit
+      bsd2
+      bsd3
+      cc-by-sa-40
+    ];
+    maintainers = with lib.maintainers; [
+      locallycompact
+      sternenseemann
+    ];
   };
-}
+})

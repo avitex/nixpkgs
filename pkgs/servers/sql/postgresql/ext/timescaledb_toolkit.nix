@@ -1,67 +1,53 @@
-{ lib
-, fetchFromGitHub
-, buildPgrxExtension
-, postgresql
-, nixosTests
-, cargo-pgrx
-, fetchCrate
-, nix-update-script
-, stdenv
+{
+  buildPgrxExtension,
+  cargo-pgrx_0_18_0,
+  fetchFromGitHub,
+  lib,
+  nix-update-script,
+  postgresql,
 }:
 
-let
-  cargo-pgrx_0_10_2 = cargo-pgrx.overrideAttrs (old: rec {
-    name = "cargo-pgrx-${version}";
-    version = "0.10.2";
-
-    src = fetchCrate {
-      pname = "cargo-pgrx";
-      inherit version;
-      hash = "sha256-FqjfbJmSy5UCpPPPk4bkEyvQCnaH9zYtkI7txgIn+ls=";
-    };
-
-    cargoDeps = old.cargoDeps.overrideAttrs (_: {
-      inherit src;
-      outputHash = "sha256-XyI3RaPI3Edm/tCP2xoZemib2d2n2cAhobgk9Oafg6s=";
-    });
-  });
-
-in
-
-(buildPgrxExtension.override { cargo-pgrx = cargo-pgrx_0_10_2; }) rec {
+buildPgrxExtension (finalAttrs: {
   inherit postgresql;
+  cargo-pgrx = cargo-pgrx_0_18_0;
 
   pname = "timescaledb_toolkit";
-  version = "1.18.0";
+  version = "1.23.0";
 
   src = fetchFromGitHub {
     owner = "timescale";
     repo = "timescaledb-toolkit";
-    rev = version;
-    hash = "sha256-Lm/LFBkG91GeWlJL9RBqP8W0tlhBEeGQ6kXUzzv4xRE=";
+    tag = finalAttrs.version;
+    hash = "sha256-we2w2rYGRC9Did9oocgCWbIUxb8a/g0BlCHXQUe1f8I=";
   };
 
-  cargoHash = "sha256-LME8oftHmmiN8GU3eTBTSB6m0CE+KtDFRssL1g2Cjm8=";
+  cargoHash = "sha256-R6daWAQssopVps+IqF94dGBcZMC/u1J4eEg6WouAwOo=";
   buildAndTestSubdir = "extension";
+
+  postInstall = ''
+    cargo run --manifest-path ./tools/post-install/Cargo.toml -- --dir "$out"
+  '';
 
   passthru = {
     updateScript = nix-update-script { };
-    tests = {
-      timescaledb_toolkit = nixosTests.timescaledb;
-    };
+    tests = postgresql.pkgs.timescaledb.tests;
   };
 
   # tests take really long
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "Provide additional tools to ease all things analytic when using TimescaleDB";
     homepage = "https://github.com/timescale/timescaledb-toolkit";
-    maintainers = with maintainers; [ typetetris ];
+    maintainers = with lib.maintainers; [ typetetris ];
     platforms = postgresql.meta.platforms;
-    license = licenses.asl20;
-
-    # as it needs to be used with timescaledb, simply use the condition from there
-    broken = versionOlder postgresql.version "12" || stdenv.isDarwin;
+    license = lib.licenses.tsl;
+    broken =
+      lib.versionOlder postgresql.version "15"
+      ||
+        # Check after next package update.
+        lib.warnIf (finalAttrs.version != "1.23.0")
+          "Is postgresql19Packages.timescaledb_toolkit still broken?"
+          (lib.versionAtLeast postgresql.version "19");
   };
-}
+})

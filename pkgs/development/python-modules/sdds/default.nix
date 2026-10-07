@@ -1,41 +1,36 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, numpy
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  numpy,
+  pytestCheckHook,
+  hatchling,
 }:
 
 buildPythonPackage rec {
   pname = "sdds";
-  version = "0.4.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.4.3";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "pylhc";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-8tnJAptTUsC0atxM9Dpn90drcprdWrs8fYoX8RDkLyQ=";
+    repo = "sdds";
+    tag = "v${version}";
+    hash = "sha256-2lsim4FlOKBZ4Lk/iKIcItE/hvqiAK4XTkoxm52At/8=";
   };
 
-  propagatedBuildInputs = [
-    numpy
-  ];
+  build-system = [ hatchling ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  dependencies = [ numpy ];
 
-  pythonImportsCheck = [
-    "sdds"
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "sdds" ];
+
+  meta = {
     description = "Module to handle SDDS files";
     homepage = "https://pylhc.github.io/sdds/";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ veprbl ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ veprbl ];
   };
 }

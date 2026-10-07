@@ -1,45 +1,55 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, rns
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  # rns optionally depends on lxmf but we can't have two versions of rns in a closure
+  propagateRns ? false,
+  qrcode,
+  rns,
+  setuptools,
+  versionCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "lxmf";
-  version = "0.3.9";
+  version = "1.2.0";
   pyproject = true;
+  __structuredAttrs = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchFromGitHub {
-    owner = "markqvist";
-    repo = "lxmf";
-    rev = "refs/tags/${version}";
-    hash = "sha256-nZDcSVHR8IKlGBa5ljd3MmgzUPvG7Hv76WRfXxMsndY=";
+  src = fetchPypi {
+    inherit (finalAttrs) version;
+    pname = "lxmf";
+    hash = "sha256-8UJDKDuQrQY1YHHZA5Q1dkCSQgH5yZLc3+y8I2FPswk=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  buildInputs = lib.optionals (!propagateRns) [
     rns
   ];
 
-  # Module has no tests
-  doCheck = false;
-
-  pythonImportsCheck = [
-    "LXMF"
+  dependencies = [
+    qrcode
+  ]
+  ++ lib.optionals propagateRns [
+    rns
   ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "LXMF" ];
+
+  nativeCheckInputs = lib.optionals propagateRns [
+    versionCheckHook
+  ];
+
+  meta = {
     description = "Lightweight Extensible Message Format for Reticulum";
     homepage = "https://github.com/markqvist/lxmf";
-    changelog = "https://github.com/markqvist/LXMF/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/markqvist/LXMF/releases/tag/${finalAttrs.version}";
+    license = lib.licenses.reticulum;
+    maintainers = with lib.maintainers; [
+      drupol
+      fab
+    ];
+    mainProgram = "lxmd";
   };
-}
+})

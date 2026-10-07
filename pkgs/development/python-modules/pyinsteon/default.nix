@@ -1,44 +1,45 @@
-{ lib
-, aiofiles
-, aiohttp
-, async-generator
-, buildPythonPackage
-, fetchFromGitHub
-, pypubsub
-, pyserial
-, pyserial-asyncio
-, pytestCheckHook
-, pythonOlder
-, setuptools
-, voluptuous
-, wheel
+{
+  lib,
+  aiofiles,
+  aiohttp,
+  async-timeout,
+  async-generator,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pypubsub,
+  pyserial,
+  pyserial-asyncio-fast,
+  pytestCheckHook,
+  setuptools,
+  voluptuous,
 }:
 
 buildPythonPackage rec {
   pname = "pyinsteon";
-  version = "1.5.3";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "1.6.4";
+  pyproject = true;
 
   src = fetchFromGitHub {
-    owner = pname;
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-9d6QbekUv63sjKdK+ZogYOkGfFXVW+JB6ITHnehLwtM=";
+    owner = "pyinsteon";
+    repo = "pyinsteon";
+    tag = version;
+    hash = "sha256-iC0qeiTHtrdzQtJ3R01nJDCfdBKBg0jw1v49ZII24/4=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-    wheel
+  patches = [
+    # https://github.com/pyinsteon/pyinsteon/pull/440
+    ./python-3.14.diff
   ];
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     aiofiles
     aiohttp
+    async-timeout
     pypubsub
     pyserial
-    pyserial-asyncio
+    pyserial-asyncio-fast
     voluptuous
   ];
 
@@ -47,11 +48,9 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "pyinsteon"
-  ];
+  pythonImportsCheck = [ "pyinsteon" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python library to support Insteon home automation projects";
     longDescription = ''
       This is a Python package to interface with an Insteon Modem. It has been
@@ -60,7 +59,8 @@ buildPythonPackage rec {
     '';
     homepage = "https://github.com/pyinsteon/pyinsteon";
     changelog = "https://github.com/pyinsteon/pyinsteon/releases/tag/${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
+    mainProgram = "insteon_tools";
   };
 }

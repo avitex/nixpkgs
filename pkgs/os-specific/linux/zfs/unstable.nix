@@ -1,39 +1,35 @@
-{ callPackage
-, kernel ? null
-, stdenv
-, linuxKernel
-, removeLinuxDRM ? false
-, nixosTests
-, ...
-} @ args:
+{
+  callPackage,
+  nixosTests,
+  ...
+}@args:
 
-let
-  stdenv' = if kernel == null then stdenv else kernel.stdenv;
-in
 callPackage ./generic.nix args {
   # You have to ensure that in `pkgs/top-level/linux-kernels.nix`
   # this attribute is the correct one for this package.
-  kernelModuleAttribute = "zfsUnstable";
-  # check the release notes for compatible kernels
-  kernelCompatible =
-    if stdenv'.isx86_64 || removeLinuxDRM
-    then kernel.kernelOlder "6.7"
-    else kernel.kernelOlder "6.2";
+  kernelModuleAttribute = "zfs_unstable";
 
-  latestCompatibleLinuxPackages = if stdenv'.isx86_64 || removeLinuxDRM
-    then linuxKernel.packages.linux_6_6
-    else linuxKernel.packages.linux_6_1;
+  kernelMinSupportedMajorMinor = "4.18";
+  kernelMaxSupportedMajorMinor = "7.2";
 
   # this package should point to a version / git revision compatible with the latest kernel release
   # IMPORTANT: Always use a tagged release candidate or commits from the
   # zfs-<version>-staging branch, because this is tested by the OpenZFS
   # maintainers.
-  version = "2.2.2";
+  version = "2.4.4";
+  # rev = "";
 
-  isUnstable = true;
-  tests = [
-    nixosTests.zfs.unstable
-  ];
+  # if adding a patch here, check if it also needs to be applied to the stable branches
+  extraPatches = [ ];
 
-  hash = "sha256-CqhETAwhWMhbld5ib3Rz1dxms+GQbLwjEZw/V7U/2nE=";
+  tests = {
+    inherit (nixosTests.zfs) unstable;
+  };
+
+  hash = "sha256-ZgfHTPsNoeDq6GKP4Xiti7Keis3vIZLDaTGQjgCItIc=";
+
+  extraLongDescription = ''
+    This is "unstable" ZFS, and will usually be a pre-release version of ZFS.
+    It may be less well-tested and have critical bugs.
+  '';
 }

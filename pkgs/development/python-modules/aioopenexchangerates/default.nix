@@ -1,59 +1,51 @@
-{ lib
-, aiohttp
-, aioresponses
-, pydantic
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, pytest-aiohttp
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  aiohttp,
+  aioresponses,
+  buildPythonPackage,
+  fetchFromGitHub,
+  mashumaro,
+  pytest-aiohttp,
+  pytest-cov-stub,
+  pytestCheckHook,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "aioopenexchangerates";
-  version = "0.4.6";
+  version = "0.7.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
     owner = "MartinHjelmare";
     repo = "aioopenexchangerates";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-6lgjblCyc4NSnw+nlCH0SKV7f9aa4qcfa7v9pgzusKo=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-pNjpeoXBlz2bdUeEsOlW7RJmbKTZGuBVTLHymGHwAiY=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace 'pydantic = "^1.9"' 'pydantic = "*"' \
-      --replace " --cov=aioopenexchangerates --cov-report=term-missing:skip-covered" ""
-  '';
+  pythonRelaxDeps = [ "pydantic" ];
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
-    pydantic
+    mashumaro
   ];
 
   nativeCheckInputs = [
     aioresponses
     pytest-aiohttp
+    pytest-cov-stub
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "aioopenexchangerates"
-  ];
+  pythonImportsCheck = [ "aioopenexchangerates" ];
 
-  meta = with lib; {
+  meta = {
     description = "Library for the Openexchangerates API";
     homepage = "https://github.com/MartinHjelmare/aioopenexchangerates";
-    changelog = "https://github.com/MartinHjelmare/aioopenexchangerates/blob/v${version}/CHANGELOG.md";
-    license = with licenses; [ asl20 ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/MartinHjelmare/aioopenexchangerates/blob/v${finalAttrs.version}/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

@@ -1,27 +1,28 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, cmake
-, swig4
-, lua
-, elastix
-, itk
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  cmake,
+  swig,
+  lua,
+  elastix,
+  itk,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "simpleitk";
-  version = "2.3.1";
+  version = "2.5.5";
 
   src = fetchFromGitHub {
     owner = "SimpleITK";
     repo = "SimpleITK";
-    rev = "refs/tags/v${finalAttrs.version}";
-    hash = "sha256-JmZUlIdcCQ9yEqxoUwRaxvr/Q7xZm41QA3mtDtoSdyI=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-biCrtfewxptDGHlN6xGmsv+m4RGgWDIBu7zMfa8XIRg=";
   };
 
   nativeBuildInputs = [
     cmake
-    swig4
+    swig
   ];
   buildInputs = [
     elastix
@@ -36,12 +37,12 @@ stdenv.mkDerivation (finalAttrs: {
     "-DSimpleITK_USE_ELASTIX=ON"
   ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://www.simpleitk.org";
     description = "Simplified interface to ITK";
     changelog = "https://github.com/SimpleITK/SimpleITK/releases/tag/v${finalAttrs.version}";
-    maintainers = with maintainers; [ bcdarwin ];
-    platforms = platforms.linux;
-    license = licenses.asl20;
+    maintainers = with lib.maintainers; [ bcdarwin ];
+    platforms = lib.platforms.linux;
+    license = lib.licenses.asl20;
   };
 })

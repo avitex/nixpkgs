@@ -1,11 +1,14 @@
-{ python
-, makeSetupHook
+{
+  lib,
+  python3Packages,
+  makeSetupHook,
 }:
 
 makeSetupHook {
-  name = "manifest-requirements-check-hook";
+  name = "manifest-check-hook";
   substitutions = {
-    pythonCheckInterpreter = python.interpreter;
+    pythonCheckInterpreter = python3Packages.python.interpreter;
     checkManifest = ./check_manifest.py;
   };
+  meta.license = lib.licenses.mit;
 } ./manifest-requirements-check-hook.sh

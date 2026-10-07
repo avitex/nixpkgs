@@ -1,30 +1,34 @@
-{ lib
-, aiohttp
-, aioresponses
-, buildPythonPackage
-, fetchFromGitHub
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  aiohttp,
+  aioresponses,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytest-asyncio,
+  pytestCheckHook,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "aiopegelonline";
-  version = "0.0.7";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.9";
+  version = "0.1.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "mib1185";
     repo = "aiopegelonline";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-r+5b52N/vliKHx6qOLJ4lWcQt1TPEcn5Dz7cZNhRbNg=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-uV4qVCj28wgraWmWhyqN98/SaVDJFuJ30ugViKrl2us=";
   };
 
-  propagatedBuildInputs = [
-    aiohttp
-  ];
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail "setuptools==82.0.1" "setuptools"
+  '';
+
+  build-system = [ setuptools ];
+
+  dependencies = [ aiohttp ];
 
   nativeCheckInputs = [
     aioresponses
@@ -32,15 +36,13 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "aiopegelonline"
-  ];
+  pythonImportsCheck = [ "aiopegelonline" ];
 
-  meta = with lib; {
+  meta = {
     description = "Library to retrieve data from PEGELONLINE";
     homepage = "https://github.com/mib1185/aiopegelonline";
-    changelog = "https://github.com/mib1185/aiopegelonline/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/mib1185/aiopegelonline/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

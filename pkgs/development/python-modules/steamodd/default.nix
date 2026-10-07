@@ -1,20 +1,26 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "steamodd";
   version = "5.0";
 
-  format = "setuptools";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "Lagg";
     repo = "steamodd";
-    rev = "refs/tags/v${version}";
+    tag = "v${finalAttrs.version}";
     hash = "sha256-ySAyCOI1ISuBQ/5+UHSQVji76ZDRGjdVwlBAY9tnSmE=";
   };
+
+  build-system = [ setuptools ];
 
   # tests require API key
   doCheck = false;
@@ -36,4 +42,4 @@ buildPythonPackage rec {
     license = lib.licenses.isc;
     maintainers = with lib.maintainers; [ dotlambda ];
   };
-}
+})

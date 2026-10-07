@@ -1,41 +1,39 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pyaes
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  pyaes,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "crownstone-core";
   version = "3.2.1";
-  format = "setuptools";
+  pyproject = true;
 
-  disabled = pythonOlder "3.8";
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "crownstone";
     repo = "crownstone-lib-python-core";
-    rev = version;
+    tag = finalAttrs.version;
     hash = "sha256-zrlCzx7N3aUcTUNa64jSzDdWgQneX+Hc5n8TTTcZ4ck=";
   };
 
-  propagatedBuildInputs = [
-    pyaes
-  ];
+  build-system = [ setuptools ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  dependencies = [ pyaes ];
 
-  pythonImportsCheck = [
-    "crownstone_core"
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "crownstone_core" ];
+
+  meta = {
     description = "Python module with shared classes, util functions and definition of Crownstone";
     homepage = "https://github.com/crownstone/crownstone-lib-python-core";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/crownstone/crownstone-lib-python-core/blob/${finalAttrs.version}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

@@ -1,33 +1,40 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# runtime
-, portpicker
-, pyserial
-, pyyaml
-, timeout-decorator
-, typing-extensions
+  # build-system
+  setuptools,
 
-# tests
-, procps
-, pytestCheckHook
-, pytz
+  # dependencies
+  portpicker,
+  pyserial,
+  pyyaml,
+  timeout-decorator,
+  typing-extensions,
+
+  # tests
+  procps,
+  pytestCheckHook,
+  pytz,
 }:
 
 buildPythonPackage rec {
   pname = "mobly";
-  version = "1.12.2";
-  format = "setuptools";
+  version = "1.13.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "google";
     repo = "mobly";
-    rev = "refs/tags/${version}";
-    hash = "sha256-leUOC8AQwbuPNphDg4bIFWW+9tTnYvM3/ejHgZDMR44=";
+    tag = version;
+    hash = "sha256-J0mP7l2JXZDSuQm5vsLB87zbFK7MmP5xc8T7qDS34M4=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     portpicker
     pyserial
     pyyaml
@@ -41,13 +48,20 @@ buildPythonPackage rec {
     pytz
   ];
 
+  disabledTests = lib.optionals stdenv.hostPlatform.isDarwin [
+    # cannot access /usr/bin/pgrep from the sandbox
+    "test_stop_standing_subproc"
+    "test_stop_standing_subproc_and_descendants"
+    "test_stop_standing_subproc_without_pipe"
+  ];
+
   __darwinAllowLocalNetworking = true;
 
-  meta = with lib; {
+  meta = {
     changelog = "https://github.com/google/mobly/blob/${src.rev}/CHANGELOG.md";
     description = "Automation framework for special end-to-end test cases";
     homepage = "https://github.com/google/mobly";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ hexa ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ hexa ];
   };
 }

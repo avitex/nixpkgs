@@ -1,40 +1,57 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonAtLeast
-, spark-parser
-, xdis
-, nose
-, pytest
-, hypothesis
-, six
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  fetchpatch,
+  setuptools,
+  spark-parser,
+  xdis,
+  pytestCheckHook,
+  hypothesis,
+  six,
 }:
 
 buildPythonPackage rec {
   pname = "uncompyle6";
-  version = "3.9.0";
-  format = "setuptools";
-  disabled = pythonAtLeast "3.9"; # See: https://github.com/rocky/python-uncompyle6/issues/331
+  version = "3.9.3";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-HmqQLeYOpcP30q9+J0UAa05Lm97eiIoH+EQcmTjy7n0=";
+    hash = "sha256-eLdk1MhDsEVfs5223rQhpI1dPruEZTe6ZESv4QfE68E=";
   };
 
-  nativeCheckInputs = [ nose pytest hypothesis six ];
-  propagatedBuildInputs = [ spark-parser xdis ];
+  patches = [
+    (fetchpatch {
+      name = "support-xdis-6.3-api.patch";
+      url = "https://github.com/rocky/python-uncompyle6/commit/62372825c62044428c29a9ce86b5afa81e93c5ae.patch";
+      hash = "sha256-z11AKF5RC4gibUbH3hI2Rsbn8VDg49SnKfqV4TuVnjc=";
+    })
+  ];
 
-  # six import errors (yet it is supplied...)
-  checkPhase = ''
-    runHook preCheck
-    pytest ./pytest --ignore=pytest/test_function_call.py
-    runHook postCheck
-  '';
+  build-system = [ setuptools ];
 
-  meta = with lib; {
-    description = "Python cross-version byte-code deparser";
-    homepage = "https://github.com/rocky/python-uncompyle6/";
-    license = licenses.gpl3;
+  dependencies = [
+    spark-parser
+    xdis
+  ];
+
+  pythonRelaxDeps = [ "spark-parser" ];
+
+  nativeCheckInputs = [
+    pytestCheckHook
+    hypothesis
+    six
+  ];
+
+  # No tests are provided for versions past 3.8,
+  # as the project only targets bytecode of versions <= 3.8
+  doCheck = false;
+
+  meta = {
+    description = "Bytecode decompiler for Python versions 3.8 and below";
+    homepage = "https://github.com/rocky/python-uncompyle6";
+    license = lib.licenses.gpl3;
+    maintainers = with lib.maintainers; [ melvyn2 ];
   };
-
 }

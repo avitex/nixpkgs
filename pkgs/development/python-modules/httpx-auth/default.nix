@@ -1,55 +1,58 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, setuptools
-, setuptools-scm
-, wheel
-, httpx
-, pyjwt
-, pytest-httpx
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  httpx,
+  pyjwt,
+  pytest-asyncio,
+  pytest-httpx,
+  pytestCheckHook,
+  setuptools,
+  setuptools-scm,
+  time-machine,
 }:
 
 buildPythonPackage rec {
   pname = "httpx-auth";
-  version = "0.18.0";
+  version = "0.23.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
     owner = "Colin-b";
     repo = "httpx_auth";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-kK31jpS9Ax5kNkvUSbWWIC6CKdZKVJ28kLS0iuntWqg=";
+    tag = "v${version}";
+    hash = "sha256-wrPKUAGBzzuWNtwYtTtqOhb1xqYgc83uxn4rjbfDPmo=";
   };
 
   nativeBuildInputs = [
     setuptools
     setuptools-scm
-    wheel
   ];
 
-  propagatedBuildInputs = [
-    httpx
-  ];
+  propagatedBuildInputs = [ httpx ];
 
   nativeCheckInputs = [
     pyjwt
+    pytest-asyncio
     pytest-httpx
     pytestCheckHook
+    time-machine
+  ];
+
+  pytestFlags = [
+    # tests use a 6-byte HMAC key; pyjwt 2.11+ warns and upstream sets filterwarnings=error.
+    "-Wignore::jwt.warnings.InsecureKeyLengthWarning"
   ];
 
   pythonImportsCheck = [ "httpx_auth" ];
 
   __darwinAllowLocalNetworking = true;
 
-  meta = with lib; {
+  meta = {
     description = "Authentication classes to be used with httpx";
     homepage = "https://github.com/Colin-b/httpx_auth";
-    changelog = "https://github.com/Colin-b/httpx_auth/blob/${src.rev}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ natsukium ];
+    changelog = "https://github.com/Colin-b/httpx_auth/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ natsukium ];
   };
 }

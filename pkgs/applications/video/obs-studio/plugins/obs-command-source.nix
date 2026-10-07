@@ -1,19 +1,20 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, cmake
-, obs-studio
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  cmake,
+  obs-studio,
 }:
 
 stdenv.mkDerivation rec {
   pname = "obs-command-source";
-  version = "0.4.0";
+  version = "0.5.1";
 
   src = fetchFromGitHub {
     owner = "norihiro";
     repo = "obs-command-source";
     rev = version;
-    sha256 = "sha256-rBGMQb7iGtxF54bBOK5lHI6VFYCSEyeSq2Arz0T0DPo=";
+    sha256 = "sha256-z5TKVA0WI/pqfca1VCXfDvYHxDG2EoD6PFCV7pSXe7c=";
   };
 
   nativeBuildInputs = [ cmake ];
@@ -26,11 +27,11 @@ stdenv.mkDerivation rec {
     mv $out/data $out/share/obs
   '';
 
-  meta = with lib; {
-    description = "OBS Studio plugin that provides a dummy source to execute arbitrary commands when a scene is switched.";
+  meta = {
+    description = "OBS Studio plugin that provides a dummy source to execute arbitrary commands when a scene is switched";
     homepage = "https://github.com/norihiro/command-source";
-    maintainers = with maintainers; [ flexiondotorg ];
-    license = licenses.gpl2Plus;
-    platforms = [ "x86_64-linux" "i686-linux" ];
+    maintainers = with lib.maintainers; [ flexiondotorg ];
+    license = lib.licenses.gpl2Plus;
+    inherit (obs-studio.meta) platforms;
   };
 }

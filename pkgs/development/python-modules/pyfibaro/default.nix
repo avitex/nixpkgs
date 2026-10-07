@@ -1,51 +1,41 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, pythonOlder
-, requests
-, requests-mock
-, setuptools
-, wheel
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  requests,
+  requests-mock,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pyfibaro";
-  version = "0.7.6";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.9";
+  version = "0.8.3";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "rappenze";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-yE9HkAlGj1t90FwmwHDsk3ea2UOl0bG3UtYXxz/SWbI=";
+    repo = "pyfibaro";
+    tag = finalAttrs.version;
+    hash = "sha256-KdlndW066TDxZpkIP0Oa3Lii0mBpwELfHtoGKiwh6GE=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-    wheel
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
-    requests
-  ];
+  dependencies = [ requests ];
 
   nativeCheckInputs = [
     pytestCheckHook
     requests-mock
   ];
 
-  pythonImportsCheck = [
-    "pyfibaro"
-  ];
+  pythonImportsCheck = [ "pyfibaro" ];
 
-  meta = with lib; {
+  meta = {
     description = "Library to access FIBARO Home center";
     homepage = "https://github.com/rappenze/pyfibaro";
-    changelog = "https://github.com/rappenze/pyfibaro/releases/tag/${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/rappenze/pyfibaro/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

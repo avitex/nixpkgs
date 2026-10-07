@@ -1,43 +1,33 @@
-{ lib
-, buildPythonPackage
-, click
-, click-completion
-, click-default-group
-, cucumber-tag-expressions
-, fetchFromGitHub
-, pluggy
-, poetry-core
-, pprintpp
-, pythonOlder
-, pythonRelaxDepsHook
-, rich
-, tomli
+{
+  lib,
+  buildPythonPackage,
+  click,
+  click-completion,
+  click-default-group,
+  cucumber-tag-expressions,
+  fetchFromGitHub,
+  pluggy,
+  poetry-core,
+  pprintpp,
+  rich,
+  tomli,
 }:
 
 buildPythonPackage rec {
   pname = "ward";
-  version = "0.67.0b0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "0.68.0b0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "darrenburns";
-    repo = pname;
-    rev = "refs/tags/release%2F${version}";
+    repo = "ward";
+    tag = "release%2F${version}";
     hash = "sha256-4dEMEEPySezgw3dIcYMl56HrhyaYlql9JvtamOn7Y8g=";
   };
 
-  pythonRelaxDeps = [
-    "rich"
-  ];
+  build-system = [ poetry-core ];
 
-  nativeBuildInputs = [
-    poetry-core
-    pythonRelaxDepsHook
-  ];
-
-  propagatedBuildInputs = [
+  dependencies = [
     click
     rich
     tomli
@@ -51,15 +41,17 @@ buildPythonPackage rec {
   # Fixture is missing. Looks like an issue with the import of the sample file
   doCheck = false;
 
-  pythonImportsCheck = [
-    "ward"
-  ];
+  pythonImportsCheck = [ "ward" ];
 
-  meta = with lib; {
+  meta = {
     description = "Test framework for Python";
     homepage = "https://github.com/darrenburns/ward";
     changelog = "https://github.com/darrenburns/ward/releases/tag/release%2F${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
+    mainProgram = "ward";
+    # Old requirements (cucumber-tag-expressions and rich)
+    # https://github.com/darrenburns/ward/issues/380
+    broken = lib.versionAtLeast rich.version "13.0.0";
   };
 }

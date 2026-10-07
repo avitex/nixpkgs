@@ -1,41 +1,44 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, eth-utils
-, hypothesis
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  eth-utils,
+  hypothesis,
+  pytestCheckHook,
+  pydantic,
 }:
 
 buildPythonPackage rec {
   pname = "hexbytes";
-  version = "0.3.1";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "1.3.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "ethereum";
     repo = "hexbytes";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-19oY/VPP6qkxHCkIgpC28fOOYKEYcNbVVGoHJmMmOl8=";
+    tag = "v${version}";
+    hash = "sha256-xYXxlyVGdsksxZJtSpz1V3pj4NL7IzX0gaQeCoiHr8g=";
   };
+
+  build-system = [ setuptools ];
 
   nativeCheckInputs = [
     eth-utils
     hypothesis
     pytestCheckHook
+    pydantic
   ];
 
-  pythonImportsCheck = [
-    "hexbytes"
-  ];
+  disabledTests = [ "test_install_local_wheel" ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "hexbytes" ];
+
+  meta = {
     description = "`bytes` subclass that decodes hex, with a readable console output";
     homepage = "https://github.com/ethereum/hexbytes";
     changelog = "https://github.com/ethereum/hexbytes/blob/v${version}/docs/release_notes.rst";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

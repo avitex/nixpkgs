@@ -1,11 +1,12 @@
-{ lib
-, stdenvNoCC
-, fetchFromGitHub
+{
+  lib,
+  stdenvNoCC,
+  fetchFromGitHub,
 }:
 
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "prio";
-  version = "unstable-2018-09-13";
+  version = "0-unstable-2018-09-13";
 
   src = fetchFromGitHub {
     owner = "letoram";
@@ -30,8 +31,8 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   meta = {
     homepage = "https://github.com/letoram/prio";
     description = "Plan9- Rio like Window Manager for Arcan";
-    license = with lib.licenses; [ bsd3 ];
-    maintainers = with lib.maintainers; [ AndersonTorres ];
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
     platforms = lib.platforms.all;
   };
 })

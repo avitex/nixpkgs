@@ -1,51 +1,86 @@
 # Test printing via CUPS.
-
-import ./make-test-python.nix (
-{ pkgs
-, socket ? true # whether to use socket activation
-, ...
+{
+  pkgs,
+  testName,
+  socket ? true, # whether to use socket activation
+  listenTcp ? true, # whether to open port 631 on client
+  ...
 }:
 
+let
+  inherit (pkgs) lib;
+in
+
 {
-  name = "printing";
-  meta = with pkgs.lib.maintainers; {
-    maintainers = [ domenkozar eelco matthewbauer ];
+  name = testName;
+  meta = {
+    maintainers = [ ];
   };
 
-  nodes.server = { ... }: {
-    services.printing = {
-      enable = true;
-      stateless = true;
-      startWhenNeeded = socket;
-      listenAddresses = [ "*:631" ];
-      defaultShared = true;
-      openFirewall = true;
-      extraConf = ''
-        <Location />
-          Order allow,deny
-          Allow from all
-        </Location>
-      '';
+  nodes.server =
+    { ... }:
+    {
+      services.printing = {
+        enable = true;
+        stateless = true;
+        startWhenNeeded = socket;
+        listenAddresses = [ "*:631" ];
+        defaultShared = true;
+        openFirewall = true;
+        extraConf = ''
+          <Location />
+            Order allow,deny
+            Allow from all
+          </Location>
+        '';
+      };
+      # Add a HP Deskjet printer connected via USB to the server.
+      hardware.printers.ensurePrinters = [
+        {
+          name = "DeskjetLocal";
+          deviceUri = "usb://foobar/printers/foobar";
+          model = "drv:///sample.drv/deskjet.ppd";
+        }
+      ];
     };
-    # Add a HP Deskjet printer connected via USB to the server.
-    hardware.printers.ensurePrinters = [{
-      name = "DeskjetLocal";
-      deviceUri = "usb://foobar/printers/foobar";
-      model = "drv:///sample.drv/deskjet.ppd";
-    }];
-  };
 
-  nodes.client = { ... }: {
-    services.printing.enable = true;
-    services.printing.startWhenNeeded = socket;
-    # Add printer to the client as well, via IPP.
-    hardware.printers.ensurePrinters = [{
-      name = "DeskjetRemote";
-      deviceUri = "ipp://server/printers/DeskjetLocal";
-      model = "drv:///sample.drv/deskjet.ppd";
-    }];
-    hardware.printers.ensureDefaultPrinter = "DeskjetRemote";
-  };
+  nodes.client =
+    { lib, ... }:
+    {
+      services.printing.enable = true;
+      services.printing.startWhenNeeded = socket;
+      services.printing.listenAddresses = lib.mkIf (!listenTcp) [ ];
+      # Add printers to the client as well, via IPP.
+      hardware.printers.ensurePrinters = [
+        {
+          name = "DeskjetRemote";
+          deviceUri = "ipp://server/printers/DeskjetLocal";
+          location = "";
+          model = "drv:///sample.drv/deskjet.ppd";
+        }
+        {
+          name = "DeskjetRemote2";
+          deviceUri = "ipp://server/printers/DeskjetLocal";
+          model = "drv:///sample.drv/deskjet.ppd";
+        }
+      ];
+      hardware.printers.ensureClasses = {
+        Basement = {
+          description = "All the printers in my basement";
+          location = "Floor 0";
+          printers = [ "DeskjetRemote" ];
+        };
+        House = {
+          description = "All the printers in my house";
+          location = "Home";
+          printers = [
+            "DeskjetRemote"
+            "DeskjetRemote2"
+          ];
+        };
+      };
+      hardware.printers.ensureDefaultPrinter = "DeskjetRemote";
+    };
 
   testScript = ''
     import os
@@ -53,22 +88,35 @@ import ./make-test-python.nix (
 
     start_all()
 
-    with subtest("Make sure that cups is up on both sides and printers are set up"):
+    with subtest("Make sure that cups is up on both sides"):
         server.wait_for_unit("cups.${if socket then "socket" else "service"}")
         client.wait_for_unit("cups.${if socket then "socket" else "service"}")
 
     assert "scheduler is running" in client.succeed("lpstat -r")
 
+    client.wait_until_succeeds("journalctl -u cups.service --grep 'CUPS provisioning complete'")
+
+    with subtest("Empty printer options are handled correctly"):
+        client.wait_for_file("/etc/cups/printers.conf")
+        client.fail("grep -F 'Location -mdrv://' /etc/cups/printers.conf")
+
     with subtest("UNIX socket is used for connections"):
         assert "/var/run/cups/cups.sock" in client.succeed("lpstat -H")
 
     with subtest("HTTP server is available too"):
-        client.succeed("curl --fail http://localhost:631/")
+        ${lib.optionalString listenTcp ''client.succeed("curl --fail http://localhost:631/")''}
         client.succeed(f"curl --fail http://{server.name}:631/")
         server.fail(f"curl --fail --connect-timeout 2 http://{client.name}:631/")
 
     with subtest("LP status checks"):
-        assert "DeskjetRemote accepting requests" in client.succeed("lpstat -a")
+        lpstat = client.succeed("lpstat -a")
+        assert all([
+          "DeskjetRemote accepting requests" in lpstat,
+          "DeskjetRemote2 accepting requests" in lpstat,
+          "Basement accepting requests" in lpstat,
+          "House accepting requests" in lpstat,
+        ])
+
         assert "DeskjetLocal accepting requests" in client.succeed(
             f"lpstat -h {server.name}:631 -a"
         )
@@ -90,7 +138,7 @@ import ./make-test-python.nix (
         "${pkgs.groff.doc}/share/doc/*/examples/mom/penguin.pdf",
         "${pkgs.groff.doc}/share/doc/*/meref.ps",
         "${pkgs.cups.out}/share/doc/cups/images/cups.png",
-        "${pkgs.pcre.doc}/share/doc/pcre/pcre.txt",
+        "${pkgs.groff.doc}/share/doc/*/examples/mom/README.txt",
     ]:
         file_name = os.path.basename(file)
         with subtest(f"print {file_name}"):
@@ -119,4 +167,4 @@ import ./make-test-python.nix (
             # Otherwise, pairs of "c*"-"d*-001" files might persist.
             server.execute("rm /var/spool/cups/*")
   '';
-})
+}

@@ -1,36 +1,36 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  nix-update-script,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "tlds";
-  version = "2023110300";
+  version = "2026093003";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "kichik";
     repo = "tlds";
-    rev = "refs/tags/${version}";
-    hash = "sha256-rmKqY7Z4bBR4r+w4gH04g0Xm9N7QeMVcuFR3pB/pOQY=";
+    tag = finalAttrs.version;
+    hash = "sha256-IsP0+HiAVGpSjNtQe1QgboJ7oVW1WP+YMTLxz260zo8=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
-  pythonImportsCheck = [
-    "tlds"
-  ];
+  pythonImportsCheck = [ "tlds" ];
 
   # no tests
   doCheck = false;
 
-  meta = with lib; {
+  passthru.updateScript = nix-update-script { };
+
+  meta = {
     description = "Automatically updated list of valid TLDs taken directly from IANA";
-    homepage = "https://github.com/mweinelt/tlds";
-    license = licenses.mit;
-    maintainers = with maintainers; [ hexa ];
+    homepage = "https://github.com/kichik/tlds";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ hexa ];
   };
-}
+})

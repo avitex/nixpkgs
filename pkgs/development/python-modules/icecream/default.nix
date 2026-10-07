@@ -1,61 +1,48 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# build-system
-, setuptools
+  # build-system
+  setuptools,
 
-# dependencies
-, asttokens
-, colorama
-, executing
-, pygments
+  # dependencies
+  asttokens,
+  colorama,
+  executing,
+  pygments,
 
-# tests
-, pytestCheckHook
+  # tests
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "icecream";
-  version = "2.1.3";
+  version = "2.2.0";
   pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-CqSnwzdOw2FTodCPgeMIDoPYrB7v2X0vT+lUTo+bSd4=";
+  src = fetchFromGitHub {
+    owner = "gruns";
+    repo = "icecream";
+    tag = "v${version}";
+    hash = "sha256-8y109lTvZS50sBNzsgxxyIDf5w3gAou7RK1NxiGIziQ=";
   };
 
-  postPatch = ''
-    substituteInPlace tests/test_icecream.py \
-      --replace assertRegexpMatches assertRegex
-  '';
+  build-system = [ setuptools ];
 
-  nativeBuildInputs = [
-    setuptools
-  ];
-
-  propagatedBuildInputs = [
+  dependencies = [
     asttokens
     colorama
     executing
     pygments
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  disabledTests = [
-    # icecream.icecream.NoSourceAvailableError
-    "testSingledispatchArgumentToString"
-    # AssertionError: assert [[('REPL (e.g...ion?', None)]] == [[('a', '1')], [('c', '3')]]
-    "testEnableDisable"
-  ];
-
-  meta = with lib; {
-    description = "A little library for sweet and creamy print debugging";
+  meta = {
+    description = "Little library for sweet and creamy print debugging";
     homepage = "https://github.com/gruns/icecream";
-    license = licenses.mit;
-    maintainers = with maintainers; [ renatoGarcia ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ renatoGarcia ];
   };
 }

@@ -1,19 +1,21 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, hatch-vcs
-, hatchling
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  hatch-vcs,
+  hatchling,
+  pint,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "hepunits";
-  version = "2.3.3";
-  format = "pyproject";
+  version = "2.4.6";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-Z9fMd81U1ytpwmpo5e+teEK29o+ovGJ7uQ5BF3q+aUU=";
+    hash = "sha256-vKatqTcUcWbWbp+hUlZvI3iGjXmCEcrWmQCAOZVg+jQ=";
   };
 
   nativeBuildInputs = [
@@ -23,6 +25,7 @@ buildPythonPackage rec {
 
   nativeCheckInputs = [
     pytestCheckHook
+    pint
   ];
 
   meta = {
@@ -32,4 +35,3 @@ buildPythonPackage rec {
     maintainers = with lib.maintainers; [ doronbehar ];
   };
 }
-

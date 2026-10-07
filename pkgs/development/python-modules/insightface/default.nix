@@ -1,56 +1,79 @@
-{ lib
-, albumentations
-, buildPythonPackage
-, cython
-, easydict
-, fetchPypi
-, insightface
-, matplotlib
-, mxnet
-, numpy
-, onnx
-, onnxruntime
-, opencv4
-, prettytable
-, pythonOlder
-, scikit-image
-, scikit-learn
-, tensorboard
-, testers
-, tqdm
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+
+  # build-system
+  cython,
+  setuptools,
+
+  # dependencies
+  mxnet,
+  numpy,
+  onnx,
+  onnxruntime,
+  opencv-python,
+  requests,
+  scikit-image,
+  scipy,
+  tqdm,
+
+  # optional-dependencies
+  # gui:
+  pillow,
+  pyside6,
+  reportlab,
+  scikit-learn,
+  # face3d
+  albumentationsx,
+  matplotlib,
+
+  insightface,
+  testers,
+  stdenv,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "insightface";
-  version = "0.7.3";
-  format = "setuptools";
+  version = "1.0.1";
+  pyproject = true;
+  __structuredAttrs = true;
 
-  disabled = pythonOlder "3.8";
-
+  # No tags on GitHub
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-8ZH3GWEuuzcBj0GTaBRQBUTND4bm/NZ2wCPzVMZo3fc=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-J68kiRu7pHDLNXOzZqD8yomJ/IUDyfjygejLpv1xYHU=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     cython
+    setuptools
   ];
 
-  propagatedBuildInputs = [
-    easydict
-    matplotlib
-    mxnet
+  dependencies = [
+    mxnet # used in insightface/commands/rec_add_mask_param.py
     numpy
     onnx
     onnxruntime
-    opencv4
-    scikit-learn
+    opencv-python
+    requests
     scikit-image
-    tensorboard
+    scipy
     tqdm
-    albumentations
-    prettytable
   ];
+
+  optional-dependencies = {
+    gui = [
+      pillow
+      pyside6
+      reportlab
+      scikit-learn
+    ];
+    face3d = [
+      albumentationsx
+      matplotlib
+    ];
+  };
 
   pythonImportsCheck = [
     "insightface"
@@ -58,20 +81,24 @@ buildPythonPackage rec {
     "insightface.data"
   ];
 
-  passthru.tests.version = testers.testVersion {
-    package = insightface;
-    command = "insightface-cli --help";
-    # Doesn't support --version but we still want to make sure the cli is executable
-    # and returns the help output
-    version = "help";
+  # No tests in the Pypi archive
+  doCheck = false;
+
+  passthru.tests = {
+    version = testers.testVersion {
+      package = insightface;
+      command = "insightface-cli --help";
+      # Doesn't support --version but we still want to make sure the cli is executable
+      # and returns the help output
+      version = "help";
+    };
   };
 
-  doCheck = false; # Upstream has no tests
-
-  meta = with lib; {
+  meta = {
     description = "State-of-the-art 2D and 3D Face Analysis Project";
+    mainProgram = "insightface-cli";
     homepage = "https://github.com/deepinsight/insightface";
-    license = licenses.mit;
-    maintainers = with maintainers; [ oddlama ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ oddlama ];
   };
-}
+})

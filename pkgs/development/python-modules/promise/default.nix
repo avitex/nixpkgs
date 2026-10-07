@@ -1,12 +1,12 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, fetchpatch
-, mock
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, six
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fetchpatch,
+  mock,
+  pytest-asyncio,
+  pytestCheckHook,
+  six,
 }:
 
 buildPythonPackage rec {
@@ -14,12 +14,10 @@ buildPythonPackage rec {
   version = "2.3.0";
   format = "setuptools";
 
-  disabled = pythonOlder "3.7";
-
   src = fetchFromGitHub {
     owner = "syrusakbary";
     repo = "promise";
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     hash = "sha256-5s6GMANSO4UpLOP/HAQxuNFSBSjPgvJCB9R1dOoKuJ4=";
   };
 
@@ -37,9 +35,7 @@ buildPythonPackage rec {
       --replace "assert_exc.traceback[-1].path.strpath" "str(assert_exc.traceback[-1].path)"
   '';
 
-  propagatedBuildInputs = [
-    six
-  ];
+  propagatedBuildInputs = [ six ];
 
   nativeCheckInputs = [
     mock
@@ -47,19 +43,20 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  disabledTestPaths = [
-    "tests/test_benchmark.py"
+  disabledTests = [
+    # Failed: async def functions are not natively supported
+    "test_issue_9_safe"
   ];
 
-  pythonImportsCheck = [
-    "promise"
-  ];
+  disabledTestPaths = [ "tests/test_benchmark.py" ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "promise" ];
+
+  meta = {
     description = "Ultra-performant Promise implementation in Python";
     homepage = "https://github.com/syrusakbary/promise";
     changelog = "https://github.com/syrusakbary/promise/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ kamadorueda ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ kamadorueda ];
   };
 }

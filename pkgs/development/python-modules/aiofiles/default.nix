@@ -1,29 +1,29 @@
-{ stdenv
-, lib
-, buildPythonPackage
-, fetchFromGitHub
-, hatchling
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  hatch-vcs,
+  pytest-asyncio,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "aiofiles";
-  version = "23.2.1";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "25.1.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "Tinche";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-EbRQD/AoTMWAlPOMWmD0UdFjRyjt5MUBkJtcydUCdHM=";
+    repo = "aiofiles";
+    tag = "v${version}";
+    hash = "sha256-NBmzoUb2una3+eWqR1HraVPibaRb9I51aYwskrjxskQ=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     hatchling
+    hatch-vcs
   ];
 
   nativeCheckInputs = [
@@ -31,7 +31,7 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  disabledTests = lib.optionals stdenv.isDarwin [
+  disabledTests = lib.optionals stdenv.hostPlatform.isDarwin [
     "test_sendfile_file"
 
     # require loopback networking:
@@ -41,14 +41,13 @@ buildPythonPackage rec {
     "test_slow_file"
   ];
 
-  pythonImportsCheck = [
-    "aiofiles"
-  ];
+  pythonImportsCheck = [ "aiofiles" ];
 
-  meta = with lib; {
+  meta = {
     description = "File support for asyncio";
     homepage = "https://github.com/Tinche/aiofiles";
-    license = with licenses; [ asl20 ];
-    maintainers = with maintainers; [ fridh ];
+    changelog = "https://github.com/Tinche/aiofiles/releases/tag/${src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
 }

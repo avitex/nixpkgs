@@ -1,34 +1,101 @@
-{ lib
-, buildPlatform
-, callPackage
-, kaem
-, mescc-tools-extra
-, checkMeta
+{
+  lib,
+  config,
+  buildPlatform,
+  callPackage,
+  kaem,
+  mescc-tools-extra,
+  checkMeta,
+  hostPlatform,
 }:
+let
+  assertValidity = checkMeta.assertValidity hostPlatform;
+  commonMeta = checkMeta.commonMeta hostPlatform;
+in
 rec {
-  derivationWithMeta = attrs:
+  maybeContentAddressed = lib.optionalAttrs config.contentAddressedByDefault {
+    __contentAddressed = true;
+    outputHashAlgo = "sha256";
+    outputHashMode = "recursive";
+  };
+
+  derivationWithMeta =
     let
-      passthru = attrs.passthru or {};
-      validity = checkMeta.assertValidity { inherit meta attrs; };
-      meta = checkMeta.commonMeta { inherit validity attrs; };
-      baseDrv = derivation ({
-        inherit (buildPlatform) system;
-        inherit (meta) name;
-      } // (builtins.removeAttrs attrs [ "meta" "passthru" ]));
-      passthru' = passthru // lib.optionalAttrs (passthru ? tests) {
-        tests = lib.mapAttrs (_: f: f baseDrv) passthru.tests;
-      };
+      removedAttributeNames = [
+        "meta"
+        "passthru"
+      ];
     in
-    lib.extendDerivation
-      validity.handled
-      ({ inherit meta; passthru = passthru'; } // passthru')
-      baseDrv;
+    attrs:
+    let
+      passthru = attrs.passthru or { };
+      validity = assertValidity { inherit meta attrs; };
+      meta = commonMeta { inherit validity attrs; };
+      baseDrv = derivation (
+        {
+          inherit (buildPlatform) system;
+          # redefining from meta to avoid forcing the thunk until it's used
+          name = attrs.name or "${attrs.pname}-${attrs.version}";
+        }
+        // maybeContentAddressed
+        // (removeAttrs attrs removedAttributeNames)
+      );
+      passthru' =
+        if passthru ? tests then
+          passthru
+          // {
+            tests = lib.mapAttrs (_: f: f baseDrv) passthru.tests;
+          }
+        else
+          passthru;
+    in
+    lib.extendDerivation validity.handled (
+      {
+        inherit meta;
+        passthru = passthru';
+      }
+      // passthru'
+    ) baseDrv;
 
   writeTextFile =
-    { name # the name of the derivation
-    , text
-    , executable ? false # run chmod +x ?
-    , destination ? ""   # relative path appended to $out eg "/bin/foo"
+    let
+      PATH = lib.makeBinPath [ mescc-tools-extra ];
+      builders = builtins.mapAttrs (_: builtins.toFile "write-text-file.kaem") {
+        emptyDestinationExecutable = ''
+          target=''${out}''${destination}
+          mkdir -p ''${out}''${destinationDir}
+          cp ''${textPath} ''${target}
+          chmod 555 ''${target}
+        '';
+        emptyDestinationNonExecutable = ''
+          target=''${out}''${destination}
+          mkdir -p ''${out}''${destinationDir}
+          cp ''${textPath} ''${target}
+        '';
+        nonEmptyDestinationExecutable = ''
+          target=''${out}''${destination}
+          cp ''${textPath} ''${target}
+          chmod 555 ''${target}
+        '';
+        nonEmptyDestinationNonExecutable = ''
+          target=''${out}''${destination}
+          cp ''${textPath} ''${target}
+        '';
+      };
+      getWriteTextFileBuilder =
+        destinationEmpty: executable:
+        if destinationEmpty then
+          if executable then builders.emptyDestinationExecutable else builders.emptyDestinationNonExecutable
+        else if executable then
+          builders.nonEmptyDestinationExecutable
+        else
+          builders.nonEmptyDestinationNonExecutable;
+    in
+    {
+      name, # the name of the derivation
+      text,
+      executable ? false, # run chmod +x ?
+      destination ? "", # relative path appended to $out eg "/bin/foo"
     }:
     derivationWithMeta {
       inherit name text;
@@ -39,22 +106,14 @@ rec {
         "--verbose"
         "--strict"
         "--file"
-        (builtins.toFile "write-text-file.kaem" (''
-          target=''${out}''${destination}
-        '' + lib.optionalString (builtins.dirOf destination == ".") ''
-          mkdir -p ''${out}''${destinationDir}
-        '' + ''
-          cp ''${textPath} ''${target}
-        '' + lib.optionalString executable ''
-          chmod 555 ''${target}
-        ''))
+        (getWriteTextFileBuilder (destination == "") executable)
       ];
 
-      PATH = lib.makeBinPath [ mescc-tools-extra ];
-      destinationDir = builtins.dirOf destination;
+      inherit PATH;
+      destinationDir = dirOf destination;
       inherit destination;
     };
 
-  writeText = name: text: writeTextFile {inherit name text;};
+  writeText = name: text: writeTextFile { inherit name text; };
 
 }

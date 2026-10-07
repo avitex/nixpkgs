@@ -1,34 +1,38 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, SDL2
-, SDL2_image
-, SDL2_mixer
-, SDL2_ttf
-, gettext
-, libpng
-, pkg-config
-, zlib
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  SDL2,
+  SDL2_image,
+  SDL2_mixer,
+  SDL2_ttf,
+  gettext,
+  libpng,
+  zlib,
+  nix-update-script,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "the-legend-of-edgar";
-  version = "1.36-unstable-2023-07-11";
+  version = "1.38";
 
   src = fetchFromGitHub {
     owner = "riksweeney";
     repo = "edgar";
-    rev = "8344b385b65e8226455c7e88bd5aca57caa3c520";
-    hash = "sha256-dOLKMsyQkVZ7gBiURfr/tFbu3xSqei8A/M2HSZgAFnI=";
+    rev = finalAttrs.version;
+    hash = "sha256-8Q2R6DrDb8ajWeewp10NlDYPPOu7HOl4LxO6DluitWQ=";
   };
 
+  strictDeps = true;
+  enableParallelBuilding = true;
+  __structuredAttrs = true;
+
   nativeBuildInputs = [
-    pkg-config
     gettext
+    SDL2
   ];
 
   buildInputs = [
-    SDL2
     SDL2_image
     SDL2_mixer
     SDL2_ttf
@@ -45,13 +49,12 @@ stdenv.mkDerivation (finalAttrs: {
     "BIN_DIR=${placeholder "out"}/bin/"
   ];
 
-  hardeningDisable = [
-    "fortify"
-  ];
+  passthru.updateScript = nix-update-script { };
 
   meta = {
     homepage = "https://www.parallelrealities.co.uk/games/edgar";
-    description = "A 2D platform game with a persistent world";
+    changelog = "https://github.com/riksweeney/edgar/releases/tag/${finalAttrs.version}";
+    description = "2D platform game with a persistent world";
     longDescription = ''
       When Edgar's father fails to return home after venturing out one dark and
       stormy night, Edgar fears the worst: he has been captured by the evil
@@ -66,8 +69,7 @@ stdenv.mkDerivation (finalAttrs: {
     '';
     license = lib.licenses.gpl1Plus;
     mainProgram = "edgar";
-    maintainers = with lib.maintainers; [ AndersonTorres ];
+    maintainers = with lib.maintainers; [ iedame ];
     platforms = lib.platforms.unix;
-    broken = stdenv.isDarwin;
   };
 })

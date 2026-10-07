@@ -1,66 +1,58 @@
-{ stdenv
-, lib
-, buildPythonPackage
-, fetchFromGitHub
-, jsonschema
-, pythonOlder
-, rfc3987
-, ruamel-yaml
-, setuptools-scm
-, libfdt
+{
+  stdenv,
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  jsonschema,
+  rfc3987,
+  ruamel-yaml,
+  setuptools-scm,
+  libfdt,
+  pytestCheckHook,
+  dtc,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "dtschema";
-  version = "2023.04";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "2026.09";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "devicetree-org";
     repo = "dt-schema";
-    rev = "refs/tags/v${version}";
-    sha256 = "sha256-w9TsRdiDTdExft7rdb2hYcvxP6hxOFZKI3hITiNSwgw=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-7GLRG6l05IGS9E2BoOYMYv7vk2hDU5wt0jPiflwhxWc=";
   };
 
-  patches = [
-    # Change name of pylibfdt to libfdt
-    ./fix_libfdt_name.patch
-  ];
+  build-system = [ setuptools-scm ];
 
-  nativeBuildInputs = [
-    setuptools-scm
-  ];
-
-  propagatedBuildInputs = [
+  dependencies = [
     jsonschema
     rfc3987
     ruamel-yaml
     libfdt
   ];
 
-  # Module has no tests
-  doCheck = false;
+  pythonImportsCheck = [ "dtschema" ];
 
-  pythonImportsCheck = [
-    "dtschema"
+  nativeCheckInputs = [
+    pytestCheckHook
+    dtc
   ];
 
-  meta = with lib; {
+  enabledTestPaths = [ "test/test-dt-validate.py" ];
+
+  meta = {
     description = "Tooling for devicetree validation using YAML and jsonschema";
     homepage = "https://github.com/devicetree-org/dt-schema/";
-    changelog = "https://github.com/devicetree-org/dt-schema/releases/tag/v${version}";
-    license = with licenses; [ bsd2 /* or */ gpl2Only ];
-    maintainers = with maintainers; [ sorki ];
+    changelog = "https://github.com/devicetree-org/dt-schema/releases/tag/v${finalAttrs.version}";
+    license = with lib.licenses; [
+      bsd2 # or
+      gpl2Only
+    ];
+    maintainers = with lib.maintainers; [ sorki ];
 
-    broken = (
-      # Library not loaded: @rpath/libfdt.1.dylib
-      stdenv.isDarwin ||
-
-      # see https://github.com/devicetree-org/dt-schema/issues/108
-      versionAtLeast jsonschema.version "4.18"
-    );
+    # Library not loaded: @rpath/libfdt.1.dylib
+    broken = stdenv.hostPlatform.isDarwin;
   };
-}
-
+})

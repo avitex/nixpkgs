@@ -1,39 +1,35 @@
-{ stdenv
-, lib
-, fetchFromSourcehut
-, hare
-, unstableGitUpdater
+{
+  fetchFromSourcehut,
+  hareHook,
+  lib,
+  stdenv,
+  gitUpdater,
 }:
 
-stdenv.mkDerivation {
+stdenv.mkDerivation (finalAttrs: {
   pname = "hare-ev";
-  version = "unstable-2023-12-04";
+  version = "0.26.0.0";
 
   src = fetchFromSourcehut {
     owner = "~sircmpwn";
     repo = "hare-ev";
-    rev = "e3c3f7613c602672ac41a3e47c106a5bd27a2378";
-    hash = "sha256-TQsR2lXJfkPu53WpJy/K+Jruyfw8mCkEIE9DbFQoS+s=";
+    tag = finalAttrs.version;
+    hash = "sha256-Chetww+F46ZJ+cgVuoFXRVYOT9g13iBK5EembWXQhuc=";
   };
 
-  nativeCheckInputs = [
-    hare
-  ];
+  nativeCheckInputs = [ hareHook ];
 
-  makeFlags = [
-    "HARECACHE=.harecache"
-    "PREFIX=${builtins.placeholder "out"}"
-  ];
+  makeFlags = [ "PREFIX=${placeholder "out"}" ];
 
   doCheck = true;
 
-  passthru.updateScript = unstableGitUpdater { };
+  passthru.updateScript = gitUpdater { };
 
-  meta = with lib; {
+  meta = {
     description = "Event loop for Hare programs";
     homepage = "https://sr.ht/~sircmpwn/hare-ev";
-    license = licenses.mpl20;
-    maintainers = with maintainers; [ colinsane ];
-    inherit (hare.meta) platforms badPlatforms;
+    license = lib.licenses.mpl20;
+    maintainers = with lib.maintainers; [ colinsane ];
+    inherit (hareHook.meta) platforms badPlatforms;
   };
-}
+})

@@ -1,106 +1,106 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, pytestCheckHook
-, pythonOlder
-, fetchFromGitLab
-, substituteAll
-, bubblewrap
-, exiftool
-, ffmpeg
-, mailcap
-, wrapGAppsHook
-, gdk-pixbuf
-, gobject-introspection
-, librsvg
-, poppler_gi
-, mutagen
-, pygobject3
-, pycairo
-, dolphinIntegration ? false
-, plasma5Packages
+{
+  lib,
+  buildPythonPackage,
+  pytestCheckHook,
+  fetchFromGitHub,
+  replaceVars,
+  exiftool,
+  ffmpeg_8,
+  setuptools,
+  wrapGAppsHook3,
+  gdk-pixbuf,
+  gnome,
+  gobject-introspection,
+  librsvg,
+  poppler_gi,
+  webp-pixbuf-loader,
+  mutagen,
+  pygobject3,
+  pycairo,
+  dolphinIntegration ? false,
+  kdePackages,
+  versionCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "mat2";
-  version = "0.13.4";
+  version = "0.15.0";
+  pyproject = true;
 
-  disabled = pythonOlder "3.5";
-
-  format = "setuptools";
-
-  src = fetchFromGitLab {
-    domain = "0xacab.org";
+  src = fetchFromGitHub {
     owner = "jvoisin";
     repo = "mat2";
-    rev = version;
-    hash = "sha256-SuN62JjSb5O8gInvBH+elqv/Oe7j+xjCo+dmPBU7jEY=";
+    tag = finalAttrs.version;
+    hash = "sha256-8i0ZGIy1yFPXk3WX5li4m9wZvSB6V4hX+D3rMGL4WLQ=";
   };
 
   patches = [
     # hardcode paths to some binaries
-    (substituteAll ({
-      src = ./paths.patch;
-      exiftool = "${exiftool}/bin/exiftool";
-      ffmpeg = "${ffmpeg}/bin/ffmpeg";
-    } // lib.optionalAttrs dolphinIntegration {
-      kdialog = "${plasma5Packages.kdialog}/bin/kdialog";
-    }))
+    (replaceVars ./paths.patch {
+      exiftool = lib.getExe exiftool;
+      ffmpeg = lib.getExe ffmpeg_8;
+      kdialog = if dolphinIntegration then lib.getExe kdePackages.kdialog else null;
+      # replaced in postPatch
+      mat2 = null;
+      mat2svg = null;
+    })
     # the executable shouldn't be called .mat2-wrapped
     ./executable-name.patch
     # hardcode path to mat2 executable
     ./tests.patch
-  ] ++ lib.optionals (stdenv.hostPlatform.isLinux) [
-    (substituteAll {
-      src = ./bubblewrap-path.patch;
-      bwrap = "${bubblewrap}/bin/bwrap";
-    })
   ];
 
   postPatch = ''
-    rm pyproject.toml
     substituteInPlace dolphin/mat2.desktop \
       --replace "@mat2@" "$out/bin/mat2" \
       --replace "@mat2svg@" "$out/share/icons/hicolor/scalable/apps/mat2.svg"
   '';
 
+  build-system = [ setuptools ];
+
   nativeBuildInputs = [
     gobject-introspection
-    wrapGAppsHook
+    wrapGAppsHook3
   ];
 
   buildInputs = [
     gdk-pixbuf
-    librsvg
     poppler_gi
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     mutagen
     pygobject3
     pycairo
   ];
 
   postInstall = ''
+    export GDK_PIXBUF_MODULE_FILE="${
+      gnome._gdkPixbufCacheBuilder_DO_NOT_USE {
+        extraLoaders = [
+          librsvg
+          webp-pixbuf-loader
+        ];
+      }
+    }"
+
     install -Dm 444 data/mat2.svg -t "$out/share/icons/hicolor/scalable/apps"
     install -Dm 444 doc/mat2.1 -t "$out/share/man/man1"
-  '' + lib.optionalString dolphinIntegration ''
+  ''
+  + lib.optionalString dolphinIntegration ''
     install -Dm 444 dolphin/mat2.desktop -t "$out/share/kservices5/ServiceMenus"
   '';
 
   nativeCheckInputs = [ pytestCheckHook ];
 
-  disabledTests = [
-    # Frequently fails when exiftool is updated and adds support for new metadata.
-    "test_all_parametred"
-  ];
+  nativeInstallCheckInputs = [ versionCheckHook ];
 
-  meta = with lib; {
-    description = "A handy tool to trash your metadata";
-    homepage = "https://0xacab.org/jvoisin/mat2";
-    changelog = "https://0xacab.org/jvoisin/mat2/-/blob/${version}/CHANGELOG.md";
-    license = licenses.lgpl3Plus;
+  meta = {
+    description = "Handy tool to trash your metadata";
+    homepage = "https://github.com/jvoisin/mat2";
+    changelog = "https://github.com/jvoisin/mat2/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.lgpl3Plus;
     mainProgram = "mat2";
-    maintainers = with maintainers; [ dotlambda ];
+    maintainers = with lib.maintainers; [ dotlambda ];
   };
-}
+})

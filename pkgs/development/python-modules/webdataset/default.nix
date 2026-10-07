@@ -1,83 +1,86 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, braceexpand
-, imageio
-, lmdb
-, msgpack
-, numpy
-, pytestCheckHook
-, pyyaml
-, setuptools
-, torch
-, torchvision
-, wheel
-, fetchFromGitHub
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  curl,
+
+  # build-system
+  setuptools,
+
+  # dependencies
+  braceexpand,
+  numpy,
+  pyyaml,
+
+  # tests
+  imageio,
+  lmdb,
+  msgpack,
+  pytestCheckHook,
+  torch,
+  torchvision,
 }:
-buildPythonPackage rec {
+buildPythonPackage {
   pname = "webdataset";
-  version = "0.2.86";
+  version = "1.0.2";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "webdataset";
     repo = "webdataset";
-    rev = "refs/tags/${version}";
-    hash = "sha256-aTjxoSoQ9LH4gcFmV+7Aj0HNIpvsFHTrxFUpAtB3nkM=";
+    # recent versions are not tagged on GitHub
+    rev = "0773837ecd298587fc89c4f944ef346ef1a6b619";
+    hash = "sha256-jFFRp5W9yP1mKi9x43EdOakFAd9ArnDqH3dnvFOeCmc=";
   };
 
-  nativeBuildInputs = [
+  postPatch = ''
+    substituteInPlace src/webdataset/gopen.py \
+      --replace-fail \
+        '"curl"' \
+        '"${lib.getExe curl}"'
+  '';
+
+  build-system = [
     setuptools
-    wheel
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     braceexpand
     numpy
     pyyaml
   ];
 
   nativeCheckInputs = [
-    pytestCheckHook
     imageio
+    lmdb
+    msgpack
+    pytestCheckHook
     torch
     torchvision
-    msgpack
-    lmdb
   ];
 
   pythonImportsCheck = [ "webdataset" ];
 
   disabledTests = [
-    # requires network
+    # Require network
     "test_batched"
+    "test_cache_dir"
     "test_dataloader"
     "test_decode_handlers"
     "test_decoder"
-    "test_decoder"
-    "test_download"
     "test_handlers"
     "test_pipe"
+    "test_remote_file"
     "test_shard_syntax"
     "test_torchvision"
-    "test_torchvision"
     "test_unbatched"
-    "test_yaml3"
-  ] ++ lib.optionals stdenv.isDarwin [
-    # pickling error
-    "test_background_download"
-  ] ++ lib.optionals (stdenv.isAarch64 && stdenv.isLinux) [
-    # segfaults on aarch64-linux
-    "test_webloader"
-    "test_webloader2"
-    "test_webloader_repeat"
-    "test_webloader_unbatched"
   ];
 
-  meta = with lib; {
-    description = "A high-performance Python-based I/O system for large (and small) deep learning problems, with strong support for PyTorch";
+  meta = {
+    description = "High-performance Python-based I/O system for large (and small) deep learning problems, with strong support for PyTorch";
+    mainProgram = "widsindex";
     homepage = "https://github.com/webdataset/webdataset";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ iynaix ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ iynaix ];
   };
 }

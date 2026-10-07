@@ -1,35 +1,30 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, setuptools
-, attrs
-, pytestCheckHook
-, hypothesis
-, pretend
-, arpeggio
-, typing-extensions
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  attrs,
+  pytestCheckHook,
+  hypothesis,
+  pretend,
+  arpeggio,
 }:
 
 buildPythonPackage rec {
   pname = "parver";
   version = "0.5";
-  format = "pyproject";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
     hash = "sha256-uf3h5ruc6fB+COnEvqjYglxeeOGKAFLQLgK/lRfrR3c=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
   propagatedBuildInputs = [
     attrs
     arpeggio
-  ] ++ lib.optionals (pythonOlder "3.10") [
-    typing-extensions
   ];
 
   nativeCheckInputs = [
@@ -38,10 +33,10 @@ buildPythonPackage rec {
     pretend
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Allows parsing and manipulation of PEP 440 version numbers";
     homepage = "https://github.com/RazerM/parver";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

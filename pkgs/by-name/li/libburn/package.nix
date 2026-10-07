@@ -1,20 +1,21 @@
-{ lib
-, stdenv
-, fetchFromGitea
-, autoreconfHook
-, pkg-config
+{
+  lib,
+  stdenv,
+  fetchFromGitea,
+  autoreconfHook,
+  pkg-config,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "libburn";
-  version = "1.5.6";
+  version = "1.5.8";
 
   src = fetchFromGitea {
     domain = "dev.lovelyhq.com";
     owner = "libburnia";
     repo = "libburn";
     rev = "release-${finalAttrs.version}";
-    hash = "sha256-Xo45X4374FXvlrJ4Q0PahYvuWXO0k3N0ke0mbURYt54=";
+    hash = "sha256-W/9dUUQGB1V76G9YshNjJcrptAuVVcsXiM5ZQ9Q50Xs=";
   };
 
   nativeBuildInputs = [
@@ -22,16 +23,19 @@ stdenv.mkDerivation (finalAttrs: {
     pkg-config
   ];
 
-  outputs = [ "out" "man" ];
+  outputs = [
+    "out"
+    "man"
+  ];
 
   strictDeps = true;
 
   meta = {
     homepage = "https://dev.lovelyhq.com/libburnia/web/wiki";
-    description = "A library by which preformatted data get onto optical media: CD, DVD, BD (Blu-Ray)";
+    description = "Library by which preformatted data get onto optical media: CD, DVD, BD (Blu-Ray)";
     changelog = "https://dev.lovelyhq.com/libburnia/libburn/src/tag/${finalAttrs.src.rev}/ChangeLog";
     license = lib.licenses.gpl2Plus;
-    maintainers = with lib.maintainers; [ abbradar AndersonTorres ];
+    maintainers = [ ];
     mainProgram = "cdrskin";
     platforms = lib.platforms.unix;
   };

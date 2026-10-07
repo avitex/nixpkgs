@@ -1,30 +1,39 @@
 # This test runs docker-registry and check if it works
-
-import ./make-test-python.nix ({ pkgs, ...} : {
+{ pkgs, ... }:
+{
   name = "docker-registry";
   meta = with pkgs.lib.maintainers; {
-    maintainers = [ globin ironpinguin ];
+    maintainers = [
+      ironpinguin
+      cafkafk
+    ];
   };
 
   nodes = {
-    registry = { ... }: {
-      services.dockerRegistry.enable = true;
-      services.dockerRegistry.enableDelete = true;
-      services.dockerRegistry.port = 8080;
-      services.dockerRegistry.listenAddress = "0.0.0.0";
-      services.dockerRegistry.enableGarbageCollect = true;
-      networking.firewall.allowedTCPPorts = [ 8080 ];
-    };
+    registry =
+      { ... }:
+      {
+        services.dockerRegistry.enable = true;
+        services.dockerRegistry.enableDelete = true;
+        services.dockerRegistry.port = 8080;
+        services.dockerRegistry.listenAddress = "0.0.0.0";
+        services.dockerRegistry.enableGarbageCollect = true;
+        services.dockerRegistry.openFirewall = true;
+      };
 
-    client1 = { ... }: {
-      virtualisation.docker.enable = true;
-      virtualisation.docker.extraOptions = "--insecure-registry registry:8080";
-    };
+    client1 =
+      { ... }:
+      {
+        virtualisation.docker.enable = true;
+        virtualisation.docker.extraOptions = "--insecure-registry registry:8080";
+      };
 
-    client2 = { ... }: {
-      virtualisation.docker.enable = true;
-      virtualisation.docker.extraOptions = "--insecure-registry registry:8080";
-    };
+    client2 =
+      { ... }:
+      {
+        virtualisation.docker.enable = true;
+        virtualisation.docker.extraOptions = "--insecure-registry registry:8080";
+      };
   };
 
   testScript = ''
@@ -44,7 +53,7 @@ import ./make-test-python.nix ({ pkgs, ...} : {
     client2.succeed("docker images | grep scratch")
 
     client2.succeed(
-        "curl -fsS -X DELETE registry:8080/v2/scratch/manifests/$(curl -fsS -I -H\"Accept: application/vnd.docker.distribution.manifest.v2+json\" registry:8080/v2/scratch/manifests/latest | grep Docker-Content-Digest | sed -e 's/Docker-Content-Digest: //' | tr -d '\\r')"
+        "curl -fsS -X DELETE registry:8080/v2/scratch/manifests/$(curl -fsS -I -H\"Accept: application/vnd.oci.image.manifest.v1+json\" registry:8080/v2/scratch/manifests/latest | grep Docker-Content-Digest | sed -e 's/Docker-Content-Digest: //' | tr -d '\\r')"
     )
 
     registry.systemctl("start docker-registry-garbage-collect.service")
@@ -58,4 +67,4 @@ import ./make-test-python.nix ({ pkgs, ...} : {
         "ls -l /var/lib/docker-registry/docker/registry/v2/blobs/sha256/*/*/data"
     )
   '';
-})
+}

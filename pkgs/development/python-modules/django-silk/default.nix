@@ -1,40 +1,40 @@
-{ lib
-, autopep8
-, buildPythonPackage
-, django
-, factory-boy
-, fetchFromGitHub
-, fetchpatch
-, freezegun
-, gprof2dot
-, jinja2
-, mock
-, networkx
-, pillow
-, pydot
-, pygments
-, python
-, python-dateutil
-, pythonOlder
-, pytz
-, requests
-, setuptools-scm
-, simplejson
-, sqlparse
+{
+  lib,
+  autopep8,
+  buildPythonPackage,
+  django,
+  factory-boy,
+  fetchFromGitHub,
+  freezegun,
+  gprof2dot,
+  jinja2,
+  mock,
+  networkx,
+  pillow,
+  pydot,
+  pygments,
+  pytestCheckHook,
+  pytest-cov-stub,
+  pytest-django,
+  python,
+  python-dateutil,
+  pytz,
+  requests,
+  setuptools-scm,
+  simplejson,
+  sqlparse,
 }:
 
 buildPythonPackage rec {
   pname = "django-silk";
-  version = "5.1.0";
+  version = "5.6.0";
   format = "setuptools";
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "jazzband";
     repo = "django-silk";
-    rev = "refs/tags/${version}";
-    hash = "sha256-QqY1bRa0v4DZ2/gDbssyhJA9Kb+5jig4hZEBVKZiowY=";
+    tag = version;
+    hash = "sha256-IMJ7xm3LXDmBwXWLqWXlk/V0r9K9arhUqWeDuq4gxaM=";
   };
 
   # "test_time_taken" tests aren't suitable for reproducible execution, but Django's
@@ -47,13 +47,9 @@ buildPythonPackage rec {
       --replace 'use_scm_version=True' 'version="${version}"'
   '';
 
-  nativeBuildInputs = [
-    setuptools-scm
-  ];
+  nativeBuildInputs = [ setuptools-scm ];
 
-  buildInputs = [
-    mock
-  ];
+  buildInputs = [ mock ];
 
   propagatedBuildInputs = [
     autopep8
@@ -74,27 +70,24 @@ buildPythonPackage rec {
     networkx
     pydot
     factory-boy
+    pytestCheckHook
+    pytest-cov-stub
+    pytest-django
   ];
 
-  pythonImportsCheck = [
-    "silk"
-  ];
+  pythonImportsCheck = [ "silk" ];
 
-  checkPhase = ''
-    runHook preCheck
+  preCheck = ''
+    export DB_ENGINE=sqlite3 DB_NAME=':memory:'
 
-    pushd project
-    DB_ENGINE=sqlite3 DB_NAME=':memory:' ${python.interpreter} manage.py test
-    popd # project
-
-    runHook postCheck
+    cd project
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Silky smooth profiling for the Django Framework";
     homepage = "https://github.com/jazzband/django-silk";
-    changelog = "https://github.com/jazzband/django-silk/blob/${version}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ris ];
+    changelog = "https://github.com/jazzband/django-silk/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ ris ];
   };
 }

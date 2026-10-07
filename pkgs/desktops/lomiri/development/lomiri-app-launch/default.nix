@@ -1,59 +1,67 @@
-{ stdenv
-, lib
-, fetchFromGitLab
-, gitUpdater
-, testers
-, cmake
-, cmake-extras
-, curl
-, dbus
-, dbus-test-runner
-, dpkg
-, gobject-introspection
-, gtest
-, json-glib
-, libxkbcommon
-, lomiri-api
-, lttng-ust
-, pkg-config
-, properties-cpp
-, python3
-, systemd
-, ubports-click
-, zeitgeist
-, withDocumentation ? true
-, doxygen
-, python3Packages
-, sphinx
+{
+  stdenv,
+  lib,
+  fetchFromGitLab,
+  gitUpdater,
+  testers,
+  cmake,
+  cmake-extras,
+  curl,
+  dbus,
+  dbus-test-runner,
+  dpkg,
+  gobject-introspection,
+  gtest,
+  json-glib,
+  libxkbcommon,
+  lomiri-api,
+  lttng-ust,
+  pkg-config,
+  properties-cpp,
+  python3,
+  systemdLibs,
+  ubports-click,
+  validatePkgConfig,
+  zeitgeist,
+  withDocumentation ? true,
+  doxygen,
+  python3Packages,
+  sphinx,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "lomiri-app-launch";
-  version = "0.1.8";
+  version = "0.2.0";
 
   outputs = [
     "out"
     "dev"
-  ] ++ lib.optionals withDocumentation [
+  ]
+  ++ lib.optionals withDocumentation [
     "doc"
   ];
 
   src = fetchFromGitLab {
     owner = "ubports";
     repo = "development/core/lomiri-app-launch";
-    rev = finalAttrs.version;
-    hash = "sha256-NIBZk5H0bPwAwkI0Qiq2S9dZvchAFPBCHKi2inUVZmI=";
+    tag = finalAttrs.version;
+    hash = "sha256-MPBgqui3RIOdiK/lmslhg23RlMqDAjYaTQAJ53+93sU=";
   };
+
+  patches = [
+    # Use /run/current-system/sw/bin fallback for desktop file Exec= lookups, propagate to launched applications
+    ./2001-Inject-current-system-PATH.patch
+  ];
 
   postPatch = ''
     patchShebangs tests/{desktop-hook-test.sh.in,repeat-until-pass.sh}
 
     # used pkg_get_variable, cannot replace prefix
     substituteInPlace data/CMakeLists.txt \
-      --replace 'DESTINATION "''${SYSTEMD_USER_UNIT_DIR}"' 'DESTINATION "${placeholder "out"}/lib/systemd/user"'
+      --replace-fail 'pkg_get_variable(SYSTEMD_USER_UNIT_DIR systemd systemduserunitdir)' 'pkg_get_variable(SYSTEMD_USER_UNIT_DIR systemd systemduserunitdir DEFINE_VARIABLES prefix=''${CMAKE_INSTALL_PREFIX})'
 
     substituteInPlace tests/jobs-systemd.cpp \
-      --replace '^(/usr)?' '^(/nix/store/\\w+-bash-.+)?'
+      --replace-fail '^(/usr)?' '^(/nix/store/\\w+-bash-.+)?'
   '';
 
   strictDeps = true;
@@ -62,8 +70,11 @@ stdenv.mkDerivation (finalAttrs: {
     cmake
     dpkg # for setting LOMIRI_APP_LAUNCH_ARCH
     gobject-introspection
+    lttng-ust
     pkg-config
-  ] ++ lib.optionals withDocumentation [
+    validatePkgConfig
+  ]
+  ++ lib.optionals withDocumentation [
     doxygen
     python3Packages.breathe
     sphinx
@@ -78,16 +89,18 @@ stdenv.mkDerivation (finalAttrs: {
     lomiri-api
     lttng-ust
     properties-cpp
-    systemd
+    systemdLibs
     ubports-click
     zeitgeist
   ];
 
   nativeCheckInputs = [
     dbus
-    (python3.withPackages (ps: with ps; [
-      python-dbusmock
-    ]))
+    (python3.withPackages (
+      ps: with ps; [
+        python-dbusmock
+      ]
+    ))
   ];
 
   checkInputs = [
@@ -96,8 +109,21 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   cmakeFlags = [
-    "-DENABLE_MIRCLIENT=OFF"
-    "-DENABLE_TESTS=${lib.boolToString finalAttrs.doCheck}"
+    (lib.cmakeBool "ENABLE_MIRCLIENT" false)
+    (lib.cmakeBool "ENABLE_TESTS" finalAttrs.finalPackage.doCheck)
+    (lib.cmakeFeature "CMAKE_CTEST_ARGUMENTS" (
+      lib.concatStringsSep ";" [
+        # Exclude tests
+        "-E"
+        (lib.strings.escapeShellArg "(${
+          lib.concatStringsSep "|" [
+            # Flaky, randomly hangs
+            # https://gitlab.com/ubports/development/core/lomiri-app-launch/-/issues/19
+            "^helper-handshake-test"
+          ]
+        })")
+      ]
+    ))
   ];
 
   postBuild = lib.optionalString withDocumentation ''
@@ -116,12 +142,13 @@ stdenv.mkDerivation (finalAttrs: {
     updateScript = gitUpdater { };
   };
 
-  meta = with lib; {
+  meta = {
     description = "System and associated utilities to launch applications in a standard and confined way";
     homepage = "https://gitlab.com/ubports/development/core/lomiri-app-launch";
-    license = licenses.gpl3Only;
-    maintainers = teams.lomiri.members;
-    platforms = platforms.linux;
+    changelog = "https://gitlab.com/ubports/development/core/lomiri-app-launch/-/blob/${finalAttrs.version}/ChangeLog";
+    license = lib.licenses.gpl3Only;
+    teams = [ lib.teams.lomiri ];
+    platforms = lib.platforms.linux;
     pkgConfigModules = [
       "lomiri-app-launch-0"
     ];

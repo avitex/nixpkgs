@@ -1,8 +1,8 @@
-{ buildPythonPackage
-, pkgs
-, lib
-, stdenv
-, hfst
+{
+  buildPythonPackage,
+  pkgs,
+  lib,
+  hfst,
 }:
 
 buildPythonPackage rec {
@@ -12,9 +12,7 @@ buildPythonPackage rec {
 
   sourceRoot = "${src.name}/src/python";
 
-  propagatedBuildInputs = [
-    hfst
-  ];
+  propagatedBuildInputs = [ hfst ];
 
   # Fixes some improper import paths
   patches = [ ./importfix.patch ];
@@ -22,12 +20,10 @@ buildPythonPackage rec {
   # Apply patch relative to source/src
   patchFlags = [ "-p3" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python interface for Omorfi";
     homepage = "https://github.com/flammie/omorfi";
-    license = licenses.gpl3;
-    maintainers = with maintainers; [ lurkki ];
-    # Ofborg build error (hfst not found?)
-    broken = stdenv.isDarwin;
+    license = lib.licenses.gpl3;
+    maintainers = with lib.maintainers; [ lurkki ];
   };
 }

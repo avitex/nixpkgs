@@ -1,52 +1,55 @@
-{ lib
-, mkDerivation
-, fetchFromGitHub
-, cmake
-, lxqt-build-tools
-, qtbase
-, qttools
-, qtsvg
-, qtx11extras
-, kwindowsystem
-, liblxqt
-, libqtxdg
-, gitUpdater
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  cmake,
+  kwindowsystem,
+  liblxqt,
+  libqtxdg,
+  lxqt-build-tools,
+  qtbase,
+  qtsvg,
+  qttools,
+  qtwayland,
+  wrapQtAppsHook,
+  gitUpdater,
 }:
 
-mkDerivation rec {
+stdenv.mkDerivation rec {
   pname = "lxqt-openssh-askpass";
-  version = "1.4.0";
+  version = "2.4.0";
 
   src = fetchFromGitHub {
     owner = "lxqt";
-    repo = pname;
+    repo = "lxqt-openssh-askpass";
     rev = version;
-    hash = "sha256-o/hJdaGtjcJiwjqfvfwfcOUv4YdAeeW+rCxsmZZdJQ0=";
+    hash = "sha256-87soVKVcC3B6Wm7iRy15k/rjLb9OX/2se0btIOyKA6Q=";
   };
 
   nativeBuildInputs = [
     cmake
     lxqt-build-tools
     qttools
+    wrapQtAppsHook
   ];
 
   buildInputs = [
-    qtbase
-    qtx11extras
-    qtsvg
     kwindowsystem
     liblxqt
     libqtxdg
+    qtbase
+    qtsvg
+    qtwayland
   ];
 
   passthru.updateScript = gitUpdater { };
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/lxqt/lxqt-openssh-askpass";
     description = "GUI to query passwords on behalf of SSH agents";
-    license = licenses.lgpl21Plus;
-    platforms = platforms.linux;
-    maintainers = teams.lxqt.members;
+    license = lib.licenses.lgpl21Plus;
+    platforms = lib.platforms.linux;
+    teams = [ lib.teams.lxqt ];
     mainProgram = "lxqt-openssh-askpass";
   };
 }

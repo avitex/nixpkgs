@@ -1,38 +1,48 @@
-{ lib
-, aiohttp
-, buildPythonPackage
-, certifi
-, fetchFromGitHub
-, mock
-, pytest-asyncio
-, pytest-httpserver
-, pytestCheckHook
-, pythonOlder
-, requests
-, trustme
-, urllib3
+{
+  lib,
+  aiohttp,
+  buildPythonPackage,
+  certifi,
+  fetchFromGitHub,
+  fetchpatch,
+  mock,
+  opentelemetry-api,
+  opentelemetry-sdk,
+  orjson,
+  pytest-asyncio,
+  pytest-cov-stub,
+  pytest-httpserver,
+  pytestCheckHook,
+  requests,
+  respx,
+  setuptools,
+  trustme,
+  urllib3,
 }:
 
 buildPythonPackage rec {
   pname = "elastic-transport";
-  version = "8.10.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "8.17.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "elastic";
     repo = "elastic-transport-python";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-4W9p9niHf2EMY+sS1RCdqWndzvpz8pKrIlLo3NxJ8mk=";
+    tag = "v${version}";
+    hash = "sha256-LWSvE88wEwMxRi6IZsMkIRP8UTRfImC9QZnuka1oiso=";
   };
 
-  postPatch = ''
-    substituteInPlace setup.cfg \
-      --replace " --cov-report=term-missing --cov=elastic_transport" ""
-  '';
+  # FIXME: backport fix for pytest-asyncio 1.2.0, as updating this entire ecosystem is painful
+  patches = [
+    (fetchpatch {
+      url = "https://github.com/elastic/elastic-transport-python/commit/d749d0be54821e81979888ff34b1451354548863.patch";
+      hash = "sha256-FrabqeLn3Sr1sg/lWWYsMPd0CZS/6BZYLnaK66T93BQ=";
+    })
+  ];
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     urllib3
     certifi
   ];
@@ -40,15 +50,22 @@ buildPythonPackage rec {
   nativeCheckInputs = [
     aiohttp
     mock
+    opentelemetry-api
+    opentelemetry-sdk
+    orjson
     pytest-asyncio
+    pytest-cov-stub
     pytest-httpserver
     pytestCheckHook
     requests
+    respx
     trustme
   ];
 
-  pythonImportsCheck = [
-    "elastic_transport"
+  pythonImportsCheck = [ "elastic_transport" ];
+
+  pytestFlags = [
+    "-Wignore::DeprecationWarning"
   ];
 
   disabledTests = [
@@ -67,13 +84,14 @@ buildPythonPackage rec {
     "test_debug_logging_no_body"
     "test_httpbin"
     "test_sniffed_nodes_added_to_pool"
+    "test_async_transport_httpbin"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Transport classes and utilities shared among Python Elastic client libraries";
-    homepage = "https://github.com/elasticsearch/elastic-transport-python";
-    changelog = "https://github.com/elastic/elastic-transport-python/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    homepage = "https://github.com/elastic/elastic-transport-python";
+    changelog = "https://github.com/elastic/elastic-transport-python/releases/tag/${src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

@@ -1,28 +1,40 @@
-{ lib, stdenv, fetchurl, ocaml, findlib, topkg, ocamlbuild, cmdliner }:
+{
+  lib,
+  stdenv,
+  fetchurl,
+  ocaml,
+  findlib,
+  topkg,
+  ocamlbuild,
+  cmdliner,
+}:
 
-let
-
-in lib.throwIfNot (lib.versionAtLeast ocaml.version "4.08")
-"b0 is not available for OCaml ${ocaml.version}"
-
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
 
   pname = "ocaml${ocaml.version}-b0";
-  version = "0.0.5";
+  version = "0.0.6";
 
   src = fetchurl {
-    url = "${meta.homepage}/releases/b0-${version}.tbz";
-    sha256 = "sha256-ty04JQcP4RCme/VQw0ko2IBebWWX5cBU6nRTTeV1I/I=";
+    url = "https://erratique.ch/software/b0/releases/b0-${finalAttrs.version}.tbz";
+    hash = "sha256-FscuTlKqZ7fGJk0+aln6lvNtF7Ghph64A4ZVqCUE9ZM=";
   };
 
   strictDeps = true;
 
-  nativeBuildInputs = [ ocaml findlib ocamlbuild topkg ];
-  buildInputs = [ topkg cmdliner ];
+  nativeBuildInputs = [
+    ocaml
+    findlib
+    ocamlbuild
+    topkg
+  ];
+  buildInputs = [
+    topkg
+    cmdliner
+  ];
 
   inherit (topkg) buildPhase installPhase;
 
-  meta = with lib; {
+  meta = {
     description = "Software construction and deployment kit";
     longDescription = ''
       WARNING this package is unstable and work in progress, do not depend on
@@ -33,14 +45,15 @@ stdenv.mkDerivation rec {
       * Software configuration, build and testing.
       * Source and binary deployments.
       * Software life-cycle procedures.
-      B0 also provides the B00 build library which provides abitrary build
+      B0 also provides the B00 build library which provides arbitrary build
       abstraction with reliable and efficient incremental rebuilds. The B00
       library can be – and has been – used on its own to devise domain specific
       build systems.
     '';
     homepage = "https://erratique.ch/software/b0";
     inherit (ocaml.meta) platforms;
-    license = licenses.isc;
-    maintainers = [ maintainers.Julow ];
+    license = lib.licenses.isc;
+    maintainers = [ lib.maintainers.Julow ];
+    broken = !lib.versionAtLeast ocaml.version "4.14";
   };
-}
+})

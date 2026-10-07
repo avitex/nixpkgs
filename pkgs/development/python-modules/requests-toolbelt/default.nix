@@ -1,26 +1,27 @@
-{ lib
-, betamax
-, buildPythonPackage
-, fetchPypi
-, pyopenssl
-, pytestCheckHook
-, requests
-, trustme
+{
+  lib,
+  betamax,
+  buildPythonPackage,
+  fetchPypi,
+  pyopenssl,
+  pytestCheckHook,
+  requests,
+  setuptools,
+  trustme,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "requests-toolbelt";
   version = "1.0.0";
-  format = "setuptools";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
+    inherit (finalAttrs) pname version;
     hash = "sha256-doGgo9BHAStb3A7jfX+PB+vnarCMrsz8OSHOI8iNW8Y=";
   };
 
-  propagatedBuildInputs = [
-    requests
-  ];
+  build-system = [ setuptools ];
+  dependencies = [ requests ];
 
   nativeCheckInputs = [
     betamax
@@ -39,15 +40,13 @@ buildPythonPackage rec {
     "test_request_with_base"
   ];
 
-  pythonImportsCheck = [
-    "requests_toolbelt"
-  ];
+  pythonImportsCheck = [ "requests_toolbelt" ];
 
-  meta = with lib; {
+  meta = {
     description = "Toolbelt of useful classes and functions to be used with requests";
     homepage = "http://toolbelt.rtfd.org";
-    changelog = "https://github.com/requests/toolbelt/blob/${version}/HISTORY.rst";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ matthiasbeyer ];
+    changelog = "https://github.com/requests/toolbelt/blob/${finalAttrs.version}/HISTORY.rst";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ matthiasbeyer ];
   };
-}
+})

@@ -1,4 +1,9 @@
-{ lib, buildPythonPackage, fetchPypi, pbr }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pbr,
+}:
 
 buildPythonPackage rec {
   pname = "requestsexceptions";
@@ -17,11 +22,11 @@ buildPythonPackage rec {
     sed -i '/^hacking/d' test-requirements.txt
   '';
 
-  meta = with lib; {
-    description = "Import exceptions from potentially bundled packages in requests.";
-    homepage = "https://pypi.python.org/pypi/requestsexceptions";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ makefu ];
-    platforms = platforms.all;
+  meta = {
+    description = "Import exceptions from potentially bundled packages in requests";
+    homepage = "https://pypi.org/project/requestsexceptions/";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ makefu ];
+    platforms = lib.platforms.all;
   };
 }

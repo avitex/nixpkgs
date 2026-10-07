@@ -1,32 +1,32 @@
-{ lib
-, fetchPypi
-, buildPythonPackage
-, setuptools
+{
+  lib,
+  fetchPypi,
+  buildPythonPackage,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "distro";
-  version = "1.8.0";
-  format = "pyproject";
+  version = "1.9.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-AuER0dxqUKu47ta/McPkjtiwgw0eoqG3jGF2XCUT/dg=";
+    hash = "sha256-L6d8b9iUDxFu4da5Si+QsTteqNAZuYvIuv3KvN2b2+0=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
   # tests are very targeted at individual linux distributions
   doCheck = false;
 
   pythonImportsCheck = [ "distro" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/nir0s/distro";
-    description = "Linux Distribution - a Linux OS platform information API.";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    description = "Linux Distribution - a Linux OS platform information API";
+    mainProgram = "distro";
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
 }

@@ -1,17 +1,18 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, requests
-, unittestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  requests,
+  unittestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "serverfiles";
   version = "0.3.1";
   format = "setuptools";
 
   src = fetchPypi {
-    inherit pname version;
+    inherit (finalAttrs) pname version;
     hash = "sha256-XhD8MudYeR43NbwIvOLtRwKoOx5Fq5bF1ZzIruz76+E=";
   };
 
@@ -21,9 +22,9 @@ buildPythonPackage rec {
   nativeCheckInputs = [ unittestCheckHook ];
 
   meta = {
-    description = "An utility that accesses files on a HTTP server and stores them locally for reuse";
+    description = "Utility that accesses files on a HTTP server and stores them locally for reuse";
     homepage = "https://github.com/biolab/serverfiles";
-    license = [ lib.licenses.gpl3Plus ];
-    maintainers = [ lib.maintainers.lucasew ];
+    license = lib.licenses.gpl3Plus;
+    maintainers = [ ];
   };
-}
+})

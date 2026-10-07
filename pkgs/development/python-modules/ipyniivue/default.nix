@@ -1,49 +1,82 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, hatchling
-, hatch-jupyter-builder
-, ipywidgets
-, jupyter-ui-poll
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fetchNpmDeps,
+  nodejs,
+  npmHooks,
+  hatchling,
+  hatch-vcs,
+  hatch-jupyter-builder,
+  anywidget,
+  numpy,
+  requests,
+  pytestCheckHook,
+  nix-update-script,
 }:
 
 buildPythonPackage rec {
   pname = "ipyniivue";
-  version = "1.1.0";
-  format = "pyproject";
+  version = "2.4.4";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-kym7949VI6C+62p3IOQ2QIzWnuSBcrmySb83oqUwhjI=";
+  src = fetchFromGitHub {
+    owner = "niivue";
+    repo = "ipyniivue";
+    tag = "v${version}";
+    hash = "sha256-Jk8Os8g2W5IRqLQSLQeH59ffGgWK/gjuUZgUl+HflVA=";
   };
 
-  # We do not need the jupyterlab build dependency, because we do not need to
-  # build any JS components; these are present already in the PyPI artifact.
-  #
+  npmDeps = fetchNpmDeps {
+    name = "${pname}-${version}-npm-deps";
+    inherit src;
+    hash = "sha256-6TbwAC175mkyR8EThMalWn7qEyaIFDxtKmC/RIuy1dk=";
+    postPatch = ''
+      cp ${./package-lock.json} ./package-lock.json
+    '';
+  };
   postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace '"jupyterlab==3.*",' ""
+    cp ${./package-lock.json} ./package-lock.json
   '';
 
+  # We do not need the build hooks, because we do not need to
+  # build any JS components; these are present already in the PyPI artifact.
+  env.HATCH_BUILD_NO_HOOKS = true;
+
   nativeBuildInputs = [
+    nodejs
+    npmHooks.npmConfigHook
+  ];
+
+  preBuild = ''
+    npm run build
+  '';
+
+  build-system = [
     hatchling
+    hatch-vcs
     hatch-jupyter-builder
   ];
 
-  propagatedBuildInputs = [ ipywidgets jupyter-ui-poll ];
+  dependencies = [
+    anywidget
+    numpy
+    requests
+  ];
 
-  nativeCheckImports = [ pytestCheckHook ];
+  nativeCheckInputs = [ pytestCheckHook ];
   pythonImportsCheck = [ "ipyniivue" ];
 
-  meta = with lib; {
+  passthru = {
+    # https://github.com/niivue/ipyniivue/pull/139
+    updateScript = nix-update-script { extraArgs = [ "--generate-lockfile" ]; };
+  };
+
+  meta = {
     description = "Show a nifti image in a webgl 2.0 canvas within a jupyter notebook cell";
     homepage = "https://github.com/niivue/ipyniivue";
-    changelog = "https://github.com/niivue/ipyniivue/releases/tag/${version}";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ bcdarwin ];
+    changelog = "https://github.com/niivue/ipyniivue/releases/tag/${src.tag}";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ bcdarwin ];
   };
 }

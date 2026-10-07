@@ -1,41 +1,40 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, flit-core
-, unittestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  flit-core,
+  unittestCheckHook,
 
-# for passthru.tests
-, awsebcli
-, black
-, hatchling
-, yamllint
+  # for passthru.tests
+  awsebcli,
+  black,
+  hatchling,
+  yamllint,
 }:
 
 buildPythonPackage rec {
   pname = "pathspec";
-  version = "0.11.2";
-  format = "pyproject";
+  version = "1.1.1";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-4NjQrC8S2mGVbrIwa2n5RptC9N6w88tu1HuczpmWztM=";
+    hash = "sha256-F9tezVJBBKEg4XOBTJA2epapjQfEWy4QwvORn/+Rv1o=";
   };
 
-  nativeBuildInputs = [
-    flit-core
-  ];
+  nativeBuildInputs = [ flit-core ];
 
-  pythonImportsCheck = [
-    "pathspec"
-  ];
+  pythonImportsCheck = [ "pathspec" ];
 
-  checkInputs = [
-    unittestCheckHook
-  ];
+  checkInputs = [ unittestCheckHook ];
 
   passthru.tests = {
-    inherit awsebcli black hatchling yamllint;
+    inherit
+      awsebcli
+      black
+      hatchling
+      yamllint
+      ;
   };
 
   meta = {
@@ -43,6 +42,6 @@ buildPythonPackage rec {
     homepage = "https://github.com/cpburnz/python-path-specification";
     changelog = "https://github.com/cpburnz/python-pathspec/blob/v${version}/CHANGES.rst";
     license = lib.licenses.mpl20;
-    maintainers = with lib.maintainers; [ copumpkin ];
+    maintainers = [ ];
   };
 }

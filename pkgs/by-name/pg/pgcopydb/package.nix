@@ -1,44 +1,48 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, libkrb5
-, openssl
-, pam
-, pkg-config
-, postgresql
-, readline
-, sqlite
-, testers
-, zlib
+{
+  lib,
+  clangStdenv,
+  fetchFromGitHub,
+  boehmgc,
+  libkrb5,
+  openssl,
+  pam,
+  pkg-config,
+  postgresql,
+  readline,
+  sqlite,
+  testers,
+  zlib,
+  python3Packages,
 }:
 
-stdenv.mkDerivation (finalAttrs: {
+clangStdenv.mkDerivation (finalAttrs: {
   pname = "pgcopydb";
-  version = "0.15";
+  version = "0.17-unstable-2026-05-21";
 
   src = fetchFromGitHub {
     owner = "dimitri";
     repo = "pgcopydb";
-    rev = "v${finalAttrs.version}";
-    hash = "sha256-m9iIF8h6V3wWLUQuPntXtRAh16RrmR3uqZZIljGCY08=";
+    rev = "984269274ccdaf0d297ed82db635e6746be55b75";
+    hash = "sha256-qTtziRdsge4YtQTTfWQ5KD8SQn2HYnj3rDMcrbI56SY=";
   };
 
   nativeBuildInputs = [
     pkg-config
+    postgresql.pg_config
   ];
 
-  buildInputs = [
-    libkrb5
-    openssl
+  buildInputs = postgresql.buildInputs ++ [
+    boehmgc
     postgresql
-    readline
     sqlite
-    zlib
-  ] ++ lib.optionals stdenv.isLinux [
-    pam
+    python3Packages.sphinxHook
   ];
 
   hardeningDisable = [ "format" ];
+
+  sphinxBuilders = [
+    "man"
+  ];
 
   installPhase = ''
     runHook preInstall
@@ -54,13 +58,13 @@ stdenv.mkDerivation (finalAttrs: {
     };
   };
 
-  meta = with lib; {
+  meta = {
     description = "Copy a Postgres database to a target Postgres server (pg_dump | pg_restore on steroids";
     homepage = "https://github.com/dimitri/pgcopydb";
     changelog = "https://github.com/dimitri/pgcopydb/blob/${finalAttrs.src.rev}/CHANGELOG.md";
-    license = licenses.postgresql;
-    maintainers = with maintainers; [ marsam ];
+    license = lib.licenses.postgresql;
+    maintainers = [ ];
     mainProgram = "pgcopydb";
-    platforms = platforms.all;
+    platforms = lib.platforms.all;
   };
 })

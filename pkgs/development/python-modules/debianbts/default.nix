@@ -1,48 +1,46 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pysimplesoap
-, pythonOlder
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pysimplesoap,
+  setuptools,
+  distutils,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "python-debianbts";
-  version = "4.0.2";
+  version = "4.1.1";
   pyproject = true;
 
-  disabled = pythonOlder "3.8";
-
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-JbPb0lZND96XLZNU97wMuT9iGNXVN2KTsZC2St6FfuU=";
+    inherit (finalAttrs) version;
+    pname = "python_debianbts";
+    hash = "sha256-9EOxjOJBGzcxA3hHFeZwffA09I2te+OHppF7FuFU15M=";
   };
 
   postPatch = ''
     sed -i "/--cov/d" pyproject.toml
   '';
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     pysimplesoap
+    distutils
   ];
 
   # Most tests require network access
   doCheck = false;
 
-  pythonImportsCheck = [
-    "debianbts"
-  ];
+  pythonImportsCheck = [ "debianbts" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python interface to Debian's Bug Tracking System";
+    mainProgram = "debianbts";
     homepage = "https://github.com/venthur/python-debianbts";
     downloadPage = "https://pypi.org/project/python-debianbts/";
-    changelog = "https://github.com/venthur/python-debianbts/blob/${version}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ nicoo ];
+    changelog = "https://github.com/venthur/python-debianbts/blob/${finalAttrs.version}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ nicoo ];
   };
-}
+})

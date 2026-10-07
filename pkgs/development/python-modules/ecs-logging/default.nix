@@ -1,40 +1,33 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, flit-core
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  flit-core,
 }:
 
 buildPythonPackage rec {
   pname = "ecs-logging";
-  version = "2.1.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "2.3.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "elastic";
     repo = "ecs-logging-python";
-    rev = "refs/tags/${version}";
-    hash = "sha256-Gf44bT3/gmHy+yaQ1+bhCFB33ym2G14tzNqTQyC3BJU=";
+    tag = version;
+    hash = "sha256-YI3s+KkDPd6PVQlwpau+kgEccquo7FtfNSK278Z8B9M=";
   };
 
-  nativeBuildInputs = [
-    flit-core
-  ];
+  nativeBuildInputs = [ flit-core ];
 
   # Circular dependency elastic-apm
   doCheck = false;
 
-  pythonImportsCheck = [
-    "ecs_logging"
-  ];
+  pythonImportsCheck = [ "ecs_logging" ];
 
-  meta = with lib; {
+  meta = {
     description = "Logging formatters for the Elastic Common Schema (ECS) in Python";
     homepage = "https://github.com/elastic/ecs-logging-python";
-    license = with licenses; [ asl20 ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

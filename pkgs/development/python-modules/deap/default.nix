@@ -1,28 +1,44 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, matplotlib
-, numpy
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  moocore,
+  numpy,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "deap";
-  version = "1.4.1";
-  format = "setuptools";
+  version = "1.4.4";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-zAHemJLfp9G8mAPasoiS/q0XfwGCyB20c2CiQOrXeP8=";
+    inherit (finalAttrs) version;
+    pname = "deap";
+    hash = "sha256-UNS9kk/KWhaj26i/2xFApV6cJM5QgWq09Wg9LzHC1zQ=";
   };
 
-  propagatedBuildInputs = [ matplotlib numpy ];
+  build-system = [
+    setuptools
+  ];
+
+  dependencies = [
+    moocore
+    numpy
+  ];
+
   nativeCheckInputs = [ pytestCheckHook ];
 
-  meta = with lib; {
-    description = "A novel evolutionary computation framework for rapid prototyping and testing of ideas";
+  meta = {
+    description = "Novel evolutionary computation framework for rapid prototyping and testing of ideas";
     homepage = "https://github.com/DEAP/deap";
-    license = licenses.lgpl3Plus;
-    maintainers = with maintainers; [ getpsyched psyanticy ];
+    license = lib.licenses.lgpl3Plus;
+    maintainers = with lib.maintainers; [
+      getpsyched
+      psyanticy
+    ];
   };
-}
+})

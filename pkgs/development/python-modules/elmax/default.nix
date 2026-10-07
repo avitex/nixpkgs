@@ -1,20 +1,19 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, httpx
-, poetry-core
-, pythonOlder
-, pytest-asyncio
-, pytest-httpx
-, pytestCheckHook
-, yarl
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  httpx,
+  poetry-core,
+  pytest-asyncio,
+  pytest-httpx,
+  pytestCheckHook,
+  yarl,
 }:
 
 buildPythonPackage rec {
   pname = "elmax";
   version = "0.1.5";
-  format = "pyproject";
-  disabled = pythonOlder "3.7";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "home-assistant-ecosystem";
@@ -38,10 +37,11 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "elmax" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python API client for the Elmax Cloud services";
+    mainProgram = "poetry-template";
     homepage = "https://github.com/home-assistant-ecosystem/python-elmax";
-    license = with licenses; [ asl20 ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

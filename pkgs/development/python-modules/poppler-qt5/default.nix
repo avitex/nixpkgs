@@ -1,15 +1,16 @@
-{ lib
-, buildPythonPackage
-, isPy3k
-, fetchPypi
-, sip
-, qtbase
-, qmake
-, pyqt5
-, pyqt-builder
-, poppler
-, pkg-config
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  isPy3k,
+  fetchPypi,
+  sip,
+  qtbase,
+  qmake,
+  pyqt5,
+  pyqt-builder,
+  poppler,
+  pkg-config,
+  setuptools,
 }:
 
 buildPythonPackage rec {
@@ -20,15 +21,23 @@ buildPythonPackage rec {
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-tHfohB8OoOCf2rby8wXPON+XfZ4ULlaTo3RgXXXdb+A=";
+    hash = "sha256-tHfohB8OoOCf2rby8wXPON+XfZ4ULlaTo3RgXXXdb+A=";
   };
 
-
-  buildInputs = [ qtbase.dev poppler pyqt-builder ];
-  nativeBuildInputs = [ pkg-config qmake sip setuptools ];
+  buildInputs = [
+    qtbase.dev
+    poppler
+    pyqt-builder
+  ];
+  nativeBuildInputs = [
+    pkg-config
+    qmake
+    sip
+    setuptools
+  ];
   propagatedBuildInputs = [ pyqt5.dev ];
 
-  format = "pyproject";
+  pyproject = true;
   dontConfigure = true;
 
   postPatch = ''
@@ -44,9 +53,9 @@ buildPythonPackage rec {
 
   dontWrapQtApps = true;
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/frescobaldi/python-poppler-qt5";
-    license = licenses.lgpl21Plus;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.lgpl21Plus;
+    maintainers = [ ];
   };
 }

@@ -1,73 +1,127 @@
-{ buildPythonPackage
-, lib
-, fetchurl
+{
+  buildPythonPackage,
+  lib,
+  fetchurl,
+  stdenv,
 
-, autoreconfHook
-, boost
-, cairomm
-, cgal
-, expat
-, gmp
-, gobject-introspection
-, gtk3
-, matplotlib
-, mpfr
-, numpy
-, pkg-config
-, pycairo
-, pygobject3
-, python
-, scipy
-, sparsehash
+  boost191,
+  cairomm_1_16,
+  cgal,
+  expat,
+  fontconfig,
+  gobject-introspection,
+  gtk3,
+  llvmPackages,
+  matplotlib,
+  mpfr,
+  numpy,
+  pkg-config,
+  pycairo,
+  pygobject3,
+  python,
+  scipy,
+  zstandard,
+
+  writableTmpDirAsHomeHook,
+
+  gitUpdater,
 }:
 
-buildPythonPackage rec {
+let
+  boost' = boost191.override {
+    enablePython = true;
+    inherit python;
+  };
+in
+buildPythonPackage (finalAttrs: {
   pname = "graph-tool";
-  format = "other";
-  version = "2.45";
+  version = "3.8";
+  pyproject = false;
+
+  __structuredAttrs = true;
 
   src = fetchurl {
-    url = "https://downloads.skewed.de/graph-tool/graph-tool-${version}.tar.bz2";
-    hash = "sha256-+S2nrM/aArKXke/k8LPtkzKfJyMq9NOvwHySQh7Ghmg=";
+    url = "https://downloads.skewed.de/graph-tool/graph-tool-${finalAttrs.version}.tar.bz2";
+    hash = "sha256-YnT7qbndwUW+pcau2iahiACRlKc4eKIfSev1NZuCwVA=";
   };
 
-  configureFlags = [
-    "--with-python-module-path=$(out)/${python.sitePackages}"
-    "--with-boost-libdir=${boost}/lib"
-    "--with-expat=${expat}"
-    "--with-cgal=${cgal}"
-    "--enable-openmp"
-  ];
+  postPatch =
+    # remove error messages about tput during build process without adding ncurses
+    ''
+      substituteInPlace configure \
+        --replace-fail 'tput setaf $1' : \
+        --replace-fail 'tput sgr0' :
+    '';
+
+  configureFlags =
+    lib.mapAttrsToList (lib.withFeatureAs true) {
+      boost-libdir = "${lib.getLib boost'}/lib";
+      cgal = lib.getDev cgal;
+      python-module-path = "$(out)/${python.sitePackages}";
+    }
+    ++ [
+      # CXXFLAGS defaults to "-g -O2", if unset.
+      # "-g" produces debugging information, which significantly increases
+      # resource requirements during compilation, but is not necessary as we
+      # subsequently strip the binaries.
+      # "-ftemplate-backtrace-limit=1" reduces the number of template
+      # instantiation notes per warning in order to reduce the log file size.
+      # "-O3" is also used by upstream.
+      "CXXFLAGS=-ftemplate-backtrace-limit=1 -O3"
+    ]
+    ++
+      lib.optionals stdenv.cc.isGNU
+        # enable GCC's link-time optimizer in order to reduce compilation time and memory usage during compilation
+        # https://graph-tool.skewed.de/installation.html#memory-requirements-for-compilation
+        # https://git.skewed.de/count0/graph-tool/-/issues/798#note_5626
+        [ "MOD_CXXFLAGS=-flto" ];
 
   enableParallelBuilding = true;
 
-  nativeBuildInputs = [
-    autoreconfHook
-    pkg-config
-  ];
+  nativeBuildInputs = [ pkg-config ];
 
-  # https://git.skewed.de/count0/graph-tool/-/wikis/installation-instructions#manual-compilation
-  propagatedBuildInputs = [
-    boost
-    cairomm
+  # https://graph-tool.skewed.de/installation.html#manual-compilation
+  buildInputs = [
+    boost'
+    cairomm_1_16
     cgal
     expat
-    gmp
-    gobject-introspection
+    mpfr
+  ]
+  ++ lib.optionals stdenv.cc.isClang [ llvmPackages.openmp ];
+
+  dependencies = [
     gtk3
     matplotlib
-    mpfr
     numpy
     pycairo
     pygobject3
     scipy
-    sparsehash
+    zstandard
   ];
 
-  meta = with lib; {
+  propagatedNativeBuildInputs = [ gobject-introspection ];
+
+  nativeCheckInputs = [ writableTmpDirAsHomeHook ];
+
+  preInstallCheck =
+    # avoid warnings about Matplotlib and Fontconfig configuration issues
+    ''
+      export FONTCONFIG_FILE=${fontconfig.out}/etc/fonts/fonts.conf
+    '';
+
+  pythonImportsCheck = [ "graph_tool.all" ];
+
+  passthru.updateScript = gitUpdater {
+    url = "https://git.skewed.de/count0/graph-tool";
+    rev-prefix = "release-";
+  };
+
+  meta = {
     description = "Python module for manipulation and statistical analysis of graphs";
     homepage = "https://graph-tool.skewed.de";
-    license = licenses.lgpl3Plus;
-    maintainers = with maintainers; [ ];
+    changelog = "https://git.skewed.de/count0/graph-tool/commits/release-${finalAttrs.version}";
+    license = lib.licenses.lgpl3Plus;
+    maintainers = [ lib.maintainers.mjoerg ];
   };
-}
+})

@@ -1,53 +1,50 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# build-system
-, setuptools
+  # build-system
+  setuptools,
 
-# dependencies
-, click
-, prompt-toolkit
-, six
+  # dependencies
+  click,
+  prompt-toolkit,
+  typing-extensions,
 
-# tests
-, pytestCheckHook
+  # tests
+  pytest-cov-stub,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "click-repl";
-  version = "0.3.0";
+  version = "0.3.0-unstable-2026-03-26";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "click-contrib";
     repo = "click-repl";
-    rev = "refs/tags/${version}";
-    hash = "sha256-xCT3w0DDY73dtDL5jbssXM05Zlr44OOcy4vexgHyWiE=";
+    rev = "b84191aec21b407b3cb3374ff1ab000887d38f29";
+    hash = "sha256-5Xv6oeV6sIRE3K3sZq8DyAXOcY8fYobcJtW/ZN7C4U0=";
   };
 
-  postPatch = ''
-    sed -i '/--cov=/d' pyproject.toml
-  '';
+  build-system = [ setuptools ];
 
-  nativeBuildInputs = [
-    setuptools
-  ];
-
-  propagatedBuildInputs = [
+  dependencies = [
     click
     prompt-toolkit
-    six
+    typing-extensions
   ];
 
   nativeCheckInputs = [
+    pytest-cov-stub
     pytestCheckHook
   ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/click-contrib/click-repl";
     description = "Subcommand REPL for click apps";
-    license = licenses.mit;
-    maintainers = with maintainers; [ twey ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ twey ];
   };
-}
+})

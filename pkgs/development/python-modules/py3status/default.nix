@@ -1,47 +1,54 @@
-{ lib
-, buildPythonPackage
-, acpi
-, alsa-utils
-, coreutils
-, dbus-python
-, fetchPypi
-, file
-, hatchling
-, i3
-, i3ipc
-, libnotify
-, lm_sensors
-, procps
-, pydbus
-, pygobject3
-, pyserial
-, pytz
-, requests
-, setuptools
-, tzlocal
-, xorg
+{
+  lib,
+  buildPythonPackage,
+  acpi,
+  alsa-utils,
+  coreutils,
+  dbus-python,
+  fetchPypi,
+  file,
+  hatchling,
+  i3,
+  i3ipc,
+  libnotify,
+  lm_sensors,
+  procps,
+  pygobject3,
+  pyserial,
+  pytz,
+  requests,
+  setuptools,
+  tzlocal,
+  wrapGAppsHook3,
+  xset,
+  setxkbmap,
+  glib,
+  gobject-introspection,
 }:
 
 buildPythonPackage rec {
   pname = "py3status";
-  version = "3.55";
+  version = "3.64";
   pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-HGOHJQWEvTTL+GXVb8ZS8DlL9dHWuS0PioP1bZ32PhI=";
+    hash = "sha256-7hafyW7jq/8Xk4POAohX6sNViJ+Azuqs5/0i1JqCqr0=";
   };
 
   nativeBuildInputs = [
     hatchling
+    wrapGAppsHook3
+    gobject-introspection
   ];
+
+  buildInputs = [ glib ];
 
   propagatedBuildInputs = [
     pytz
     requests
     tzlocal
     i3ipc
-    pydbus
     pygobject3
     pyserial
     setuptools
@@ -58,17 +65,23 @@ buildPythonPackage rec {
     sed -i -e "s|'i3-nagbar|'${i3}/bin/i3-nagbar|" py3status/modules/pomodoro.py
     sed -i -e "s|'free|'${procps}/bin/free|" py3status/modules/sysdata.py
     sed -i -e "s|'sensors|'${lm_sensors}/bin/sensors|" py3status/modules/sysdata.py
-    sed -i -e "s|'setxkbmap|'${xorg.setxkbmap}/bin/setxkbmap|" py3status/modules/keyboard_layout.py
-    sed -i -e "s|'xset|'${xorg.xset}/bin/xset|" py3status/modules/keyboard_layout.py
+    sed -i -e "s|'setxkbmap|'${setxkbmap}/bin/setxkbmap|" py3status/modules/keyboard_layout.py
+    sed -i -e "s|'xset|'${xset}/bin/xset|" py3status/modules/keyboard_layout.py
+  '';
+
+  dontWrapGApps = true;
+
+  preFixup = ''
+    makeWrapperArgs+=("''${gappsWrapperArgs[@]}")
   '';
 
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "Extensible i3status wrapper";
     homepage = "https://github.com/ultrabug/py3status";
     changelog = "https://github.com/ultrabug/py3status/blob/${version}/CHANGELOG";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
 }

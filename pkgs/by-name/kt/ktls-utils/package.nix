@@ -1,25 +1,28 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, autoreconfHook
-, pkg-config
-, gnutls
-, keyutils
-, glib
-, libnl
-, systemd
-, withSystemd ? lib.meta.availableOn stdenv.hostPlatform systemd
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  autoreconfHook,
+  pkg-config,
+  gnutls,
+  keyutils,
+  glib,
+  libnl,
+  systemdLibs,
+  withSystemd ? lib.meta.availableOn stdenv.hostPlatform systemdLibs,
+  nix-update-script,
+  nixosTests,
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "ktls-utils";
-  version = "0.10";
+  version = "1.3.0";
 
   src = fetchFromGitHub {
     owner = "oracle";
     repo = "ktls-utils";
-    rev = "ktls-utils-${version}";
-    hash = "sha256-1HceFajSSq1D3IMeGQF+i/iW1lL2opLLWFfsRHW9atg=";
+    rev = "ktls-utils-${finalAttrs.version}";
+    hash = "sha256-xBh9iSmTf8YCfahWnJvDx/nvz91NFZ3AiJ2JYs+pMfY=";
   };
 
   nativeBuildInputs = [
@@ -34,21 +37,33 @@ stdenv.mkDerivation rec {
     libnl
   ];
 
-  outputs = [ "out" "man" ];
+  outputs = [
+    "out"
+    "man"
+  ];
 
-  configureFlags = lib.optional withSystemd [ "--with-systemd" ];
+  configureFlags = lib.optionals withSystemd [ "--with-systemd" ];
 
-  makeFlags = lib.optional withSystemd [ "unitdir=$(out)/lib/systemd/system" ];
+  makeFlags = lib.optionals withSystemd [ "unitdir=$(out)/lib/systemd/system" ];
 
   doCheck = true;
 
-  meta = with lib; {
+  passthru = {
+    updateScript = nix-update-script { };
+    tests.nixos = nixosTests.tlshd;
+    services.default = {
+      imports = [ (lib.modules.importApply ./service.nix { }) ];
+      tlshd.package = finalAttrs.finalPackage;
+    };
+  };
+
+  meta = {
     description = "TLS handshake utilities for in-kernel TLS consumers";
     homepage = "https://github.com/oracle/ktls-utils";
-    changelog = "https://github.com/oracle/ktls-utils/blob/${src.rev}/NEWS";
-    license = licenses.gpl2Only;
-    maintainers = with maintainers; [ ];
-    mainProgram = "ktls-utils";
-    platforms = platforms.linux;
+    changelog = "https://github.com/oracle/ktls-utils/blob/${finalAttrs.src.rev}/NEWS";
+    license = lib.licenses.gpl2Only;
+    maintainers = [ ];
+    mainProgram = "tlshd";
+    platforms = lib.platforms.linux;
   };
-}
+})

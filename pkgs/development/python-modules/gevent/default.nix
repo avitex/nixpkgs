@@ -1,57 +1,62 @@
-{ lib
-, fetchPypi
-, buildPythonPackage
-, isPyPy
-, python
-, libev
-, cffi
-, cython_3
-, greenlet
-, importlib-metadata
-, setuptools
-, wheel
-, zope-event
-, zope-interface
-, pythonOlder
+{
+  stdenv,
+  lib,
+  fetchPypi,
+  buildPythonPackage,
+  isPyPy,
+  python,
+  libev,
+  cffi,
+  cython,
+  greenlet,
+  importlib-metadata,
+  setuptools,
+  zope-event,
+  zope-interface,
+  c-ares,
+  libuv,
 
-# for passthru.tests
-, dulwich
-, gunicorn
-, opentracing
-, pika
+  # for passthru.tests
+  dulwich,
+  gunicorn,
+  pika,
 }:
 
 buildPythonPackage rec {
   pname = "gevent";
-  version = "23.9.1";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "26.5.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-csACI1OQ1G+Uk4qWkg2IVtT/2d32KjA6DXwRiJQJfjQ=";
+    hash = "sha256-FlXrBMHiDXGyqko8dSgWLdWP9sxGoDevHwH1NMgP77o=";
   };
 
-  nativeBuildInputs = [
-    cython_3
+  build-system = [
+    cython
     setuptools
-    wheel
-  ] ++ lib.optionals (!isPyPy) [
-    cffi
-  ];
+  ]
+  ++ lib.optionals (!isPyPy) [ cffi ];
 
   buildInputs = [
     libev
+    libuv
+    c-ares
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     importlib-metadata
     zope-event
     zope-interface
-  ] ++ lib.optionals (!isPyPy) [
-    greenlet
-  ];
+  ]
+  ++ lib.optionals (!isPyPy) [ greenlet ];
+
+  env = {
+    GEVENTSETUP_EMBED = "0";
+  }
+  // lib.optionalAttrs stdenv.cc.isGNU {
+    NIX_CFLAGS_COMPILE = "-Wno-error=incompatible-pointer-types";
+  };
 
   # Bunch of failures.
   doCheck = false;
@@ -65,15 +70,16 @@ buildPythonPackage rec {
     inherit
       dulwich
       gunicorn
-      opentracing
-      pika;
-  } // lib.filterAttrs (k: v: lib.hasInfix "gevent" k) python.pkgs;
+      pika
+      ;
+  }
+  // lib.filterAttrs (k: v: lib.hasInfix "gevent" k) python.pkgs;
 
-  meta = with lib; {
+  meta = {
     description = "Coroutine-based networking library";
     homepage = "http://www.gevent.org/";
-    license = licenses.mit;
-    maintainers = with maintainers; [ bjornfor ];
-    platforms = platforms.unix;
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ bjornfor ];
+    platforms = lib.platforms.unix;
   };
 }

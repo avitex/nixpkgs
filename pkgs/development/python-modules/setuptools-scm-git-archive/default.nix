@@ -1,9 +1,10 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools
-, setuptools-scm
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  setuptools-scm,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
@@ -22,24 +23,18 @@ buildPythonPackage rec {
     setuptools-scm
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pytestFlagsArray = [
-    "tests.py"
-  ];
+  enabledTestPaths = [ "tests.py" ];
 
-  pythonImportsCheck = [
-    "setuptools_scm_git_archive"
-  ];
+  pythonImportsCheck = [ "setuptools_scm_git_archive" ];
 
-  meta = with lib; {
+  meta = {
     description = "setuptools_scm plugin for git archives";
     homepage = "https://github.com/Changaco/setuptools_scm_git_archive";
-    license = licenses.mit;
-    maintainers = [ maintainers.marsam ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
     # https://github.com/Changaco/setuptools_scm_git_archive/pull/22
-    broken = versionAtLeast setuptools-scm.version "8";
+    broken = lib.versionAtLeast setuptools-scm.version "8";
   };
 }

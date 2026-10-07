@@ -1,73 +1,120 @@
-{ lib
-, stdenv
-, fetchFromGitHub, fetchpatch
-, cmake
-, enableShared ? !stdenv.hostPlatform.isStatic
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  fetchpatch,
+  cmake,
+  enableShared ? !stdenv.hostPlatform.isStatic,
 
-# tests
-, mpd
-, openimageio
-, fcitx5
-, spdlog
+  # tests
+  mpd,
+  openimageio,
+  fcitx5,
+  spdlog,
 }:
 
 let
-  generic = { version, sha256, patches ? [ ] }:
+  generic =
+    {
+      version,
+      hash,
+      patches ? [ ],
+    }:
     stdenv.mkDerivation {
       pname = "fmt";
       inherit version;
 
-      outputs = [ "out" "dev" ];
+      outputs = [
+        "out"
+        "dev"
+      ];
 
       src = fetchFromGitHub {
         owner = "fmtlib";
         repo = "fmt";
         rev = version;
-        inherit sha256;
+        inherit hash;
       };
 
       inherit patches;
 
       nativeBuildInputs = [ cmake ];
 
-      cmakeFlags = [
-        "-DBUILD_SHARED_LIBS=${if enableShared then "ON" else "OFF"}"
-      ];
+      cmakeFlags = [ (lib.cmakeBool "BUILD_SHARED_LIBS" enableShared) ];
 
       doCheck = true;
 
       passthru.tests = {
-        inherit mpd openimageio fcitx5 spdlog;
+        inherit
+          mpd
+          openimageio
+          fcitx5
+          spdlog
+          ;
       };
 
-      meta = with lib; {
+      meta = {
+        # last successful hydra build on darwin was in 2025
+        broken = lib.versionOlder version "11" && stdenv.hostPlatform.isDarwin;
         description = "Small, safe and fast formatting library";
         longDescription = ''
           fmt (formerly cppformat) is an open-source formatting library. It can be
           used as a fast and safe alternative to printf and IOStreams.
         '';
         homepage = "https://fmt.dev/";
-        changelog = "https://github.com/fmtlib/fmt/blob/${version}/ChangeLog.rst";
+        changelog =
+          let
+            ext = if lib.versionOlder version "10" then "rst" else "md";
+          in
+          "https://github.com/fmtlib/fmt/blob/${version}/ChangeLog.${ext}";
         downloadPage = "https://github.com/fmtlib/fmt/";
-        maintainers = [ maintainers.jdehaas ];
-        license = licenses.mit;
-        platforms = platforms.all;
+        maintainers = [ ];
+        license = lib.licenses.mit;
+        platforms = lib.platforms.all;
       };
     };
 in
 {
-  fmt_8 = generic {
-    version = "8.1.1";
-    sha256 = "sha256-leb2800CwdZMJRWF5b1Y9ocK0jXpOX/nwo95icDf308=";
-  };
-
   fmt_9 = generic {
     version = "9.1.0";
-    sha256 = "sha256-rP6ymyRc7LnKxUXwPpzhHOQvpJkpnRFOt2ctvUNlYI0=";
+    hash = "sha256-rP6ymyRc7LnKxUXwPpzhHOQvpJkpnRFOt2ctvUNlYI0=";
+    patches = [
+      # Fixes the build with Clang ≥ 18.
+      (fetchpatch {
+        url = "https://github.com/fmtlib/fmt/commit/c4283ec471bd3efdb114bc1ab30c7c7c5e5e0ee0.patch";
+        hash = "sha256-YyB5GY/ZqJQIhhGy0ICMPzfP/OUuyLnciiyv8Nscsec=";
+      })
+    ];
   };
 
   fmt_10 = generic {
-    version = "10.1.1";
-    sha256 = "sha256-H9+1lEaHM12nzXSmo9m8S6527t+97e6necayyjCPm1A=";
+    version = "10.2.1";
+    hash = "sha256-pEltGLAHLZ3xypD/Ur4dWPWJ9BGVXwqQyKcDWVmC3co=";
+  };
+
+  fmt_11 = generic {
+    version = "11.2.0";
+    hash = "sha256-sAlU5L/olxQUYcv8euVYWTTB8TrVeQgXLHtXy8IMEnU=";
+    patches = [
+      # Fixes the build with libc++ ≥ 21.
+      (fetchpatch {
+        url = "https://github.com/fmtlib/fmt/commit/3cabf3757b6bc00330b55975317b2c145e4c689d.patch";
+        hash = "sha256-SJFzNNC0Bt2aEQJlHGc0nv9KOpPQ+TgDX5iuFMUs9tk=";
+      })
+    ];
+  };
+
+  fmt_12 = generic {
+    version = "12.2.0";
+    hash = "sha256-Tc7PmNxUv7ajw6GaHPGEEtrD/fl6is7RB8TPestJa1o=";
+
+    patches = [
+      # fix build on 32-bit targets
+      # FIXME: remove in next update
+      (fetchpatch {
+        url = "https://github.com/fmtlib/fmt/commit/588b3a0f8f6a8bcf2a959cae882d5b2703e86737.patch";
+        hash = "sha256-DiE3nwYrtNDJ6cqYreU499Y0auH6dsAW21TRPe16Tx8=";
+      })
+    ];
   };
 }

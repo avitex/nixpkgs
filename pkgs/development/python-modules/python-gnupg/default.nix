@@ -1,36 +1,34 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools
-, gnupg
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  gnupg,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "python-gnupg";
-  version = "0.5.1";
+  version = "0.5.6";
+  pyproject = true;
 
-  format = "pyproject";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-VnS61Ok4dsCw0xl+MU1/lC05AYvzHiuDP2eIpoE8P7g=";
+  src = fetchFromGitHub {
+    owner = "vsajip";
+    repo = "python-gnupg";
+    tag = finalAttrs.version;
+    hash = "sha256-ztwITune/rO4c3wUCsw6wBN09jnpWpElgwQx7JCXsVw=";
   };
 
   postPatch = ''
     substituteInPlace gnupg.py \
-      --replace "gpgbinary='gpg'" "gpgbinary='${gnupg}/bin/gpg'"
+      --replace "gpgbinary='gpg'" "gpgbinary='${lib.getExe gnupg}'"
     substituteInPlace test_gnupg.py \
-      --replace "os.environ.get('GPGBINARY', 'gpg')" "os.environ.get('GPGBINARY', '${gnupg}/bin/gpg')"
+      --replace "os.environ.get('GPGBINARY', 'gpg')" "os.environ.get('GPGBINARY', '${lib.getExe gnupg}')"
   '';
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   disabledTests = [
     # network access
@@ -39,11 +37,11 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "gnupg" ];
 
-  meta = with lib; {
+  meta = {
     description = "API for the GNU Privacy Guard (GnuPG)";
     homepage = "https://github.com/vsajip/python-gnupg";
-    changelog = "https://github.com/vsajip/python-gnupg/releases/tag/${version}";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ copumpkin ];
+    changelog = "https://github.com/vsajip/python-gnupg/releases/tag/${finalAttrs.version}";
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
-}
+})

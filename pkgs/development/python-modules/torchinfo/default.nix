@@ -1,39 +1,42 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, fetchpatch
-, pythonOlder
-, torch
-, torchvision
-, pytestCheckHook
-, transformers
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fetchpatch,
+  setuptools,
+  torch,
+  torchvision,
+  pytestCheckHook,
+  transformers,
+  writableTmpDirAsHomeHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "torchinfo";
   version = "1.8.0";
-  format = "setuptools";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "TylerYep";
     repo = "torchinfo";
-    rev = "refs/tags/v${version}";
+    tag = "v${finalAttrs.version}";
     hash = "sha256-pPjg498aT8y4b4tqIzNxxKyobZX01u+66ScS/mee51Q=";
   };
 
   patches = [
-    (fetchpatch {  # Add support for Python 3.11 and pytorch 2.1
+    (fetchpatch {
+      # Add support for Python 3.11 and pytorch 2.1
       url = "https://github.com/TylerYep/torchinfo/commit/c74784c71c84e62bcf56664653b7f28d72a2ee0d.patch";
       hash = "sha256-xSSqs0tuFpdMXUsoVv4sZLCeVnkK6pDDhX/Eobvn5mw=";
-      includes = [
-        "torchinfo/model_statistics.py"
-      ];
+      includes = [ "torchinfo/model_statistics.py" ];
     })
   ];
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     torch
     torchvision
   ];
@@ -41,11 +44,8 @@ buildPythonPackage rec {
   nativeCheckInputs = [
     pytestCheckHook
     transformers
+    writableTmpDirAsHomeHook
   ];
-
-  preCheck = ''
-    export HOME=$(mktemp -d)
-  '';
 
   disabledTests = [
     # Skip as it downloads pretrained weights (require network access)
@@ -62,14 +62,12 @@ buildPythonPackage rec {
     "tests/torchinfo_xl_test.py"
   ];
 
-  pythonImportsCheck = [
-    "torchinfo"
-  ];
+  pythonImportsCheck = [ "torchinfo" ];
 
-  meta = with lib; {
+  meta = {
     description = "API to visualize pytorch models";
     homepage = "https://github.com/TylerYep/torchinfo";
-    license = licenses.mit;
-    maintainers = with maintainers; [ petterstorvik ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ petterstorvik ];
   };
-}
+})

@@ -1,55 +1,52 @@
-{ lib
-, aiohttp-retry
-, buildPythonPackage
-, fetchFromGitHub
-, freezegun
-, ical
-, parameterized
-, pycryptodome
-, pydantic
-, pytest-aiohttp
-, pytest-asyncio
-, pytest-golden
-, pytest-mock
-, pytestCheckHook
-, python-dateutil
-, pythonOlder
-, pyyaml
-, requests
-, requests-mock
-, responses
+{
+  lib,
+  aiohttp,
+  aiohttp-retry,
+  buildPythonPackage,
+  fetchFromGitHub,
+  freezegun,
+  ical,
+  mashumaro,
+  parameterized,
+  pycryptodome,
+  pytest-aiohttp,
+  pytest-asyncio,
+  pytest-cov-stub,
+  pytest-golden,
+  pytest-mock,
+  pytestCheckHook,
+  python-dateutil,
+  pyyaml,
+  setuptools,
+  syrupy,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pyrainbird";
-  version = "4.0.1";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.10";
+  version = "6.5.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "allenporter";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-OcCg6Q+FJnmrYf70uNLWTg/tfWVJpiQlnyKfREcP2YM=";
+    repo = "pyrainbird";
+    tag = finalAttrs.version;
+    hash = "sha256-JPnp77NhgT878sQJ7Az58R6JnMuprr69rPiZjkh+E1I=";
   };
 
-  postPatch = ''
-    substituteInPlace pytest.ini \
-      --replace "--cov=pyrainbird --cov-report=term-missing" ""
+  build-system = [ setuptools ];
 
-    substituteInPlace setup.cfg \
-      --replace "pycryptodome>=3.16.0" "pycryptodome"
-  '';
+  pythonRelaxDeps = [
+    "aiohttp"
+  ];
 
-  propagatedBuildInputs = [
+  dependencies = [
+    aiohttp
     aiohttp-retry
     ical
+    mashumaro
     pycryptodome
-    pydantic
     python-dateutil
     pyyaml
-    requests
   ];
 
   __darwinAllowLocalNetworking = true;
@@ -59,22 +56,20 @@ buildPythonPackage rec {
     parameterized
     pytest-aiohttp
     pytest-asyncio
+    pytest-cov-stub
     pytest-golden
     pytest-mock
     pytestCheckHook
-    requests-mock
-    responses
+    syrupy
   ];
 
-  pythonImportsCheck = [
-    "pyrainbird"
-  ];
+  pythonImportsCheck = [ "pyrainbird" ];
 
-  meta = with lib; {
+  meta = {
     description = "Module to interact with Rainbird controllers";
     homepage = "https://github.com/allenporter/pyrainbird";
-    changelog = "https://github.com/allenporter/pyrainbird/releases/tag/${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/allenporter/pyrainbird/releases/tag/${finalAttrs.version}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

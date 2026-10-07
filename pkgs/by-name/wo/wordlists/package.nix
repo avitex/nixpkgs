@@ -1,17 +1,18 @@
-{ lib
-, symlinkJoin
-, nmap
-, rockyou
-, seclists
-, wfuzz
-, lists ? [
+{
+  lib,
+  symlinkJoin,
+  nmap,
+  rockyou,
+  seclists,
+  wfuzz,
+  lists ? [
     nmap
     rockyou
     seclists
     wfuzz
-  ]
-, writeShellScriptBin
-, tree
+  ],
+  writeShellScriptBin,
+  tree,
 }:
 let
   wordlistsCollection = symlinkJoin {
@@ -35,8 +36,10 @@ let
     printf "${wordlistsCollection}/share/wordlists\n"
   '';
 
-in symlinkJoin {
-  name = "wordlists";
+in
+symlinkJoin {
+  pname = "wordlists";
+  version = lib.trivial.release;
 
   paths = [
     wordlistsCollection
@@ -44,8 +47,8 @@ in symlinkJoin {
     wordlistsPathBin
   ];
 
-  meta = with lib; {
-    description = "A collection of wordlists useful for security testing";
+  meta = {
+    description = "Collection of wordlists useful for security testing";
     longDescription = ''
       The `wordlists` package provides two scripts. One is called {command}`wordlists`,
       and it will list a tree of all the wordlists installed. The other one is
@@ -55,7 +58,7 @@ in symlinkJoin {
       [rockyou](https://en.wikipedia.org/wiki/RockYou#Data_breach)
       wordlist. If you want to modify the available wordlists you can override
       the `lists` attribute`. In your nixos configuration this would look
-      similiar to this:
+      similar to this:
 
       ```nix
       environment.systemPackages = [
@@ -68,6 +71,9 @@ in symlinkJoin {
       If you want to add a new package that provides wordlist/s the convention
       is to copy it to {file}`$out/share/wordlists/myNewWordlist`.
     '';
-    maintainers = with maintainers; [ janik pamplemousse h7x4 ];
+    maintainers = with lib.maintainers; [
+      pamplemousse
+      h7x4
+    ];
   };
 }

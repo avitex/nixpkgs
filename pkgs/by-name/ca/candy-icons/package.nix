@@ -1,23 +1,23 @@
-{ lib
-, stdenvNoCC
-, fetchFromGitHub
-, gtk3
+{
+  lib,
+  stdenvNoCC,
+  fetchFromGitHub,
+  unstableGitUpdater,
+  gtk3,
 }:
 
 stdenvNoCC.mkDerivation {
   pname = "candy-icons";
-  version = "unstable-2023-12-31";
+  version = "0-unstable-2026-03-06";
 
   src = fetchFromGitHub {
     owner = "EliverLara";
     repo = "candy-icons";
-    rev = "e4464d7b4d8e1821025447b2064b6a8f5c4c8c89";
-    hash = "sha256-XdYjxWf8R4b1GK2iFQnoEOWykc19ZT37ki83WeESQBM=";
+    rev = "83512fbcadcb7e1015ebbe1729a1894946b021be";
+    hash = "sha256-TzovzmfrUuaSrtpKCQxyXcih7cKSBhBtMpZLVwY/ScA=";
   };
 
-  nativeBuildInputs = [
-    gtk3
-  ];
+  nativeBuildInputs = [ gtk3 ];
 
   dontDropIconThemeCache = true;
 
@@ -31,11 +31,16 @@ stdenvNoCC.mkDerivation {
     runHook postInstall
   '';
 
-  meta = with lib; {
+  passthru.updateScript = unstableGitUpdater { };
+
+  meta = {
     homepage = "https://github.com/EliverLara/candy-icons";
-    description = "An icon theme colored with sweet gradients";
-    license = licenses.gpl3Plus;
-    platforms = platforms.linux;
-    maintainers = with maintainers; [ clr-cera ];
+    description = "Icon theme colored with sweet gradients";
+    license = lib.licenses.gpl3Plus;
+    platforms = lib.platforms.linux;
+    maintainers = with lib.maintainers; [
+      clr-cera
+      arunoruto
+    ];
   };
 }

@@ -1,78 +1,90 @@
-{ stdenv
-, lib
-, boehmgc
-, boost
-, cairo
-, cmake
-, desktopToDarwinBundle
-, fetchurl
-, fetchpatch
-, gettext
-, ghostscript
-, glib
-, glibmm
-, gobject-introspection
-, gsl
-, gspell
-, gtk-mac-integration
-, gtkmm3
-, gdk-pixbuf
-, imagemagick
-, lcms
-, lib2geom
-, libcdr
-, libexif
-, libpng
-, librevenge
-, librsvg
-, libsigcxx
-, libsoup
-, libvisio
-, libwpg
-, libXft
-, libxml2
-, libxslt
-, ninja
-, perlPackages
-, pkg-config
-, poppler
-, popt
-, potrace
-, python3
-, substituteAll
-, wrapGAppsHook
-, libepoxy
-, zlib
+{
+  stdenv,
+  lib,
+  boehmgc,
+  boost,
+  cairo,
+  callPackage,
+  cmake,
+  desktopToDarwinBundle,
+  fetchpatch,
+  fetchurl,
+  fd,
+  gettext,
+  ghostscript,
+  glib,
+  glibmm_2_4,
+  gobject-introspection,
+  gsl,
+  gspell,
+  gtk-mac-integration,
+  gtkmm3,
+  gtksourceview4,
+  gdk-pixbuf,
+  graphicsmagick,
+  lcms,
+  lib2geom,
+  libcdr,
+  libexif,
+  libpng,
+  librevenge,
+  librsvg,
+  libsigcxx_2_0,
+  libvisio,
+  libwpg,
+  libxft,
+  libxml2,
+  libxslt,
+  readline,
+  ninja,
+  perlPackages,
+  pkg-config,
+  poppler,
+  popt,
+  potrace,
+  python3,
+  runCommand,
+  replaceVars,
+  wrapGAppsHook3,
+  libepoxy,
+  zlib,
+  yq,
 }:
 let
-  python3Env = python3.withPackages
-    (ps: with ps; [
+  python3Env = python3.withPackages (
+    ps: with ps; [
+      # List taken almost verbatim from the output of nix-build -A inkscape.passthru.pythonDependencies
       appdirs
       beautifulsoup4
       cachecontrol
-    ]
-    # CacheControl requires extra runtime dependencies for FileCache
-    # https://gitlab.com/inkscape/extras/extension-manager/-/commit/9a4acde6c1c028725187ff5972e29e0dbfa99b06
-    ++ cachecontrol.optional-dependencies.filecache
-    ++ [
-      numpy
+      cssselect
+      filelock
+      inkex
       lxml
+      numpy
       packaging
       pillow
-      scour
+      pygobject3
       pyparsing
       pyserial
       requests
-      pygobject3
-    ] ++ inkex.propagatedBuildInputs);
+      scour
+      tinycss2
+      zstandard
+    ]
+  );
 in
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "inkscape";
-  version = "1.3.2";
+  version = "1.4.4";
+  outputs = [
+    "out"
+    "man"
+  ];
 
   src = fetchurl {
-    url = "https://inkscape.org/release/inkscape-${version}/source/archive/xz/dl/inkscape-${version}.tar.xz";
-    sha256 = "sha256-29GETcRD/l4Q0+mohxROX7ciOFL/8ZHPte963qsOCGs=";
+    url = "https://inkscape.org/release/inkscape-${finalAttrs.version}/source/archive/xz/dl/inkscape-${finalAttrs.version}.tar.xz";
+    sha256 = "sha256-u85XU6Hgi4caXPFsZl6wYHAKqrmmo3ncY/TE2bO4hW4=";
   };
 
   # Inkscape hits the ARGMAX when linking on macOS. It appears to be
@@ -82,24 +94,25 @@ stdenv.mkDerivation rec {
   strictDeps = true;
 
   patches = [
-    (substituteAll {
-      src = ./fix-python-paths.patch;
+    (replaceVars ./fix-python-paths.patch {
       # Python is used at run-time to execute scripts,
       # e.g., those from the "Effects" menu.
-      python3 = "${python3Env}/bin/python";
+      python3 = lib.getExe python3Env;
     })
-    (substituteAll {
+    (replaceVars ./fix-ps2pdf-path.patch {
       # Fix path to ps2pdf binary
-      src = ./fix-ps2pdf-path.patch;
       inherit ghostscript;
     })
-
-    # Fix build with libxml2 2.12
-    # https://gitlab.com/inkscape/inkscape/-/merge_requests/6089
+    # https://gitlab.com/inkscape/inkscape/-/merge_requests/7919
     (fetchpatch {
-      url = "https://gitlab.com/inkscape/inkscape/-/commit/694d8ae43d06efff21adebf377ce614d660b24cd.patch";
-      hash = "sha256-9IXJzpZbNU5fnt7XKgqCzUDrwr08qxGwo8TqnL+xc6E=";
+      name = "fix-build-poppler-26.05.0";
+      url = "https://gitlab.com/inkscape/inkscape/-/commit/98828255aa0c1212329236b3ff4ac7f41efb4a67.patch";
+      hash = "sha256-ujUl0SxZyb/TyJRmq1ETNn5W8lDDNn3JqHQQQPU5klA=";
     })
+    # https://gitlab.com/inkscape/inkscape/-/merge_requests/7968
+    ./fix-build-poppler-26.06.0.patch
+    # https://gitlab.com/inkscape/inkscape/-/merge_requests/8034
+    ./fix-build-poppler-26.07.0.patch
   ];
 
   postPatch = ''
@@ -109,7 +122,14 @@ stdenv.mkDerivation rec {
 
     # double-conversion is a dependency of 2geom
     substituteInPlace CMakeScripts/DefineDependsandFlags.cmake \
-      --replace 'find_package(DoubleConversion REQUIRED)' ""
+      --replace-fail 'find_package(DoubleConversion REQUIRED)' ""
+    # use native Python when cross-compiling
+    shopt -s globstar
+    for f in **/CMakeLists.txt; do
+      substituteInPlace $f \
+        --replace-quiet "COMMAND python3" "COMMAND ${lib.getExe python3Env.pythonOnBuildForHost}"
+    done
+    shopt -u globstar
   '';
 
   nativeBuildInputs = [
@@ -119,12 +139,14 @@ stdenv.mkDerivation rec {
     python3Env
     glib # for setup hook
     gdk-pixbuf # for setup hook
-    wrapGAppsHook
+    wrapGAppsHook3
     gobject-introspection
-  ] ++ (with perlPackages; [
+  ]
+  ++ (with perlPackages; [
     perl
     XMLParser
-  ]) ++ lib.optionals stdenv.isDarwin [
+  ])
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
     desktopToDarwinBundle
   ];
 
@@ -133,10 +155,11 @@ stdenv.mkDerivation rec {
     boost
     gettext
     glib
-    glibmm
+    glibmm_2_4
     gsl
     gtkmm3
-    imagemagick
+    gtksourceview4
+    graphicsmagick
     lcms
     lib2geom
     libcdr
@@ -144,13 +167,13 @@ stdenv.mkDerivation rec {
     libpng
     librevenge
     librsvg # for loading icons
-    libsigcxx
-    libsoup
+    libsigcxx_2_0
     libvisio
     libwpg
-    libXft
+    libxft
     libxml2
     libxslt
+    readline
     perlPackages.perl
     poppler
     popt
@@ -158,26 +181,53 @@ stdenv.mkDerivation rec {
     python3Env
     zlib
     libepoxy
-  ] ++ lib.optionals (!stdenv.isDarwin) [
+  ]
+  ++ lib.optionals (!stdenv.hostPlatform.isDarwin) [
     gspell
-  ] ++ lib.optionals stdenv.isDarwin [
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
     cairo
     gtk-mac-integration
   ];
 
   # Make sure PyXML modules can be found at run-time.
-  postInstall = lib.optionalString stdenv.isDarwin ''
+  postInstall = lib.optionalString stdenv.hostPlatform.isDarwin ''
     for f in $out/lib/inkscape/*.dylib; do
       ln -s $f $out/lib/$(basename $f)
     done
   '';
 
-  meta = with lib; {
+  passthru = {
+    tests = {
+      ps2pdf-plugin = callPackage ./test-ps2pdf-plugin.nix { };
+      inherit (python3.pkgs) inkex;
+    };
+
+    pythonDependencies =
+      runCommand "python-dependency-list"
+        {
+          nativeBuildInputs = [
+            fd
+            yq
+          ];
+          inherit (finalAttrs) src;
+        }
+        ''
+          unpackPhase
+          tomlq --slurp 'map(.tool.poetry.dependencies | to_entries | map(.key)) | flatten | map(ascii_downcase) | unique' $(fd pyproject.toml) > "$out"
+        '';
+  };
+
+  meta = {
     description = "Vector graphics editor";
     homepage = "https://www.inkscape.org";
-    license = licenses.gpl3Plus;
-    maintainers = [ maintainers.jtojnar ];
-    platforms = platforms.all;
+    license = lib.licenses.gpl3Plus;
+    maintainers = with lib.maintainers; [
+      jtojnar
+      x123
+      Luflosi
+    ];
+    platforms = lib.platforms.all;
     mainProgram = "inkscape";
     longDescription = ''
       Inkscape is a feature-rich vector graphics editor that edits
@@ -186,4 +236,4 @@ stdenv.mkDerivation rec {
       If you want to import .eps files install ps2edit.
     '';
   };
-}
+})

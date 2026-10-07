@@ -1,15 +1,26 @@
-{ config
-, lib
-, pkgs
-, ...
+{
+  config,
+  lib,
+  pkgs,
+  ...
 }:
 let
   cfg = config.services.guacamole-server;
 in
 {
+  imports = [
+    (lib.mkRenamedOptionModule
+      [ "services" "guacamole-server" "logbackXml" ]
+      [ "services" "guacamole-client" "logbackXml" ]
+    )
+    (lib.mkRenamedOptionModule
+      [ "services" "guacamole-server" "userMappingXml" ]
+      [ "services" "guacamole-client" "userMappingXml" ]
+    )
+  ];
   options = {
     services.guacamole-server = {
-      enable = lib.mkEnableOption (lib.mdDoc "Apache Guacamole Server (guacd)");
+      enable = lib.mkEnableOption "Apache Guacamole Server (guacd)";
       package = lib.mkPackageOption pkgs "guacamole-server" { };
 
       extraEnvironment = lib.mkOption {
@@ -20,12 +31,12 @@ in
             ENVIRONMENT = "production";
           }
         '';
-        description = lib.mdDoc "Environment variables to pass to guacd.";
+        description = "Environment variables to pass to guacd.";
       };
 
       host = lib.mkOption {
         default = "127.0.0.1";
-        description = lib.mdDoc ''
+        description = ''
           The host name or IP address the server should listen to.
         '';
         type = lib.types.str;
@@ -33,44 +44,23 @@ in
 
       port = lib.mkOption {
         default = 4822;
-        description = lib.mdDoc ''
+        description = ''
           The port the guacd server should listen to.
         '';
         type = lib.types.port;
-      };
-
-      logbackXml = lib.mkOption {
-        type = lib.types.nullOr lib.types.path;
-        default = null;
-        example = "/path/to/logback.xml";
-        description = lib.mdDoc ''
-          Configuration file that correspond to `logback.xml`.
-        '';
-      };
-
-      userMappingXml = lib.mkOption {
-        type = lib.types.nullOr lib.types.path;
-        default = null;
-        example = "/path/to/user-mapping.xml";
-        description = lib.mdDoc ''
-          Configuration file that correspond to `user-mapping.xml`.
-        '';
       };
     };
   };
 
   config = lib.mkIf cfg.enable {
-    # Setup configuration files.
-    environment.etc."guacamole/logback.xml" = lib.mkIf (cfg.logbackXml != null) { source = cfg.logbackXml; };
-    environment.etc."guacamole/user-mapping.xml" = lib.mkIf (cfg.userMappingXml != null) { source = cfg.userMappingXml; };
-
     systemd.services.guacamole-server = {
       description = "Apache Guacamole server (guacd)";
       wantedBy = [ "multi-user.target" ];
       after = [ "network.target" ];
       environment = {
         HOME = "/run/guacamole-server";
-      } // cfg.extraEnvironment;
+      }
+      // cfg.extraEnvironment;
       serviceConfig = {
         ExecStart = "${lib.getExe cfg.package} -f -b ${cfg.host} -l ${toString cfg.port}";
         RuntimeDirectory = "guacamole-server";

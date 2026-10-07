@@ -1,58 +1,56 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# propagates
-, importlib-metadata
-
-# tests
-, editables
-, git
-, pytestCheckHook
-, setuptools
+  # tests
+  editables,
+  gitMinimal,
+  mercurial,
+  pytestCheckHook,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "pdm-backend";
-  version = "2.1.7";
-  format = "pyproject";
+  version = "2.4.9";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "pdm-project";
     repo = "pdm-backend";
-    rev = "refs/tags/${version}";
-    hash = "sha256-1YM/vba+8+2wKcWzPKzkpaWVmHqbFsYdhQSY/VBBAfo=";
+    tag = version;
+    hash = "sha256-082ZSfRUGUV8DX+vuJeOd+HOuAfnKfZPZ3Lyhx6TRlE=";
   };
 
   env.PDM_BUILD_SCM_VERSION = version;
 
-  propagatedBuildInputs = lib.optionals (pythonOlder "3.10") [
-    importlib-metadata
-  ];
-
-  pythonImportsCheck = [
-    "pdm.backend"
-  ];
+  pythonImportsCheck = [ "pdm.backend" ];
 
   nativeCheckInputs = [
     editables
-    git
+    gitMinimal
+    mercurial
     pytestCheckHook
     setuptools
   ];
 
   preCheck = ''
     unset PDM_BUILD_SCM_VERSION
+
+    # tests require a configured git identity
+    export HOME=$TMPDIR
+    git config --global user.name nixbld
+    git config --global user.email nixbld@localhost
   '';
 
   setupHook = ./setup-hook.sh;
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/pdm-project/pdm-backend";
     changelog = "https://github.com/pdm-project/pdm-backend/releases/tag/${version}";
-    description = "Yet another PEP 517 backend.";
-    license = licenses.mit;
-    maintainers = with maintainers; [ hexa ];
+    description = "Yet another PEP 517 backend";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ hexa ];
   };
 }

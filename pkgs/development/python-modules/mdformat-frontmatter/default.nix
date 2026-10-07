@@ -1,51 +1,54 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, flit-core
-, linkify-it-py
-, markdown-it-py
-, mdformat
-, mdit-py-plugins
-, ruamel-yaml
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  flit-core,
+
+  # dependencies
+  mdformat,
+  mdit-py-plugins,
+  ruamel-yaml,
+
+  # tests
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "mdformat-frontmatter";
-  version = "2.0.8";
+  version = "2.0.10";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "butler54";
     repo = "mdformat-frontmatter";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-2heQw8LL/ILY36oItBeQq33qjVBGT51qGG4CcCEDutA=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-snW9L9vnRHjNchhWZ5sIrn1r4piEYJeKQwib/4rarOo=";
   };
 
-  nativeBuildInputs = [
-    flit-core
-  ];
+  build-system = [ flit-core ];
 
-  buildInputs = [
+  dependencies = [
     mdformat
     mdit-py-plugins
-  ];
-
-  propagatedBuildInputs = [
     ruamel-yaml
   ];
 
-  pythonImportsCheck = [
-    "mdformat_frontmatter"
+  pythonImportsCheck = [ "mdformat_frontmatter" ];
+
+  nativeCheckInputs = [
+    pytestCheckHook
   ];
 
-  meta = with lib; {
-    description = "mdformat plugin to ensure frontmatter is respected";
+  meta = {
+    description = "Mdformat plugin to ensure frontmatter is respected";
     homepage = "https://github.com/butler54/mdformat-frontmatter";
-    changelog = "https://github.com/butler54/mdformat-frontmatter/blob/v{version}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ aldoborrero polarmutex ];
+    changelog = "https://github.com/butler54/mdformat-frontmatter/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [
+      aldoborrero
+      polarmutex
+    ];
   };
-}
+})

@@ -1,38 +1,35 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "ansi";
   version = "0.3.7";
-  format = "pyproject";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "tehmaze";
-    repo = pname;
-    rev = "refs/tags/ansi-${version}";
+    repo = "ansi";
+    tag = "ansi-${version}";
     hash = "sha256-PmgB1glksu4roQeZ1o7uilMJNm9xaYqw680N2z+tUUM=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   pythonImportsCheck = [
     "ansi.colour"
     "ansi.color"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "ANSI cursor movement and graphics";
     homepage = "https://github.com/tehmaze/ansi/";
-    license = licenses.mit;
+    license = lib.licenses.mit;
   };
 }

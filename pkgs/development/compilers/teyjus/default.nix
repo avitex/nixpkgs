@@ -1,30 +1,40 @@
-{ lib, fetchFromGitHub, buildDunePackage, flex, bison }:
+{
+  lib,
+  fetchFromGitHub,
+  buildDunePackage,
+  stdenv,
+  flex,
+  bison,
+}:
 
-buildDunePackage rec {
+(buildDunePackage.override { inherit stdenv; }) (finalAttrs: {
   pname = "teyjus";
   version = "2.1.1";
 
   src = fetchFromGitHub {
     owner = "teyjus";
     repo = "teyjus";
-    rev = "refs/tags/v${version}";
+    tag = "v${finalAttrs.version}";
     hash = "sha256-N4XKDd0NFr501PYUdb7PM2sWh0uD1/SUFXoMr10f064=";
   };
 
   strictDeps = true;
 
-  nativeBuildInputs = [ flex bison ];
+  nativeBuildInputs = [
+    flex
+    bison
+  ];
 
   hardeningDisable = [ "format" ];
 
   doCheck = true;
 
-  meta = with lib; {
-    description = "An efficient implementation of the Lambda Prolog language";
+  meta = {
+    description = "Efficient implementation of the Lambda Prolog language";
     homepage = "https://github.com/teyjus/teyjus";
-    changelog = "https://github.com/teyjus/teyjus/releases/tag/v${version}";
+    changelog = "https://github.com/teyjus/teyjus/releases/tag/v${finalAttrs.version}";
     license = lib.licenses.gpl3;
-    maintainers = [ maintainers.bcdarwin ];
-    platforms = platforms.unix;
+    maintainers = [ lib.maintainers.bcdarwin ];
+    platforms = lib.platforms.unix;
   };
-}
+})

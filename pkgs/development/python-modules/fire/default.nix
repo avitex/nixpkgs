@@ -1,40 +1,32 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, fetchpatch
-, six
-, hypothesis
-, mock
-, levenshtein
-, pytestCheckHook
-, termcolor
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  six,
+  hypothesis,
+  mock,
+  levenshtein,
+  pytestCheckHook,
+  termcolor,
+  pythonAtLeast,
 }:
 
 buildPythonPackage rec {
   pname = "fire";
-  version = "0.5.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.7.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "google";
     repo = "python-fire";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-cwY1RRNtpAn6LnBASQLTNf4XXSPnfhOa1WgglGEM2/s=";
+    tag = "v${version}";
+    hash = "sha256-TZLL7pzX8xPtB/9k3l5395eHrNojmqTH7PfB1kf99Io=";
   };
 
-  patches = [
-    # https://github.com/google/python-fire/pull/440
-    (fetchpatch {
-      name = "remove-asyncio-coroutine.patch";
-      url = "https://github.com/google/python-fire/pull/440/commits/30b775a7b36ce7fbc04656c7eec4809f99d3e178.patch";
-      hash = "sha256-GDAAlvZKbJl3OhajsEO0SZvWIXcPDi3eNKKVgbwSNKk=";
-    })
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     six
     termcolor
   ];
@@ -46,12 +38,15 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "fire"
+  disabledTests = lib.optionals (pythonAtLeast "3.14") [
+    # RuntimeError: There is no current event loop in thread 'MainThread'
+    "testFireAsyncio"
   ];
 
-  meta = with lib; {
-    description = "A library for automatically generating command line interfaces";
+  pythonImportsCheck = [ "fire" ];
+
+  meta = {
+    description = "Library for automatically generating command line interfaces";
     longDescription = ''
       Python Fire is a library for automatically generating command line
       interfaces (CLIs) from absolutely any Python object.
@@ -72,7 +67,6 @@ buildPythonPackage rec {
     '';
     homepage = "https://github.com/google/python-fire";
     changelog = "https://github.com/google/python-fire/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ leenaars ];
+    license = lib.licenses.asl20;
   };
 }

@@ -1,19 +1,22 @@
-{ stdenv
-, lib
-, fetchFromGitHub
-, cmake
-, pkg-config
+{
+  stdenv,
+  lib,
+  fetchFromGitHub,
+  cmake,
+  pkg-config,
+  replaceVars,
+  addDriverRunpath,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "libvpl";
-  version = "2.10.1";
+  version = "2.16.0";
 
   src = fetchFromGitHub {
     owner = "intel";
-    repo = finalAttrs.pname;
+    repo = "libvpl";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-2yfJo4iwI/h0CJ+mJJ3cAyG5S7KksUibwJHebF3MR+E=";
+    hash = "sha256-TbneMexrGShBE83WRCHvECucG2/eYMtljwb3yvCTP7k=";
   };
 
   nativeBuildInputs = [
@@ -22,20 +25,21 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   cmakeFlags = [
-      "-DCMAKE_BUILD_TYPE=Release"
-      "-DENABLE_DRI3=ON"
-      "-DENABLE_DRM=ON"
-      "-DENABLE_VA=ON"
-      "-DENABLE_WAYLAND=ON"
-      "-DENABLE_X11=ON"
-      "-DINSTALL_EXAMPLE_CODE=OFF"
-      "-DBUILD_TOOLS=OFF"
+    (lib.cmakeBool "BUILD_TESTS" finalAttrs.finalPackage.doCheck)
   ];
 
-  meta = with lib; {
+  patches = [
+    (replaceVars ./opengl-driver-lib.patch {
+      inherit (addDriverRunpath) driverLink;
+    })
+  ];
+
+  doCheck = true;
+
+  meta = {
     description = "Intel Video Processing Library";
     homepage = "https://intel.github.io/libvpl/";
-    license = licenses.mit;
-    platforms = platforms.linux;
+    license = lib.licenses.mit;
+    platforms = lib.platforms.linux;
   };
 })

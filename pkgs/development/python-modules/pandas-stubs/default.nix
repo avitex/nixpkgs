@@ -1,58 +1,71 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchFromGitHub
-, jinja2
-, matplotlib
-, odfpy
-, openpyxl
-, pandas
-, poetry-core
-, pyarrow
-, pyreadstat
-, pytestCheckHook
-, pythonOlder
-, scipy
-, sqlalchemy
-, tables
-, tabulate
-, types-pytz
-, typing-extensions
-, xarray
-, xlsxwriter
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  poetry-core,
+
+  # dependencies
+  numpy,
+
+  # tests
+  beautifulsoup4,
+  html5lib,
+  jinja2,
+  lxml,
+  matplotlib,
+  odfpy,
+  openpyxl,
+  pandas,
+  pyarrow,
+  pyiceberg,
+  pyreadstat,
+  pytestCheckHook,
+  python-calamine,
+  scipy,
+  sqlalchemy,
+  tables,
+  tabulate,
+  typing-extensions,
+  xarray,
+  xlsxwriter,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pandas-stubs";
-  version = "2.0.3.230814";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "3.0.5.260914";
+  pyproject = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "pandas-dev";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-V/igL+vPJADOL7LwBJljqs2a1BB3vDVYTWXIkK/ImYY=";
+    repo = "pandas-stubs";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-5SSqxYzTUszIDB+1OIDYR5rdxD8GI8ubuhe/kfoNvoc=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
-    pandas
-    types-pytz
+  dependencies = [
+    numpy
   ];
 
   nativeCheckInputs = [
+    beautifulsoup4
+    html5lib
     jinja2
+    lxml
     matplotlib
     odfpy
     openpyxl
+    pandas
     pyarrow
+    pyiceberg
     pyreadstat
     pytestCheckHook
+    python-calamine
     scipy
     sqlalchemy
     tables
@@ -62,69 +75,45 @@ buildPythonPackage rec {
     xlsxwriter
   ];
 
+  pytestFlags = [
+    # DeprecationWarning: The 'generic' unit for NumPy timedelta is deprecated, and will raise an error in the future.
+    # This includes implicit conversion of bare integers (e.g. `+ 1`).Please use a specific unit instead.
+    "-Wignore::DeprecationWarning"
+  ];
+
   disabledTests = [
-    # AttributeErrors, missing dependencies, error and warning checks
-    "test_aggregate_frame_combinations"
-    "test_aggregate_series_combinations"
-    "test_all_read_without_lxml_dtype_backend"
-    "test_arrow_dtype"
-    "test_attribute_conflict_warning"
-    "test_categorical_conversion_warning"
-    "test_clipboard_iterator"
-    "test_clipboard"
-    "test_closed_file_error"
-    "test_compare_150_changes"
-    "test_crosstab_args"
-    "test_css_warning"
-    "test_data_error"
-    "test_database_error"
-    "test_dummies"
-    "test_from_dummies_args"
-    "test_hdf_context_manager"
-    "test_hdfstore"
-    "test_incompatibility_warning"
-    "test_index_astype"
-    "test_indexing_error"
-    "test_invalid_column_name"
-    "test_isetframe"
-    "test_join"
-    "test_numexpr_clobbering_error"
-    "test_orc_buffer"
-    "test_orc_bytes"
-    "test_orc_columns"
-    "test_orc_path"
-    "test_orc"
-    "test_possible_data_loss_error"
-    "test_possible_precision_loss"
-    "test_pyperclip_exception"
-    "test_quantile_150_changes"
-    "test_read_hdf_iterator"
-    "test_read_sql_via_sqlalchemy_connection"
-    "test_read_sql_via_sqlalchemy_engine"
-    "test_resample_150_changes"
-    "test_reset_index_150_changes"
-    "test_reset_index"
-    "test_rolling_step_method"
-    "test_setting_with_copy_error"
-    "test_setting_with_copy_warning"
+    # Missing dependencies, error and warning checks
+    "test_all_read_without_lxml_dtype_backend" # pyarrow.orc
+    "test_orc" # pyarrow.orc
+    "test_iceberg" # pyiceberg
+    "test_plotting" # UserWarning: No artists with labels found to put in legend.
+    "test_spss" # FutureWarning: ChainedAssignmentError: behaviour will change in pandas 3.0!
     "test_show_version"
-    "test_specification_error"
-    "test_types_assert_series_equal"
-    "test_types_rank"
-    "test_undefined_variable_error"
-    "test_value_label_type_mismatch"
-  ] ++ lib.optionals stdenv.isDarwin [
-    "test_plotting" # Fatal Python error: Illegal instruction
+    # FutureWarning: In the future `np.bool` will be defined as the corresponding...
+    "test_timedelta_cmp"
+    "test_timestamp_cmp"
+    # DeprecationWarning: The 'generic' unit for NumPy timedelta is deprecated
+    "test_timedelta_properties_methods"
+    "test_sparse_dtype"
+    "test_sparse_dtype_fill_value_subtype_compatibility"
+    "test_isna"
+    "test_timedelta_range"
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
+    "test_clipboard" # FileNotFoundError: [Errno 2] No such file or directory: 'pbcopy'
+  ]
+  ++ lib.optionals (stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isAarch64) [
+    # Disable tests for types that are not supported on aarch64 in `numpy` < 2.0
+    "test_astype_float" # `f16` and `float128`
+    "test_astype_complex" # `c32` and `complex256`
   ];
 
-  pythonImportsCheck = [
-    "pandas"
-  ];
+  pythonImportsCheck = [ "pandas" ];
 
-  meta = with lib; {
+  meta = {
     description = "Type annotations for Pandas";
     homepage = "https://github.com/pandas-dev/pandas-stubs";
-    license = licenses.mit;
-    maintainers = with maintainers; [ malo ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ malo ];
   };
-}
+})

@@ -1,23 +1,29 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, anyascii
-, inflect
-, nltk
-, numpy
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  anyascii,
+  inflect,
+  nltk,
+  numpy,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "ttstokenizer";
-  version = "1.0.0";
-  format = "setuptools";
+  version = "1.1.0";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-HtDXDKlZ3jpwIgb5DvaqurEkRe8TRJ2xqKl2IKElnKU=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-akXiscw57CMp2JDdJq7wqeBeML41yLyFh7fTZwEBlVA=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     anyascii
     inflect
     nltk
@@ -29,10 +35,10 @@ buildPythonPackage rec {
   # no tests
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "Tokenizer for Text to Speech (TTS) models";
     homepage = "https://pypi.org/project/ttstokenizer";
-    license = with licenses; [ asl20 ];
-    maintainers = with maintainers; [ happysalada ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ happysalada ];
   };
-}
+})

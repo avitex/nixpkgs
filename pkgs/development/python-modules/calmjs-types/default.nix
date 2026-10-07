@@ -1,29 +1,34 @@
-{ lib
-, fetchPypi
-, buildPythonPackage
-, pytestCheckHook
+{
+  lib,
+  fetchPypi,
+  buildPythonPackage,
+  pytestCheckHook,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "calmjs-types";
   version = "1.0.1";
-  format = "setuptools";
+  pyproject = true;
 
   src = fetchPypi {
     pname = "calmjs.types";
     inherit version;
-    sha256 = "sha256-EGWYv9mx3RPqs9dnB5t3Bu3hiujL2y/XxyMP7JkjjAQ=";
+    hash = "sha256-EGWYv9mx3RPqs9dnB5t3Bu3hiujL2y/XxyMP7JkjjAQ=";
     extension = "zip";
   };
+
+  build-system = [ setuptools ];
 
   checkInputs = [ pytestCheckHook ];
 
   pythonImportsCheck = [ "calmjs.types" ];
 
-  meta = with lib; {
+  meta = {
+    broken = lib.versionAtLeast setuptools.version "82";
     description = "Types for the calmjs framework";
     homepage = "https://github.com/calmjs/calmjs.types";
-    license = licenses.mit;
-    maintainers = with maintainers; [ onny ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ onny ];
   };
 }

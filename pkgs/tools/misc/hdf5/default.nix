@@ -1,48 +1,56 @@
-{ lib
-, stdenv
-, fetchurl
-, cmake
-, removeReferencesTo
-, cppSupport ? false
-, fortranSupport ? false
-, fortran
-, zlibSupport ? true
-, zlib
-, szipSupport ? false
-, szip
-, mpiSupport ? false
-, mpi
-, enableShared ? !stdenv.hostPlatform.isStatic
-, javaSupport ? false
-, jdk
-, usev110Api ? false
-, threadsafe ? false
-, python3
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  fetchpatch,
+  cmake,
+  fixDarwinDylibNames,
+  removeReferencesTo,
+  cppSupport ? true,
+  fortranSupport ? false,
+  fortran,
+  zlibSupport ? true,
+  zlib,
+  szipSupport ? true,
+  libaec,
+  mpiSupport ? false,
+  mpi,
+  enableShared ? !stdenv.hostPlatform.isStatic,
+  enableStatic ? stdenv.hostPlatform.isStatic,
+  javaSupport ? false,
+  jdk,
+  apiVersion ? null,
+  threadsafe ? false,
+  python3,
 }:
 
-# cpp and mpi options are mutually exclusive
-# (--enable-unsupported could be used to force the build)
-assert !cppSupport || !mpiSupport;
-
-let inherit (lib) optional optionals; in
+let
+  inherit (lib) optional optionals;
+in
 
 stdenv.mkDerivation rec {
-  version = "1.14.3";
-  pname = "hdf5"
+  version = "1.14.6";
+  pname =
+    "hdf5"
     + lib.optionalString cppSupport "-cpp"
     + lib.optionalString fortranSupport "-fortran"
     + lib.optionalString mpiSupport "-mpi"
     + lib.optionalString threadsafe "-threadsafe";
 
-  src = fetchurl {
-    url =
-      let
-        majorMinor = lib.versions.majorMinor version;
-        majorMinorPatch = with lib.versions; "${major version}.${minor version}.${patch version}";
-      in
-      "https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-${majorMinor}/hdf5-${majorMinorPatch}/src/hdf5-${version}.tar.bz2";
-    sha256 = "sha256-lCXyJO110SgLtG1vJpI92Tj5BA5+rr9X5m7HNXwI+Rc=";
+  src = fetchFromGitHub {
+    owner = "HDFGroup";
+    repo = "hdf5";
+    rev = "hdf5_${version}";
+    hash = "sha256-mJTax+VWAL3Amkq3Ij8fxazY2nfpMOTxYMUQlTvY/rg=";
   };
+
+  patches = [
+    (fetchpatch {
+      name = "reproducible-build.patch";
+      url = "https://gitlab.archlinux.org/archlinux/packaging/packages/hdf5/-/raw/721d33408db902ff738db18f1e977611d49b4ba8/hdf5-make-reproducible.patch";
+      hash = "sha256-Z31dCsLjYpqjoGXooOXI81EPjPwyTK8890xCENTh8aM=";
+    })
+  ];
 
   passthru = {
     inherit
@@ -52,43 +60,73 @@ stdenv.mkDerivation rec {
       zlibSupport
       zlib
       szipSupport
-      szip
+      libaec
       mpiSupport
       mpi
       ;
   };
 
-  outputs = [ "out" "dev" ];
+  outputs = [
+    "out"
+    "dev"
+    "bin"
+  ];
 
-  nativeBuildInputs = [ removeReferencesTo cmake ]
-    ++ optional fortranSupport fortran;
+  nativeBuildInputs = [
+    removeReferencesTo
+    cmake
+  ]
+  ++ optional stdenv.hostPlatform.isDarwin fixDarwinDylibNames
+  ++ optional fortranSupport fortran;
 
-  buildInputs = optional fortranSupport fortran
-    ++ optional szipSupport szip
-    ++ optional javaSupport jdk;
+  buildInputs =
+    optional fortranSupport fortran ++ optional szipSupport libaec ++ optional javaSupport jdk;
 
-  propagatedBuildInputs = optional zlibSupport zlib
-    ++ optional mpiSupport mpi;
+  propagatedBuildInputs = optional zlibSupport zlib ++ optional mpiSupport mpi;
 
   cmakeFlags = [
     "-DHDF5_INSTALL_CMAKE_DIR=${placeholder "dev"}/lib/cmake"
-  ] ++ lib.optional stdenv.isDarwin "-DHDF5_BUILD_WITH_INSTALL_NAME=ON"
-    ++ lib.optional cppSupport "-DHDF5_BUILD_CPP_LIB=ON"
-    ++ lib.optional fortranSupport "-DHDF5_BUILD_FORTRAN=ON"
-    ++ lib.optional szipSupport "-DHDF5_ENABLE_SZIP_SUPPORT=ON"
-    ++ lib.optionals mpiSupport [ "-DHDF5_ENABLE_PARALLEL=ON" "CC=${mpi}/bin/mpicc" ]
-    ++ lib.optional enableShared "-DBUILD_SHARED_LIBS=ON"
-    ++ lib.optional javaSupport "-DHDF5_BUILD_JAVA=ON"
-    ++ lib.optional usev110Api "-DDEFAULT_API_VERSION=v110"
-    ++ lib.optionals threadsafe [ "-DDHDF5_ENABLE_THREADSAFE:BOOL=ON" "-DHDF5_BUILD_HL_LIB=OFF" ]
-  ;
+    (lib.cmakeBool "BUILD_STATIC_LIBS" enableStatic)
+    (lib.cmakeBool "BUILD_SHARED_LIBS" enableShared)
+    (lib.cmakeBool "HDF5_BUILD_CPP_LIB" cppSupport)
+    (lib.cmakeBool "HDF5_BUILD_FORTRAN" fortranSupport)
+    (lib.cmakeBool "HDF5_ENABLE_SZIP_SUPPORT" szipSupport)
+    (lib.cmakeBool "HDF5_ENABLE_PARALLEL" mpiSupport)
+    (lib.cmakeBool "HDF5_BUILD_JAVA" javaSupport)
+    (lib.cmakeBool "HDF5_ENABLE_THREADSAFE" threadsafe)
+    (lib.cmakeBool "HDF5_BUILD_HL_LIB" (!threadsafe))
+    # broken in nixpkgs since around 1.14.3 -> 1.14.4.3
+    # https://github.com/HDFGroup/hdf5/issues/4208#issuecomment-2098698567
+    (lib.cmakeBool "HDF5_ENABLE_NONSTANDARD_FEATURE_FLOAT16" (
+      with stdenv.hostPlatform; !(isDarwin && isx86_64)
+    ))
+  ]
+  ++ lib.optional (apiVersion != null) (lib.cmakeFeature "HDF5_DEFAULT_API_VERSION" apiVersion);
 
   postInstall = ''
     find "$out" -type f -exec remove-references-to -t ${stdenv.cc} '{}' +
+    moveToOutput 'bin/' "''${!outputBin}"
     moveToOutput 'bin/h5cc' "''${!outputDev}"
     moveToOutput 'bin/h5c++' "''${!outputDev}"
     moveToOutput 'bin/h5fc' "''${!outputDev}"
     moveToOutput 'bin/h5pcc' "''${!outputDev}"
+    moveToOutput 'bin/h5hlcc' "''${!outputDev}"
+    moveToOutput 'bin/h5hlc++' "''${!outputDev}"
+  ''
+  # The shared build creates binaries with -shared suffixes,
+  # so we remove these suffixes.
+  + lib.optionalString enableShared ''
+    pushd ''${!outputBin}/bin
+    for file in *-shared; do
+      mv "$file" "''${file%%-shared}"
+    done
+    popd
+  ''
+  + lib.optionalString fortranSupport ''
+    mv $out/mod/shared $dev/include
+    rm -r $out/mod
+
+    find "$out" -type f -exec remove-references-to -t ${fortran} '{}' +
   '';
 
   enableParallelBuilding = true;
@@ -97,7 +135,7 @@ stdenv.mkDerivation rec {
     inherit (python3.pkgs) h5py;
   };
 
-  meta = with lib; {
+  meta = {
     description = "Data model, library, and file format for storing and managing data";
     longDescription = ''
       HDF5 supports an unlimited variety of datatypes, and is designed for flexible and efficient
@@ -105,9 +143,9 @@ stdenv.mkDerivation rec {
       applications to evolve in their use of HDF5. The HDF5 Technology suite includes tools and
       applications for managing, manipulating, viewing, and analyzing data in the HDF5 format.
     '';
-    license = licenses.bsd3; # Lawrence Berkeley National Labs BSD 3-Clause variant
-    maintainers = [ maintainers.markuskowa ];
+    license = lib.licenses.bsd3; # Lawrence Berkeley National Labs BSD 3-Clause variant
+    maintainers = [ lib.maintainers.markuskowa ];
     homepage = "https://www.hdfgroup.org/HDF5/";
-    platforms = platforms.unix;
+    platforms = lib.platforms.unix;
   };
 }

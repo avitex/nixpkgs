@@ -1,36 +1,37 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools-scm
-, requests
-, tqdm
-, nose
-, vcrpy
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  httpx,
+  tqdm,
+  urllib3,
+  packaging,
+  vcrpy,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "habanero";
-  version = "1.2.3";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "2.3.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "sckott";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-IQp85Cigs0in3X07a9d45nMC3X2tAkPzl5hFVhfr00o=";
+    repo = "habanero";
+    tag = "v${version}";
+    hash = "sha256-XI+UOm3xONBNVSlywfBhnsCA9RdpEwDQ4oQixn4UBKk=";
   };
 
-  nativeBuildInputs = [
-    setuptools-scm
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
-    requests
+  pythonRelaxDeps = [ "urllib3" ];
+
+  dependencies = [
+    httpx
     tqdm
+    urllib3
+    packaging
   ];
 
   nativeCheckInputs = [
@@ -38,19 +39,15 @@ buildPythonPackage rec {
     vcrpy
   ];
 
-  pythonImportsCheck = [
-    "habanero"
-  ];
+  pythonImportsCheck = [ "habanero" ];
 
   # almost the entirety of the test suite makes network calls
-  pytestFlagsArray = [
-    "test/test-filters.py"
-  ];
+  enabledTestPaths = [ "test/test-filters.py" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python interface to Library Genesis";
     homepage = "https://habanero.readthedocs.io/";
-    license = licenses.mit;
-    maintainers = with maintainers; [ nico202 ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ nico202 ];
   };
 }

@@ -1,53 +1,51 @@
-{ lib
-, buildPythonPackage
-, decorator
-, fetchPypi
-, invocations
-, invoke
-, pytest
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  decorator,
+  fetchPypi,
+  invoke,
+  pytest,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "pytest-relaxed";
-  version = "2.0.1";
+  version = "2.0.2";
   format = "setuptools";
-
-  disabled = pythonOlder "3.6";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-U6c3Lj/qpSdAm7QDU/gTxZt2Dl2L1H5vb88YfF2W3Qw=";
+    hash = "sha256-lW6gKOww27+2gN2Oe0p/uPgKI5WV6Ius4Bi/LA1xgkg=";
   };
 
-  buildInputs = [
-    pytest
+  patches = [
+    # https://github.com/bitprophet/pytest-relaxed/issues/28
+    # https://github.com/bitprophet/pytest-relaxed/pull/29
+    ./fix-oldstyle-hookimpl-setup.patch
   ];
 
-  propagatedBuildInputs = [
-    decorator
-  ];
+  buildInputs = [ pytest ];
+
+  propagatedBuildInputs = [ decorator ];
 
   nativeCheckInputs = [
-    invocations
     invoke
     pytestCheckHook
   ];
 
-  pytestFlagsArray = [
-    "tests"
+  enabledTestPaths = [ "tests" ];
+
+  disabledTests = [
+    "test_skips_pytest_fixtures"
   ];
 
-  pythonImportsCheck = [
-    "pytest_relaxed"
-  ];
+  pythonImportsCheck = [ "pytest_relaxed" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://pytest-relaxed.readthedocs.io/";
     description = "Relaxed test discovery/organization for pytest";
     changelog = "https://github.com/bitprophet/pytest-relaxed/blob/${version}/docs/changelog.rst";
-    license = licenses.bsd0;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.bsd0;
+    maintainers = [ ];
   };
 }

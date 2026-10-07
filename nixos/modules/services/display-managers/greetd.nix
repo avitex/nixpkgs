@@ -1,74 +1,134 @@
-{ config, lib, pkgs, ... }:
-with lib;
-
+{
+  config,
+  lib,
+  utils,
+  pkgs,
+  ...
+}:
 let
   cfg = config.services.greetd;
-  tty = "tty${toString cfg.vt}";
+  tty = "tty1";
   settingsFormat = pkgs.formats.toml { };
 in
 {
+  imports = [
+    (lib.mkRemovedOptionModule [
+      "services"
+      "greetd"
+      "vt"
+    ] "The VT is now fixed to VT1.")
+  ];
+
   options.services.greetd = {
-    enable = mkEnableOption (lib.mdDoc "greetd");
+    enable = lib.mkEnableOption "greetd, a minimal and flexible login manager daemon";
 
-    package = mkPackageOption pkgs [ "greetd" "greetd" ] { };
+    package = lib.mkPackageOption pkgs "greetd" { };
 
-    settings = mkOption {
+    settings = lib.mkOption {
       type = settingsFormat.type;
-      example = literalExpression ''
+      example = lib.literalExpression ''
         {
           default_session = {
-            command = "''${pkgs.greetd.greetd}/bin/agreety --cmd sway";
+            command = "''${pkgs.greetd}/bin/agreety --cmd sway";
           };
         }
       '';
-      description = lib.mdDoc ''
+      description = ''
         greetd configuration ([documentation](https://man.sr.ht/~kennylevinsen/greetd/))
         as a Nix attribute set.
       '';
     };
 
-    vt = mkOption {
-      type = types.int;
-      default = 1;
-      description = lib.mdDoc ''
-        The virtual console (tty) that greetd should use. This option also disables getty on that tty.
+    greeterManagesPlymouth = lib.mkOption {
+      type = lib.types.bool;
+      internal = true;
+      default = false;
+      description = ''
+        Don't configure the greetd service to wait for Plymouth to exit.
+
+        Enable this if the greeter you're using can manage Plymouth itself to provide a smoother handoff.
       '';
     };
 
-    restart = mkOption {
-      type = types.bool;
+    restart = lib.mkOption {
+      type = lib.types.bool;
       default = !(cfg.settings ? initial_session);
-      defaultText = literalExpression "!(config.services.greetd.settings ? initial_session)";
-      description = lib.mdDoc ''
+      defaultText = lib.literalExpression "!(config.services.greetd.settings ? initial_session)";
+      description = ''
         Whether to restart greetd when it terminates (e.g. on failure).
         This is usually desirable so a user can always log in, but should be disabled when using 'settings.initial_session' (autologin),
         because every greetd restart will trigger the autologin again.
       '';
     };
-  };
-  config = mkIf cfg.enable {
 
-    services.greetd.settings.terminal.vt = mkDefault cfg.vt;
-    services.greetd.settings.default_session.user = mkDefault "greeter";
+    useTextGreeter = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Whether the greeter uses text-based user interfaces (For example, tuigreet).
+
+        When set to true, some systemd service configuration will be adjusted to avoid systemd boot messages interrupt TUI.
+      '';
+    };
+  };
+  config = lib.mkIf cfg.enable {
+
+    services.greetd.settings.terminal.vt = 1;
+    services.greetd.settings.default_session.user = lib.mkDefault "greeter";
 
     security.pam.services.greetd = {
-      allowNullPassword = true;
-      startSession = true;
-      enableGnomeKeyring = mkDefault config.services.gnome.gnome-keyring.enable;
+      useDefaultRules = false;
+      rules = {
+        auth = utils.pam.autoOrderRules [
+          {
+            name = "login";
+            control = "substack";
+            modulePath = "login";
+          }
+        ];
+        account = utils.pam.autoOrderRules [
+          {
+            name = "login";
+            control = "include";
+            modulePath = "login";
+          }
+        ];
+        password = utils.pam.autoOrderRules [
+          {
+            name = "login";
+            control = "substack";
+            modulePath = "login";
+          }
+        ];
+        session = utils.pam.autoOrderRules [
+          {
+            name = "login";
+            control = "include";
+            modulePath = "login";
+          }
+        ];
+      };
     };
 
     # This prevents nixos-rebuild from killing greetd by activating getty again
     systemd.services."autovt@${tty}".enable = false;
 
+    # Enable desktop session data
+    services.displayManager.enable = lib.mkDefault true;
+
     systemd.services.greetd = {
+      aliases = [ "display-manager.service" ];
+
       unitConfig = {
         Wants = [
           "systemd-user-sessions.service"
         ];
         After = [
           "systemd-user-sessions.service"
-          "plymouth-quit-wait.service"
           "getty@${tty}.service"
+        ]
+        ++ lib.optionals (!cfg.greeterManagesPlymouth) [
+          "plymouth-quit-wait.service"
         ];
         Conflicts = [
           "getty@${tty}.service"
@@ -76,9 +136,9 @@ in
       };
 
       serviceConfig = {
-        ExecStart = "${pkgs.greetd.greetd}/bin/greetd --config ${settingsFormat.generate "greetd.toml" cfg.settings}";
+        ExecStart = "${lib.getExe cfg.package} --config ${settingsFormat.generate "greetd.toml" cfg.settings}";
 
-        Restart = mkIf cfg.restart "always";
+        Restart = lib.mkIf cfg.restart "on-success";
 
         # Defaults from greetd upstream configuration
         IgnoreSIGPIPE = false;
@@ -87,7 +147,19 @@ in
         KeyringMode = "shared";
 
         Type = "idle";
-      };
+      }
+      // (lib.optionalAttrs cfg.useTextGreeter {
+        StandardInput = "tty";
+        StandardOutput = "tty";
+        # Without this errors will spam on screen
+        StandardError = "journal";
+
+        # Without these bootlogs will spam on screen
+        TTYPath = "/dev/tty1";
+        TTYReset = true;
+        TTYVHangup = true;
+        TTYVTDisallocate = true;
+      });
 
       # Don't kill a user session when using nixos-rebuild
       restartIfChanged = false;
@@ -111,5 +183,5 @@ in
     users.groups.greeter = { };
   };
 
-  meta.maintainers = with maintainers; [ queezle ];
+  meta.maintainers = with lib.maintainers; [ queezle ];
 }

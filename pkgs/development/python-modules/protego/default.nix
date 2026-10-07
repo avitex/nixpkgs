@@ -1,32 +1,34 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "protego";
-  version = "0.3.0";
-  format = "setuptools";
+  version = "0.6.2";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit version;
-    pname = "Protego";
-    hash = "sha256-BCKL/95Ma8ujHPZSm6LP1uG3CAj9wdLLQwG+ayjWxWg=";
+  src = fetchFromGitHub {
+    owner = "scrapy";
+    repo = "protego";
+    tag = finalAttrs.version;
+    hash = "sha256-vAX7l0Xq2itQwBkNYobOWae1qHVVcD7M/o43GpIwEVo=";
   };
+
+  build-system = [ hatchling ];
 
   nativeCheckInputs = [ pytestCheckHook ];
 
   pythonImportsCheck = [ "protego" ];
 
-  meta = with lib; {
-    description = "A pure-Python robots.txt parser with support for modern conventions";
+  meta = {
+    description = "Module to parse robots.txt files with support for modern conventions";
     homepage = "https://github.com/scrapy/protego";
-    changelog = "https://github.com/scrapy/protego/blob/${version}/CHANGELOG.rst";
-    license = licenses.bsd3;
-    maintainers = [ maintainers.marsam ];
+    changelog = "https://github.com/scrapy/protego/blob/${finalAttrs.src.tag}/CHANGELOG.rst";
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
-}
+})

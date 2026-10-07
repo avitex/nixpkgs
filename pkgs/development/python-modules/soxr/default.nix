@@ -1,56 +1,71 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# build-system
-, cython_3
-, numpy
-, oldest-supported-numpy
-, setuptools
-, setuptools-scm
-, gnutar
+  # build-system
+  cmake,
+  nanobind,
+  ninja,
+  scikit-build-core,
+  setuptools,
+  setuptools-scm,
 
-# native
-, libsoxr
+  # native dependencies
+  libsoxr,
 
-# tests
-, pytestCheckHook
+  # dependencies
+  numpy,
+
+  # tests
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "soxr";
-  version = "0.3.6";
-  format = "pyproject";
+  version = "1.1.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "dofuuz";
     repo = "python-soxr";
-    rev = "refs/tags/v${version}";
-    fetchSubmodules = true;
-    hash = "sha256-H2sueQq32o/9EHENANKVoiWlFoSF88P0LZ7DfEh/Esg=";
+    tag = "v${version}";
+    hash = "sha256-XdSInR0ogbcku6yvMkGEEIxu2nlqa0mffBtd+ifvzoU=";
   };
 
+  patches = [ ./cmake-nanobind.patch ];
+
   nativeBuildInputs = [
-    cython_3
-    gnutar
-    numpy
-    oldest-supported-numpy
+    cmake
+    ninja
+  ];
+
+  dontUseCmakeConfigure = true;
+
+  cmakeFlags = [
+    (lib.cmakeBool "USE_SYSTEM_LIBSOXR" true)
+  ];
+
+  build-system = [
+    scikit-build-core
+    nanobind
     setuptools
     setuptools-scm
   ];
 
-  pythonImportsCheck = [
-    "soxr"
-  ];
+  buildInputs = [ libsoxr ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  dependencies = [ numpy ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "soxr" ];
+
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  meta = {
+    changelog = "https://github.com/dofuuz/python-soxr/releases/tag/${src.tag}";
     description = "High quality, one-dimensional sample-rate conversion library";
     homepage = "https://github.com/dofuuz/python-soxr/tree/main";
-    license = licenses.lgpl21Plus;
-    maintainers = with maintainers; [ hexa ];
+    license = lib.licenses.lgpl21Plus;
+    maintainers = [ ];
   };
 }

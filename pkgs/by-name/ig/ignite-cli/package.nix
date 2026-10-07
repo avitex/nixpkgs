@@ -1,23 +1,24 @@
-{ lib
-, fetchFromGitHub
-, buildGoModule
-, makeWrapper
-, go
-, buf
+{
+  lib,
+  fetchFromGitHub,
+  buildGoModule,
+  makeWrapper,
+  go,
+  buf,
 }:
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "ignite-cli";
-  version = "28.1.1";
+  version = "28.11.0";
 
   src = fetchFromGitHub {
     repo = "cli";
     owner = "ignite";
-    rev = "v${version}";
-    hash = "sha256-8/YupS16j6+iMt09RO1RZrJNlxfmE27tOD+cYecKnbc=";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-guhUvTyUy4YXn0+vtTpIehS731B0Htv9jai6yQ6gRP0=";
   };
 
-  vendorHash = "sha256-GpRTOjrPF+GS0XfavG7GYG5FcHc8ELxzhminncV2Qgk=";
+  vendorHash = "sha256-qbHmF+aE/rF0cm4QARVWOUBogBvfdlCUNaCdFRywt1I=";
 
   nativeBuildInputs = [ makeWrapper ];
 
@@ -29,15 +30,20 @@ buildGoModule rec {
 
   # Required for commands like `ignite version`, `ignite network` and others
   postFixup = ''
-    wrapProgram $out/bin/ignite --prefix PATH : ${lib.makeBinPath [ go buf ]}
+    wrapProgram $out/bin/ignite --prefix PATH : ${
+      lib.makeBinPath [
+        go
+        buf
+      ]
+    }
   '';
 
-  meta = with lib; {
+  meta = {
     homepage = "https://ignite.com/";
-    changelog = "https://github.com/ignite/cli/releases/tag/v${version}";
+    changelog = "https://github.com/ignite/cli/releases/tag/v${finalAttrs.version}";
     description = "All-in-one platform to build, launch, and maintain any crypto application on a sovereign and secured blockchain";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ kashw2 ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ kashw2 ];
     mainProgram = "ignite";
   };
-}
+})

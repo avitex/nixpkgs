@@ -2,79 +2,86 @@
   lib,
   stdenv,
   fetchFromGitHub,
-  runCommand,
   buildNpmPackage,
-  nodejs_18,
-  tone,
-  ffmpeg-full,
+  callPackage,
+  nodejs_24,
+  ffmpeg_8-full,
+  nunicode,
   util-linux,
   python3,
-  getopt
+  getopt,
+  nixosTests,
+  nix-update-script,
 }:
 
 let
-  nodejs = nodejs_18;
+  ffmpeg-full = ffmpeg_8-full;
+  nodejs = nodejs_24;
 
-  source = builtins.fromJSON (builtins.readFile ./source.json);
+  wrapper = import ./wrapper.nix {
+    inherit
+      stdenv
+      ffmpeg-full
+      nunicode
+      getopt
+      ;
+  };
+in
+buildNpmPackage (finalAttrs: {
   pname = "audiobookshelf";
+  version = "2.37.1";
 
   src = fetchFromGitHub {
     owner = "advplyr";
-    repo = pname;
-    rev = "refs/tags/v${source.version}";
-    inherit (source) hash;
+    repo = "audiobookshelf";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-rTn64PrGPSKwDbsQmzvdSRa7UQEV1f2xXaYGtcVfrpk=";
   };
 
-  client = buildNpmPackage {
-    pname = "${pname}-client";
-    inherit (source) version;
+  npmDepsHash = "sha256-xHjZ3E1DGeb5NueP67hEX3vHH0Qlk4LTeZkMEFBhGyE=";
 
-    src = runCommand "cp-source" {} ''
-      cp -r ${src}/client $out
-    '';
-
-    NODE_OPTIONS = "--openssl-legacy-provider";
-
-    npmBuildScript = "generate";
-    npmDepsHash = source.clientDepsHash;
-  };
-
-  wrapper = import ./wrapper.nix {
-    inherit stdenv ffmpeg-full tone pname nodejs getopt;
-  };
-
-in buildNpmPackage {
-  inherit pname src;
-  inherit (source) version;
+  inherit nodejs;
 
   buildInputs = [ util-linux ];
   nativeBuildInputs = [ python3 ];
 
   dontNpmBuild = true;
   npmInstallFlags = [ "--only-production" ];
-  npmDepsHash = source.depsHash;
+
+  client = callPackage ./client.nix { inherit (finalAttrs) src version nodejs; };
 
   installPhase = ''
+    runHook preInstall
+
     mkdir -p $out/opt/client
     cp -r index.js server package* node_modules $out/opt/
-    cp -r ${client}/lib/node_modules/${pname}-client/dist $out/opt/client/dist
+    cp -r ${finalAttrs.client}/lib/node_modules/audiobookshelf-client/dist $out/opt/client/dist
     mkdir $out/bin
 
-    echo '${wrapper}' > $out/bin/${pname}
-    echo "  exec ${nodejs}/bin/node $out/opt/index.js" >> $out/bin/${pname}
+    echo '${wrapper}' > $out/bin/audiobookshelf
+    echo "  exec ${finalAttrs.nodejs}/bin/node $out/opt/index.js" >> $out/bin/audiobookshelf
 
-    chmod +x $out/bin/${pname}
+    chmod +x $out/bin/audiobookshelf
+
+    runHook postInstall
   '';
 
-  passthru.updateScript = ./update.nu;
+  passthru = {
+    tests.basic = nixosTests.audiobookshelf;
+    updateScript = nix-update-script { extraArgs = [ "--subpackage=client" ]; };
+  };
 
-  meta = with lib; {
+  meta = {
     homepage = "https://www.audiobookshelf.org/";
     description = "Self-hosted audiobook and podcast server";
-    changelog = "https://github.com/advplyr/audiobookshelf/releases/tag/v${source.version}";
-    license = licenses.gpl3;
-    maintainers = [ maintainers.jvanbruegge maintainers.adamcstephens ];
-    platforms = platforms.linux;
+    changelog = "https://github.com/advplyr/audiobookshelf/releases/tag/v${finalAttrs.version}";
+    license = lib.licenses.gpl3;
+    maintainers = with lib.maintainers; [
+      jvanbruegge
+      adamcstephens
+      tebriel
+    ];
+    platforms = lib.platforms.linux;
     mainProgram = "audiobookshelf";
   };
-}
+})

@@ -1,39 +1,66 @@
-{ lib
-, fetchPypi
-, buildPythonPackage
-, hatchling
-, hatch-vcs
-, numpy
-, pytestCheckHook
+{
+  lib,
+  fetchPypi,
+  boost-histogram,
+  buildPythonPackage,
+  h5py,
+  hatchling,
+  hatch-vcs,
+  hist,
+  fastjsonschema,
+  numpy,
+  packaging,
+  pytestCheckHook,
+  pythonOlder,
+  tomli,
+  typing-extensions,
+  uhi,
 }:
 
 buildPythonPackage rec {
   pname = "uhi";
-  version = "0.4.0";
-  format = "pyproject";
+  version = "1.1.1";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-DctrGXdQh9OKMe44jLLHDy7P4ExP/iymMiNBDK5b7vo=";
+    hash = "sha256-05xNwWLWkby0Q1KanPX+mbEeFKOHzfgoQVTMJYcNL/A=";
   };
 
-  buildInputs = [
+  build-system = [
     hatchling
     hatch-vcs
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     numpy
+  ]
+  ++ lib.optionals (pythonOlder "3.11") [
+    typing-extensions
   ];
 
-  checkInputs = [
+  optional-dependencies = {
+    schema = [ fastjsonschema ];
+    hdf5 = [ h5py ];
+  };
+
+  doCheck = false; # Prevents infinite recursion; use passthru.tests instead
+
+  nativeCheckInputs = [
+    boost-histogram
+    hist
+    fastjsonschema
+    packaging
     pytestCheckHook
-  ];
+  ]
+  ++ lib.optionals (pythonOlder "3.11") [ tomli ];
 
-  meta = with lib; {
+  passthru.tests.uhi = uhi.overridePythonAttrs { doCheck = true; };
+
+  meta = {
     description = "Universal Histogram Interface";
     homepage = "https://uhi.readthedocs.io/";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ veprbl ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ veprbl ];
   };
 }

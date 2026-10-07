@@ -1,13 +1,13 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, oyaml
-, packaging
-, paramiko
-, pexpect
-, pythonOlder
-, requests
-, six
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  oyaml,
+  packaging,
+  paramiko,
+  pexpect,
+  requests,
+  six,
 }:
 
 buildPythonPackage rec {
@@ -15,12 +15,10 @@ buildPythonPackage rec {
   version = "1.0.5";
   format = "setuptools";
 
-  disabled = pythonOlder "3.7";
-
   src = fetchFromGitHub {
     owner = "fortinet-solutions-cse";
-    repo = pname;
-    rev = "refs/tags/v${version}";
+    repo = "fortiosapi";
+    tag = "v${version}";
     hash = "sha256-M71vleEhRYnlf+RSGT1GbCy5NEZaG0hWmJo01n9s6Rg=";
   };
 
@@ -36,14 +34,12 @@ buildPythonPackage rec {
   # Tests require a local VM
   doCheck = false;
 
-  pythonImportsCheck = [
-    "fortiosapi"
-  ];
+  pythonImportsCheck = [ "fortiosapi" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python module to work with Fortigate/Fortios devices";
     homepage = "https://github.com/fortinet-solutions-cse/fortiosapi";
-    license = with licenses; [ asl20 ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

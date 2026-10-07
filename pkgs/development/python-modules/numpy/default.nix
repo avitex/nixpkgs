@@ -1,38 +1,189 @@
-{ lib
-, stdenv
-, fetchPypi
-, python
-, pythonAtLeast
-, pythonOlder
-, buildPythonPackage
-, writeTextFile
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  fetchpatch,
+  python,
+  pythonAtLeast,
+  buildPythonPackage,
+  writeTextFile,
 
-# build-system
-, cython_3
-, gfortran
-, meson-python
-, mesonEmulatorHook
-, pkg-config
-, xcbuild
+  # build-system
+  cython,
+  gfortran,
+  meson-python,
+  mesonEmulatorHook,
+  pkg-config,
 
-# native dependencies
-, blas
-, lapack
+  # native dependencies
+  blas,
+  coreutils,
+  lapack,
 
-# tests
-, hypothesis
-, pytest-xdist
-, pytestCheckHook
-, setuptools
-, typing-extensions
+  checkPhaseThreadLimitHook,
+
+  # Reverse dependency
+  astropy,
+  numba,
+  pandas,
+  sage,
+  xarray,
+
+  # tests
+  hypothesis,
+  pytest-xdist,
+  pytestCheckHook,
+  setuptools,
+  typing-extensions,
 }:
 
-assert (!blas.isILP64) && (!lapack.isILP64);
+# Verify these are compatible
+assert blas.isILP64 == lapack.isILP64;
 
-let
-  cfg = writeTextFile {
-    name = "site.cfg";
-    text = lib.generators.toINI {} {
+buildPythonPackage (finalAttrs: {
+  pname = "numpy";
+  version = "2.5.2";
+  pyproject = true;
+
+  src = fetchFromGitHub {
+    owner = "numpy";
+    repo = "numpy";
+    tag = "v${finalAttrs.version}";
+    fetchSubmodules = true;
+    hash = "sha256-ydxCnoWsWc+1z1GT0BGq1APdUGlDx6fTMFNcJZdH+JM=";
+  };
+
+  patches = [
+    # Fix for test failure on i686. Remove with next release.
+    # Upstream report: https://github.com/numpy/numpy/issues/32060
+    # Upstream PR: https://github.com/numpy/numpy/pull/32064
+    (fetchpatch {
+      url = "https://github.com/numpy/numpy/commit/0e1dce62e27f79be9d6552487787a19b7f95cfbf.patch";
+      hash = "sha256-mQjf6y/mLSgx9+G70/r9U3VJg5zIrl/6ANQhpP2LGmg=";
+    })
+  ];
+
+  postPatch = ''
+    # remove needless reference to full Python path stored in built wheel
+    substituteInPlace numpy/meson.build \
+      --replace-fail 'py.full_path()' "'python'"
+
+    # Test_POWER_Features::test_features - FileNotFoundError: [Errno 2] No such file or directory: '/bin/true'
+    substituteInPlace numpy/_core/tests/test_cpu_features.py \
+      --replace-fail '/bin/true' '${lib.getExe' coreutils "true"}'
+  '';
+
+  mesonFlags = [
+    # See https://numpy.org/devdocs/building/blas_lapack.html
+    "-Duse-ilp64=${if blas.isILP64 then "true" else "false"}"
+  ]
+  ++ lib.optionals (!stdenv.hostPlatform.isLoongArch64) [
+    # This is required to support CPUs with feature-sets earlier than x86-64-v2
+    # (before 2009). This will still build optimizations for newer features, but
+    # allow for importing with older machines. See:
+    #
+    #  - https://github.com/NixOS/nixpkgs/issues/496822
+    #  - https://numpy.org/devdocs/reference/simd/build-options.html
+    #  - https://github.com/numpy/numpy/issues/31073
+    #
+    # NOTE: It is possible to enable CPU features based upon attributes defined
+    # in `lib/systems/architectures.nix`, but that might trigger tons of
+    # rebuilds on old x86_64 CPU machines, and it will be too complex for
+    # maintenance.
+    (lib.mesonOption "cpu-baseline" "none")
+  ];
+
+  build-system = [
+    cython
+    gfortran
+    meson-python
+    pkg-config
+  ]
+  ++ lib.optionals (!stdenv.buildPlatform.canExecute stdenv.hostPlatform) [ mesonEmulatorHook ];
+
+  buildInputs = [
+    blas
+    lapack
+  ];
+
+  preBuild = ''
+    ln -s ${finalAttrs.finalPackage.passthru.cfg} site.cfg
+  '';
+
+  enableParallelBuilding = true;
+
+  nativeCheckInputs = [
+    hypothesis
+    pytestCheckHook
+    pytest-xdist
+    setuptools
+    typing-extensions
+  ];
+
+  # Enables any dependent package to easily find numpy.pc via standard
+  # pkg-config call. The `$out/include` symlink matches what's written in the
+  # numpy.pc file.
+  postInstall = ''
+    ln -s $out/${python.sitePackages}/numpy/_core/lib/pkgconfig $out/lib/pkgconfig
+    ln -s ${placeholder "out"}/${finalAttrs.passthru.coreIncludeInnerDir} $out/include
+  '';
+
+  propagatedNativeBuildInputs = [
+    checkPhaseThreadLimitHook
+  ];
+
+  preCheck = ''
+    pushd $out
+    # For numpy-config executable to be available during tests
+    export PATH=$PATH:$out/bin
+  '';
+
+  postCheck = ''
+    popd
+  '';
+
+  # https://github.com/numpy/numpy/blob/a277f6210739c11028f281b8495faf7da298dbef/numpy/_pytesttester.py#L180
+  disabledTestMarks = [
+    "slow" # fast test suite
+  ];
+
+  disabledTests = [
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isAarch32 [
+    # https://github.com/numpy/numpy/issues/24548
+    "test_impossible_feature_enable" # AssertionError: Failed to generate error
+    "test_features" # AssertionError: Failure Detection
+    "test_new_policy" # AssertionError: assert False
+    "test_identityless_reduction_huge_array" # ValueError: Maximum allowed dimension exceeded
+    "test_unary_spurious_fpexception" # AssertionError: Got warnings: [<warnings.WarningMessage object at 0xd1197430>]
+    "test_int" # AssertionError: selectedintkind(19): expected 16 but got -1
+    "test_real" # AssertionError: selectedrealkind(16): expected 10 but got -1
+    "test_quad_precision" # AssertionError: selectedrealkind(32): expected 16 but got -1
+    "test_big_arrays" # ValueError: array is too big; `arr.size * arr.dtype.itemsize` is larger tha...
+    "test_multinomial_pvals_float32" # Failed: DID NOT RAISE <class 'ValueError'>
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isRiscV64 [
+    "test_floor_division_errors" # FloatingPointError: invalid value encountered in floor_divide
+    "test_unary_spurious_fpexception" # AssertionError: Got warnings: [<warnings.WarningMessage ...>]
+  ]
+  ++ lib.optionals (stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isx86_64) [
+    # AssertionError: (np.int64(0), np.longdouble('9.9999999999999994515e-21'), np.longdouble('3.9696755572509052902e+20'), 'arctanh')
+    "test_loss_of_precision"
+  ]
+  ++ lib.optionals (stdenv.hostPlatform.isPower64 && stdenv.hostPlatform.isBigEndian) [
+    # https://github.com/numpy/numpy/issues/29918
+    "test_sq_cases"
+  ]
+  ++ lib.optionals (stdenv.hostPlatform ? gcc.arch) [
+    # remove if https://github.com/numpy/numpy/issues/27460 is resolved
+    "test_validate_transcendentals"
+  ];
+
+  passthru = {
+    # just for backwards compatibility
+    blas = blas.provider;
+    blasImplementation = blas.implementation;
+    buildConfig = {
       ${blas.implementation} = {
         include_dirs = "${lib.getDev blas}/include:${lib.getDev lapack}/include";
         library_dirs = "${blas}/lib:${lapack}/lib";
@@ -50,141 +201,35 @@ let
         runtime_library_dirs = "${blas}/lib";
       };
     };
+    cfg = writeTextFile {
+      name = "site.cfg";
+      text = lib.generators.toINI { } finalAttrs.finalPackage.buildConfig;
+    };
+    # Need to be defined with two variables for postInstall to use `placeholder
+    # "out"` where here we have to use `${finalAttrs.finalPackage}`, that would
+    # cause infinite recursion if used in postInstall too.
+    coreIncludeInnerDir = "${python.sitePackages}/numpy/_core/include";
+    coreIncludeDir = "${finalAttrs.finalPackage}/${finalAttrs.finalPackage.passthru.coreIncludeInnerDir}";
+    tests = {
+      # NOTE: It is important to check these central dependent packages when
+      # issuing Numpy PRs and especially version bumps (even minor version
+      # bumps) - evidently these have caused issues in staging-next in the
+      # past.
+      inherit
+        astropy
+        numba
+        pandas
+        sage
+        xarray
+        ;
+    };
   };
-in buildPythonPackage rec {
-  pname = "numpy";
-  version = "1.26.2";
-  pyproject = true;
-  disabled = pythonOlder "3.9" || pythonAtLeast "3.13";
-
-  src = fetchPypi {
-    inherit pname version;
-    extension = "tar.gz";
-    hash = "sha256-9lc4RHZ2q1d38R5ru9uM4Rt4XhBfaQvEWWZXSBa20+o=";
-  };
-
-  patches = [
-    # Remove last usage of distutils to enable numpy on Python 3.12
-    ./0001-BLD-remove-last-usage-of-distutils-in-_core-code_gen.patch
-
-    # Disable `numpy/core/tests/test_umath.py::TestComplexFunctions::test_loss_of_precision[complex256]`
-    # on x86_64-darwin because it fails under Rosetta 2 due to issues with trig functions and
-    # 80-bit long double complex numbers.
-    ./disable-failing-long-double-test-Rosetta-2.patch
-  ]
-  # We patch cpython/distutils to fix https://bugs.python.org/issue1222585
-  # Patching of numpy.distutils is needed to prevent it from undoing the
-  # patch to distutils.
-  ++ lib.optionals python.hasDistutilsCxxPatch [
-    ./numpy-distutils-C++.patch
-  ];
-
-  postPatch = ''
-    # fails with multiple errors because we are not using the pinned setuptools version
-    # see https://github.com/numpy/numpy/blob/v1.25.0/pyproject.toml#L7
-    #   error: option --single-version-externally-managed not recognized
-    #   TypeError: dist must be a Distribution instance
-    rm numpy/core/tests/test_cython.py
-
-    patchShebangs numpy/_build_utils/*.py
-
-    # remove needless reference to full Python path stored in built wheel
-    substituteInPlace numpy/meson.build \
-      --replace 'py.full_path()' "'python'"
-  '';
-
-  nativeBuildInputs = [
-    cython_3
-    gfortran
-    meson-python
-    pkg-config
-  ] ++ lib.optionals (stdenv.isDarwin) [
-    xcbuild.xcrun
-  ] ++ lib.optionals (!stdenv.buildPlatform.canExecute stdenv.hostPlatform) [
-    mesonEmulatorHook
-  ];
-
-  buildInputs = [
-    blas
-    lapack
-  ];
-
-  # Causes `error: argument unused during compilation: '-fno-strict-overflow'` due to `-Werror`.
-  hardeningDisable = lib.optionals stdenv.cc.isClang [ "strictoverflow" ];
-
-  # we default openblas to build with 64 threads
-  # if a machine has more than 64 threads, it will segfault
-  # see https://github.com/xianyi/OpenBLAS/issues/2993
-  preConfigure = ''
-    sed -i 's/-faltivec//' numpy/distutils/system_info.py
-    export OMP_NUM_THREADS=$((NIX_BUILD_CORES > 64 ? 64 : NIX_BUILD_CORES))
-  '';
-
-  # HACK: copy mesonEmulatorHook's flags to the variable used by meson-python
-  postConfigure = ''
-    mesonFlags="$mesonFlags ''${mesonFlagsArray[@]}"
-  '';
-
-  preBuild = ''
-    ln -s ${cfg} site.cfg
-  '';
-
-  enableParallelBuilding = true;
-
-  nativeCheckInputs = [
-    pytest-xdist
-    pytestCheckHook
-    hypothesis
-    setuptools
-    typing-extensions
-  ];
-
-  preCheck = ''
-    cd "$out"
-  '';
-
-  # https://github.com/numpy/numpy/blob/a277f6210739c11028f281b8495faf7da298dbef/numpy/_pytesttester.py#L180
-  pytestFlagsArray = [
-    "-m" "not\\ slow" # fast test suite
-  ];
-
-  # https://github.com/numpy/numpy/issues/24548
-  disabledTests = lib.optionals stdenv.isi686 [
-    "test_new_policy" # AssertionError: assert False
-    "test_identityless_reduction_huge_array" # ValueError: Maximum allowed dimension exceeded
-    "test_float_remainder_overflow" # AssertionError: FloatingPointError not raised by divmod
-    "test_int" # AssertionError: selectedintkind(19): expected 16 but got -1
-  ] ++ lib.optionals stdenv.isAarch32 [
-    "test_impossible_feature_enable" # AssertionError: Failed to generate error
-    "test_features" # AssertionError: Failure Detection
-    "test_new_policy" # AssertionError: assert False
-    "test_identityless_reduction_huge_array" # ValueError: Maximum allowed dimension exceeded
-    "test_unary_spurious_fpexception"#  AssertionError: Got warnings: [<warnings.WarningMessage object at 0xd1197430>]
-    "test_int" # AssertionError: selectedintkind(19): expected 16 but got -1
-    "test_real" # AssertionError: selectedrealkind(16): expected 10 but got -1
-    "test_quad_precision" # AssertionError: selectedrealkind(32): expected 16 but got -1
-    "test_big_arrays" # ValueError: array is too big; `arr.size * arr.dtype.itemsize` is larger tha...
-    "test_multinomial_pvals_float32" # Failed: DID NOT RAISE <class 'ValueError'>
-  ] ++ lib.optionals stdenv.isAarch64 [
-    "test_big_arrays" # OOM on a 16G machine
-  ];
-
-  passthru = {
-    # just for backwards compatibility
-    blas = blas.provider;
-    blasImplementation = blas.implementation;
-    inherit cfg;
-  };
-
-  # Disable test
-  # - test_large_file_support: takes a long time and can cause the machine to run out of disk space
-  env.NOSE_EXCLUDE = "test_large_file_support";
 
   meta = {
-    changelog = "https://github.com/numpy/numpy/releases/tag/v${version}";
+    changelog = "https://github.com/numpy/numpy/releases/tag/${finalAttrs.src.tag}";
     description = "Scientific tools for Python";
     homepage = "https://numpy.org/";
     license = lib.licenses.bsd3;
-    maintainers = with lib.maintainers; [ fridh ];
+    maintainers = with lib.maintainers; [ doronbehar ];
   };
-}
+})

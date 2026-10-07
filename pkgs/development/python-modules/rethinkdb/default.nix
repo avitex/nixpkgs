@@ -1,9 +1,10 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, looseversion
-, six
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  looseversion,
+  six,
+  setuptools,
 }:
 
 buildPythonPackage rec {
@@ -16,9 +17,7 @@ buildPythonPackage rec {
     hash = "sha256-NjTgPuE91jf9cZa4BHS/RMZNProd0GnqkrlJJnAqYL0=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
   propagatedBuildInputs = [
     looseversion
@@ -29,10 +28,9 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "rethinkdb" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python driver library for the RethinkDB database server";
     homepage = "https://github.com/RethinkDB/rethinkdb-python";
-    license = licenses.asl20;
+    license = lib.licenses.asl20;
   };
-
 }

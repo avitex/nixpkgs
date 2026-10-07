@@ -1,29 +1,24 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, jellyfish
-, pytestCheckHook
-, pythonOlder
-, pytz
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  jellyfish,
+  pytestCheckHook,
+  pytz,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "us";
-  version = "3.1.1";
-  format = "setuptools";
+  version = "3.2.0";
+  pyproject = true;
 
-  disabled = pythonOlder "3.6";
+  build-system = [ setuptools ];
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-40eWPo0kocp0N69EP6aFkXdoR7UMhlDY7w61NILnBcI=";
+    hash = "sha256-yyI+hTk9zFFx6tDdISutxH+WZ7I3AP6j5+pfMQ1UUzg=";
   };
-
-  postPatch = ''
-    # Upstream spins jellyfish
-    substituteInPlace setup.py \
-      --replace "jellyfish==" "jellyfish>="
-  '';
 
   propagatedBuildInputs = [
     jellyfish
@@ -34,12 +29,11 @@ buildPythonPackage rec {
     pytz
   ];
 
-  pythonImportsCheck = [
-    "us"
-  ];
+  pythonImportsCheck = [ "us" ];
 
-  meta = with lib; {
-    description = "A package for easily working with US and state metadata";
+  meta = {
+    description = "Package for easily working with US and state metadata";
+    mainProgram = "states";
     longDescription = ''
       All US states and territories, postal abbreviations, Associated Press style
       abbreviations, FIPS codes, capitals, years of statehood, time zones, phonetic
@@ -47,7 +41,7 @@ buildPythonPackage rec {
       census, congressional districts, counties, and census tracts.
     '';
     homepage = "https://github.com/unitedstates/python-us/";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ bot-wxt1221 ];
   };
 }

@@ -1,20 +1,21 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools
-, setuptools-scm
-, wheel
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  setuptools-scm,
+  wheel,
 }:
 
 buildPythonPackage rec {
   version = "1.1.0";
   pname = "python-vagrant";
-  format = "pyproject";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "pycontribs";
     repo = "python-vagrant";
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     hash = "sha256-apvYzH0IY6ZyUP/FiOVbGN3dXejgN7gn7Mq2tlEaTww=";
   };
 
@@ -27,9 +28,7 @@ buildPythonPackage rec {
   # The tests try to connect to qemu
   doCheck = false;
 
-  pythonImportsCheck = [
-    "vagrant"
-  ];
+  pythonImportsCheck = [ "vagrant" ];
 
   meta = {
     description = "Python module that provides a thin wrapper around the vagrant command line executable";

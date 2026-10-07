@@ -1,13 +1,17 @@
-{ lib, fetchFromGitLab, buildDunePackage }:
+{
+  lib,
+  fetchFromGitLab,
+  buildDunePackage,
+}:
 
-buildDunePackage rec {
+buildDunePackage (finalAttrs: {
   pname = "ringo";
-  version = "1.0.0";
+  version = "1.1.0";
   src = fetchFromGitLab {
     owner = "nomadic-labs";
     repo = "ringo";
-    rev = "v${version}";
-    sha256 = "sha256-9HW3M27BxrEPbF8cMHwzP8FmJduUInpQQAE2672LOuU=";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-8dThhY7TIjd0lLdCt6kxr0yhgVGDyN6ZMSx0Skfbcwk=";
   };
 
   minimalOCamlVersion = "4.08";
@@ -16,7 +20,8 @@ buildDunePackage rec {
 
   meta = {
     description = "Caches (bounded-size key-value stores) and other bounded-size stores";
+    homepage = "https://gitlab.com/nomadic-labs/ringo";
     license = lib.licenses.mit;
     maintainers = [ lib.maintainers.ulrikstrid ];
   };
-}
+})

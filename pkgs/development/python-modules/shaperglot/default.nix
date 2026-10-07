@@ -1,55 +1,47 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, gflanguages
-, num2words
-, poetry-core
-, protobuf
-, pytestCheckHook
-, strictyaml
-, termcolor
-, ufo2ft
-, vharfbuzz
-, youseedee
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  rustPlatform,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "shaperglot";
-  version = "0.3.1";
+  version = "1.2.2";
+  pyproject = true;
 
-  # PyPI source tarballs omit tests, fetch from Github instead
   src = fetchFromGitHub {
     owner = "googlefonts";
     repo = "shaperglot";
-    rev = "v${version}";
-    hash = "sha256-29MzD42rgh+7n/0kjqKGDxXPnUEvj/xxEIKWZg03pxw=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-VVxOkJ6a5UhQvSCswbgeRCLUEOzAbPhHuhJJAr1VvKA=";
   };
 
-  pyproject = true;
+  cargoDeps = rustPlatform.fetchCargoVendor {
+    inherit (finalAttrs) pname version src;
+    hash = "sha256-WOIYg/QlWEk1StmudlPjpit/cKMkPtqLtf0BhPWQeg8=";
+  };
 
-  propagatedBuildInputs = [
-    gflanguages
-    num2words
-    protobuf
-    strictyaml
-    termcolor
-    ufo2ft
-    vharfbuzz
-    youseedee
-  ];
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  postPatch = ''
+    cd shaperglot-py
+  '';
 
-  doCheck = true;
-  nativeCheckInputs = [
-    pytestCheckHook
+  cargoRoot = "..";
+
+  nativeBuildInputs = with rustPlatform; [
+    cargoSetupHook
+    maturinBuildHook
   ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "shaperglot" ];
+
+  meta = {
     description = "Tool to test OpenType fonts for language support";
     homepage = "https://github.com/googlefonts/shaperglot";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ danc86 ];
+    changelog = "https://github.com/googlefonts/shaperglot/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ danc86 ];
+    mainProgram = "shaperglot";
   };
-}
+})

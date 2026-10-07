@@ -1,50 +1,63 @@
-{ lib
-, async-timeout
-, attrs
-, buildPythonPackage
-, fetchFromGitHub
-, httpx
-, orjson
-, packaging
-, pythonOlder
-, xmltodict
+{
+  lib,
+  aiohttp,
+  buildPythonPackage,
+  faust-cchardet,
+  fetchFromGitHub,
+  orjson,
+  packaging,
+  pythonOlder,
+  setuptools,
+  tomli,
+  tomli-w,
+  xmltodict,
+  zeroconf,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "axis";
-  version = "48";
-  format = "setuptools";
+  version = "74";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
+  disabled = pythonOlder "3.14";
 
   src = fetchFromGitHub {
     owner = "Kane610";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-/Iz1F40Y00bgJUvNrkPGyA8Kkch92Kijeg8TQ8mostM=";
+    repo = "axis";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-fWhQe4NklAva4znXUwYhrMdC/VCu4oZgwsyGuGd9csk=";
   };
 
-  propagatedBuildInputs = [
-    async-timeout
-    attrs
-    httpx
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail "setuptools==82.0.1" "setuptools" \
+      --replace-fail "wheel==0.47.0" "wheel"
+  '';
+
+  build-system = [ setuptools ];
+
+  dependencies = [
+    aiohttp
+    faust-cchardet
     orjson
     packaging
+    tomli
+    tomli-w
     xmltodict
+    zeroconf
   ];
 
   # Tests requires a server on localhost
   doCheck = false;
 
-  pythonImportsCheck = [
-    "axis"
-  ];
+  pythonImportsCheck = [ "axis" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python library for communicating with devices from Axis Communications";
     homepage = "https://github.com/Kane610/axis";
-    changelog = "https://github.com/Kane610/axis/releases/tag/v${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/Kane610/axis/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
+    mainProgram = "axis";
   };
-}
+})

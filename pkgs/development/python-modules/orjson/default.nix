@@ -1,49 +1,63 @@
-{ lib
-, stdenv
-, pythonOlder
-, rustPlatform
-, fetchFromGitHub
-, buildPythonPackage
-, cffi
-, libiconv
-, numpy
-, psutil
-, pytestCheckHook
-, python-dateutil
-, pytz
-, xxhash
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  rustPlatform,
+  cffi,
+
+  # native dependencies
+  libiconv,
+
+  # tests
+  numpy,
+  psutil,
+  pytestCheckHook,
+  python-dateutil,
+  pytz,
+  xxhash,
+
+  # for passthru.tests
+  falcon,
+  fastapi,
+  gradio,
+  mashumaro,
+  ufolib2,
 }:
 
 buildPythonPackage rec {
   pname = "orjson";
-  version = "3.9.10";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "3.11.9";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "ijl";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-MkcuayNDt7/GcswXoFTvzuaZzhQEQV+V7OfKqgJwVIQ=";
+    repo = "orjson";
+    tag = version;
+    hash = "sha256-CCwpD6pzO80GlMvjJt4HURQxbghYg53OG/6ZIJWggNU=";
   };
 
-  cargoDeps = rustPlatform.fetchCargoTarball {
-    inherit src;
-    name = "${pname}-${version}";
-    hash = "sha256-2eRV+oZQvsWWJ4AUTeuE0CHtTHC6jNZiX/y5uXuwvns=";
+  patches = lib.optionals (stdenv.buildPlatform != stdenv.hostPlatform) [
+    # fix architecture checks in build.rs to fix build for non x86_64
+    ./cross-arch-compat.patch
+  ];
+
+  cargoDeps = rustPlatform.fetchCargoVendor {
+    inherit pname version src;
+    hash = "sha256-F1TFEj26trVV0TjK6tkS8kiorWRF0uijb1jQko7RDSM=";
   };
 
   nativeBuildInputs = [
     cffi
-  ] ++ (with rustPlatform; [
+  ]
+  ++ (with rustPlatform; [
     cargoSetupHook
     maturinBuildHook
   ]);
 
-  buildInputs = lib.optionals stdenv.isDarwin [
-    libiconv
-  ];
+  buildInputs = lib.optionals stdenv.hostPlatform.isDarwin [ libiconv ];
 
   nativeCheckInputs = [
     numpy
@@ -54,16 +68,27 @@ buildPythonPackage rec {
     xxhash
   ];
 
-  pythonImportsCheck = [
-    "orjson"
-  ];
+  pythonImportsCheck = [ "orjson" ];
 
-  meta = with lib; {
+  passthru.tests = {
+    inherit
+      falcon
+      fastapi
+      gradio
+      mashumaro
+      ufolib2
+      ;
+  };
+
+  meta = {
     description = "Fast, correct Python JSON library supporting dataclasses, datetimes, and numpy";
     homepage = "https://github.com/ijl/orjson";
     changelog = "https://github.com/ijl/orjson/blob/${version}/CHANGELOG.md";
-    license = with licenses; [ asl20 mit ];
-    platforms = platforms.unix;
-    maintainers = with maintainers; [ misuzu ];
+    license = with lib.licenses; [
+      asl20
+      mit
+    ];
+    platforms = lib.platforms.unix;
+    maintainers = with lib.maintainers; [ misuzu ];
   };
 }

@@ -1,29 +1,30 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools
-, itsdangerous
-, python-multipart
-, starlette
-, wtforms
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  itsdangerous,
+  python-multipart,
+  starlette,
+  wtforms,
+  httpx,
+  jinja2,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "starlette-wtf";
-  version = "0.4.3";
-  format = "pyproject";
+  version = "0.4.5";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "muicss";
     repo = "starlette-wtf";
-    rev = "v${version}";
-    hash = "sha256-TSxcIgINRjQwiyhpGOEEpXJKcPlhFCxMQh4/GY1g1lw=";
+    tag = version;
+    hash = "sha256-88zU2NAsdty2OhHauwQ5+6LazuRDYPoqN9IIipI1t2Q=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
   propagatedBuildInputs = [
     itsdangerous
     python-multipart
@@ -33,13 +34,14 @@ buildPythonPackage rec {
 
   nativeCheckInputs = [
     pytestCheckHook
+    httpx
+    jinja2
   ];
 
-  meta = with lib; {
-    description = "A simple tool for integrating Starlette and WTForms";
-    changelog = "https://github.com/muicss/starlette-wtf/blob/v${version}/CHANGELOG.md";
+  meta = {
+    description = "Simple tool for integrating Starlette and WTForms";
+    changelog = "https://github.com/amorey/starlette-wtf/releases/tag/${version}";
     homepage = "https://github.com/muicss/starlette-wtf";
-    license = licenses.mit;
-    maintainers = teams.wdz.members;
+    license = lib.licenses.mit;
   };
 }

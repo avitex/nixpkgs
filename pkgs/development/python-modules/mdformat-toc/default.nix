@@ -1,47 +1,39 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, mdformat
-, mdit-py-plugins
-, poetry-core
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  mdformat,
+  poetry-core,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "mdformat-toc";
-  version = "0.3.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "0.5.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "hukkin";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-3EX6kGez408tEYiR9VSvi3GTrb4ds+HJwpFflv77nkg=";
+    repo = "mdformat-toc";
+    tag = version;
+    hash = "sha256-Rj1lp5Ub+UriOuE896tywN4myovna2RLYO3LRa96FCM=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  nativeBuildInputs = [ poetry-core ];
 
-  buildInputs = [
-    mdformat
-  ];
+  propagatedBuildInputs = [ mdformat ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "mdformat_toc"
-  ];
+  pythonImportsCheck = [ "mdformat_toc" ];
 
-  meta = with lib; {
+  meta = {
     description = "Mdformat plugin to generate a table of contents";
     homepage = "https://github.com/hukkin/mdformat-toc";
-    license = licenses.mit;
-    maintainers = with maintainers; [ aldoborrero polarmutex ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [
+      aldoborrero
+      polarmutex
+    ];
   };
 }

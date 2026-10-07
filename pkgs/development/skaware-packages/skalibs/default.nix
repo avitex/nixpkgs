@@ -1,32 +1,48 @@
-{ lib
-, stdenv
-, skawarePackages
-, pkgs
+{
+  lib,
+  stdenv,
+  skawarePackages,
+  pkgs,
 }:
 
-with skawarePackages;
-
-buildPackage {
+skawarePackages.buildPackage {
   pname = "skalibs";
-  version = "2.14.1.0";
-  sha256 = "24YTUWEngQ2N/thutCRaX/JCBPHhb6KOiqrTRtlqrug=";
+  version = "2.15.1.0";
+  sha256 = "sha256-+ckF50k1xv6RHH40Tj6J1fvSAUwaBGULUksVzptWNdE=";
 
-  description = "A set of general-purpose C programming libraries";
+  meta.description = "Set of general-purpose C programming libraries";
 
-  outputs = [ "lib" "dev" "doc" "out" ];
+  outputs = [
+    "lib"
+    "dev"
+    "doc"
+    "out"
+  ];
 
   configureFlags = [
+    "--libdir=${placeholder "lib"}/lib"
+    "--dynlibdir=${placeholder "out"}/lib"
+    "--libexecdir=${placeholder "lib"}/libexec"
+    "--includedir=${placeholder "dev"}/include"
+    "--pkgconfdir=${placeholder "dev"}/lib/pkgconfig"
     # assume /dev/random works
     "--enable-force-devr"
-    "--libdir=\${lib}/lib"
-    "--dynlibdir=\${lib}/lib"
-    "--includedir=\${dev}/include"
     "--sysdepdir=\${lib}/lib/skalibs/sysdeps"
     # Empty the default path, which would be "/usr/bin:bin".
     # It would be set when PATH is empty. This hurts hermeticity.
     "--with-default-path="
 
-  ] ++ lib.optionals (stdenv.buildPlatform.config != stdenv.hostPlatform.config) [
+  ]
+  ++ lib.optionals (stdenv.buildPlatform.config != stdenv.hostPlatform.config) [
+    # There's a fallback path for BSDs.
+    "--with-sysdep-procselfexe=${
+      if stdenv.hostPlatform.isLinux then
+        "/proc/self/exe"
+      else if stdenv.hostPlatform.isSunOS then
+        "/proc/self/path/a.out"
+      else
+        "none"
+    }"
     # ./configure: sysdep posixspawnearlyreturn cannot be autodetected
     # when cross-compiling. Please manually provide a value with the
     # --with-sysdep-posixspawnearlyreturn=yes|no|... option.
@@ -36,6 +52,8 @@ buildPackage {
     # child has successfully exec'ed. That happens with old glibcs
     # and some virtual platforms.
     "--with-sysdep-posixspawnearlyreturn=no"
+
+    "--with-sysdep-selectinfinite=${if stdenv.hostPlatform.isDarwin then "no" else "yes"}"
   ];
 
   postInstall = ''

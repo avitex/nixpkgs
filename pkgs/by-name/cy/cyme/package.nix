@@ -1,66 +1,67 @@
 {
-  lib
-, fetchFromGitHub
-, rustPlatform
-, pkg-config
-, stdenv
-, darwin
-, libusb1
-, udev
-, nix-update-script
-, testers
-, cyme
+  lib,
+  fetchFromGitHub,
+  rustPlatform,
+  pkg-config,
+  installShellFiles,
+  stdenv,
+  darwin,
+  versionCheckHook,
+  nix-update-script,
 }:
 
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "cyme";
-  version = "1.6.0";
+  version = "3.0.2";
 
   src = fetchFromGitHub {
     owner = "tuna-f1sh";
     repo = "cyme";
-    rev = "v${version}";
-    hash = "sha256-97sxK2zhUKBS238F9mNk8a2VbTVpvbDlN1yDas4Fls4=";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-7+7OGG++UmUfSut/P5HWbim7dAw+dT9FxvNxkpBJciI=";
   };
 
-  cargoLock = {
-    lockFile = ./Cargo.lock;
-    outputHashes = {
-      "libudev-sys-0.1.4" = "sha256-7dUqPH8bQ/QSBIppxQbymwQ44Bvi1b6N2AMUylbyKK8=";
-      "libusb1-sys-0.6.4" = "sha256-Y3K3aEZnpLud/g4Tx+1HDEkNRKi5s4Fo0QSWya/L+L4=";
-    };
-  };
+  cargoHash = "sha256-nnZ0vquGARZ/JlUVBVPzPpwSBYdmZ2bjOMx6fQe1jis=";
 
   nativeBuildInputs = [
     pkg-config
-  ] ++ lib.optionals stdenv.isDarwin [
+    installShellFiles
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
     darwin.DarwinTools
   ];
 
-  buildInputs = [
-    libusb1
-  ] ++ lib.optionals stdenv.isLinux [
-    udev
-  ];
-
-  checkFlags = lib.optionals stdenv.isDarwin [
-    # system_profiler is not available in the sandbox
+  checkFlags = [
+    # doctest that requires access outside sandbox
+    "--skip=udev::hwdb::get"
+    # - system_profiler is not available in the sandbox
+    # - workaround for "Io Error: No such file or directory"
     "--skip=test_run"
   ];
 
-  passthru = {
-    updateScript = nix-update-script { };
-    tests.version = testers.testVersion {
-      package = cyme;
-    };
-  };
+  postInstall = ''
+    installManPage doc/cyme.1
+    installShellCompletion --cmd cyme \
+      --bash doc/cyme.bash \
+      --fish doc/cyme.fish \
+      --zsh doc/_cyme
+  '';
 
-  meta = with lib; {
+  nativeInstallCheckInputs = [
+    versionCheckHook
+  ];
+  doInstallCheck = true;
+  versionCheckProgram = "${placeholder "out"}/bin/${finalAttrs.meta.mainProgram}";
+
+  passthru.updateScript = nix-update-script { };
+
+  meta = {
     homepage = "https://github.com/tuna-f1sh/cyme";
-    description = "A modern cross-platform lsusb";
-    license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ h7x4 ];
-    platforms = platforms.linux ++ platforms.darwin ++ platforms.windows;
+    changelog = "https://github.com/tuna-f1sh/cyme/releases/tag/${finalAttrs.src.rev}";
+    description = "Modern cross-platform lsusb";
+    license = lib.licenses.gpl3Plus;
+    maintainers = with lib.maintainers; [ h7x4 ];
+    platforms = lib.platforms.linux ++ lib.platforms.darwin ++ lib.platforms.windows;
     mainProgram = "cyme";
   };
-}
+})

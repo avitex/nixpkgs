@@ -1,32 +1,29 @@
-{ lib
-, buildPythonPackage
-, callPackage
-, fetchFromGitHub
-, click
-, h11
-, httptools
-, python-dotenv
-, pyyaml
-, typing-extensions
-, uvloop
-, watchfiles
-, websockets
-, hatchling
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  callPackage,
+  fetchFromGitHub,
+  click,
+  h11,
+  httptools,
+  python-dotenv,
+  pyyaml,
+  uvloop,
+  watchfiles,
+  websockets,
+  hatchling,
 }:
 
 buildPythonPackage rec {
   pname = "uvicorn";
-  version = "0.24.0.post1";
-  disabled = pythonOlder "3.8";
-
-  format = "pyproject";
+  version = "0.51.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "encode";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-WMXOmQOTj/yPazPEAuteho4UH9enXcIa1mMDDl2eaIk=";
+    repo = "uvicorn";
+    tag = version;
+    hash = "sha256-VX5X2BY8eZc93r3zfJFhtz1vuXHvaqWB5rTj7zddSzU=";
   };
 
   outputs = [
@@ -34,16 +31,14 @@ buildPythonPackage rec {
     "testsout"
   ];
 
-  nativeBuildInputs = [ hatchling ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     click
     h11
-  ] ++ lib.optionals (pythonOlder "3.11") [
-    typing-extensions
   ];
 
-  passthru.optional-dependencies.standard = [
+  optional-dependencies.standard = [
     httptools
     python-dotenv
     pyyaml
@@ -57,9 +52,7 @@ buildPythonPackage rec {
     cp -R tests $testsout/tests
   '';
 
-  pythonImportsCheck = [
-    "uvicorn"
-  ];
+  pythonImportsCheck = [ "uvicorn" ];
 
   # check in passthru.tests.pytest to escape infinite recursion with httpx/httpcore
   doCheck = false;
@@ -68,11 +61,12 @@ buildPythonPackage rec {
     pytest = callPackage ./tests.nix { };
   };
 
-  meta = with lib; {
+  meta = {
     homepage = "https://www.uvicorn.org/";
-    changelog = "https://github.com/encode/uvicorn/blob/${src.rev}/CHANGELOG.md";
-    description = "The lightning-fast ASGI server";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ wd15 ];
+    changelog = "https://github.com/Kludex/uvicorn/blob/${src.tag}/docs/release-notes.md";
+    description = "Lightning-fast ASGI server";
+    mainProgram = "uvicorn";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ wd15 ];
   };
 }

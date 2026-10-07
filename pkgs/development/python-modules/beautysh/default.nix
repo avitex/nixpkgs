@@ -1,65 +1,50 @@
-{ lib
-, buildPythonPackage
-, colorama
-, fetchFromGitHub
-, fetchpatch
-, poetry-core
-, pytestCheckHook
-, setuptools
-, types-colorama
-, types-setuptools
+{
+  lib,
+  buildPythonPackage,
+  colorama,
+  editorconfig,
+  fetchFromGitHub,
+  hatchling,
+  hypothesis,
+  pytestCheckHook,
+  pyyaml,
+  types-colorama,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "beautysh";
-  version = "6.2.1";
-  format = "pyproject";
+  version = "6.4.3";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "lovesegfault";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-rPeGRcyNK45Y7OvtzaIH93IIzexBf/jM1SzYP0phQ1o=";
+    repo = "beautysh";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-P2oF6Sb7CBsZGSOXifxgCtJdY50YUJF3tKihp3v1cK4=";
   };
 
-  patches = [
-    # https://github.com/lovesegfault/beautysh/pull/247
-    (fetchpatch {
-      name = "poetry-to-poetry-core.patch";
-      url = "https://github.com/lovesegfault/beautysh/commit/5f4fcac083fa68568a50f3c2bcee3ead0f3ca7c5.patch";
-      hash = "sha256-H/kIJKww5ouWu8rmRkaMOXcsq2daZWDdwxBqbc99x0s=";
-    })
-  ];
+  build-system = [ hatchling ];
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace 'types-setuptools = "^57.4.0"' 'types-setuptools = "*"'
-  '';
-
-  nativeBuildInputs = [
-    poetry-core
-  ];
-
-  propagatedBuildInputs = [
+  dependencies = [
     colorama
-    setuptools
+    editorconfig
     types-colorama
-    types-setuptools
   ];
 
   nativeCheckInputs = [
+    hypothesis
     pytestCheckHook
+    pyyaml
   ];
 
-  pythonImportsCheck = [
-    "beautysh"
-  ];
+  pythonImportsCheck = [ "beautysh" ];
 
-  meta = with lib; {
+  meta = {
     description = "Tool for beautifying Bash scripts";
     homepage = "https://github.com/lovesegfault/beautysh";
-    license = with licenses; [ asl20 ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/lovesegfault/beautysh/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
     mainProgram = "beautysh";
   };
-}
+})

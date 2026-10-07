@@ -1,38 +1,42 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, pythonOlder
-, colorama
-, intervaltree
-, json5
-, pyyaml
-, scipy
-, tqdm
-, typing-extensions
+{
+  lib,
+  buildPythonPackage,
+  colorama,
+  distutils,
+  fetchFromGitHub,
+  fickling,
+  intervaltree,
+  json5,
+  pytestCheckHook,
+  pyyaml,
+  scipy,
+  setuptools,
+  tqdm,
+  typing-extensions,
 }:
 
 buildPythonPackage rec {
   pname = "graphtage";
-  version = "0.3.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.6";
+  version = "0.3.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "trailofbits";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-rzX5pSSPm3CjpnCm0gxsgUaeXho9dP7WTanCzBK6Yps=";
+    repo = "graphtage";
+    tag = "v${version}";
+    hash = "sha256-Bz2T8tVdVOdXt23yPITkDNL46Y5LZPhY3SXZ5bF3CHw=";
   };
 
-  postPatch = ''
-    substituteInPlace setup.py \
-      --replace "json5==0.9.5" "json5>=0.9.5"
-  '';
+  pythonRelaxDeps = [ "json5" ];
 
-  propagatedBuildInputs = [
+  build-system = [
+    distutils
+    setuptools
+  ];
+
+  dependencies = [
     colorama
+    fickling
     intervaltree
     json5
     pyyaml
@@ -41,19 +45,16 @@ buildPythonPackage rec {
     typing-extensions
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "graphtage"
-  ];
+  pythonImportsCheck = [ "graphtage" ];
 
-  meta = with lib; {
-    description = "A utility to diff tree-like files such as JSON and XML";
+  meta = {
+    description = "Utility to diff tree-like files such as JSON and XML";
     homepage = "https://github.com/trailofbits/graphtage";
     changelog = "https://github.com/trailofbits/graphtage/releases/tag/v${version}";
-    license = licenses.lgpl3Plus;
-    maintainers = with maintainers; [ veehaitch ];
+    license = lib.licenses.lgpl3Plus;
+    maintainers = with lib.maintainers; [ veehaitch ];
+    mainProgram = "graphtage";
   };
 }

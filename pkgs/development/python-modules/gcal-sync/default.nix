@@ -1,36 +1,35 @@
-{ lib
-, aiohttp
-, buildPythonPackage
-, fetchFromGitHub
-, freezegun
-, ical
-, pydantic
-, pytest-aiohttp
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, setuptools
+{
+  lib,
+  aiohttp,
+  buildPythonPackage,
+  fetchFromGitHub,
+  freezegun,
+  ical,
+  pydantic,
+  pytest-aiohttp,
+  pytest-asyncio,
+  pytestCheckHook,
+  pythonOlder,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "gcal-sync";
-  version = "6.0.3";
+  version = "9.1.1";
   pyproject = true;
 
-  disabled = pythonOlder "3.10";
+  disabled = pythonOlder "3.13";
 
   src = fetchFromGitHub {
     owner = "allenporter";
     repo = "gcal_sync";
-    rev = "refs/tags/${version}";
-    hash = "sha256-i5K4kJcieugPkXIuDje8tk5TEX6EwDywUB6MByLmukA=";
+    tag = version;
+    hash = "sha256-IgfNngtbNRqrVcyr5J2dzcIsy6ibjiw6ZqVMhnD1Efo=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
     ical
     pydantic
@@ -45,15 +44,13 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "gcal_sync"
-  ];
+  pythonImportsCheck = [ "gcal_sync" ];
 
-  meta = with lib; {
+  meta = {
     description = "Library for syncing Google Calendar to local storage";
     homepage = "https://github.com/allenporter/gcal_sync";
-    changelog = "https://github.com/allenporter/gcal_sync/releases/tag/${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ dotlambda ];
+    changelog = "https://github.com/allenporter/gcal_sync/releases/tag/${src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ dotlambda ];
   };
 }

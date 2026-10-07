@@ -1,20 +1,17 @@
-{ lib
-, bitcoinlib
-, buildPythonPackage
-, fetchFromGitHub
-, git
-, gitpython
-, pycryptodomex
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  python-bitcoinlib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  gitpython,
+  pycryptodomex,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "opentimestamps";
   version = "0.4.5";
   format = "setuptools";
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "opentimestamps";
@@ -24,14 +21,12 @@ buildPythonPackage rec {
   };
 
   propagatedBuildInputs = [
-    bitcoinlib
+    python-bitcoinlib
     gitpython
     pycryptodomex
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   # Remove a failing test which expects the test source file to reside in the
   # project's Git repo
@@ -39,15 +34,13 @@ buildPythonPackage rec {
     rm opentimestamps/tests/core/test_git.py
   '';
 
-  pythonImportsCheck = [
-    "opentimestamps"
-  ];
+  pythonImportsCheck = [ "opentimestamps" ];
 
-  meta = with lib; {
+  meta = {
     description = "Create and verify OpenTimestamps proofs";
     homepage = "https://github.com/opentimestamps/python-opentimestamps";
     changelog = "https://github.com/opentimestamps/python-opentimestamps/releases/tag/python-opentimestamps-v${version}";
-    license = licenses.lgpl3Plus;
-    maintainers = with maintainers; [ erikarvstedt ];
+    license = lib.licenses.lgpl3Plus;
+    maintainers = with lib.maintainers; [ erikarvstedt ];
   };
 }

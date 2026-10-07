@@ -1,21 +1,22 @@
-{ stdenv
-, lib
-, fetchFromGitHub
-, cmake
-, qttools
-, cpp-utilities
-, qtbase
+{
+  stdenv,
+  lib,
+  fetchFromGitHub,
+  cmake,
+  qttools,
+  cpp-utilities,
+  qtbase,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "qtutilities";
-  version = "6.13.4";
+  version = "6.22.2";
 
   src = fetchFromGitHub {
     owner = "Martchus";
     repo = "qtutilities";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-AlDPu2mD2OrjBq3tUxQBAoqD32L9MiSjcUNGWzpj/xc=";
+    hash = "sha256-jxs8W1/QMWaupNDZT10GN2Eg0lEanHzWSTm4B+h38uA=";
   };
 
   nativeBuildInputs = [
@@ -34,11 +35,11 @@ stdenv.mkDerivation (finalAttrs: {
 
   dontWrapQtApps = true;
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/Martchus/qtutilities";
     description = "Common Qt related C++ classes and routines used by @Martchus' applications such as dialogs, widgets and models Topics";
-    license = licenses.gpl2Plus;
-    maintainers = with maintainers; [ doronbehar ];
-    platforms   = platforms.linux ++ platforms.darwin;
+    license = lib.licenses.gpl2Plus;
+    maintainers = with lib.maintainers; [ doronbehar ];
+    platforms = lib.platforms.linux ++ lib.platforms.darwin;
   };
 })

@@ -1,23 +1,36 @@
-{ lib, fetchPypi, buildPythonPackage, isPy3k }:
+{
+  lib,
+  fetchPypi,
+  buildPythonPackage,
+  setuptools,
+  isPy3k,
+}:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "sslib";
   version = "0.2.0";
-  format = "setuptools";
+  pyproject = true;
+
+  __structuredAttrs = true;
+
   disabled = !isPy3k;
 
   src = fetchPypi {
-    inherit pname version;
-    sha256 = "0b5zrjkvx4klmv57pzhcmvbkdlyn745mn02k7hp811hvjrhbz417";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-J5C/YJYbhoAuPFMAWws51tM2164M/nvKrnSSvqfMvyw=";
   };
+
+  build-system = [ setuptools ];
 
   # No tests available
   doCheck = false;
 
-  meta = with lib; {
+  pythonImportsCheck = [ "sslib" ];
+
+  meta = {
     homepage = "https://github.com/jqueiroz/python-sslib";
-    description = "A Python3 library for sharing secrets";
-    license = licenses.mit;
-    maintainers = with maintainers; [ jqueiroz ];
+    description = "Python3 library for sharing secrets";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ jqueiroz ];
   };
-}
+})

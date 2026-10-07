@@ -1,123 +1,166 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonRelaxDepsHook
-, asn1crypto
-, astunparse
-, bincopy
-, bitstring
-, click
-, click-command-tree
-, click-option-group
-, cmsis-pack-manager
-, commentjson
-, crcmod
-, cryptography
-, deepmerge
-, fastjsonschema
-, hexdump
-, importlib-metadata
-, jinja2
-, libusbsio
-, oscrypto
-, pycryptodome
-, pyftdi
-, pylink-square
-, pyocd
-, pypemicro
-, pyserial
-, requests
-, ruamel-yaml
-, setuptools
-, sly
-, spsdk
-, testers
-, typing-extensions
-, pytestCheckHook
-, voluptuous
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+  setuptools-scm,
+
+  # dependencies
+  asn1crypto,
+  bincopy,
+  bitstring,
+  chardet,
+  click,
+  click-command-tree,
+  click-option-group,
+  colorama,
+  crcmod,
+  cryptography,
+  deepmerge,
+  fastjsonschema,
+  filelock,
+  hexdump,
+  libusbsio,
+  libuuu,
+  oscrypto,
+  packaging,
+  platformdirs,
+  prettytable,
+  pyasn1,
+  pyocd,
+  pyserial,
+  requests,
+  ruamel-yaml,
+  sly,
+  spsdk-mcu-link,
+  spsdk-pyocd,
+  typing-extensions,
+  x690,
+
+  # tests
+  cookiecutter,
+  ipykernel,
+  pytest-notebook,
+  pytest-xdist,
+  pytestCheckHook,
+  versionCheckHook,
+  voluptuous,
+  writableTmpDirAsHomeHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "spsdk";
-  version = "2.0.1";
+  version = "3.11.0";
   pyproject = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "nxp-mcuxpresso";
-    repo = pname;
-    rev = version;
-    hash = "sha256-C6cz5jhIHI4WkCYT0rURFa4kBAu6cMcKpQHiHACIiu8=";
+    repo = "spsdk";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-BIYCOwXMw0PuZDWj7x4EG+mUBo+7RNJs0hvNVwbxlIg=";
   };
 
-  nativeBuildInputs = [
-    pythonRelaxDepsHook
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail \
+        "setuptools_scm<10" \
+        "setuptools_scm"
+  '';
+
+  build-system = [
     setuptools
+    setuptools-scm
   ];
 
   pythonRelaxDeps = [
-    "bincopy"
-    "bitstring"
-    "cmsis-pack-manager"
+    "chardet"
+    "cryptography"
     "deepmerge"
-    "jinja2"
-    "pycryptodome"
-    "pylink-square"
-    "pyocd"
+    "filelock"
+    "importlib-metadata"
+    "packaging"
+    "prettytable"
+    "requests"
+    "ruamel.yaml.clib"
+    "setuptools"
+    "setuptools_scm"
     "typing-extensions"
-    "click"
-    "ruamel.yaml"
   ];
 
   pythonRemoveDeps = [
+    # Remove unneeded unfree package. pyocd-pemicro is only used when
+    # generating a pyinstaller package, which we don't do.
     "pyocd-pemicro"
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     asn1crypto
-    astunparse
     bincopy
     bitstring
+    chardet
     click
     click-command-tree
     click-option-group
-    cmsis-pack-manager
-    commentjson
+    colorama
+    cookiecutter
     crcmod
     cryptography
     deepmerge
     fastjsonschema
+    filelock
     hexdump
-    importlib-metadata
-    jinja2
     libusbsio
+    libuuu
     oscrypto
-    pycryptodome
-    pylink-square
+    packaging
+    platformdirs
+    prettytable
+    pyasn1
     pyocd
-    pypemicro
     pyserial
     requests
     ruamel-yaml
     sly
+    spsdk-mcu-link
+    spsdk-pyocd
     typing-extensions
-  ];
-
-  nativeCheckInputs = [
-    pyftdi
-    pytestCheckHook
-    voluptuous
+    x690
   ];
 
   pythonImportsCheck = [ "spsdk" ];
 
-  passthru.tests.version = testers.testVersion { package = spsdk; };
+  nativeCheckInputs = [
+    cookiecutter
+    ipykernel
+    pytest-notebook
+    pytestCheckHook
+    pytest-xdist
+    versionCheckHook
+    voluptuous
+    writableTmpDirAsHomeHook
+  ];
 
-  meta = with lib; {
-    changelog = "https://github.com/nxp-mcuxpresso/spsdk/blob/${src.rev}/docs/release_notes.rst";
+  disabledTests = [
+    # Missing rotk private key
+    "test_general_notebooks"
+
+    # Attempts to access /run
+    "test_nxpimage_famode_export_cli"
+
+    # spsdk.exceptions.SPSDKValueError: SPSDK: The EC curve with name 'sect163k1' is not supported
+    "test_keys_generation_ec"
+  ];
+
+  meta = {
+    changelog = "https://github.com/nxp-mcuxpresso/spsdk/blob/${finalAttrs.src.tag}/docs/release_notes.rst";
     description = "NXP Secure Provisioning SDK";
     homepage = "https://github.com/nxp-mcuxpresso/spsdk";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ frogamic sbruder ];
+    license = lib.licenses.bsd3;
+    maintainers = [
+    ];
     mainProgram = "spsdk";
   };
-}
+})

@@ -1,29 +1,41 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, fetchPypi
-, mock
-, psutil
-, pytestCheckHook
-, pythonOlder
-, six
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+
+  # dependencies
+  psutil,
+  six,
+
+  # tests
+  mock,
+  pytestCheckHook,
+  pyocd,
 }:
 
 buildPythonPackage rec {
   pname = "pylink-square";
-  version = "1.2.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "1.6.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "square";
     repo = "pylink";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-rcM7gvUUfXN5pL9uIihzmOCXA7NKjiMt2GaQaGJxD9M=";
+    tag = "v${version}";
+    hash = "sha256-rkkdnpkl9UHcBDjp6lsFXR1zNn7tH1KeTQ7wV+yJ3m0=";
   };
 
-  propagatedBuildInputs = [
+  patches = [
+    # ERROR: /build/source/setup.cfg:16: unexpected value continuation
+    ./fix-setup-cfg-syntax.patch
+  ];
+
+  build-system = [ setuptools ];
+
+  dependencies = [
     psutil
     six
   ];
@@ -33,9 +45,7 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "pylink"
-  ];
+  pythonImportsCheck = [ "pylink" ];
 
   disabledTests = [
     # AttributeError: 'called_once_with' is not a valid assertion
@@ -44,11 +54,15 @@ buildPythonPackage rec {
     "test_set_log_file_success"
   ];
 
-  meta = with lib; {
+  passthru.tests = {
+    inherit pyocd;
+  };
+
+  meta = {
     description = "Python interface for the SEGGER J-Link";
     homepage = "https://github.com/square/pylink";
-    changelog = "https://github.com/square/pylink/blob/v${version}/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ dump_stack ];
+    changelog = "https://github.com/square/pylink/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ dump_stack ];
   };
 }

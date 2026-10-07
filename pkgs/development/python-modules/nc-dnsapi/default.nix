@@ -1,7 +1,8 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, requests
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  requests,
 }:
 
 buildPythonPackage rec {
@@ -23,10 +24,13 @@ buildPythonPackage rec {
   # no tests
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "API wrapper for the netcup DNS api";
     homepage = "https://github.com/nbuchwitz/nc_dnsapi";
-    license = licenses.gpl3;
-    maintainers = with maintainers; [ veehaitch trundle ];
+    license = lib.licenses.gpl3;
+    maintainers = with lib.maintainers; [
+      veehaitch
+      trundle
+    ];
   };
 }

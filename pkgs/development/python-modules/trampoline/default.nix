@@ -1,13 +1,17 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitLab
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitLab,
+  setuptools,
+  pytestCheckHook,
 }:
 
 buildPythonPackage {
   pname = "trampoline";
   version = "0.1.2";
-  format = "setuptools";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   # only wheel on pypi, no tags on git
   src = fetchFromGitLab {
@@ -17,18 +21,16 @@ buildPythonPackage {
     hash = "sha256-A/tuR+QW9sKh76Qjwn1uQxlVJgWrSFzXeBRDdnSi2o4=";
   };
 
-  pythonImportsCheck = [
-    "trampoline"
-  ];
+  build-system = [ setuptools ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  pythonImportsCheck = [ "trampoline" ];
 
-  meta = with lib; {
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  meta = {
     description = "Simple and tiny yield-based trampoline implementation for python";
     homepage = "https://gitlab.com/ferreum/trampoline";
-    license = licenses.mit;
-    maintainers = teams.tts.members;
+    license = lib.licenses.mit;
+    teams = [ lib.teams.tts ];
   };
 }

@@ -1,13 +1,14 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   version = "0.7.0";
   pname = "bespon";
-  format = "pyproject";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
@@ -19,11 +20,10 @@ buildPythonPackage rec {
   doCheck = false;
 
   pythonImportsCheck = [ "bespon" ];
-  meta = with lib; {
-    description = "Encodes and decodes data in the BespON format.";
+  meta = {
+    description = "Encodes and decodes data in the BespON format";
     homepage = "https://github.com/gpoore/bespon_py";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ synthetica ];
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
-
 }

@@ -1,41 +1,38 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, apispec
-, colorama
-, click
-, email-validator
-, flask
-, flask-babel
-, flask-limiter
-, flask-login
-, flask-openid
-, flask-sqlalchemy
-, flask-wtf
-, flask-jwt-extended
-, jsonschema
-, marshmallow
-, marshmallow-enum
-, marshmallow-sqlalchemy
-, python-dateutil
-, pythonOlder
-, prison
-, pyjwt
-, pyyaml
-, sqlalchemy-utils
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  apispec,
+  colorama,
+  click,
+  email-validator,
+  flask,
+  flask-babel,
+  flask-limiter,
+  flask-login,
+  flask-openid,
+  flask-sqlalchemy,
+  flask-wtf,
+  flask-jwt-extended,
+  jsonschema,
+  marshmallow,
+  marshmallow-sqlalchemy,
+  python-dateutil,
+  prison,
+  pyjwt,
+  pyyaml,
+  sqlalchemy-utils,
 }:
 
 buildPythonPackage rec {
   pname = "flask-appbuilder";
-  version = "4.3.10";
+  version = "5.0.2";
   format = "setuptools";
-
-  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     pname = "Flask-AppBuilder";
     inherit version;
-    hash = "sha256-QXPIeOVrgcasrF48gMEz9Bg/Q0Qv2URVK9n0Aj9brOs=";
+    hash = "sha256-9Xe5gqGuQLwhMjjO25PDnGfPIZmqHgBuCH6hs1B9VFA=";
   };
 
   propagatedBuildInputs = [
@@ -53,14 +50,14 @@ buildPythonPackage rec {
     flask-jwt-extended
     jsonschema
     marshmallow
-    marshmallow-enum
     marshmallow-sqlalchemy
     python-dateutil
     prison
     pyjwt
     pyyaml
     sqlalchemy-utils
-  ] ++ apispec.optional-dependencies.yaml;
+  ]
+  ++ apispec.optional-dependencies.yaml;
 
   postPatch = ''
     substituteInPlace setup.py \
@@ -74,16 +71,14 @@ buildPythonPackage rec {
   # Majority of tests require network access or mongo
   doCheck = false;
 
-  pythonImportsCheck = [
-    "flask_appbuilder"
-  ];
+  pythonImportsCheck = [ "flask_appbuilder" ];
 
-  meta = with lib; {
+  meta = {
     description = "Application development framework, built on top of Flask";
     homepage = "https://github.com/dpgaspar/flask-appbuilder/";
     changelog = "https://github.com/dpgaspar/Flask-AppBuilder/blob/v${version}/CHANGELOG.rst";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
     # Support for flask-sqlalchemy >= 3.0 is missing, https://github.com/dpgaspar/Flask-AppBuilder/pull/1940
     broken = true;
   };

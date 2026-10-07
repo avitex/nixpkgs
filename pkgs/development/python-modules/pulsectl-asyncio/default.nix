@@ -1,47 +1,42 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pulsectl
-, pythonOlder
-, setuptools
-, wheel
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pulsectl,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pulsectl-asyncio";
-  version = "1.1.1";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "1.3.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "mhthies";
     repo = "pulsectl-asyncio";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-Uc8iUo9THWNPRRsvJxfw++41cnKrANe/Fk6e8bgLSkc=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-SbNDX5tcNSfifT1Bpv5haKrPtkupH+bwM8Yc4jNbnz8=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-    wheel
-  ];
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail "pulsectl >=23.5.0,<=24.12.0" "pulsectl >=23.5.0"
+  '';
 
-  propagatedBuildInputs = [
-    pulsectl
-  ];
+  build-system = [ setuptools ];
+
+  dependencies = [ pulsectl ];
 
   # Tests require a running pulseaudio instance
   doCheck = false;
 
-  pythonImportsCheck = [
-    "pulsectl_asyncio"
-  ];
+  pythonImportsCheck = [ "pulsectl_asyncio" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python bindings library for PulseAudio";
     homepage = "https://github.com/mhthies/pulsectl-asyncio";
-    changelog = "https://github.com/mhthies/pulsectl-asyncio/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/mhthies/pulsectl-asyncio/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

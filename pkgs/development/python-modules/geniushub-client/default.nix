@@ -1,23 +1,21 @@
-{ lib
-, aiohttp
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  aiohttp,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "geniushub-client";
-  version = "0.7.1";
+  version = "0.7.4";
   format = "setuptools";
-
-  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
     owner = "manzanotti";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-Gq2scYos7E8me1a4x7NanHRq2eYWuU2uSUwM+O1TPb8=";
+    repo = "geniushub-client";
+    tag = "v${version}";
+    hash = "sha256-0qHmTq/nOPruivU5R8r0abmMAhxy0w5zILKFPxtL2Mc=";
   };
 
   postPatch = ''
@@ -26,23 +24,17 @@ buildPythonPackage rec {
       --replace "version=VERSION," 'version="${version}",'
   '';
 
-  propagatedBuildInputs = [
-    aiohttp
-  ];
+  propagatedBuildInputs = [ aiohttp ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "geniushubclient"
-  ];
+  pythonImportsCheck = [ "geniushubclient" ];
 
-  meta = with lib; {
+  meta = {
     description = "Module to interact with Genius Hub systems";
     homepage = "https://github.com/manzanotti/geniushub-client";
     changelog = "https://github.com/manzanotti/geniushub-client/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ dotlambda ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ dotlambda ];
   };
 }

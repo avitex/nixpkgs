@@ -1,57 +1,47 @@
-{ lib
-, async-timeout
-, buildPythonPackage
-, curio
-, fetchFromGitHub
-, flask
-, httpcore
-, httpx
-, hypercorn
-, pytest-asyncio
-, pytest-trio
-, pytestCheckHook
-, python-socks
-, pythonOlder
-, setuptools
-, sniffio
-, starlette
-, tiny-proxy
-, trio
-, trustme
-, yarl
+{
+  lib,
+  async-timeout,
+  buildPythonPackage,
+  fetchFromGitHub,
+  flask,
+  httpcore,
+  httpx,
+  hypercorn,
+  pytest-asyncio,
+  pytest-trio,
+  pytestCheckHook,
+  python-socks,
+  setuptools,
+  starlette,
+  tiny-proxy,
+  trio,
+  trustme,
+  yarl,
 }:
 
 buildPythonPackage rec {
   pname = "httpx-socks";
-  version = "0.8.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "0.13.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "romis2012";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-3Dj+rrH5Pil5xQE6sAAD5RTycwlKq+TVsAeB2NVqGjY=";
+    repo = "httpx-socks";
+    tag = "v${version}";
+    hash = "sha256-sz7A72nvwy8P0VvVYUT2ZTGXXOe5u1eme7PLC38SIz8=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     httpx
     httpcore
     python-socks
   ];
 
-  passthru.optional-dependencies = {
-    asyncio = [
-      async-timeout
-    ];
-    trio = [
-      trio
-    ];
+  optional-dependencies = {
+    asyncio = [ async-timeout ];
+    trio = [ trio ];
   };
 
   __darwinAllowLocalNetworking = true;
@@ -68,9 +58,7 @@ buildPythonPackage rec {
     yarl
   ];
 
-  pythonImportsCheck = [
-    "httpx_socks"
-  ];
+  pythonImportsCheck = [ "httpx_socks" ];
 
   disabledTests = [
     # Tests don't work in the sandbox
@@ -78,11 +66,11 @@ buildPythonPackage rec {
     "test_secure_proxy"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Proxy (HTTP, SOCKS) transports for httpx";
     homepage = "https://github.com/romis2012/httpx-socks";
-    changelog = "https://github.com/romis2012/httpx-socks/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/romis2012/httpx-socks/releases/tag/${src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

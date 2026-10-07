@@ -1,27 +1,26 @@
-{ lib, fetchFromGitLab, buildDunePackage, uri, crowbar, alcotest }:
+{
+  lib,
+  fetchFromGitLab,
+  buildDunePackage,
+  hex,
+  uri,
+}:
 
-buildDunePackage rec {
+buildDunePackage (finalAttrs: {
   pname = "json-data-encoding";
-  version = "0.12.1";
+  version = "1.0.1";
   minimalOCamlVersion = "4.10";
-  duneVersion = "3";
   src = fetchFromGitLab {
     owner = "nomadic-labs";
-    repo = "json-data-encoding";
-    rev = version;
-    hash = "sha256-ticulOKiFNQIZNFOQE9UQOw/wqRfygQwLVIc4kkmwg4=";
+    repo = "data-encoding";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-KoA4xX4tNyi6bX5kso/Wof1LA7431EXJ34eD5X4jnd8=";
   };
 
   propagatedBuildInputs = [
+    hex
     uri
   ];
-
-  checkInputs = [
-    crowbar
-    alcotest
-  ];
-
-  doCheck = true;
 
   meta = {
     homepage = "https://gitlab.com/nomadic-labs/json-data-encoding";
@@ -29,4 +28,4 @@ buildDunePackage rec {
     license = lib.licenses.lgpl3;
     maintainers = [ lib.maintainers.ulrikstrid ];
   };
-}
+})

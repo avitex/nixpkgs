@@ -1,42 +1,37 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# build-system
-, setuptools
+  # build-system
+  flit-core,
 
-# dependencies
-, astroid
-, anyascii
-, jinja2
-, pyyaml
-, sphinx
+  # dependencies
+  astroid,
+  jinja2,
+  pyyaml,
+  sphinx,
 
-# tests
-, beautifulsoup4
-, mock
-, pytestCheckHook
+  # tests
+  beautifulsoup4,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "sphinx-autoapi";
-  version = "3.0.0";
-  format = "pyproject";
+  version = "3.8.0";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-CevWdKMrREZyIrD7ipF7l8iVI/INvwW1LLij8OFXFN4=";
+  src = fetchFromGitHub {
+    owner = "readthedocs";
+    repo = "sphinx-autoapi";
+    tag = "v${version}";
+    hash = "sha256-pEfyVwvAqIg/1F5kX7WLlhdD+5tq3422u8N6nBizRcA=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ flit-core ];
 
-  propagatedBuildInputs = [
-    anyascii
+  dependencies = [
     astroid
     jinja2
     pyyaml
@@ -45,30 +40,26 @@ buildPythonPackage rec {
 
   nativeCheckInputs = [
     beautifulsoup4
-    mock
     pytestCheckHook
   ];
 
   disabledTests = [
-    # failing typing assertions
+    # require network access
     "test_integration"
-    "test_annotations"
   ];
 
-  pythonImportsCheck = [
-    "autoapi"
-  ];
+  pythonImportsCheck = [ "autoapi" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/readthedocs/sphinx-autoapi";
-    changelog = "https://github.com/readthedocs/sphinx-autoapi/blob/v${version}/CHANGELOG.rst";
+    changelog = "https://github.com/readthedocs/sphinx-autoapi/blob/${src.tag}/CHANGELOG.rst";
     description = "Provides 'autodoc' style documentation";
     longDescription = ''
       Sphinx AutoAPI provides 'autodoc' style documentation for
       multiple programming languages without needing to load, run, or
       import the project being documented.
     '';
-    license = licenses.mit;
-    maintainers = with maintainers; [ karolchmist ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

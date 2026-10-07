@@ -1,9 +1,9 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, unittestCheckHook
-, pythonOlder
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  unittestCheckHook,
+  setuptools,
 }:
 
 buildPythonPackage rec {
@@ -11,41 +11,34 @@ buildPythonPackage rec {
   version = "0.2.1";
   pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
   src = fetchFromGitHub {
     owner = "robbmcleod";
     repo = "cpufeature";
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     hash = "sha256-dp569Tp8E5/avQpYvhPNPgS/A+q2e/ie+7BR7h2Ip+I=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
-  propagatedBuildInputs = [
-    setuptools
-  ];
+  propagatedBuildInputs = [ setuptools ];
 
-  nativeCheckInputs = [
-    unittestCheckHook
-  ];
+  nativeCheckInputs = [ unittestCheckHook ];
 
-  pythonImportsCheck = [
-    "cpufeature"
-  ];
+  pythonImportsCheck = [ "cpufeature" ];
 
   preCheck = ''
     # Change into the test directory due to a relative resource path
     cd cpufeature
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Python module for detection of CPU features";
     homepage = "https://github.com/robbmcleod/cpufeature";
-    license = licenses.cc0;
-    maintainers = with maintainers; [ fab ];
-    platforms = [ "x86_64-linux" "x86_64-windows" ];
+    license = lib.licenses.cc0;
+    maintainers = with lib.maintainers; [ fab ];
+    platforms = [
+      "x86_64-linux"
+      "x86_64-windows"
+    ];
   };
 }

@@ -1,19 +1,26 @@
-{ lib
-, stdenv
-, fetchurl
-, ncurses
-, pcre2
+{
+  lib,
+  fetchurl,
+  ncurses,
+  pcre2,
+  stdenv,
+  versionCheckHook,
+  # Boolean options
+  withSecure ? false,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "less";
-  version = "643";
+  version = "710";
 
-  # Only tarballs on the website are valid releases,
-  # other versions, e.g. git tags are considered snapshots.
+  # `less` is provided by the following sources:
+  # - meta.homepage
+  # - GitHub: https://github.com/gwsw/less/
+  # The releases recommended for general consumption are only those from
+  # homepage, and only those not marked as beta.
   src = fetchurl {
     url = "https://www.greenwoodsoftware.com/less/less-${finalAttrs.version}.tar.gz";
-    hash = "sha256-KRG1QyyDb6CEyKLmj2zWMSNywCalj6qpiGJzHItgUug=";
+    hash = "sha256-0QCPt43K4TI92rZkvLNSph8CKxsTG9gBhUjgIdl17Ho=";
   };
 
   buildInputs = [
@@ -21,21 +28,34 @@ stdenv.mkDerivation (finalAttrs: {
     pcre2
   ];
 
-  outputs = [ "out" "man" ];
+  outputs = [
+    "out"
+    "man"
+  ];
 
   configureFlags = [
-    # Look for 'sysless' in /etc.
-    "--sysconfdir=/etc"
-    "--with-regex=pcre2"
+    "--sysconfdir=/etc" # Look for 'sysless' in /etc
+    (lib.withFeatureAs true "regex" "pcre2")
+    (lib.withFeature withSecure "secure")
   ];
+
+  strictDeps = true;
+
+  nativeInstallCheckInputs = [
+    versionCheckHook
+  ];
+  doInstallCheck = true;
 
   meta = {
     homepage = "https://www.greenwoodsoftware.com/less/";
-    description = "A more advanced file pager than 'more'";
+    description = "More advanced file pager than 'more'";
     changelog = "https://www.greenwoodsoftware.com/less/news.${finalAttrs.version}.html";
     license = lib.licenses.gpl3Plus;
     mainProgram = "less";
-    maintainers = with lib.maintainers; [ eelco dtzWill ];
+    maintainers = with lib.maintainers; [
+      mdaniels5757
+      yiyu
+    ];
     platforms = lib.platforms.unix;
   };
 })

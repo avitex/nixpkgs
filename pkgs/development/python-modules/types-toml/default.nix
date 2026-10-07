@@ -1,16 +1,17 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
 }:
 
 buildPythonPackage rec {
   pname = "types-toml";
-  version = "0.10.8.7";
+  version = "0.10.8.20240310";
   format = "setuptools";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-WLB4HGgeZx/wtcAxkwmRBon0q0DookMeIF1wyUu277E=";
+    hash = "sha256-PUFQEwKXJDamuLI5yFCyZollfiUoG0j/DsBjRbiDAzE=";
   };
 
   # Module doesn't have tests
@@ -18,10 +19,10 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "toml-stubs" ];
 
-  meta = with lib; {
+  meta = {
     description = "Typing stubs for toml";
     homepage = "https://github.com/python/typeshed";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

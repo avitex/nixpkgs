@@ -1,42 +1,39 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, setuptools
-, zope-interface
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  zope-interface,
 }:
 
 buildPythonPackage rec {
   pname = "zope-proxy";
-  version = "5.1";
+  version = "7.1";
   pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    pname = "zope.proxy";
-    inherit version;
-    hash = "sha256-d3e9P4986nRSFyYgLhptUVPb9knyBOJQBYrQOvRqQxg=";
+  src = fetchFromGitHub {
+    owner = "zopefoundation";
+    repo = "zope.proxy";
+    tag = version;
+    hash = "sha256-p5uDHNF7kZJkFibNbM0JLrw5BYqs+qnNH3t0UBt0Krg=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [ zope-interface ];
+  dependencies = [ zope-interface ];
 
   # circular deps
   doCheck = false;
 
-  pythonImportsCheck = [
-    "zope.proxy"
-  ];
+  pythonImportsCheck = [ "zope.proxy" ];
 
-  meta = with lib; {
+  pythonNamespaces = [ "zope" ];
+
+  meta = {
     homepage = "https://github.com/zopefoundation/zope.proxy";
     description = "Generic Transparent Proxies";
-    changelog = "https://github.com/zopefoundation/zope.proxy/blob/${version}/CHANGES.rst";
-    license = licenses.zpl21;
-    maintainers = with maintainers; [ goibhniu ];
+    changelog = "https://github.com/zopefoundation/zope.proxy/blob/${src.tag}/CHANGES.rst";
+    license = lib.licenses.zpl21;
+    maintainers = [ ];
   };
 }

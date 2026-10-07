@@ -1,12 +1,13 @@
-{ lib
-, buildPythonPackage
-, cloudpickle
-, dill
-, fetchPypi
-, msgpack
-, pytestCheckHook
-, pythonAtLeast
-, serpent
+{
+  lib,
+  buildPythonPackage,
+  cloudpickle,
+  dill,
+  fetchPypi,
+  msgpack,
+  pytestCheckHook,
+  pythonAtLeast,
+  serpent,
 }:
 
 buildPythonPackage rec {
@@ -24,9 +25,7 @@ buildPythonPackage rec {
     hash = "sha256-UR9bCATpLdd9wzrfnJR3h+P56cWpaxIWLwVXp8TOIfs=";
   };
 
-  propagatedBuildInputs = [
-    serpent
-  ];
+  propagatedBuildInputs = [ serpent ];
 
   buildInputs = [
     dill
@@ -34,9 +33,7 @@ buildPythonPackage rec {
     msgpack
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   # add testsupport.py to PATH
   preCheck = ''
@@ -57,15 +54,13 @@ buildPythonPackage rec {
   # otherwise the tests hang the build
   __darwinAllowLocalNetworking = true;
 
-  pythonImportsCheck = [
-    "Pyro4"
-  ];
+  pythonImportsCheck = [ "Pyro4" ];
 
-  meta = with lib; {
+  meta = {
     description = "Distributed object middleware for Python (RPC)";
     homepage = "https://github.com/irmen/Pyro4";
     changelog = "https://github.com/irmen/Pyro4/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ prusnak ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ prusnak ];
   };
 }

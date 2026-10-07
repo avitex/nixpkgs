@@ -1,26 +1,24 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, pythonOlder
-, pyjwt
-, ratelimit
-, requests
-, requests-mock
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  pyjwt,
+  ratelimit,
+  requests,
+  requests-mock,
 }:
 
 buildPythonPackage rec {
   pname = "pyflume";
-  version = "0.8.3";
+  version = "0.8.7";
   format = "setuptools";
-
-  disabled = pythonOlder "3.10";
 
   src = fetchFromGitHub {
     owner = "ChrisMandich";
     repo = "PyFlume";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-RtzbAXjMtvKc8vnZIxIJnc6CS+BrYcQgdy5bVaJumg0=";
+    tag = "v${version}";
+    hash = "sha256-/8gLKe+6GaPQe0J3YBmOVcAcAcqfrWM7UQCoX+qOEmw=";
   };
 
   propagatedBuildInputs = [
@@ -34,15 +32,13 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "pyflume"
-  ];
+  pythonImportsCheck = [ "pyflume" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python module to work with Flume sensors";
     homepage = "https://github.com/ChrisMandich/PyFlume";
     changelog = "https://github.com/ChrisMandich/PyFlume/releases/tag/v${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

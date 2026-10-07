@@ -1,11 +1,23 @@
-{ mkDerivation
-, extra-cmake-modules
-, aspell, hunspell, qtbase, qttools
+{
+  mkDerivation,
+  cmake,
+  extra-cmake-modules,
+  aspell,
+  hunspell,
+  qtbase,
+  qttools,
 }:
 
 mkDerivation {
   pname = "sonnet";
-  nativeBuildInputs = [ extra-cmake-modules ];
-  buildInputs = [ aspell hunspell qttools ];
+  nativeBuildInputs = [
+    cmake
+    extra-cmake-modules
+  ];
+  buildInputs = [
+    aspell
+    hunspell
+    qttools
+  ];
   propagatedBuildInputs = [ qtbase ];
 }

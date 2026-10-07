@@ -1,46 +1,55 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, hatchling
-, babel
-, importlib-metadata
-, jinja2
-, json5
-, jsonschema
-, jupyter-server
-, packaging
-, requests
-, openapi-core
-, pytest-jupyter
-, pytestCheckHook
-, requests-mock
-, ruamel-yaml
-, strict-rfc3339
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  hatchling,
+
+  # dependencies
+  babel,
+  jinja2,
+  json5,
+  jsonschema,
+  jupyter-server,
+  packaging,
+  requests,
+
+  # optional-dependencies
+  openapi-core,
+  ruamel-yaml,
+
+  # tests
+  pytest-jupyter,
+  pytest-timeout,
+  pytestCheckHook,
+  requests-mock,
+  strict-rfc3339,
+  writableTmpDirAsHomeHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "jupyterlab-server";
-  version = "2.25.2";
+  version = "2.28.0";
   pyproject = true;
 
-  disabled = pythonOlder "3.8";
-
-  src = fetchPypi {
-    pname = "jupyterlab_server";
-    inherit version;
-    hash = "sha256-vQ7HqZ687ci8/5Oe+G5Sw3jkTCcH4FP82B0EbOl57mM=";
+  src = fetchFromGitHub {
+    owner = "jupyterlab";
+    repo = "jupyterlab_server";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-/h25HBKt6maaxuZRK+VMVA0AqTZhQkDnGVDgBisQcCw=";
   };
 
-  postPatch = ''
-    sed -i "/timeout/d" pyproject.toml
-  '';
+  patches = [
+    # oopenapi-core changed their API, which breaks jupyterlab-server
+    ./fix-openapi-core-compat.patch
+  ];
 
-  nativeBuildInputs = [
+  build-system = [
     hatchling
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     babel
     jinja2
     json5
@@ -48,45 +57,39 @@ buildPythonPackage rec {
     jupyter-server
     packaging
     requests
-  ] ++ lib.optionals (pythonOlder "3.10") [
-    importlib-metadata
   ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     openapi = [
       openapi-core
       ruamel-yaml
     ];
   };
 
+  pythonImportsCheck = [ "jupyterlab_server" ];
+
   nativeCheckInputs = [
     pytest-jupyter
+    pytest-timeout
     pytestCheckHook
     requests-mock
     strict-rfc3339
-  ] ++ passthru.optional-dependencies.openapi;
-
-  preCheck = ''
-    export HOME=$(mktemp -d)
-  '';
+    writableTmpDirAsHomeHook
+  ]
+  ++ finalAttrs.passthru.optional-dependencies.openapi;
 
   disabledTestPaths = [
     # require optional language pack packages for tests
     "tests/test_translation_api.py"
   ];
 
-  pythonImportsCheck = [
-    "jupyterlab_server"
-    "jupyterlab_server.pytest_plugin"
-  ];
-
   __darwinAllowLocalNetworking = true;
 
-  meta = with lib; {
-    description = "A set of server components for JupyterLab and JupyterLab like applications";
+  meta = {
+    description = "Set of server components for JupyterLab and JupyterLab like applications";
     homepage = "https://github.com/jupyterlab/jupyterlab_server";
-    changelog = "https://github.com/jupyterlab/jupyterlab_server/blob/v${version}/CHANGELOG.md";
-    license = licenses.bsd3;
-    maintainers = lib.teams.jupyter.members;
+    changelog = "https://github.com/jupyterlab/jupyterlab_server/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.bsd3;
+    teams = [ lib.teams.jupyter ];
   };
-}
+})

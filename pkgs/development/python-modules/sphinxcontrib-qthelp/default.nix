@@ -1,26 +1,22 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, flit-core
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  flit-core,
 }:
 
 buildPythonPackage rec {
   pname = "sphinxcontrib-qthelp";
-  version = "1.0.6";
+  version = "2.0.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.9";
 
   src = fetchPypi {
     pname = "sphinxcontrib_qthelp";
     inherit version;
-    hash = "sha256-YrnRoYarf17jNW2Qb2SMrLemvblNIB7nrfJttVCSmC0=";
+    hash = "sha256-T+fQrI/BcQRb5iOro+Ko9hP4aCcx+RU7suQOzha5u6s=";
   };
 
-  nativeBuildInputs = [
-    flit-core
-  ];
+  nativeBuildInputs = [ flit-core ];
 
   # Check is disabled due to circular dependency of sphinx
   dontCheckRuntimeDeps = true;
@@ -28,10 +24,9 @@ buildPythonPackage rec {
 
   pythonNamespaces = [ "sphinxcontrib" ];
 
-  meta = with lib; {
-    description = "sphinxcontrib-qthelp is a sphinx extension which outputs QtHelp document.";
+  meta = {
+    description = "Sphinx extension which outputs QtHelp document";
     homepage = "https://github.com/sphinx-doc/sphinxcontrib-qthelp";
-    license = licenses.bsd2;
-    maintainers = teams.sphinx.members;
+    license = lib.licenses.bsd2;
   };
 }

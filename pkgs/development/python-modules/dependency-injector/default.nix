@@ -1,52 +1,54 @@
-{ lib
-, aiohttp
-, buildPythonPackage
-, fastapi
-, fetchFromGitHub
-, flask
-, httpx
-, mypy-boto3-s3
-, numpy
-, pydantic
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, pyyaml
-, scipy
-, six
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  cython,
+  distutils,
+  setuptools,
+
+  # optional-dependencies
+  aiohttp,
+  pydantic,
+  flask,
+  pyyaml,
+
+  # tests
+  fastapi,
+  httpx,
+  mypy-boto3-s3,
+  numpy,
+  pytest-asyncio,
+  pytestCheckHook,
+  scipy,
+  writableTmpDirAsHomeHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "dependency-injector";
-  version = "4.41.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "4.49.1";
+  pyproject = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "ets-labs";
     repo = "python-dependency-injector";
-    rev = version;
-    hash = "sha256-U3U/L8UuYrfpm4KwVNmViTbam7QdZd2vp1p+ENtOJlw=";
+    tag = finalAttrs.version;
+    hash = "sha256-ncxKYzkV10hA2D8U1/zvkYJ/VFhNUsvRaOBNjzhIdtA=";
   };
 
-  propagatedBuildInputs = [
-    six
+  build-system = [
+    cython
+    distutils
+    setuptools
   ];
 
-  passthru.optional-dependencies = {
-    aiohttp = [
-      aiohttp
-    ];
-    pydantic = [
-      pydantic
-    ];
-    flask = [
-      flask
-    ];
-    yaml = [
-      pyyaml
-    ];
+  optional-dependencies = {
+    aiohttp = [ aiohttp ];
+    pydantic = [ pydantic ];
+    flask = [ flask ];
+    yaml = [ pyyaml ];
   };
 
   nativeCheckInputs = [
@@ -57,28 +59,28 @@ buildPythonPackage rec {
     pytest-asyncio
     pytestCheckHook
     scipy
-  ] ++ passthru.optional-dependencies.aiohttp
-  ++ passthru.optional-dependencies.pydantic
-  ++ passthru.optional-dependencies.yaml
-  ++ passthru.optional-dependencies.flask;
+    writableTmpDirAsHomeHook
+  ]
+  ++ lib.concatAttrValues finalAttrs.passthru.optional-dependencies;
 
-  pythonImportsCheck = [
-    "dependency_injector"
-  ];
+  pythonImportsCheck = [ "dependency_injector" ];
 
   disabledTestPaths = [
     # Exclude tests for EOL Python releases
     "tests/unit/ext/test_aiohttp_py35.py"
     "tests/unit/wiring/test_*_py36.py"
+    "tests/unit/providers/configuration/test_from_pydantic_py36.py"
+    "tests/unit/providers/configuration/test_pydantic_settings_in_init_py36.py"
+
+    # Requires unpackaged fast-depends
+    "tests/unit/wiring/test_fastdepends.py"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Dependency injection microframework for Python";
     homepage = "https://github.com/ets-labs/python-dependency-injector";
-    changelog = "https://github.com/ets-labs/python-dependency-injector/blob/${version}/docs/main/changelog.rst";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ gerschtli ];
-    # https://github.com/ets-labs/python-dependency-injector/issues/726
-    broken = versionAtLeast pydantic.version "2";
+    changelog = "https://github.com/ets-labs/python-dependency-injector/blob/${finalAttrs.src.tag}/docs/main/changelog.rst";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ gerschtli ];
   };
-}
+})

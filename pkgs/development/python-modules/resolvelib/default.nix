@@ -1,51 +1,47 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, commentjson
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fetchpatch,
+  setuptools,
+  commentjson,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "resolvelib";
-  # Currently this package is only used by Ansible and breaking changes
-  # are frequently introduced, so when upgrading ensure the new version
-  # is compatible with Ansible
-  # https://github.com/NixOS/nixpkgs/pull/128636
-  # https://github.com/ansible/ansible/blob/devel/requirements.txt
-  version = "0.5.5";
-  format = "setuptools";
+  version = "1.2.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "sarugaku";
     repo = "resolvelib";
-    rev = version;
-    sha256 = "198vfv78hilpg0d0mjzchzp9zk6239wnra61vlsgwpcgz66d2bgv";
+    tag = version;
+    hash = "sha256-AxxW6z51fZGqs5UwY3NEBQL8894uQDuRyVrKzol3ny0=";
   };
+
+  patches = [
+    (fetchpatch {
+      name = "fix-with-packaging-26.patch";
+      url = "https://github.com/sarugaku/resolvelib/commit/017d3a7a9ecdd01f5349d263e31d196f4f27e483.patch";
+      hash = "sha256-sEH5R/U8APC1Lti47ZXHLruVwUbwfGp2HAp7nj+l1KM=";
+    })
+  ];
+
+  build-system = [ setuptools ];
 
   nativeCheckInputs = [
     commentjson
     pytestCheckHook
   ];
-  # TODO: reenable after updating to >= 1.0.0
-  # https://github.com/sarugaku/resolvelib/issues/114
-  disabledTests = [
-    "shared_parent_dependency"
-    "deep_complex_conflict"
-    "shared_parent_dependency_with_swapping"
-    "spapping_and_rewinding"
-    "pruned_unresolved_orphan"
-    "conflict_common_parent"
-    "same-package"
-  ];
 
-  pythonImportsCheck = [
-    "resolvelib"
-  ];
+  pythonImportsCheck = [ "resolvelib" ];
 
-  meta = with lib; {
+  meta = {
     description = "Resolve abstract dependencies into concrete ones";
     homepage = "https://github.com/sarugaku/resolvelib";
-    license = licenses.isc;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/sarugaku/resolvelib/blob/${src.tag}/CHANGELOG.rst";
+    license = lib.licenses.isc;
+    maintainers = [ ];
   };
 }

@@ -1,71 +1,92 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  gitUpdater,
+  pythonAtLeast,
+  isPyPy,
+  fetchpatch,
 
-# build-system
-, setuptools
-, types-psutil
-, types-setuptools
+  # build-system
+  pathspec,
+  setuptools,
+  types-psutil,
+  types-setuptools,
+  ast-serialize,
 
-# propagates
-, mypy-extensions
-, tomli
-, typing-extensions
+  # nativeBuildInputs + propagates
+  librt,
 
-# optionals
-, lxml
-, psutil
+  # propagates
+  mypy-extensions,
+  tomli,
+  typing-extensions,
 
-# tests
-, attrs
-, filelock
-, pytest-xdist
-, pytest-forked
-, pytestCheckHook
-, py
-, six
+  # optionals
+  lxml,
+  psutil,
+
+  # tests
+  attrs,
+  filelock,
+  pytest-xdist,
+  pytestCheckHook,
+  nixosTests,
 }:
 
 buildPythonPackage rec {
   pname = "mypy";
-  version = "1.5.1";
-  format = "pyproject";
+  version = "2.1.0";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
+  # relies on several CPython internals
+  disabled = isPyPy;
 
   src = fetchFromGitHub {
     owner = "python";
     repo = "mypy";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-qs+axm2+UWNuWzLW8CI4qBV7k7Ra8gBajid8mYKDsso=";
+    tag = "v${version}";
+    hash = "sha256-sm/pxQGxH5XuPH7B8i3fpp30KaFU9aSp6BT67UcDPvU=";
+  };
+
+  patches = [
+    # fix build w/ glibc-2.44
+    # If Python.h isn't included first, a const redefinition error now occurs otherwise.
+    (fetchpatch {
+      url = "https://github.com/python/mypy/commit/46acbe85c0e1703ebf2e6d4c699772edcdcf4652.patch";
+      hash = "sha256-KslHiKqinvvXZoxvCnZXOhCm7i8577PbSdNGudCsjZE=";
+    })
+  ];
+
+  passthru.updateScript = gitUpdater {
+    rev-prefix = "v";
   };
 
   nativeBuildInputs = [
+    librt
+  ];
+
+  build-system = [
     mypy-extensions
+    pathspec
     setuptools
     types-psutil
     types-setuptools
     typing-extensions
-  ] ++ lib.optionals (pythonOlder "3.11") [
-    tomli
+    ast-serialize
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
+    librt
     mypy-extensions
+    pathspec
     typing-extensions
-  ] ++ lib.optionals (pythonOlder "3.11") [
-    tomli
   ];
 
-  passthru.optional-dependencies = {
-    dmypy = [
-      psutil
-    ];
-    reports = [
-      lxml
-    ];
+  optional-dependencies = {
+    dmypy = [ psutil ];
+    reports = [ lxml ];
   };
 
   # Compile mypy with mypyc, which makes mypy about 4 times faster. The compiled
@@ -83,41 +104,66 @@ buildPythonPackage rec {
     "mypy.types"
     "mypyc"
     "mypyc.analysis"
-  ] ++ lib.optionals (!stdenv.hostPlatform.isi686) [
+  ]
+  ++ lib.optionals (!stdenv.hostPlatform.isi686) [
     # ImportError: cannot import name 'map_instance_to_supertype' from partially initialized module 'mypy.maptype' (most likely due to a circular import)
     "mypy.report"
   ];
 
-  checkInputs = [
+  nativeCheckInputs = [
     attrs
     filelock
     pytest-xdist
-    pytest-forked
     pytestCheckHook
-    py
     setuptools
-    six
     tomli
-  ] ++ lib.flatten (lib.attrValues passthru.optional-dependencies);
+  ]
+  ++ lib.concatAttrValues optional-dependencies;
+
+  disabledTests = [
+    # A change to the base64 decoder in CPython 3.13.13 and 3.14.4 causes this
+    # test to fail. At the time of writing, upstream skips the test.
+    # Upstream issue: https://github.com/python/mypy/issues/21120
+    # CPython issue: https://github.com/python/cpython/issues/145264
+    "testAllBase64Features_librt_experimental"
+    # https://github.com/python/mypy/issues/21120
+    "testAllBase64Features_librt"
+    # fails to import librt
+    "test_diff_cache_produces_valid_json"
+  ]
+  ++ lib.optionals (pythonAtLeast "3.12") [
+    # requires distutils
+    "test_c_unit_test"
+  ];
 
   disabledTestPaths = [
-    # fails to find tyoing_extensions
+    # circular dependency on distutils
+    "mypyc/test/test_external.py"
+    # fails to find typing_extensions
     "mypy/test/testcmdline.py"
     "mypy/test/testdaemon.py"
     # fails to find setuptools
     "mypyc/test/test_commandline.py"
     # fails to find hatchling
     "mypy/test/testpep561.py"
-  ] ++ lib.optionals stdenv.hostPlatform.isi686 [
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isi686 [
     # https://github.com/python/mypy/issues/15221
     "mypyc/test/test_run.py"
   ];
 
-  meta = with lib; {
+  passthru.tests = {
+    # Failing typing checks on the test-driver result in channel blockers.
+    inherit (nixosTests) nixos-test-driver;
+  };
+
+  meta = {
     description = "Optional static typing for Python";
     homepage = "https://www.mypy-lang.org";
-    license = licenses.mit;
+    changelog = "https://github.com/python/mypy/blob/${src.rev}/CHANGELOG.md";
+    downloadPage = "https://github.com/python/mypy";
+    license = lib.licenses.mit;
     mainProgram = "mypy";
-    maintainers = with maintainers; [ martingms lnl7 ];
+    maintainers = [ ];
   };
 }

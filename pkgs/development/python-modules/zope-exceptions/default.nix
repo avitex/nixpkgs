@@ -1,43 +1,46 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, setuptools
-, zope-interface
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  zope-interface,
 }:
 
 buildPythonPackage rec {
   pname = "zope-exceptions";
-  version = "5.0.1";
+  version = "6.0";
   pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    pname = "zope.exceptions";
-    inherit version;
-    hash = "sha256-MPxT5TOfX72dEzXg97afd/FePwbisXt/t++SXMJP3ZY=";
+  src = fetchFromGitHub {
+    owner = "zopefoundation";
+    repo = "zope.exceptions";
+    tag = version;
+    hash = "sha256-LLKS/O1sfrHRfEgbb3GO+/hBtIC9CvfNjorqiKTgujo=";
   };
 
-  nativeBuildInputs = [
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail "setuptools ==" "setuptools >="
+  '';
+
+  build-system = [
     setuptools
   ];
 
-  propagatedBuildInputs = [ zope-interface ];
+  dependencies = [
+    zope-interface
+  ];
 
   # circular deps
   doCheck = false;
 
-  pythonImportsCheck = [
-    "zope.exceptions"
-  ];
+  pythonImportsCheck = [ "zope.exceptions" ];
 
-  meta = with lib; {
+  meta = {
     description = "Exception interfaces and implementations";
-    homepage = "https://pypi.python.org/pypi/zope.exceptions";
+    homepage = "https://pypi.org/project/zope.exceptions/";
     changelog = "https://github.com/zopefoundation/zope.exceptions/blob/${version}/CHANGES.rst";
-    license = licenses.zpl21;
-    maintainers = with maintainers; [ goibhniu ];
+    license = lib.licenses.zpl21;
+    maintainers = with lib.maintainers; [ nickcao ];
   };
-
 }

@@ -1,12 +1,20 @@
-{ lib, buildKodiAddon, fetchzip, addonUpdateScript, trakt-module, dateutil }:
+{
+  lib,
+  rel,
+  buildKodiAddon,
+  fetchzip,
+  addonUpdateScript,
+  trakt-module,
+  dateutil,
+}:
 buildKodiAddon rec {
   pname = "trakt";
   namespace = "script.trakt";
-  version = "3.5.0";
+  version = "3.9.0";
 
   src = fetchzip {
-    url = "https://mirrors.kodi.tv/addons/nexus/${namespace}/${namespace}-${version}.zip";
-    sha256 = "sha256-OyU6S5r/y3vqW6Wg6OP0+Zn4YchBy8x1i++hzCQHyx0=";
+    url = "https://mirrors.kodi.tv/addons/${lib.toLower rel}/${namespace}/${namespace}-${version}.zip";
+    sha256 = "sha256-kjA3kk1Ii3PylfwgiKpLCRe6TGMNDgOppFJM38rgVWU=";
   };
 
   propagatedBuildInputs = [
@@ -21,10 +29,10 @@ buildKodiAddon rec {
     };
   };
 
-  meta = with lib; {
+  meta = {
     homepage = "https://kodi.wiki/view/Add-on:Trakt";
     description = "Trakt.tv movie and TV show scrobbler for Kodi";
-    license = licenses.gpl2Only;
-    maintainers = teams.kodi.members;
+    license = lib.licenses.gpl2Only;
+    teams = [ lib.teams.kodi ];
   };
 }

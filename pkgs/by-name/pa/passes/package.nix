@@ -1,39 +1,40 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, appstream-glib
-, blueprint-compiler
-, desktop-file-utils
-, gettext
-, gtk4
-, libadwaita
-, meson
-, ninja
-, pkg-config
-, python3
-, wrapGAppsHook4
-, zint
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  appstream-glib,
+  blueprint-compiler,
+  desktop-file-utils,
+  gettext,
+  gtk4,
+  libadwaita,
+  meson,
+  ninja,
+  pkg-config,
+  python3,
+  wrapGAppsHook4,
+  libzint,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "passes";
-  version = "0.9";
+  version = "0.12";
 
   src = fetchFromGitHub {
     owner = "pablo-s";
     repo = "passes";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-RfoqIyqc9zwrWZ5RLhQl+6vTccbCTwtDcMlnWPCDOag=";
+    hash = "sha256-S+TEZQu7Ye+hBqzSJP/YEik35b+4LQrnk2A/hhTjpww=";
   };
 
   postPatch = ''
     substituteInPlace src/model/meson.build \
-      --replace /app/lib ${zint}/lib
-    substituteInPlace src/view/window.blp \
-      --replace reveal_flap reveal-flap
-    substituteInPlace build-aux/meson/postinstall.py \
-      --replace gtk-update-icon-cache gtk4-update-icon-cache
-    patchShebangs build-aux/meson/postinstall.py
+      --replace-fail /app/lib ${lib.getLib libzint}/lib
+
+    substituteInPlace ./src/meson.build \
+      --replace-fail "conf.set('PYTHON', python.find_installation('python3').full_path())" "conf.set('PYTHON', '${
+        lib.getExe (python3.withPackages (pp: [ pp.pygobject3 ]))
+      }')"
   '';
 
   strictDeps = true;
@@ -46,22 +47,22 @@ stdenv.mkDerivation (finalAttrs: {
     meson
     ninja
     pkg-config
-    (python3.withPackages (pp: [pp.pygobject3]))
     wrapGAppsHook4
   ];
 
   buildInputs = [
     gtk4
     libadwaita
-    zint
+    libzint
   ];
 
-  meta = with lib; {
-    description = "A digital pass manager";
+  meta = {
+    description = "Digital pass manager";
+    mainProgram = "passes";
     homepage = "https://github.com/pablo-s/passes";
-    license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ fgaz ];
-    platforms = platforms.all;
-    broken = stdenv.isDarwin; # Crashes
+    license = lib.licenses.gpl3Plus;
+    maintainers = with lib.maintainers; [ fgaz ];
+    platforms = lib.platforms.all;
+    broken = stdenv.hostPlatform.isDarwin; # Crashes
   };
 })

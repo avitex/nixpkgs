@@ -1,18 +1,18 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, fetchpatch
-, darwin
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  fetchpatch,
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "qgrep";
   version = "1.3";
 
   src = fetchFromGitHub {
     owner = "zeux";
     repo = "qgrep";
-    rev = "v${version}";
+    tag = "v${finalAttrs.version}";
     fetchSubmodules = true;
     hash = "sha256-TeXOzfb1Nu6hz9l6dXGZY+xboscPapKm0Z264hv1Aww=";
   };
@@ -25,15 +25,12 @@ stdenv.mkDerivation rec {
     })
   ];
 
-  buildInputs = lib.optionals stdenv.isDarwin [
-    darwin.apple_sdk.frameworks.CoreServices
-    darwin.apple_sdk.frameworks.CoreFoundation
-  ];
-
-  env.NIX_CFLAGS_COMPILE = toString (lib.optionals stdenv.isDarwin [
-    "-Wno-error=unused-command-line-argument"
-    "-Wno-error=unqualified-std-cast-call"
-  ]);
+  env.NIX_CFLAGS_COMPILE = toString (
+    lib.optionals stdenv.hostPlatform.isDarwin [
+      "-Wno-error=unused-command-line-argument"
+      "-Wno-error=unqualified-std-cast-call"
+    ]
+  );
 
   installPhase = ''
     runHook preInstall
@@ -43,11 +40,14 @@ stdenv.mkDerivation rec {
     runHook postInstall
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Fast regular expression grep for source code with incremental index updates";
+    mainProgram = "qgrep";
     homepage = "https://github.com/zeux/qgrep";
-    license = licenses.mit;
-    maintainers = [ maintainers.yrashk ];
-    platforms = platforms.all;
+    license = lib.licenses.mit;
+    maintainers = [ lib.maintainers.yrashk ];
+    platforms = lib.platforms.all;
+    # last successful hydra build on darwin was in 2025
+    broken = stdenv.hostPlatform.isDarwin;
   };
-}
+})

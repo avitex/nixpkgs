@@ -1,58 +1,56 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchPypi
-, gevent
-, pytest-asyncio
-, pytest-tornado
-, pytestCheckHook
-, pythonOlder
-, pytz
-, setuptools
-, setuptools-scm
-, six
-, tornado
-, twisted
-, tzlocal
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  gevent,
+  pytest-asyncio,
+  pytest-cov-stub,
+  pytest-tornado,
+  pytest8_3CheckHook,
+  pytz,
+  setuptools_80,
+  setuptools-scm,
+  tornado,
+  twisted,
+  tzlocal,
 }:
 
 buildPythonPackage rec {
   pname = "apscheduler";
-  version = "3.10.4";
-  format = "setuptools";
+  version = "3.11.2";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    pname = "APScheduler";
-    inherit version;
-    hash = "sha256-5t8HGyfZvomOSGvHlAp75QtK8unafAjwdEqW1L1M70o=";
+  src = fetchFromGitHub {
+    owner = "agronholm";
+    repo = "apscheduler";
+    tag = version;
+    hash = "sha256-AhVlACRg0Xwy9XmFRl29of5uM2aJa5Gv2SzFuJXVCpE=";
   };
 
-  buildInputs = [
+  postPatch = ''
+    sed -i "/addopts/d" pyproject.toml
+  '';
+
+  build-system = [
+    setuptools_80
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
-    pytz
-    setuptools
-    six
+  dependencies = [
     tzlocal
   ];
 
   nativeCheckInputs = [
     gevent
     pytest-asyncio
+    pytest-cov-stub
     pytest-tornado
-    pytestCheckHook
+    pytest8_3CheckHook
+    pytz
     tornado
     twisted
   ];
-
-  postPatch = ''
-    substituteInPlace setup.cfg \
-      --replace " --cov --tb=short" ""
-  '';
 
   disabledTests = [
     "test_broken_pool"
@@ -60,19 +58,19 @@ buildPythonPackage rec {
     "test_add_live_job"
     "test_add_pending_job"
     "test_shutdown"
-  ] ++ lib.optionals stdenv.isDarwin [
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
     "test_submit_job"
     "test_max_instances"
   ];
 
-  pythonImportsCheck = [
-    "apscheduler"
-  ];
+  pythonImportsCheck = [ "apscheduler" ];
 
-  meta = with lib; {
+  meta = {
+    changelog = "https://github.com/agronholm/apscheduler/releases/tag/${src.tag}";
     description = "Library that lets you schedule your Python code to be executed";
     homepage = "https://github.com/agronholm/apscheduler";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

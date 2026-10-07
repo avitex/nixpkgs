@@ -1,10 +1,11 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, python
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  python,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage {
   pname = "fleep";
   version = "1.0.1";
   format = "setuptools";
@@ -17,9 +18,7 @@ buildPythonPackage rec {
     hash = "sha256-TaU7njx98nxkhZawGMFqWj4g+yCtIX9aPWQHoamzfMY=";
   };
 
-  patches = [
-    ./0001-Fixing-paths-on-tests.patch
-  ];
+  patches = [ ./0001-Fixing-paths-on-tests.patch ];
 
   checkPhase = ''
     ${python.interpreter} tests/maintest.py
@@ -28,10 +27,10 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "fleep" ];
 
-  meta = with lib; {
+  meta = {
     description = "File format determination library";
     homepage = "https://github.com/floyernick/fleep-py";
-    license = licenses.mit;
-    maintainers = with maintainers; [ wolfangaukang ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

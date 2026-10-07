@@ -1,90 +1,101 @@
-{ lib
-, llvmPackages_15
-, fetchFromGitHub
-, sbcl
-, git
-, pkg-config
-, fmt_9
-, gmpxx
-, libelf
-, boost
-, libunwind
-, ninja
-, cacert
+{
+  lib,
+  llvmPackages_22,
+  fetchzip,
+  ninja,
+  sbcl,
+  pkg-config,
+  writableTmpDirAsHomeHook,
+  boost,
+  fmt,
+  gmpxx,
+  libelf,
 }:
 
 let
-  inherit (llvmPackages_15) stdenv llvm libclang;
-
-  # Gathered from https://github.com/clasp-developers/clasp/raw/2.2.0/repos.sexp
-  dependencies = import ./dependencies.nix {
-    inherit fetchFromGitHub;
-  };
-
-  # Shortened version of `_defaultUnpack`
-  unpackDependency = elem: ''
-    mkdir -p "source/${elem.directory}"
-    cp -pr --reflink=auto -- ${elem.src}/* "source/${elem.directory}"
-    chmod -R u+w -- "source/${elem.directory}"
-  '';
+  inherit (llvmPackages_22)
+    stdenv
+    llvm
+    libclang
+    libunwind
+    ;
 in
 
-stdenv.mkDerivation {
+stdenv.mkDerivation (finalAttrs: {
   pname = "clasp";
-  version = "2.2.0";
+  version = "3.0.1";
 
-  src = fetchFromGitHub {
-    owner = "clasp-developers";
-    repo = "clasp";
-    rev = "2.2.0";
-    hash = "sha256-gvUqUb0dftW1miiBcAPJur0wOunox4y2SUYeeJpR9R4=";
+  src = fetchzip {
+    url = "https://github.com/clasp-developers/clasp/releases/download/${finalAttrs.version}/clasp-${finalAttrs.version}.tar.gz";
+    hash = "sha256-C6FwbLz/kjBcuI3225TczWaInkbQ3chtDhWCYh+a/2E=";
   };
 
+  __structuredAttrs = true;
+  strictDeps = true;
+
   patches = [
-    ./clasp-pin-repos-commits.patch
     ./remove-unused-command-line-argument.patch
   ];
 
+  # Workaround for https://github.com/clasp-developers/clasp/issues/1590
+  postPatch = ''
+    echo '(defmethod configure-unit (c (u (eql :git))))' >> src/koga/units.lisp
+  '';
+
   nativeBuildInputs = [
-    sbcl
-    git
-    pkg-config
-    fmt_9
-    gmpxx
-    libelf
-    boost
-    libunwind
+    llvm.dev
     ninja
-    llvm
-    libclang
+    pkg-config
+    sbcl
+    writableTmpDirAsHomeHook
   ];
 
-  ninjaFlags = [ "-C" "build" ];
+  buildInputs = [
+    boost
+    fmt
+    gmpxx
+    libclang
+    libelf
+    libunwind
+    llvm
+  ];
 
-  postUnpack = lib.concatStringsSep "\n" (builtins.map unpackDependency dependencies);
+  ninjaFlags = [
+    "-C"
+    "build"
+  ];
 
   configurePhase = ''
+    runHook preConfigure
     export SOURCE_DATE_EPOCH=1
-    export ASDF_OUTPUT_TRANSLATIONS=$(pwd):$(pwd)/__fasls
     sbcl --script koga \
       --skip-sync \
       --cc=$NIX_CC/bin/cc \
       --cxx=$NIX_CC/bin/c++ \
+      --jobs=$NIX_BUILD_CORES \
       --reproducible-build \
       --package-path=/ \
       --bin-path=$out/bin \
       --lib-path=$out/lib \
-      --share-path=$out/share
+      --dylib-path=$out/lib \
+      --share-path=$out/share \
+      --pkgconfig-path=$out/lib/pkgconfig
+    runHook postConfigure
+  '';
+
+  postInstall = ''
+    # --dylib-path not honored. Fix it in post.
+    mv $out/libclasp* $out/lib/
   '';
 
   meta = {
-    description = "A Common Lisp implementation based on LLVM with C++ integration";
-    license = lib.licenses.lgpl21Plus ;
-    maintainers = lib.teams.lisp.members;
-    platforms = ["x86_64-linux" "x86_64-darwin"];
-    # Upstream claims support, but breaks with:
-    # error: use of undeclared identifier 'aligned_alloc'
-    broken = stdenv.isDarwin;
+    description = "Common Lisp implementation based on LLVM with C++ integration";
+    license = lib.licenses.lgpl21Plus;
+    teams = [ lib.teams.lisp ];
+    platforms = [
+      "x86_64-linux"
+    ];
     homepage = "https://github.com/clasp-developers/clasp";
+    mainProgram = "clasp";
   };
-}
+})

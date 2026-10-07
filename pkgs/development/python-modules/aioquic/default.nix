@@ -1,34 +1,31 @@
-{ lib
-, buildPythonPackage
-, certifi
-, cryptography
-, fetchPypi
-, openssl
-, pylsqpack
-, pyopenssl
-, pytestCheckHook
-, pythonOlder
-, setuptools
-, service-identity
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  certifi,
+  cryptography,
+  fetchPypi,
+  openssl,
+  pylsqpack,
+  pyopenssl,
+  pytestCheckHook,
+  setuptools,
+  service-identity,
 }:
 
 buildPythonPackage rec {
   pname = "aioquic";
-  version = "0.9.25";
+  version = "1.3.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-cHlceJBTJthVwq5SQHIjSq5YbHibgSkuJy0CHpsEMKM=";
+    hash = "sha256-KNBwshg+PnmvqdTnvVWJYNDVOuuYvAzwo1iyebp5fJI=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     certifi
     cryptography
     pylsqpack
@@ -36,24 +33,24 @@ buildPythonPackage rec {
     service-identity
   ];
 
-  buildInputs = [
-    openssl
+  buildInputs = [ openssl ];
+
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  disabledTests = lib.optionals stdenv.hostPlatform.isDarwin [
+    # QUIC needs UDP/multicast not available in sandbox.
+    "test_connect_and_serve_ipv4"
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
-
-  pythonImportsCheck = [
-    "aioquic"
-  ];
+  pythonImportsCheck = [ "aioquic" ];
 
   __darwinAllowLocalNetworking = true;
 
-  meta = with lib; {
+  meta = {
     description = "Implementation of QUIC and HTTP/3";
     homepage = "https://github.com/aiortc/aioquic";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ onny ];
+    changelog = "https://github.com/aiortc/aioquic/blob/${version}/docs/changelog.rst";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ onny ];
   };
 }

@@ -1,65 +1,74 @@
-{ lib
-, buildPythonPackage
-, distro
-, fetchFromGitHub
-, pyasyncore
-, pysnmp
-, pytestCheckHook
-, python-gnupg
-, pythonAtLeast
-, pythonOlder
-, qrcode
-, requests
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  distro,
+  fetchFromGitHub,
+  pyasyncore,
+  pysnmp,
+  pysnmplib,
+  pytestCheckHook,
+  python-gnupg,
+  pythonAtLeast,
+  qrcode,
+  requests,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "blocksat-cli";
-  version = "2.4.6";
+  version = "2.5.2";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "Blockstream";
     repo = "satellite";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-1gz2lAS/AHeY54AaVXGeofLC68KjAP7POsIaBL3v2EY=";
+    tag = "v${version}";
+    hash = "sha256-KwLUE8+/SJ178az/j9WONwwrTsos1vrsP2hpeczNt4Y=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  # Upstream setup.py installs both the CLI and GUI versions.
+  # To pull only the required dependencyes, either setup_cli.py or setup_gui.py should be used.
+  postPatch = ''
+    mv setup_cli.py setup.py
+  '';
 
-  propagatedBuildInputs = [
+  pythonRelaxDeps = [ "pyasyncore" ];
+
+  build-system = [ setuptools ];
+
+  dependencies = [
     distro
     pysnmp
+    pysnmplib
     python-gnupg
     qrcode
     requests
-  ] ++ lib.optionals (pythonAtLeast "3.12") [
-    pyasyncore
-  ];
+  ]
+  ++ lib.optionals (pythonAtLeast "3.12") [ pyasyncore ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   disabledTests = [
     "test_monitor_get_stats"
     "test_monitor_update_with_reporting_enabled"
     "test_erasure_recovery"
+    # Non-NixOS package managers are not present in the build environment.
+    "test_parse_upgradable_list_apt"
+    "test_parse_upgradable_list_dnf"
+    # Fails due to GPG clearsign output lacking trailing newline in some setups.
+    "test_clearsign_verification"
   ];
 
-  pythonImportsCheck = [
-    "blocksatcli"
-  ];
+  disabledTestPaths = [ "blocksatgui/tests/" ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "blocksatcli" ];
+
+  meta = {
     description = "Blockstream Satellite CLI";
     homepage = "https://github.com/Blockstream/satellite";
-    changelog = "https://github.com/Blockstream/satellite/releases/tag/v${version}";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ prusnak ];
+    changelog = "https://github.com/Blockstream/satellite/releases/tag/${src.tag}";
+    license = lib.licenses.gpl3Only;
+    maintainers = with lib.maintainers; [ prusnak ];
+    mainProgram = "blocksat-cli";
   };
 }

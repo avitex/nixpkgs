@@ -1,121 +1,144 @@
-{ lib
-, stdenv
-, fetchurl
-, fetchFromGitHub
-, wrapQtAppsHook
-, python3
-, zbar
-, secp256k1
-, enableQt ? true
-, callPackage
-, qtwayland
+{
+  lib,
+  stdenv,
+  fetchurl,
+  python3,
+  zbar,
+  enableQt ? true,
+  qt5,
+  enablePythonEcdsa ? false,
+  callPackage,
+
+  writableTmpDirAsHomeHook,
 }:
 
 let
-  version = "4.5.0";
-
-  libsecp256k1_name =
-    if stdenv.isLinux then "libsecp256k1.so.{v}"
-    else if stdenv.isDarwin then "libsecp256k1.{v}.dylib"
-    else "libsecp256k1${stdenv.hostPlatform.extensions.sharedLibrary}";
-
   libzbar_name =
-    if stdenv.isLinux then "libzbar.so.0"
-    else if stdenv.isDarwin then "libzbar.0.dylib"
-    else "libzbar${stdenv.hostPlatform.extensions.sharedLibrary}";
-
-  # Not provided in official source releases, which are what upstream signs.
-  tests = fetchFromGitHub {
-    owner = "spesmilo";
-    repo = "electrum";
-    rev = version;
-    sha256 = "sha256-IEKuHUlH+dg+8w+n7XV7hdDOPOFZ/lpUsIlYldwR44Y=";
-
-    postFetch = ''
-      mv $out ./all
-      mv ./all/electrum/tests $out
-    '';
-  };
-
+    if stdenv.hostPlatform.isLinux then
+      "libzbar.so.0"
+    else if stdenv.hostPlatform.isDarwin then
+      "libzbar.0.dylib"
+    else
+      "libzbar${stdenv.hostPlatform.extensions.sharedLibrary}";
 in
-
-python3.pkgs.buildPythonApplication {
+python3.pkgs.buildPythonApplication (finalAttrs: {
   pname = "electrum";
-  inherit version;
+  version = "4.8.2";
+  pyproject = true;
 
   src = fetchurl {
-    url = "https://download.electrum.org/${version}/Electrum-${version}.tar.gz";
-    sha256 = "sha256-s4FH8FtPg4wepU/5XI062dAN9fCYR1xJGwrxftCSKzw=";
+    url = "https://download.electrum.org/${finalAttrs.version}/Electrum-${finalAttrs.version}.tar.gz";
+    hash = "sha256-84zuMzyGaYbN+zBEKPp0h6/8Qpw4U/yA6YIr1CC7wik=";
   };
 
-  postUnpack = ''
-    # can't symlink, tests get confused
-    cp -ar ${tests} $sourceRoot/electrum/tests
-  '';
+  build-system = [ python3.pkgs.setuptools ];
 
-  nativeBuildInputs = lib.optionals enableQt [ wrapQtAppsHook ];
-  buildInputs = lib.optional (stdenv.isLinux && enableQt) qtwayland;
+  nativeBuildInputs = [
+    python3.pkgs.pythonRelaxDepsHook
+  ]
+  ++ lib.optionals enableQt [
+    qt5.wrapQtAppsHook
+  ];
+  buildInputs = lib.optional (stdenv.hostPlatform.isLinux && enableQt) qt5.qtwayland;
 
-  propagatedBuildInputs = with python3.pkgs; [
-    aiohttp
-    aiohttp-socks
-    aiorpcx
-    attrs
-    bitstring
-    cryptography
-    dnspython
-    jsonrpclib-pelix
-    matplotlib
-    pbkdf2
-    protobuf
-    pysocks
-    qrcode
-    requests
-    tlslite-ng
-    certifi
-    jsonpatch
-    # plugins
-    btchip-python
-    ledger-bitcoin
-    ckcc-protocol
-    keepkey
-    trezor
-  ] ++ lib.optionals enableQt [
-    pyqt5
-    qdarkstyle
+  dependencies =
+    with python3.pkgs;
+    [
+      aiohttp
+      aiohttp-socks
+      aiorpcx
+      attrs
+      bitstring
+      cryptography
+      dnspython
+      jsonrpclib-pelix
+      matplotlib
+      pbkdf2
+      protobuf
+      pysocks
+      qrcode
+      requests
+      certifi
+      jsonpatch
+      electrum-aionostr
+      electrum-ecc
+      # plugins
+      ledger-bitcoin
+      cbor2
+      pyserial
+      trezor
+    ]
+    ++ lib.optionals enablePythonEcdsa [
+      # enablePythonEcdsa gates plugins known to pull in python-ecdsa, which we
+      # avoid by default due to CVE-2024-23342.
+      ckcc-protocol
+      keepkey
+      bitbox02
+    ]
+    ++ lib.optionals enableQt [
+      pyqt6
+      qdarkstyle
+    ];
+
+  pythonRelaxDeps = [
+    "attrs"
+    "dnspython"
   ];
 
-  postPatch = ''
-    # make compatible with protobuf4 by easing dependencies ...
-    substituteInPlace ./contrib/requirements/requirements.txt \
-      --replace "protobuf>=3.20,<4" "protobuf>=3.20"
-    # ... and regenerating the paymentrequest_pb2.py file
-    protoc --python_out=. electrum/paymentrequest.proto
+  pythonRemoveDeps = [
+    "protobuf"
+  ];
 
-    substituteInPlace ./electrum/ecc_fast.py \
-      --replace ${libsecp256k1_name} ${secp256k1}/lib/libsecp256k1${stdenv.hostPlatform.extensions.sharedLibrary}
-  '' + (if enableQt then ''
-    substituteInPlace ./electrum/qrscanner.py \
-      --replace ${libzbar_name} ${zbar.lib}/lib/libzbar${stdenv.hostPlatform.extensions.sharedLibrary}
-  '' else ''
-    sed -i '/qdarkstyle/d' contrib/requirements/requirements.txt
-  '');
+  checkInputs = lib.optionals enableQt [
+    python3.pkgs.pyqt6
+  ];
+  disabledTestPaths = lib.optionals (!enableQt) [
+    "tests/test_qml_types.py"
+  ];
 
-  postInstall = lib.optionalString stdenv.isLinux ''
+  postPatch =
+    if enableQt then
+      ''
+        substituteInPlace ./electrum/qrscanner.py \
+          --replace-fail ${libzbar_name} ${zbar.lib}/lib/libzbar${stdenv.hostPlatform.extensions.sharedLibrary}
+      ''
+    else
+      ''
+        sed -i '/qdarkstyle/d' contrib/requirements/requirements.txt
+      '';
+
+  postInstall = lib.optionalString stdenv.hostPlatform.isLinux ''
     substituteInPlace $out/share/applications/electrum.desktop \
-      --replace 'Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\"; electrum %u"' \
-                "Exec=$out/bin/electrum %u" \
-      --replace 'Exec=sh -c "PATH=\"\\$HOME/.local/bin:\\$PATH\"; electrum --testnet %u"' \
-                "Exec=$out/bin/electrum --testnet %u"
+      --replace-fail "Exec=electrum %u" "Exec=$out/bin/electrum %u" \
+      --replace-fail "Exec=electrum --testnet %u" "Exec=$out/bin/electrum --testnet %u"
   '';
 
   postFixup = lib.optionalString enableQt ''
     wrapQtApp $out/bin/electrum
   '';
 
-  nativeCheckInputs = with python3.pkgs; [ pytestCheckHook pyaes pycryptodomex ];
+  preFixup = ''
+    makeWrapperArgs+=(--prefix PYTHONPATH : ${python3.pkgs.protobuf}/${python3.sitePackages})
+  ''
+  + lib.optionalString enableQt ''
+    qtWrapperArgs+=(--prefix PYTHONPATH : ${python3.pkgs.protobuf}/${python3.sitePackages})
+  '';
 
-  pytestFlagsArray = [ "electrum/tests" ];
+  nativeCheckInputs = with python3.pkgs; [
+    protobuf
+    pytestCheckHook
+    pyaes
+    pycryptodomex
+
+    # avoid homeless-shelter error in tests
+    writableTmpDirAsHomeHook
+  ];
+
+  enabledTestPaths = [ "tests" ];
+
+  preCheck = ''
+    export PYTHONPATH=${python3.pkgs.protobuf}/${python3.sitePackages}:$PYTHONPATH
+  '';
 
   postCheck = ''
     $out/bin/electrum help >/dev/null
@@ -123,7 +146,7 @@ python3.pkgs.buildPythonApplication {
 
   passthru.updateScript = callPackage ./update.nix { };
 
-  meta = with lib; {
+  meta = {
     description = "Lightweight Bitcoin wallet";
     longDescription = ''
       An easy-to-use Bitcoin client featuring wallets generated from
@@ -134,9 +157,13 @@ python3.pkgs.buildPythonApplication {
     homepage = "https://electrum.org/";
     downloadPage = "https://electrum.org/#download";
     changelog = "https://github.com/spesmilo/electrum/blob/master/RELEASE-NOTES";
-    license = licenses.mit;
-    platforms = platforms.all;
-    maintainers = with maintainers; [ joachifm np prusnak ];
+    license = lib.licenses.mit;
+    platforms = lib.platforms.all;
+    maintainers = with lib.maintainers; [
+      np
+      prusnak
+      ryand56
+    ];
     mainProgram = "electrum";
   };
-}
+})

@@ -1,31 +1,36 @@
-{ stdenv
-, lib
-, buildPythonPackage
-, fetchFromGitHub
-, python
-, wheel
+{
+  stdenv,
+  lib,
+  buildPythonPackage,
+  distutils,
+  fetchFromGitHub,
+  python,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "setuptools";
-  version = "69.0.2";
-  format = "pyproject";
+  version = "83.0.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "pypa";
     repo = "setuptools";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-7xOZC85glpXPKdPTYOpwjQHRpkKL1hgbMFgJF3q5EW0=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-Gn2gH2LnsgeX1MvDRBbnFnI6WjkjBFItU4SelowkjBc=";
   };
 
   patches = [
-    ./tag-date.patch
-    ./setuptools-distutils-C++.patch
+    ./reproducible-wheel.patch
   ];
 
-  nativeBuildInputs = [
-    wheel
-  ];
+  # Drop dependency on coherent.license, which in turn requires coherent.build
+  postPatch = ''
+    sed -i "/coherent.licensed/d" pyproject.toml
+
+    # Substitute version for reproducible builds
+    substituteInPlace setuptools/version.py \
+      --replace-fail '@version@' '${finalAttrs.version}'
+  '';
 
   preBuild = lib.optionalString (!stdenv.hostPlatform.isWindows) ''
     export SETUPTOOLS_INSTALL_WINDOWS_SPECIFIC_FILES=0
@@ -34,12 +39,18 @@ buildPythonPackage rec {
   # Requires pytest, causing infinite recursion.
   doCheck = false;
 
-  meta = with lib; {
+  passthru.tests = {
+    inherit distutils;
+  };
+
+  meta = {
     description = "Utilities to facilitate the installation of Python packages";
     homepage = "https://github.com/pypa/setuptools";
-    changelog = "https://setuptools.pypa.io/en/stable/history.html#v${replaceStrings [ "." ] [ "-" ] version}";
-    license = with licenses; [ mit ];
+    changelog = "https://setuptools.pypa.io/en/stable/history.html#v${
+      lib.replaceString "." "-" finalAttrs.version
+    }";
+    license = lib.licenses.mit;
     platforms = python.meta.platforms;
-    maintainers = teams.python.members;
+    teams = [ lib.teams.python ];
   };
-}
+})

@@ -1,40 +1,36 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-
-# build-system
-, poetry-core
-
-# dependencies
-, cryptography
-, http-ece
-, protobuf
-, requests
-
-# docs
-, sphinx
-, sphinxHook
-, sphinx-autodoc-typehints
-, sphinx-rtd-theme
-
-# tests
-, async-timeout
-, requests-mock
-, pytest-asyncio
-, pytest-mock
-, pytestCheckHook
+{
+  lib,
+  aiohttp,
+  aioresponses,
+  async-timeout,
+  buildPythonPackage,
+  cryptography,
+  fetchFromGitHub,
+  hatchling,
+  http-ece,
+  myst-parser,
+  protobuf,
+  pytest-asyncio,
+  pytest-mock,
+  pytest-socket,
+  pytestCheckHook,
+  requests-mock,
+  sphinx,
+  sphinx-autodoc-typehints,
+  sphinx-rtd-theme,
+  sphinxHook,
 }:
 
 buildPythonPackage rec {
   pname = "firebase-messaging";
-  version = "0.2.0";
+  version = "0.4.5";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "sdb9696";
     repo = "firebase-messaging";
-    rev = version;
-    hash = "sha256-e3Ny3pnAfOpNERvvtE/jqSDIsM+YwLq/hbw753QpJ6o=";
+    tag = version;
+    hash = "sha256-O1A+hGEhnNcvdXw5QJx+3zYKB+m36N0Ge0XB6cZ6930=";
   };
 
   outputs = [
@@ -42,43 +38,53 @@ buildPythonPackage rec {
     "doc"
   ];
 
-  nativeBuildInputs = [
-    poetry-core
-    sphinxHook
-  ] ++ passthru.optional-dependencies.docs;
+  build-system = [
+    hatchling
+  ];
 
-  propagatedBuildInputs = [
+  nativeBuildInputs = [
+    sphinxHook
+  ]
+  ++ optional-dependencies.docs;
+
+  pythonRelaxDeps = [
+    "http-ece"
+    "protobuf"
+  ];
+
+  dependencies = [
+    aiohttp
     cryptography
     http-ece
     protobuf
-    requests
   ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     docs = [
+      myst-parser
       sphinx
       sphinx-autodoc-typehints
       sphinx-rtd-theme
     ];
   };
 
-  pythonImportsCheck = [
-    "firebase_messaging"
-  ];
+  pythonImportsCheck = [ "firebase_messaging" ];
 
   nativeCheckInputs = [
+    aioresponses
     async-timeout
     requests-mock
     pytest-asyncio
     pytest-mock
+    pytest-socket
     pytestCheckHook
   ];
 
-  meta = with lib; {
-    description = "A library to subscribe to GCM/FCM and receive notifications within a python application";
+  meta = {
+    description = "Library to subscribe to GCM/FCM and receive notifications within a python application";
     homepage = "https://github.com/sdb9696/firebase-messaging";
-    changelog = "https://github.com/sdb9696/firebase-messaging/blob/${src.rev}/CHANGELOG.rst";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/sdb9696/firebase-messaging/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

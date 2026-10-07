@@ -1,6 +1,7 @@
-{ lib,
+{
+  lib,
   buildPythonPackage,
-  fetchFromGitHub
+  fetchFromGitHub,
 }:
 buildPythonPackage rec {
   pname = "anitopy";
@@ -15,12 +16,11 @@ buildPythonPackage rec {
   };
 
   pythonImportsCheck = [ "anitopy" ];
-  doCheck = true;
 
-  meta = with lib; {
+  meta = {
     description = "Python library for parsing anime video filenames";
     homepage = "https://github.com/igorcmoura/anitopy";
-    license = licenses.mpl20;
-    maintainers = with maintainers; [ passivelemon ];
+    license = lib.licenses.mpl20;
+    maintainers = with lib.maintainers; [ passivelemon ];
   };
 }

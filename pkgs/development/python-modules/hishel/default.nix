@@ -1,74 +1,86 @@
-{ lib
-, anysqlite
-, buildPythonPackage
-, fetchFromGitHub
-, hatch-fancy-pypi-readme
-, hatchling
-, httpx
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, pyyaml
-, redis
-, trio
+{
+  lib,
+  anyio,
+  anysqlite,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fastapi,
+  hatch-fancy-pypi-readme,
+  hatchling,
+  httpx,
+  inline-snapshot,
+  msgpack,
+  pytest-asyncio,
+  pytestCheckHook,
+  redis,
+  redisTestHook,
+  requests,
+  fakeredis,
+  time-machine,
+  typing-extensions,
 }:
 
 buildPythonPackage rec {
   pname = "hishel";
-  version = "0.0.21";
+  version = "1.3.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "karpetrosyan";
     repo = "hishel";
-    rev = "refs/tags/${version}";
-    hash = "sha256-okNNYEq97qb2OoP3N+MvG7o3YADfd6LxP8EaNuWDGOM=";
+    tag = version;
+    hash = "sha256-KVfbWhGpbLGzK3fQOuT+KtBi13z5ZZBP8NOsIIfObMc=";
   };
 
-  nativeBuildInputs = [
+  postPatch = ''
+    sed -i "/addopts/d" pyproject.toml
+  '';
+
+  build-system = [
     hatch-fancy-pypi-readme
     hatchling
   ];
 
-  propagatedBuildInputs = [
-    httpx
+  dependencies = [
+    msgpack
+    typing-extensions
   ];
 
-  passthru.optional-dependencies = {
-    redis = [
-      redis
-    ];
-    sqlite = [
+  optional-dependencies = {
+    async = [
+      anyio
       anysqlite
     ];
-    yaml = [
-      pyyaml
-    ];
+    requests = [ requests ];
+    httpx = [ httpx ];
+    fastapi = [ fastapi ];
+    redis = [ redis ];
   };
 
   nativeCheckInputs = [
+    inline-snapshot
     pytest-asyncio
     pytestCheckHook
-    trio
-  ] ++ lib.flatten (builtins.attrValues passthru.optional-dependencies);
-
-  pythonImportsCheck = [
-    "hishel"
-  ];
+    redisTestHook
+    fakeredis
+    time-machine
+  ]
+  ++ lib.concatAttrValues optional-dependencies;
 
   disabledTests = [
-    # Tests require a running Redis instance
-    "test_redis"
+    # network access
+    "test_encoded_content_caching"
+    "test_simple_caching"
+    "test_simple_caching_ignoring_spec"
   ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "hishel" ];
+
+  meta = {
     description = "HTTP Cache implementation for HTTPX and HTTP Core";
     homepage = "https://github.com/karpetrosyan/hishel";
-    changelog = "https://github.com/karpetrosyan/hishel/blob/${version}/CHANGELOG.md";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/karpetrosyan/hishel/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }
-

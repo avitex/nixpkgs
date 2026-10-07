@@ -1,57 +1,51 @@
-{ lib
-, buildPythonPackage
-, entrypoints
-, fastentrypoints
-, fetchFromGitHub
-, freezegun
-, funcy
-, git
-, pydantic
-, pytest-mock
-, pytest-test-utils
-, pytestCheckHook
-, pythonOlder
-, rich
-, ruamel-yaml
-, scmrepo
-, semver
-, setuptools
-, setuptools-scm
-, tabulate
-, typer
+{
+  lib,
+  buildPythonPackage,
+  cacert,
+  entrypoints,
+  fetchFromGitHub,
+  freezegun,
+  funcy,
+  gitSetupHook,
+  pydantic,
+  pydantic-settings,
+  pytest-cov-stub,
+  pytest-mock,
+  pytest-test-utils,
+  pytestCheckHook,
+  rich,
+  ruamel-yaml,
+  scmrepo,
+  semver,
+  setuptools-scm,
+  setuptools,
+  tabulate,
+  typer,
+  writableTmpDirAsHomeHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "gto";
-  version = "1.6.2";
+  version = "1.10.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "iterative";
     repo = "gto";
-    rev = "refs/tags/${version}";
-    hash = "sha256-1+Owhp2otGC/FIdsSz+4vn0sZR696+zOMGNDvjM6KH8=";
+    tag = finalAttrs.version;
+    hash = "sha256-pzXU7H4ysu0IBHEtSduA7ogNqmRVWagTI5E4P0z/Wio=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace ', "setuptools_scm_git_archive==1.4.1"' ""
-    substituteInPlace setup.cfg \
-      --replace " --cov=gto --cov-report=term-missing --cov-report=xml" ""
-  '';
-
-  nativeBuildInputs = [
-    fastentrypoints
+  build-system = [
     setuptools
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     entrypoints
     funcy
     pydantic
+    pydantic-settings
     rich
     ruamel-yaml
     scmrepo
@@ -62,35 +56,40 @@ buildPythonPackage rec {
 
   nativeCheckInputs = [
     freezegun
-    git
+    gitSetupHook
+    pytest-cov-stub
     pytest-mock
     pytest-test-utils
     pytestCheckHook
+    writableTmpDirAsHomeHook
   ];
 
   preCheck = ''
-    export HOME=$(mktemp -d)
-
-    git config --global user.email "nobody@example.com"
-    git config --global user.name "Nobody"
+    # _pygit2.GitError: OpenSSL error: failed to load certificates: error:00000000:lib(0)::reason(0)
+    export SSL_CERT_FILE=${cacert}/etc/ssl/certs/ca-bundle.crt
   '';
 
   disabledTests = [
-    # Tests want to with a remote repo
+    # Tests want to do it with a remote repo
     "remote_repo"
     "remote_git_repo"
     "test_action_doesnt_push_even_if_repo_has_remotes_set"
+    "test_api"
+    # ValueError: stderr not separately captured
+    "test_register"
+    "test_assign"
+    "test_stderr_gto_exception"
+    "test_stderr_exception"
   ];
 
-  pythonImportsCheck = [
-    "gto"
-  ];
+  pythonImportsCheck = [ "gto" ];
 
-  meta = with lib; {
+  meta = {
     description = "Module for Git Tag Operations";
     homepage = "https://github.com/iterative/gto";
-    changelog = "https://github.com/iterative/gto/releases/tag/${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/iterative/gto/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
+    mainProgram = "gto";
   };
-}
+})

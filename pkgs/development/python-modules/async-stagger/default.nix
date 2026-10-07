@@ -1,24 +1,26 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, pytestCheckHook
-, pytest-asyncio
-, pytest-mock
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  pytestCheckHook,
+  pytest-asyncio,
+  pytest-mock,
 }:
 
 buildPythonPackage rec {
   pname = "async-stagger";
-  version = "0.3.1";
-  format = "setuptools";
+  version = "0.4.1";
+  pyproject = true;
 
-  disabled = pythonOlder "3.6";
-
-  src = fetchPypi {
-    pname = "async_stagger";
-    inherit version;
-    hash = "sha256-qp81fp79J36aUWqUvegSStXkZ+m8Zcn62qrJjpVqQ9Y=";
+  src = fetchFromGitHub {
+    owner = "twisteroidambassador";
+    repo = "async_stagger";
+    tag = "v${version}";
+    hash = "sha256-qLeTP5FWHho/CbXth3OQNW15Y8uibOh35KqskoIUTHQ=";
   };
+
+  build-system = [ setuptools ];
 
   nativeCheckInputs = [
     pytestCheckHook
@@ -27,18 +29,16 @@ buildPythonPackage rec {
   ];
 
   disabledTests = [
-    # RuntimeError: Logic bug in...
-    "test_stagger_coro_gen"
+    # "OSError: [Errno 0] fileno not supported" during teardown
+    "test_create_connected_sock_normal"
   ];
 
-  pythonImportsCheck = [
-    "async_stagger"
-  ];
+  pythonImportsCheck = [ "async_stagger" ];
 
-  meta = with lib; {
+  meta = {
     description = "Happy Eyeballs connection algorithm and underlying scheduling logic in asyncio";
     homepage = "https://github.com/twisteroidambassador/async_stagger";
-    license = licenses.mit;
-    maintainers = with maintainers; [ hexa ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ hexa ];
   };
 }

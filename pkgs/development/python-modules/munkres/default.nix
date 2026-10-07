@@ -1,9 +1,10 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, fetchpatch
-, isPy3k
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  fetchpatch,
+  isPy3k,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
@@ -29,11 +30,10 @@ buildPythonPackage rec {
 
   nativeCheckInputs = [ pytestCheckHook ];
 
-  meta = with lib; {
-    homepage = "http://bmc.github.com/munkres/";
+  meta = {
+    homepage = "https://software.clapper.org/munkres/";
     description = "Munkres algorithm for the Assignment Problem";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ domenkozar ];
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
-
 }

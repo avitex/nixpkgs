@@ -1,41 +1,38 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, flake8
-, mock
-, nose
-, pytest
-, cryptography
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  hatchling,
+  mock,
+  pytestCheckHook,
+  cryptography,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "py-vapid";
-  version = "1.9.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "1.9.4";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-BmSreJl0LvKyhzl6TUYe9pHtDML1hyBRKNjPYX/9uRk=";
+    pname = "py_vapid";
+    inherit (finalAttrs) version;
+    hash = "sha256-oAQCNWDLxU40/AY4CgWA8E/8x4joT7bRnpM57rZVGig=";
   };
 
-  propagatedBuildInputs = [
-    cryptography
-  ];
+  build-system = [ hatchling ];
+
+  dependencies = [ cryptography ];
 
   nativeCheckInputs = [
-    flake8
     mock
-    nose
-    pytest
+    pytestCheckHook
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Library for VAPID header generation";
+    mainProgram = "vapid";
     homepage = "https://github.com/mozilla-services/vapid";
-    license = licenses.mpl20;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.mpl20;
+    maintainers = [ ];
   };
-}
+})

@@ -1,56 +1,64 @@
-{ lib
-, aws-sam-translator
-, buildPythonPackage
-, fetchFromGitHub
-, jschema-to-python
-, jsonpatch
-, jsonschema
-, junit-xml
-, mock
-, networkx
-, pydot
-, pytestCheckHook
-, pythonOlder
-, pyyaml
-, regex
-, sarif-om
-, setuptools
-, sympy
+{
+  lib,
+  aws-sam-translator,
+  buildPythonPackage,
+  defusedxml,
+  fetchFromGitHub,
+  jschema-to-python,
+  jsonpatch,
+  junit-xml,
+  mock,
+  networkx,
+  pydot,
+  pytestCheckHook,
+  pyyaml,
+  regex,
+  sarif-om,
+  setuptools,
+  sympy,
+  typing-extensions,
 }:
 
 buildPythonPackage rec {
   pname = "cfn-lint";
-  version = "0.83.3";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "1.43.3";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "aws-cloudformation";
     repo = "cfn-lint";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-0NHD8P+lKsrsEX/ypUS5dIwHOLudQcqkH8zG5RxANxE=";
+    tag = "v${version}";
+    hash = "sha256-tolQ7O6J/pfmtw29t8SGBDEDGiTOsJdc/mI3ulUseKo=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     aws-sam-translator
-    jschema-to-python
     jsonpatch
-    jsonschema
-    junit-xml
-    networkx
     networkx
     pyyaml
     regex
-    sarif-om
     sympy
+    typing-extensions
   ];
 
+  optional-dependencies = {
+    graph = [ pydot ];
+    junit = [ junit-xml ];
+    sarif = [
+      jschema-to-python
+      sarif-om
+    ];
+    full = lib.concatAttrValues (lib.removeAttrs optional-dependencies [ "full" ]);
+  };
+
   nativeCheckInputs = [
+    defusedxml
     mock
-    pydot
     pytestCheckHook
-  ];
+  ]
+  ++ optional-dependencies.full;
 
   preCheck = ''
     export PATH=$out/bin:$PATH
@@ -59,26 +67,25 @@ buildPythonPackage rec {
   disabledTests = [
     # Requires git directory
     "test_update_docs"
-    # Tests depend on network access (fails in getaddrinfo)
-    "test_update_resource_specs_python_2"
-    "test_update_resource_specs_python_3"
-    "test_sarif_formatter"
-    # Some CLI tests fails
-    "test_bad_config"
-    "test_override_parameters"
-    "test_positional_template_parameters"
-    "test_template_config"
   ];
 
-  pythonImportsCheck = [
-    "cfnlint"
+  disabledTestPaths = [
+    # unexpected exit code afer nodejs_24 24.16.0 update
+    "test/integration/test_quickstart_templates.py::TestQuickStartTemplates::test_templates"
+    "test/integration/test_quickstart_templates_non_strict.py::TestQuickStartTemplates::test_module_integration"
+    "test/integration/test_quickstart_templates_non_strict.py::TestQuickStartTemplates::test_templates"
+    "test/integration/test_good_templates.py::TestQuickStartTemplates::test_module_integration"
+    "test/integration/test_good_templates.py::TestQuickStartTemplates::test_templates"
   ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "cfnlint" ];
+
+  meta = {
     description = "Checks cloudformation for practices and behaviour that could potentially be improved";
+    mainProgram = "cfn-lint";
     homepage = "https://github.com/aws-cloudformation/cfn-lint";
-    changelog = "https://github.com/aws-cloudformation/cfn-lint/blob/v${version}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/aws-cloudformation/cfn-lint/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

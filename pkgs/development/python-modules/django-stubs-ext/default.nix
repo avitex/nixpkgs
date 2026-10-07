@@ -1,47 +1,69 @@
-{ lib
-, buildPythonPackage
-, django
-, fetchPypi
-, pytestCheckHook
-, pythonOlder
-, setuptools
-, typing-extensions
+{
+  lib,
+  buildPythonPackage,
+  django,
+  fetchFromGitHub,
+  uv-build,
+  oracledb,
+  pytest-mypy-plugins,
+  pytest-xdist,
+  pytestCheckHook,
+  redis,
+  typing-extensions,
 }:
 
 buildPythonPackage rec {
   pname = "django-stubs-ext";
-  version = "4.2.7";
+  version = "5.2.9";
   pyproject = true;
 
-  disabled = pythonOlder "3.8";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-UZNCrAhJzaFVl0bJpWPwP/mfY2sOvnwUt16BagDf3cM=";
+  src = fetchFromGitHub {
+    owner = "typeddjango";
+    repo = "django-stubs";
+    tag = version;
+    hash = "sha256-42FluS2fmfgj4qk2u+Z/7TGhXY4WKUc0cI00go6rnGc=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  postPatch = ''
+    cd ext
+    ln -s ../scripts
 
-  propagatedBuildInputs = [
+    substituteInPlace pyproject.toml \
+      --replace-fail "uv_build>=0.9.9,<0.10.0" uv_build
+  '';
+
+  build-system = [ uv-build ];
+
+  dependencies = [
     django
     typing-extensions
   ];
 
+  optional-dependencies = {
+    redis = [ redis ];
+    oracle = [ oracledb ];
+  };
+
   nativeCheckInputs = [
+    pytest-mypy-plugins
+    pytest-xdist
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "django_stubs_ext"
+  disabledTestPaths = [
+    # error: Skipping analyzing "django.db": module is installed, but missing library stubs or py.typed marker  [import-untyped] (diff)
+    "tests/typecheck"
   ];
 
-  meta = with lib; {
+  # Tests are not shipped with PyPI
+
+  pythonImportsCheck = [ "django_stubs_ext" ];
+
+  meta = {
     description = "Extensions and monkey-patching for django-stubs";
     homepage = "https://github.com/typeddjango/django-stubs";
-    changelog = "https://github.com/typeddjango/django-stubs/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ elohmeier ];
+    changelog = "https://github.com/typeddjango/django-stubs/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

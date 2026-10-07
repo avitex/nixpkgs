@@ -1,53 +1,55 @@
-{ lib
-, buildPythonPackage
-, pytestCheckHook
-, fetchFromGitHub
-, python
-, pythonOlder
-, setuptools
-, setuptools-scm
-, numpy
-, wheel
-, hypothesis
-, pytest-cov
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hypothesis,
+  numpy,
+  pytest-cov-stub,
+  pytestCheckHook,
+  python,
+  setuptools-scm,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "fast-histogram";
-  version = "0.12";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.6";
+  version = "0.14";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "astrofrog";
-    repo = pname;
-    rev = "v${version}";
-    sha256 = "sha256-Cz4BgbtxbUPxL2NSzvZYjbYIN4KUuliUV0bXRRtyvfM=";
+    repo = "fast-histogram";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-vIzDDzz6e7PXArHdZdSSgShuTjy3niVdGtXqgmyJl1w=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     setuptools-scm
-    wheel
   ];
 
-  propagatedBuildInputs = [ numpy ];
+  dependencies = [ numpy ];
 
   nativeCheckInputs = [
-    pytestCheckHook
     hypothesis
-    pytest-cov
+    pytest-cov-stub
+    pytestCheckHook
   ];
 
-  pytestFlagsArray = [ "${builtins.placeholder "out"}/${python.sitePackages}" ];
+  enabledTestPaths = [ "${placeholder "out"}/${python.sitePackages}" ];
 
   pythonImportsCheck = [ "fast_histogram" ];
 
-  meta = with lib; {
-    homepage = "https://github.com/astrofrog/fast-histogram";
+  disabledTests = [
+    # ValueError
+    "test_1d_compare_with_numpy"
+  ];
+
+  meta = {
     description = "Fast 1D and 2D histogram functions in Python";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ ifurther ];
+    homepage = "https://github.com/astrofrog/fast-histogram";
+    changelog = "https://github.com/astrofrog/fast-histogram/blob/v${finalAttrs.version}/CHANGES.md";
+    license = lib.licenses.bsd2;
+    maintainers = with lib.maintainers; [ ifurther ];
   };
-}
+})

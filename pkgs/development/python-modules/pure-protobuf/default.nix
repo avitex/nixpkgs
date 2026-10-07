@@ -1,48 +1,54 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, setuptools-scm
-, toml
-, pytestCheckHook
-, pytest-benchmark
-, hatch-vcs
-, hatchling
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  poetry-dynamic-versioning,
+  typing-extensions,
+  pytestCheckHook,
+  pytest-benchmark,
+  pytest-cov-stub,
+  pydantic,
 }:
 
 buildPythonPackage rec {
   pname = "pure-protobuf";
-  version = "2.3.0";  # Komikku not launching w/ 3.0.0, #280551
+  version = "3.1.5";
 
-  format = "pyproject";
-  disabled = pythonOlder "3.7";
+  pyproject = true;
+  # < 3.10 requires get-annotations which isn't packaged yet
 
   src = fetchFromGitHub {
     owner = "eigenein";
     repo = "protobuf";
-    rev = "refs/tags/${version}";
-    hash = "sha256-nJ3F8dUrqMeWqTV9ErGqrMvofJwBKwNUDfxWIqFh4nY=";
+    tag = version;
+    hash = "sha256-Gr5fKpagSUzH34IKHb+pBta4q71AqYa/KG9XW2AxZqk=";
   };
 
-  nativeBuildInputs = [
-    hatch-vcs
-    hatchling
+  build-system = [
+    poetry-core
+    poetry-dynamic-versioning
+    typing-extensions
   ];
 
-  checkInputs = [
+  dependencies = [ typing-extensions ];
+
+  nativeCheckInputs = [
+    pydantic
     pytestCheckHook
     pytest-benchmark
+    pytest-cov-stub
   ];
 
-  pythonImportsCheck = [
-    "pure_protobuf"
-  ];
+  pytestFlags = [ "--benchmark-disable" ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "pure_protobuf" ];
+
+  meta = {
     description = "Python implementation of Protocol Buffers with dataclass-based schemas";
     homepage = "https://github.com/eigenein/protobuf";
-    changelog = "https://github.com/eigenein/protobuf/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ chuangzhu ];
+    changelog = "https://github.com/eigenein/protobuf/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ chuangzhu ];
   };
 }

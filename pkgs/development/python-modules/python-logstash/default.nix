@@ -1,4 +1,8 @@
-{ lib, buildPythonPackage, fetchPypi }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+}:
 
 buildPythonPackage rec {
   pname = "python-logstash";
@@ -13,10 +17,9 @@ buildPythonPackage rec {
   # no tests
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "Python logging handler for Logstash";
     homepage = "https://github.com/vklochan/python-logstash";
-    maintainers = with maintainers; [ peterromfeldhk ];
-    license = licenses.mit;
+    license = lib.licenses.mit;
   };
 }

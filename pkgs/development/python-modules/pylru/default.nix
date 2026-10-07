@@ -1,35 +1,38 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "pylru";
-  version = "1.2.1";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "1.3.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "jlhutch";
-    repo = pname;
+    repo = "pylru";
     rev = "v${version}";
-    hash = "sha256-dTYiD+/zt0ZSP+sefYyeD87To1nRXyoFodlBg8pm1YE=";
+    hash = "sha256-3qycUYmnLGiuNsrBOCL/QiRkrPVikaRqVBmQFURDGKs=";
   };
 
-  # Check with the next release if tests are ready
-  doCheck = false;
+  build-system = [ setuptools ];
 
-  pythonImportsCheck = [
-    "pylru"
-  ];
+  checkPhase = ''
+    runHook preCheck
 
-  meta = with lib; {
-    description = "A least recently used (LRU) cache implementation";
+    python test.py
+
+    runHook postCheck
+  '';
+
+  pythonImportsCheck = [ "pylru" ];
+
+  meta = {
+    description = "Least recently used (LRU) cache implementation";
     homepage = "https://github.com/jlhutch/pylru";
-    license = licenses.gpl2Only;
-    maintainers = with maintainers; [ abbradar ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

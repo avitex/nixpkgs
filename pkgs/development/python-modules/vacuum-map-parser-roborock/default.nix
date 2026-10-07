@@ -1,24 +1,22 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, poetry-core
-, pillow
-, vacuum-map-parser-base
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  pillow,
+  vacuum-map-parser-base,
 }:
 
 buildPythonPackage rec {
   pname = "vacuum-map-parser-roborock";
-  version = "0.1.1";
+  version = "0.1.5";
   pyproject = true;
-
-  disabled = pythonOlder "3.11";
 
   src = fetchFromGitHub {
     owner = "PiotrMachowski";
     repo = "Python-package-${pname}";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-cZNmoqzU73iF965abFeM6qgEVmg6j2kIQHDhj1MYQpE=";
+    tag = "v${version}";
+    hash = "sha256-v9T9KGKi2vvxZQDjL6CBziPisgQ7sp3HnWZgZ/e8kVY=";
   };
 
   postPatch = ''
@@ -27,9 +25,9 @@ buildPythonPackage rec {
       --replace "0.0.0" "${version}"
   '';
 
-  nativeBuildInputs = [ poetry-core ];
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     pillow
     vacuum-map-parser-base
   ];
@@ -39,11 +37,11 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "vacuum_map_parser_roborock" ];
 
-  meta = with lib; {
-    homepage = "https://github.com/PiotrMachowski/Python-package-vacuum-map-parser-roborock";
+  meta = {
     description = "Functionalities for Roborock vacuum map parsing";
-    changelog = "https://github.com/PiotrMachowski/Python-package-vacuum-map-parser-roborock/releases/tag/v${version}";
-    maintainers = with maintainers; [ jamiemagee ];
-    license = licenses.asl20;
+    homepage = "https://github.com/PiotrMachowski/Python-package-vacuum-map-parser-roborock";
+    changelog = "https://github.com/PiotrMachowski/Python-package-vacuum-map-parser-roborock/releases/tag/${src.tag}";
+    maintainers = with lib.maintainers; [ jamiemagee ];
+    license = lib.licenses.asl20;
   };
 }

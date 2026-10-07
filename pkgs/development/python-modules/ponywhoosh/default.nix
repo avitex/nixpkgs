@@ -1,4 +1,10 @@
-{ lib, buildPythonPackage, fetchPypi, pony, whoosh }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pony,
+  whoosh,
+}:
 
 buildPythonPackage rec {
   pname = "ponywhoosh";
@@ -15,10 +21,10 @@ buildPythonPackage rec {
     whoosh
   ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://pythonhosted.org/ponywhoosh/";
     description = "Make your database over PonyORM searchable";
-    license = licenses.mit;
-    maintainers = with maintainers; [ alexarice ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ alexarice ];
   };
 }

@@ -1,34 +1,32 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "types-setuptools";
-  version = "68.2.0.2";
+  version = "80.9.0.20251223";
   pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-Ce/DgK1cf3jjC8oVRvcGRpVozyYITPq3Ps+D3qHShEY=";
+    pname = "types_setuptools";
+    inherit version;
+    hash = "sha256-00EQWa4vXwOYUhfYasYITv6iyenKzV8Iae+VDzCBabI=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
   # Module doesn't have tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "setuptools-stubs"
-  ];
+  pythonImportsCheck = [ "setuptools-stubs" ];
 
-  meta = with lib; {
+  meta = {
     description = "Typing stubs for setuptools";
     homepage = "https://github.com/python/typeshed";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

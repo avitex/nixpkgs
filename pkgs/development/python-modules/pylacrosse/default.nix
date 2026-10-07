@@ -1,50 +1,48 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, mock
-, nose
-, pyserial
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  mock,
+  pyserial,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pylacrosse";
-  version = "0.4";
-  format = "setuptools";
+  version = "0.5";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "hthiery";
     repo = "python-lacrosse";
-    rev = "refs/tags/${version}";
-    hash = "sha256-jrkehoPLYbutDfxMBO/vlx4nMylTNs/gtvoBTFHFsDw=";
+    tag = finalAttrs.version;
+    hash = "sha256-z2OlYFFK/+BONg22+Vk0kQQ0KJoQnRkjP7OUS/TVpfI=";
   };
 
   postPatch = ''
     substituteInPlace setup.py \
-      --replace "version = version," "version = '${version}',"
+      --replace "version = version," "version = '${finalAttrs.version}',"
   '';
 
-  propagatedBuildInputs = [
-    pyserial
-  ];
+  build-system = [ setuptools ];
+
+  dependencies = [ pyserial ];
 
   nativeCheckInputs = [
     mock
-    nose
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "pylacrosse"
-  ];
+  pythonImportsCheck = [ "pylacrosse" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python library for Jeelink LaCrosse";
+    mainProgram = "pylacrosse";
     homepage = "https://github.com/hthiery/python-lacrosse";
-    license = with licenses; [ lgpl2Plus ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.lgpl2Plus;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

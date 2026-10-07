@@ -1,54 +1,53 @@
-{ lib
-, buildPythonPackage
-, charset-normalizer
-, dsinternals
-, fetchPypi
-, flask
-, ldap3
-, ldapdomaindump
-, pyasn1
-, pycryptodomex
-, pyopenssl
-, pythonOlder
-, setuptools
-, pytestCheckHook
-, six
+{
+  lib,
+  buildPythonPackage,
+  charset-normalizer,
+  dsinternals,
+  fetchPypi,
+  flask,
+  ldap3,
+  ldapdomaindump,
+  pyasn1,
+  pyasn1-modules,
+  pycryptodomex,
+  pyopenssl,
+  setuptools,
+  pytestCheckHook,
+  six,
 }:
-
 buildPythonPackage rec {
   pname = "impacket";
-  version = "0.11.0";
+  version = "0.13.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-7kA5tNKu3o9fZEeLxZ+qyGA2eWviTeqNwY8An7CQXko=";
+    hash = "sha256-7ZHIAra+/2VGr9ImKUK8GhiLRnH7kex1HUah1m0ows8=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  pythonRelaxDeps = [ "pyopenssl" ];
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     charset-normalizer
     dsinternals
     flask
     ldap3
     ldapdomaindump
     pyasn1
+    pyasn1-modules
     pycryptodomex
     pyopenssl
+    setuptools
     six
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   pythonImportsCheck = [
     "impacket"
+    "impacket.msada_guids"
   ];
 
   disabledTestPaths = [
@@ -57,13 +56,14 @@ buildPythonPackage rec {
     "tests/SMB_RPC/"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Network protocols Constructors and Dissectors";
     homepage = "https://github.com/SecureAuthCorp/impacket";
-    changelog = "https://github.com/fortra/impacket/releases/tag/impacket_"
-      + replaceStrings [ "." ] [ "_" ] version;
+    changelog =
+      "https://github.com/fortra/impacket/releases/tag/impacket_"
+      + lib.replaceStrings [ "." ] [ "_" ] version;
     # Modified Apache Software License, Version 1.1
-    license = licenses.free;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.free;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

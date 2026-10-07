@@ -1,28 +1,34 @@
-{ lib
-, buildPythonPackage
-, colorama
-, fetchFromGitHub
-, packaging
-, poetry-core
-, pydantic
-, redis
-, structlog
+{
+  lib,
+  buildPythonPackage,
+  colorama,
+  fetchFromGitHub,
+  packaging,
+  poetry-core,
+  pydantic,
+  redis,
+  structlog,
 }:
 
 buildPythonPackage rec {
   pname = "diffsync";
-  version = "1.10.0";
-  format = "pyproject";
+  version = "2.2.3";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "networktocode";
     repo = "diffsync";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-p7aML6dTDkF4hx67bwI29nhEHi7LIEZ5RlHPgtyQMbo=";
+    tag = "v${version}";
+    hash = "sha256-SFPWz1A0Dpy1dzKaPp2Hx/1Supy0/PFwztm/NK0psHQ=";
   };
 
   nativeBuildInputs = [
     poetry-core
+  ];
+
+  pythonRelaxDeps = [
+    "packaging"
+    "structlog"
   ];
 
   propagatedBuildInputs = [
@@ -33,15 +39,13 @@ buildPythonPackage rec {
     structlog
   ];
 
-  pythonImportsCheck = [
-    "diffsync"
-  ];
+  pythonImportsCheck = [ "diffsync" ];
 
-  meta = with lib; {
+  meta = {
     description = "Utility library for comparing and synchronizing different datasets";
     homepage = "https://github.com/networktocode/diffsync";
-    changelog = "https://github.com/networktocode/diffsync/blob/v${version}/CHANGELOG.md";
-    license = with licenses; [ asl20 ];
-    maintainers = with maintainers; [ clerie ];
+    changelog = "https://github.com/networktocode/diffsync/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ clerie ];
   };
 }

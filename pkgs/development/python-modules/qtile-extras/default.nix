@@ -1,50 +1,62 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools-scm
-, pytestCheckHook
-, xorgserver
-, imagemagick
-, gobject-introspection
-, pulseaudio
-, pytest-asyncio
-, pytest-lazy-fixture
-, qtile
-, keyring
-, requests
-, librsvg
-, gtk3
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  anyio,
+  gobject-introspection,
+  gtk3,
+  imagemagick,
+  keyring,
+  librsvg,
+  pulseaudio,
+  pytest-asyncio,
+  pytest-lazy-fixture,
+  pytest-rerunfailures,
+  pytest-xdist,
+  pytestCheckHook,
+  python-dateutil,
+  qtile,
+  requests,
+  setuptools-scm,
+  xorg-server,
+  nixosTests,
 }:
-
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "qtile-extras";
-  version = "0.24.0";
-  format = "pyproject";
+  version = "0.37.1";
+  # nixpkgs-update: no auto update
+  # should be updated alongside with `qtile`
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "elParaguayo";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-DJmnJcqhfCfl39SF3Ypv0PGtI4r8heaVv9JmpiCBGJo=";
+    repo = "qtile-extras";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-sR/+Nmd/reMSi2Cu3WBKgsBsTmNiNWsFsEhap2YHqF4=";
   };
 
-  nativeBuildInputs = [ setuptools-scm ];
+  build-system = [ setuptools-scm ];
+
+  dependencies = [ gtk3 ];
 
   nativeCheckInputs = [
-    pytestCheckHook
-    xorgserver
-    imagemagick
+    anyio
     gobject-introspection
-  ];
-  checkInputs = [
+    imagemagick
+    keyring
+    pulseaudio
     pytest-asyncio
     pytest-lazy-fixture
+    pytest-rerunfailures
+    pytest-xdist
+    pytestCheckHook
+    python-dateutil
     qtile
-    pulseaudio
-    keyring
     requests
+    xorg-server
     # stravalib  # marked as broken due to https://github.com/stravalib/stravalib/issues/379
   ];
+
   disabledTests = [
     # Needs a running DBUS
     "test_brightness_power_saving"
@@ -55,12 +67,15 @@ buildPythonPackage rec {
     "test_wifiicon_internet_check"
     # Image difference is outside tolerance
     "test_decoration_output"
-    # Needs github token
+    # Needs Github token
     "test_githubnotifications_reload_token"
     # AttributeError: 'NoneType' object has no attribute 'theta'
     "test_image_size_horizontal"
     "test_image_size_vertical"
+    # Import error
+    "test_init_import_error_no_fallback"
   ];
+
   disabledTestPaths = [
     # Needs a running DBUS
     "test/widget/test_iwd.py"
@@ -68,23 +83,27 @@ buildPythonPackage rec {
     # Marked as broken due to https://github.com/stravalib/stravalib/issues/379
     "test/widget/test_strava.py"
   ];
+
+  pytestFlags = [
+    "--reruns 3"
+    "--reruns-delay 5"
+  ];
+
   preCheck = ''
     export HOME=$(mktemp -d)
     export GDK_PIXBUF_MODULE_FILE=${librsvg}/lib/gdk-pixbuf-2.0/2.10.0/loaders.cache
     sed -i 's#/usr/bin/sleep#sleep#' test/widget/test_snapcast.py
   '';
 
-  propagatedBuildInputs = [
-    gtk3
-  ];
-
   pythonImportsCheck = [ "qtile_extras" ];
 
-  meta = with lib; {
+  passthru.tests.qtile-extras = nixosTests.qtile-extras;
+
+  meta = {
     description = "Extra modules and widgets for the Qtile tiling window manager";
     homepage = "https://github.com/elParaguayo/qtile-extras";
-    changelog = "https://github.com/elParaguayo/qtile-extras/blob/${src.rev}/CHANGELOG";
-    license = licenses.mit;
-    maintainers = with maintainers; [ arjan-s ];
+    changelog = "https://github.com/elParaguayo/qtile-extras/blob/${finalAttrs.src.tag}/CHANGELOG";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ arjan-s ];
   };
-}
+})

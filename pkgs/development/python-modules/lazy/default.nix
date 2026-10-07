@@ -1,18 +1,26 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "lazy";
-  version = "1.4";
-  format = "setuptools";
+  version = "2.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "2c6d27a5ab130fb85435320651a47403adcb37ecbcc501b0c6606391f65f5b43";
-    extension = "zip";
+    hash = "sha256-+S7A0y3WvRFd3sTjMjRz68C2gq1Yxqynjr/Z5tGqV3c=";
   };
+
+  build-system = [ setuptools ];
+
+  pythonImportsCheck = [ "lazy" ];
+
+  nativeCheckInputs = [ pytestCheckHook ];
 
   meta = {
     description = "Lazy attributes for Python objects";

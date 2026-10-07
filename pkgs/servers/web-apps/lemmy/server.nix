@@ -1,59 +1,94 @@
-{ lib
-, stdenv
-, rustPlatform
-, fetchFromGitHub
-, openssl
-, postgresql
-, libiconv
-, Security
-, protobuf
-, rustfmt
-, nixosTests
+{
+  lib,
+  stdenv,
+  rustPlatform,
+  fetchFromGitHub,
+  openssl,
+  libpq,
+  libiconv,
+  protobuf,
+  rustfmt,
+  nixosTests,
 }:
 let
   pinData = lib.importJSON ./pin.json;
   version = pinData.serverVersion;
 in
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   inherit version;
   pname = "lemmy-server";
 
   src = fetchFromGitHub {
     owner = "LemmyNet";
     repo = "lemmy";
-    rev = version;
+    tag = finalAttrs.version;
     hash = pinData.serverHash;
     fetchSubmodules = true;
   };
 
   preConfigure = ''
-    echo 'pub const VERSION: &str = "${version}";' > crates/utils/src/version.rs
+    echo 'pub const VERSION: &str = "${finalAttrs.version}";' > crates/utils/src/version.rs
   '';
 
   cargoHash = pinData.serverCargoHash;
 
-  buildInputs = [ postgresql ]
-    ++ lib.optionals stdenv.isDarwin [ libiconv Security ];
+  buildInputs = [
+    libpq
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
+    libiconv
+  ];
 
-  # Using OPENSSL_NO_VENDOR is not an option on darwin
-  # As of version 0.10.35 rust-openssl looks for openssl on darwin
-  # with a hardcoded path to /usr/lib/libssl.x.x.x.dylib
-  # https://github.com/sfackler/rust-openssl/blob/master/openssl-sys/build/find_normal.rs#L115
-  OPENSSL_LIB_DIR = "${lib.getLib openssl}/lib";
-  OPENSSL_INCLUDE_DIR = "${openssl.dev}/include";
+  env = {
+    # Using OPENSSL_NO_VENDOR is not an option on darwin
+    # As of version 0.10.35 rust-openssl looks for openssl on darwin
+    # with a hardcoded path to /usr/lib/libssl.x.x.x.dylib
+    # https://github.com/sfackler/rust-openssl/blob/master/openssl-sys/build/find_normal.rs#L115
+    OPENSSL_LIB_DIR = "${lib.getLib openssl}/lib";
+    OPENSSL_INCLUDE_DIR = "${openssl.dev}/include";
 
-  PROTOC = "${protobuf}/bin/protoc";
-  PROTOC_INCLUDE = "${protobuf}/include";
-  nativeBuildInputs = [ protobuf rustfmt ];
+    PROTOC = "${protobuf}/bin/protoc";
+    PROTOC_INCLUDE = "${protobuf}/include";
 
-  passthru.updateScript = ./update.py;
-  passthru.tests.lemmy-server = nixosTests.lemmy;
+    # #[deny(warnings)] trips on newer rustc
+    RUSTFLAGS = "--cap-lints warn";
+  };
+  nativeBuildInputs = [
+    protobuf
+    rustfmt
+  ];
 
-  meta = with lib; {
-    description = "🐀 Building a federated alternative to reddit in rust";
+  checkFlags = [
+    # test requires database access
+    "--skip=session_middleware::tests::test_session_auth"
+
+    # tests require network access
+    "--skip=scheduled_tasks::tests::test_nodeinfo_mastodon_social"
+    "--skip=scheduled_tasks::tests::test_nodeinfo_lemmy_ml"
+  ];
+
+  # This gets installed automatically by cargoInstallHook,
+  # but we don't actually need it, and it leaks a reference to rustc.
+  postInstall = lib.optionalString (!stdenv.hostPlatform.isDarwin) ''
+    rm $out/lib/libhtml2md.so
+  '';
+
+  passthru = {
+    updateScript = ./update.py;
+    tests.lemmy-server = nixosTests.lemmy;
+  };
+
+  meta = {
+    description = "Federated link aggregator and forum";
     homepage = "https://join-lemmy.org/";
-    license = licenses.agpl3Only;
-    maintainers = with maintainers; [ happysalada billewanick ];
+    license = lib.licenses.agpl3Only;
+    maintainers = with lib.maintainers; [
+      happysalada
+      billewanick
+      georgyo
+      lucasew
+    ];
+    teams = [ lib.teams.ngi ];
     mainProgram = "lemmy_server";
   };
-}
+})

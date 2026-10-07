@@ -1,6 +1,12 @@
-{ lib, fetchFromGitHub, buildDunePackage, ocaml, alcotest, bigstringaf }:
+{
+  lib,
+  fetchFromGitHub,
+  buildDunePackage,
+  alcotest,
+  bigstringaf,
+}:
 
-buildDunePackage rec {
+buildDunePackage (finalAttrs: {
   pname = "faraday";
   version = "0.8.2";
 
@@ -9,8 +15,8 @@ buildDunePackage rec {
 
   src = fetchFromGitHub {
     owner = "inhabitedtype";
-    repo = pname;
-    rev = version;
+    repo = "faraday";
+    rev = finalAttrs.version;
     sha256 = "sha256-wR4kDocR1t3OLRuudXH8IccYde552O6Gvo5BHNxRbAI=";
   };
 
@@ -22,6 +28,6 @@ buildDunePackage rec {
     description = "Serialization library built for speed and memory efficiency";
     license = lib.licenses.bsd3;
     maintainers = [ lib.maintainers.vbgl ];
-    inherit (src.meta) homepage;
+    inherit (finalAttrs.src.meta) homepage;
   };
-}
+})

@@ -1,160 +1,282 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, pytestCheckHook
-, atpublic
-, bidict
-, black
-, clickhouse-connect
-, dask
-, datafusion
-, db-dtypes
-, duckdb
-, duckdb-engine
-, filelock
-, geoalchemy2
-, geopandas
-, google-cloud-bigquery
-, google-cloud-bigquery-storage
-, graphviz-nox
-, hypothesis
-, multipledispatch
-, numpy
-, oracledb
-, packaging
-, pandas
-, parsy
-, poetry-core
-, poetry-dynamic-versioning
-, polars
-, pooch
-, psycopg2
-, pyarrow
-, pydata-google-auth
-, pydruid
-, pymysql
-, pyspark
-, pytest-benchmark
-, pytest-httpserver
-, pytest-mock
-, pytest-randomly
-, pytest-snapshot
-, pytest-xdist
-, python-dateutil
-, pytz
-, regex
-, rich
-, shapely
-, snowflake-connector-python
-, snowflake-sqlalchemy
-, sqlalchemy
-, sqlalchemy-views
-, sqlglot
-, sqlite
-, toolz
-, trino-python-client
-, typing-extensions
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonAtLeast,
+
+  # build-system
+  hatchling,
+
+  # dependencies
+  atpublic,
+  parsy,
+  python-dateutil,
+  sqlglot,
+  toolz,
+  typing-extensions,
+  tzdata,
+
+  # tests
+  pytestCheckHook,
+  black,
+  filelock,
+  hypothesis,
+  pytest-benchmark,
+  pytest-httpserver,
+  pytest-mock,
+  pytest-randomly,
+  pytest-snapshot,
+  pytest-timeout,
+  pytest-xdist,
+  writableTmpDirAsHomeHook,
+
+  # optional-dependencies
+  # - athena
+  pyathena,
+  fsspec,
+  # - bigquery
+  db-dtypes,
+  google-cloud-bigquery,
+  google-cloud-bigquery-storage,
+  pyarrow,
+  pyarrow-hotfix,
+  pydata-google-auth,
+  numpy,
+  pandas,
+  rich,
+  # - clickhouse
+  clickhouse-connect,
+  # - databricks
+  # databricks-sql-connector-core, (unpackaged)
+  # - datafusion
+  datafusion,
+  # - druid
+  pydruid,
+  # - duckdb
+  duckdb,
+  packaging,
+  # - flink
+  # - geospatial
+  geopandas,
+  shapely,
+  # - mssql
+  pyodbc,
+  # - mysql
+  pymysql,
+  # - oracle
+  oracledb,
+  # - polars
+  polars,
+  # - postgres
+  psycopg2,
+  # - pyspark
+  pyspark,
+  # - snowflake
+  snowflake-connector-python,
+  # sqlite
+  regex,
+  # - trino
+  trino-python-client,
+  # - visualization
+  graphviz,
+  # examples
+  pins,
 }:
 let
-  testBackends = [ "datafusion" "duckdb" "pandas" "sqlite" ];
+  testBackends = [
+    "duckdb"
+    "sqlite"
+  ];
 
   ibisTestingData = fetchFromGitHub {
-    name = "ibis-testing-data";
     owner = "ibis-project";
     repo = "testing-data";
-    # https://github.com/ibis-project/ibis/blob/7.1.0/nix/overlay.nix#L20-L26
-    rev = "2c6a4bb5d5d525058d8d5b2312a9fee5dafc5476";
-    hash = "sha256-Lq503bqh9ESZJSk6yVq/uZwkAubzmSmoTBZSsqMm0DY=";
+    # https://github.com/ibis-project/ibis/blob/10.5.0/nix/overlay.nix#L94-L100
+    rev = "b26bd40cf29004372319df620c4bbe41420bb6f8";
+    hash = "sha256-1fenQNQB+Q0pbb0cbK2S/UIwZDE4PXXG15MH3aVbyLU=";
   };
 in
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "ibis-framework";
-  version = "7.1.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.9";
+  version = "12.0.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
-    name = "ibis-source";
-    repo = "ibis";
     owner = "ibis-project";
-    rev = "refs/tags/${version}";
-    hash = "sha256-E7jryoidw6+CjTIex4wcTXcU+8Kg8LDwg7wJvcwj+7Q=";
+    repo = "ibis";
+    tag = finalAttrs.version;
+    hash = "sha256-GqSbjjUr4EaWueMl4TrhaDvqn1iDd4CO3QcDnOXfSAk=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-    poetry-dynamic-versioning
+  build-system = [
+    hatchling
   ];
 
-  POETRY_DYNAMIC_VERSIONING_BYPASS = version;
-
-  propagatedBuildInputs = [
+  dependencies = [
     atpublic
-    bidict
-    filelock
-    multipledispatch
-    numpy
-    pandas
     parsy
-    pooch
-    pyarrow
     python-dateutil
-    pytz
-    rich
     sqlglot
     toolz
     typing-extensions
-  ]
-  ++ pooch.optional-dependencies.progress
-  ++ pooch.optional-dependencies.xxhash;
+    tzdata
+  ];
 
   nativeCheckInputs = [
     pytestCheckHook
+    black
+    filelock
     hypothesis
     pytest-benchmark
     pytest-httpserver
     pytest-mock
     pytest-randomly
     pytest-snapshot
+    pytest-timeout
+    # this dependency is still needed due to use of strict markers and
+    # `pytest.mark.xdist_group` in the ibis codebase
     pytest-xdist
-  ] ++ lib.concatMap (name: passthru.optional-dependencies.${name}) testBackends;
+    writableTmpDirAsHomeHook
+  ]
+  ++ lib.concatMap (name: finalAttrs.passthru.optional-dependencies.${name}) testBackends;
 
-  pytestFlagsArray = [
-    "--dist=loadgroup"
-    "-m"
-    "'${lib.concatStringsSep " or " testBackends} or core'"
-    # breakage from sqlalchemy2 truediv changes
-    "--deselect=ibis/tests/sql/test_sqlalchemy.py::test_tpc_h17"
+  pytestFlags = [
+    "--benchmark-disable"
+    "-Wignore::FutureWarning"
+    # DeprecationWarning: fetch_arrow_table() is deprecated, use to_arrow_table() instead.
+    "-Wignore:fetch_arrow_table:DeprecationWarning"
+    # DeprecationWarning: fetch_record_batch() is deprecated, use to_arrow_reader() instead.
+    "-Wignore:fetch_record_batch:DeprecationWarning"
+    # DeprecationWarning: '_UnionGenericAlias' is deprecated and slated for removal in Python 3.17
+    # DeprecationWarning: The 'generic' unit for NumPy timedelta is deprecated, and will raise an error in the future. This includes implicit conversion of bare integers (e.g. `+ 1`).Please use a specific unit instead.
+    "-Wignore::DeprecationWarning"
+  ]
+  ++ lib.optionals (pythonAtLeast "3.14") [
+    # Multiple tests with warnings fail without it
+    "-Wignore::pytest.PytestUnraisableExceptionWarning"
+  ];
+
+  enabledTestMarks = testBackends ++ [ "core" ];
+
+  disabledTests = [
     # tries to download duckdb extensions
-    "--deselect=ibis/backends/duckdb/tests/test_register.py::test_register_sqlite"
-    "--deselect=ibis/backends/duckdb/tests/test_register.py::test_read_sqlite"
+    "test_attach_sqlite"
+    "test_connect_extensions"
+    "test_load_extension"
+    "test_read_csv_with_types"
+    "test_read_sqlite"
+    "test_register_sqlite"
+    "test_roundtrip_xlsx"
 
-    # duckdb does not respect sample_size=2 (reads 3 lines of csv).
-    "--deselect=ibis/backends/tests/test_register.py::test_csv_reregister_schema"
+    # AssertionError: value does not match the expected value in snapshot
+    "test_union_aliasing"
 
-    # duckdb fails with:
-    # "This function can not be called with an active transaction!, commit or abort the existing one first"
-    "--deselect=ibis/backends/tests/test_udf.py::test_vectorized_udf"
-    "--deselect=ibis/backends/tests/test_udf.py::test_map_merge_udf"
-    "--deselect=ibis/backends/tests/test_udf.py::test_udf"
-    "--deselect=ibis/backends/tests/test_udf.py::test_map_udf"
+    # requires network connection
+    "test_s3_403_fallback"
+    "test_hugging_face"
 
-    # pyarrow13 is not supported yet.
-    "--deselect=ibis/backends/tests/test_temporal.py::test_date_truncate"
-    "--deselect=ibis/backends/tests/test_temporal.py::test_integer_to_interval_timestamp"
-    "--deselect=ibis/backends/tests/test_temporal.py::test_integer_to_interval_timestamp"
-    "--deselect=ibis/backends/tests/test_temporal.py::test_interval_add_cast_column"
-    "--deselect=ibis/backends/tests/test_temporal.py::test_integer_to_interval_timestamp"
-    "--deselect=ibis/backends/tests/test_temporal.py::test_integer_to_interval_timestamp"
-    "--deselect=ibis/backends/tests/test_temporal.py::test_integer_to_interval_timestamp"
-    "--deselect=ibis/backends/tests/test_temporal.py::test_integer_to_interval_timestamp"
-    "--deselect=ibis/backends/tests/test_timecontext.py::test_context_adjustment_filter_before_window"
-    "--deselect=ibis/backends/tests/test_timecontext.py::test_context_adjustment_window_udf"
-    "--deselect=ibis/backends/tests/test_timecontext.py::test_context_adjustment_window_udf"
-    "--deselect=ibis/backends/tests/test_aggregation.py::test_aggregate_grouped"
+    # requires pytest 8.2+
+    "test_roundtrip_delta"
+
+    # AssertionError: value does not match the expected value in snapshot ibis/backends/tests/snapshots/test_sql/test_rewrite_context/sqlite/out.sql
+    "test_rewrite_context"
+
+    # Assertion error comparing a calculated version string with the actual (during nixpkgs-review)
+    "test_builtin_scalar_noargs"
+
+    # duckdb ParserError: syntax error at or near "AT"
+    "test_90"
+
+    # assert 0 == 3 (tests edge case behavior of databases)
+    "test_self_join_with_generated_keys"
+
+    # _duckdb.BinderException: DECIMAL type width must be between 1 and 38
+    "test_decimal_literal[duckdb-decimal-big]"
+
+    # AssertionError: joining an empty array returns '' instead of NULL in duckdb 1.5
+    "test_empty_array_string_join[duckdb]"
+
+    # https://github.com/ibis-project/ibis/issues/11929
+    # AssertionError: value does not match the expected value
+    "ibasic_aggregation_with_join"
+    "itest_endswith"
+    "itest_multiple_limits"
+    "itest_simple_joins"
+    "test_aggregate_count_joined"
+    "test_anti_join"
+    "test_binop_parens"
+    "test_bool_bool"
+    "test_case_in_projection"
+    "test_column_distinct"
+    "test_column_expr_default_name"
+    "test_column_expr_retains_name"
+    "test_count_distinct"
+    "test_difference_project_column"
+    "test_fuse_projections"
+    "test_having_from_filter"
+    "test_intersect_project_column"
+    "test_join_between_joins"
+    "test_join_just_materialized"
+    "test_limit_with_self_join"
+    "test_lower_projection_sort_key"
+    "test_multiple_count_distinct"
+    "test_multiple_joins"
+    "test_no_cart_join"
+    "test_order_by_on_limit_yield_subquery"
+    "test_parse_sql_aggregation_with_multiple_joins"
+    "test_parse_sql_basic_aggregation"
+    "test_parse_sql_basic_join[inner]"
+    "test_parse_sql_basic_join[left]"
+    "test_parse_sql_basic_join[right]"
+    "test_parse_sql_basic_projection"
+    "test_parse_sql_in_clause"
+    "test_parse_sql_join_subquery"
+    "test_parse_sql_join_with_filter"
+    "test_parse_sql_limited_join"
+    "test_parse_sql_multiple_joins"
+    "test_parse_sql_scalar_subquery"
+    "test_parse_sql_simple_reduction"
+    "test_parse_sql_simple_select_count"
+    "test_parse_sql_table_alias"
+    "test_parse_sql_tpch"
+    "test_sample"
+    "test_select_sql"
+    "test_selects_with_impure_operations_not_merged"
+    "test_semi_join"
+    "test_startswith"
+    "test_subquery_in_union"
+    "test_subquery_where_location"
+    "test_table_difference"
+    "test_table_distinct"
+    "test_table_drop_with_filter"
+    "test_table_intersect"
+    "test_union_order_by"
+    "test_union_project_column"
+    "test_union"
+    "test_where_analyze_scalar_op"
+    "test_where_no_pushdown_possible"
+    "test_where_simple_comparisons"
+    "test_where_with_between"
+    "test_where_with_join"
+  ]
+  ++ lib.optionals (pythonAtLeast "3.14") [
+    # ExceptionGroup: multiple unraisable exception warnings (4 sub-exceptions)
+    "test_non_roundtripable_str_type"
+    "test_parse_dtype_roundtrip"
+
+    # AssertionError: value does not match the expected value in snapshot ...
+    "test_annotated_function_without_decoration"
+    "test_error_message"
+    "test_error_message_when_constructing_literal"
+    "test_signature_from_callable_with_keyword_only_arguments"
+  ];
+
+  disabledTestPaths = [
+    # TypeError: pytest.approx() does not support nan_ok for datetime/timedelta comparisons.
+    "ibis/backends/tests/tpc/h/test_queries.py::test_18"
+    "ibis/backends/tests/tpc/h/test_queries.py::test_03"
+    "ibis/backends/tests/tpc/ds/test_queries.py::test_51"
   ];
 
   # patch out tests that check formatting with black
@@ -162,11 +284,9 @@ buildPythonPackage rec {
     find ibis/tests -type f -name '*.py' -exec sed -i \
       -e '/^ *assert_decompile_roundtrip/d' \
       -e 's/^\( *\)code = ibis.decompile(expr, format=True)/\1code = ibis.decompile(expr)/g' {} +
-    substituteInPlace pyproject.toml --replace 'sqlglot = ">=10.4.3,<12"' 'sqlglot = "*"'
   '';
 
   preCheck = ''
-    HOME="$TMPDIR"
     export IBIS_TEST_DATA_DIRECTORY="ci/ibis-testing-data"
 
     # copy the test data to a directory
@@ -177,39 +297,170 @@ buildPythonPackage rec {
     rm -r "$IBIS_TEST_DATA_DIRECTORY"
   '';
 
-  pythonImportsCheck = [
-    "ibis"
-  ] ++ map (backend: "ibis.backends.${backend}") testBackends;
+  pythonImportsCheck = [ "ibis" ] ++ map (backend: "ibis.backends.${backend}") testBackends;
 
-  passthru = {
-    optional-dependencies = {
-      bigquery = [ db-dtypes google-cloud-bigquery google-cloud-bigquery-storage pydata-google-auth ];
-      clickhouse = [ clickhouse-connect sqlalchemy ];
-      dask = [ dask regex ];
-      datafusion = [ datafusion ];
-      druid = [ pydruid sqlalchemy ];
-      duckdb = [ duckdb duckdb-engine packaging sqlalchemy sqlalchemy-views ];
-      flink = [ ];
-      geospatial = [ geoalchemy2 geopandas shapely ];
-      mysql = [ sqlalchemy pymysql sqlalchemy-views ];
-      oracle = [ sqlalchemy oracledb packaging sqlalchemy-views ];
-      pandas = [ regex ];
-      polars = [ polars ];
-      postgres = [ psycopg2 sqlalchemy sqlalchemy-views ];
-      pyspark = [ pyspark sqlalchemy ];
-      snowflake = [ snowflake-connector-python snowflake-sqlalchemy sqlalchemy-views ];
-      sqlite = [ regex sqlalchemy sqlite sqlalchemy-views ];
-      trino = [ trino-python-client sqlalchemy sqlalchemy-views ];
-      visualization = [ graphviz-nox ];
-      decompiler = [ black ];
-    };
+  optional-dependencies = {
+    athena = [
+      pyathena
+      pyarrow
+      pyarrow-hotfix
+      numpy
+      pandas
+      rich
+      packaging
+      fsspec
+    ];
+    bigquery = [
+      db-dtypes
+      google-cloud-bigquery
+      google-cloud-bigquery-storage
+      pyarrow
+      pyarrow-hotfix
+      pydata-google-auth
+      numpy
+      pandas
+      rich
+    ];
+    clickhouse = [
+      clickhouse-connect
+      pyarrow
+      pyarrow-hotfix
+      numpy
+      pandas
+      rich
+    ];
+    databricks = [
+      # databricks-sql-connector-core (unpackaged)
+      pyarrow
+      pyarrow-hotfix
+      numpy
+      pandas
+      rich
+    ];
+    datafusion = [
+      datafusion
+      pyarrow
+      pyarrow-hotfix
+      numpy
+      pandas
+      rich
+    ];
+    druid = [
+      pydruid
+      pyarrow
+      pyarrow-hotfix
+      numpy
+      pandas
+      rich
+    ];
+    duckdb = [
+      duckdb
+      pyarrow
+      pyarrow-hotfix
+      numpy
+      pandas
+      rich
+      packaging
+    ];
+    flink = [
+      pyarrow
+      pyarrow-hotfix
+      numpy
+      pandas
+      rich
+    ];
+    geospatial = [
+      geopandas
+      shapely
+    ];
+    mssql = [
+      pyodbc
+      pyarrow
+      pyarrow-hotfix
+      numpy
+      pandas
+      rich
+    ];
+    mysql = [
+      pymysql
+      pyarrow
+      pyarrow-hotfix
+      numpy
+      pandas
+      rich
+    ];
+    oracle = [
+      oracledb
+      packaging
+      pyarrow
+      pyarrow-hotfix
+      numpy
+      pandas
+      rich
+    ];
+    polars = [
+      polars
+      packaging
+      pyarrow
+      pyarrow-hotfix
+      numpy
+      pandas
+      rich
+    ];
+    postgres = [
+      psycopg2
+      pyarrow
+      pyarrow-hotfix
+      numpy
+      pandas
+      rich
+    ];
+    pyspark = [
+      pyspark
+      packaging
+      pyarrow
+      pyarrow-hotfix
+      numpy
+      pandas
+      rich
+    ];
+    snowflake = [
+      snowflake-connector-python
+      pyarrow
+      pyarrow-hotfix
+      numpy
+      pandas
+      rich
+    ];
+    sqlite = [
+      regex
+      pyarrow
+      pyarrow-hotfix
+      numpy
+      pandas
+      rich
+    ];
+    trino = [
+      trino-python-client
+      pyarrow
+      pyarrow-hotfix
+      numpy
+      pandas
+      rich
+    ];
+    visualization = [ graphviz ];
+    decompiler = [ black ];
+    examples = [ pins ] ++ pins.optional-dependencies.gcs;
   };
 
-  meta = with lib; {
+  meta = {
     description = "Productivity-centric Python Big Data Framework";
     homepage = "https://github.com/ibis-project/ibis";
-    changelog = "https://github.com/ibis-project/ibis/blob/${version}/docs/release_notes.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ cpcloud ];
+    changelog = "https://github.com/ibis-project/ibis/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [
+      cpcloud
+      sarahec
+    ];
   };
-}
+})

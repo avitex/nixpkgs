@@ -1,20 +1,18 @@
-{ lib
-, bitarray
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
-, pythonOlder
-, setuptools
-, wheel
-, xxhash
+{
+  lib,
+  bitarray,
+  buildPythonPackage,
+  fetchPypi,
+  pytestCheckHook,
+  setuptools,
+  wheel,
+  xxhash,
 }:
 
 buildPythonPackage rec {
   pname = "pybloom-live";
   version = "4.0.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     pname = "pybloom_live";
@@ -32,18 +30,14 @@ buildPythonPackage rec {
     xxhash
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "pybloom_live"
-  ];
+  pythonImportsCheck = [ "pybloom_live" ];
 
-  meta = with lib; {
-    description = "A Probabilistic data structure";
+  meta = {
+    description = "Probabilistic data structure";
     homepage = "https://github.com/joseph-fox/python-bloomfilter";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

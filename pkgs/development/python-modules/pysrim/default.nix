@@ -1,17 +1,16 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, numpy
-, pythonOlder
-, pyyaml
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  numpy,
+  pyyaml,
 }:
 
 buildPythonPackage rec {
   pname = "pysrim";
   version = "0.5.10";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
@@ -20,10 +19,12 @@ buildPythonPackage rec {
 
   postPatch = ''
     substituteInPlace setup.py \
-      --replace "'pytest-runner', " ""
+      --replace-fail "'pytest-runner', " ""
   '';
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     numpy
     pyyaml
   ];
@@ -34,10 +35,10 @@ buildPythonPackage rec {
   # pythonImportsCheck does not work
   # TypeError: load() missing 1 required positional argument: 'Loader'
 
-  meta = with lib; {
+  meta = {
     description = "Srim Automation of Tasks via Python";
     homepage = "https://gitlab.com/costrouc/pysrim";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

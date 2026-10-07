@@ -1,34 +1,50 @@
-{ stdenv
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, pytestCheckHook
-, glib
-, vips
-, cffi
-, pkgconfig  # from pythonPackages
-, pkg-config  # from pkgs
-, lib }:
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  cffi,
+  fetchFromGitHub,
+  glib,
+  pkg-config, # from pkgs
+  pkgconfig, # from pythonPackages
+  pytestCheckHook,
+  setuptools,
+  vips,
+}:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pyvips";
-  version = "2.2.1";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "3.2.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "libvips";
     repo = "pyvips";
-    rev = "v${version}";
-    hash = "sha256-9S7h3bkm+QP78cpemYS7l3c8t+wXsJ5MUAP2T50R/Mc=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-N98UR6WC9ICQyBuAVejR8yrzZEBaE92EO7jY65SnaKg=";
   };
 
-  nativeBuildInputs = [ pkgconfig pkg-config ];
+  postPatch = ''
+    substituteInPlace pyvips/__init__.py \
+      --replace 'libvips.so.42' '${lib.getLib vips}/lib/libvips${stdenv.hostPlatform.extensions.sharedLibrary}' \
+      --replace 'libvips.42.dylib' '${lib.getLib vips}/lib/libvips${stdenv.hostPlatform.extensions.sharedLibrary}' \
+      --replace 'libgobject-2.0.so.0' '${glib.out}/lib/libgobject-2.0${stdenv.hostPlatform.extensions.sharedLibrary}' \
+      --replace 'libgobject-2.0.dylib' '${glib.out}/lib/libgobject-2.0${stdenv.hostPlatform.extensions.sharedLibrary}'
+  '';
 
-  buildInputs = [ glib vips ];
+  build-system = [
+    pkgconfig
+    setuptools
+  ];
 
-  propagatedBuildInputs = [ cffi ];
+  nativeBuildInputs = [ pkg-config ];
+
+  buildInputs = [
+    glib
+    vips
+  ];
+
+  dependencies = [ cffi ];
 
   env = lib.optionalAttrs stdenv.cc.isClang {
     NIX_CFLAGS_COMPILE = "-Wno-error=incompatible-function-pointer-types";
@@ -36,21 +52,23 @@ buildPythonPackage rec {
 
   nativeCheckInputs = [ pytestCheckHook ];
 
-  postPatch = ''
-    substituteInPlace pyvips/__init__.py \
-      --replace 'libvips.so.42' '${lib.getLib vips}/lib/libvips${stdenv.hostPlatform.extensions.sharedLibrary}' \
-      --replace 'libvips.42.dylib' '${lib.getLib vips}/lib/libvips${stdenv.hostPlatform.extensions.sharedLibrary}' \
-      --replace 'libgobject-2.0.so.0' '${glib.out}/lib/libgobject-2.0${stdenv.hostPlatform.extensions.sharedLibrary}' \
-      --replace 'libgobject-2.0.dylib' '${glib.out}/lib/libgobject-2.0${stdenv.hostPlatform.extensions.sharedLibrary}' \
-  '';
+  disabledTests = [
+    # flaky due to a race condition
+    # https://github.com/libvips/pyvips/issues/566
+    "test_progress"
+  ];
+
+  disabledTestPaths = [
+    "tests/perf"
+  ];
 
   pythonImportsCheck = [ "pyvips" ];
 
-  meta = with lib; {
-    description = "A python wrapper for libvips";
+  meta = {
+    description = "Python wrapper for libvips";
     homepage = "https://github.com/libvips/pyvips";
-    changelog = "https://github.com/libvips/pyvips/blob/v${version}/CHANGELOG.rst";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ccellado anthonyroussel ];
+    changelog = "https://github.com/libvips/pyvips/blob/${finalAttrs.src.tag}/CHANGELOG.rst";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ anthonyroussel ];
   };
-}
+})

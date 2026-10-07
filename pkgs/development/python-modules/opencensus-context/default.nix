@@ -1,7 +1,7 @@
-{ buildPythonPackage
-, fetchPypi
-, lib
-, unittestCheckHook
+{
+  buildPythonPackage,
+  fetchPypi,
+  lib,
 }:
 
 buildPythonPackage rec {
@@ -14,16 +14,14 @@ buildPythonPackage rec {
     hash = "sha256-oDEIw8ENjIC7Xd9cih8DMWH6YZcqmRf5ubOhhRfwCIw=";
   };
 
-  pythonNamespaces = [
-    "opencensus.common"
-  ];
+  pythonNamespaces = [ "opencensus.common" ];
 
   doCheck = false; # No tests in archive
 
-  meta = with lib; {
+  meta = {
     description = "OpenCensus Runtime Context";
     homepage = "https://github.com/census-instrumentation/opencensus-python/tree/master/context/opencensus-context";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ billhuang ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ billhuang ];
   };
 }

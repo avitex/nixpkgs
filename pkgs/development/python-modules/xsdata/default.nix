@@ -1,80 +1,62 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, substituteAll
-, ruff
-, click
-, click-default-group
-, docformatter
-, jinja2
-, toposort
-, typing-extensions
-, lxml
-, requests
-, pytestCheckHook
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  replaceVars,
+  ruff,
+  click,
+  jinja2,
+  toposort,
+  typing-extensions,
+  lxml,
+  requests,
+  pytestCheckHook,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "xsdata";
-  version = "24.1";
+  version = "26.2";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "tefra";
     repo = "xsdata";
-    rev = "v${version}";
-    hash = "sha256-vdcCTJqvaRehGWfTd9GR/DypF9ftY4ite7SDMPc2Ups=";
+    tag = "v${version}";
+    hash = "sha256-h5VGXGXQSG4o8H+Q+Z0SN9rw4mFI8EORNtB+4VAKg/k=";
   };
 
   patches = [
-    (substituteAll {
-      src = ./paths.patch;
+    (replaceVars ./paths.patch {
       ruff = lib.getExe ruff;
     })
   ];
 
   postPatch = ''
     substituteInPlace pyproject.toml \
-      --replace "--benchmark-skip" ""
+      --replace-fail "--benchmark-skip" ""
   '';
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
-    typing-extensions
-  ];
+  dependencies = [ typing-extensions ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     cli = [
       click
-      click-default-group
-      docformatter
       jinja2
       toposort
     ];
-    lxml = [
-      lxml
-    ];
-    soap = [
-      requests
-    ];
+    lxml = [ lxml ];
+    soap = [ requests ];
   };
 
   nativeCheckInputs = [
     pytestCheckHook
-  ] ++ passthru.optional-dependencies.cli
-    ++ passthru.optional-dependencies.lxml
-    ++ passthru.optional-dependencies.soap;
+  ]
+  ++ lib.concatAttrValues optional-dependencies;
 
-  disabledTestPaths = [
-    "tests/integration/benchmarks"
-  ];
+  disabledTestPaths = [ "tests/integration/benchmarks" ];
 
   pythonImportsCheck = [
     "xsdata.formats.dataclass.context"
@@ -93,8 +75,9 @@ buildPythonPackage rec {
 
   meta = {
     description = "Naive XML & JSON bindings for Python";
+    mainProgram = "xsdata";
     homepage = "https://github.com/tefra/xsdata";
-    changelog = "https://github.com/tefra/xsdata/blob/${src.rev}/CHANGES.rst";
+    changelog = "https://github.com/tefra/xsdata/blob/${src.tag}/CHANGES.md";
     license = lib.licenses.mit;
     maintainers = with lib.maintainers; [ dotlambda ];
   };

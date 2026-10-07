@@ -1,23 +1,27 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
 }:
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "bech32";
   version = "1.2.0";
-  format = "setuptools";
+  pyproject = true;
 
-  disabled = pythonOlder "3.5";
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
+    inherit (finalAttrs) pname version;
     hash = "sha256-fW24IUYDvXhx/PpsCCbvaLhbCr2Q+iHChanF4h0r2Jk=";
   };
 
-  meta = with lib; {
-    homepage = "https://pypi.org/project/bech32/";
-    license = with licenses; [ mit ];
+  build-system = [ setuptools ];
+
+  pythonImportsCheck = [ "bech32" ];
+
+  meta = {
+    homepage = "https://github.com/fiatjaf/bech32";
+    license = lib.licenses.mit;
   };
-}
+})

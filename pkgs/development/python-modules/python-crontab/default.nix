@@ -1,57 +1,50 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, python-dateutil
-, pytestCheckHook
-, pythonOlder
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitLab,
+  pytestCheckHook,
+  python-dateutil,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "python-crontab";
-  version = "3.0.0";
+  version = "3.4.0";
   pyproject = true;
 
-  disabled = pythonOlder "3.7";
+  __structuredAttrs = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-eft0ZQOd39T7k9By1u4NRcGsi/FZfwaG6hT9Q2Hbo3k=";
+  src = fetchFromGitLab {
+    owner = "doctormo";
+    repo = "python-crontab";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-MVQNZDCEsX8cjDQQviTfwOarul8+CkdCvWfJMc5Sbq0=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  postPatch = ''
+    substituteInPlace setup.py \
+      --replace-fail "= '3.3.0'," "= '${finalAttrs.version}',"
+  '';
 
-  propagatedBuildInputs = [
-    python-dateutil
-  ];
+  build-system = [ setuptools ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  dependencies = [ python-dateutil ];
 
-  disabledTests = [
-    "test_07_non_posix_shell"
-    # doctest that assumes /tmp is writeable, awkward to patch
-    "test_03_usage"
-    # Test is assuming $CURRENT_YEAR is not a leap year
-    "test_19_frequency_at_month"
-    "test_20_frequency_at_year"
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "crontab"
-  ];
+  pythonImportsCheck = [ "crontab" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python API for crontab";
     longDescription = ''
       Crontab module for reading and writing crontab files
       and accessing the system cron automatically and simply using a direct API.
     '';
     homepage = "https://gitlab.com/doctormo/python-crontab/";
-    license = licenses.lgpl3Plus;
-    maintainers = with maintainers; [ kfollesdal ];
+    license = lib.licenses.lgpl21Only;
+    maintainers = with lib.maintainers; [
+      fab
+      kfollesdal
+    ];
   };
-}
+})

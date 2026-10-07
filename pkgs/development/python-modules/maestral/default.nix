@@ -1,51 +1,61 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, makePythonPath
-, pythonOlder
-, python
-, click
-, dbus-python
-, desktop-notifier
-, dropbox
-, fasteners
-, importlib-metadata
-, keyring
-, keyrings-alt
-, packaging
-, pathspec
-, pyro5
-, requests
-, rich
-, setuptools
-, survey
-, typing-extensions
-, watchdog
-, pytestCheckHook
-, nixosTests
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  makePythonPath,
+  python,
+  click,
+  dbus-python,
+  desktop-notifier,
+  dropbox,
+  fasteners,
+  importlib-metadata,
+  keyring,
+  keyrings-alt,
+  packaging,
+  pathspec,
+  pyro5,
+  requests,
+  rich,
+  rubicon-objc,
+  setuptools,
+  survey,
+  typing-extensions,
+  watchdog,
+  xattr,
+  pytestCheckHook,
+  gitUpdater,
+  nixosTests,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "maestral";
-  version = "1.8.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "1.9.6";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "SamSchott";
     repo = "maestral";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-YYbdd0GLVKE7+Oi0mpQjqhFdjdlquk/XnIg5WrtKcfI=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-mYFiQL4FumJWP2y1u5tIo1CZL027J8/EIYqJQde7G/c=";
   };
 
-  propagatedBuildInputs = [
+  postPatch = ''
+    # is_not_closed was removed from dropbox in https://github.com/dropbox/dropbox-sdk-python/pull/537
+    # Upstream has been archived so we cannot expect a fix - use this workaround to keep the package alive a bit longer
+    substituteInPlace src/maestral/errorhandling.py \
+      --replace-fail "elif session_lookup_error.is_not_closed():" "elif False:"
+  '';
+
+  build-system = [ setuptools ];
+
+  dependencies = [
     click
     desktop-notifier
     dbus-python
     dropbox
     fasteners
-    importlib-metadata
     keyring
     keyrings-alt
     packaging
@@ -57,17 +67,26 @@ buildPythonPackage rec {
     survey
     typing-extensions
     watchdog
-  ];
+    xattr
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [ rubicon-objc ];
 
   makeWrapperArgs = [
     # Add the installed directories to the python path so the daemon can find them
-    "--prefix PYTHONPATH : ${makePythonPath propagatedBuildInputs}"
-    "--prefix PYTHONPATH : $out/lib/${python.libPrefix}/site-packages"
+    "--prefix"
+    "PYTHONPATH"
+    ":"
+    (makePythonPath finalAttrs.finalPackage.dependencies)
+    "--prefix"
+    "PYTHONPATH"
+    ":"
+    "$out/${python.sitePackages}"
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  # ModuleNotFoundError: No module named '_watchdog_fsevents'
+  doCheck = !(stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isx86_64);
 
   preCheck = ''
     export HOME=$(mktemp -d)
@@ -86,20 +105,44 @@ buildPythonPackage rec {
     "test_cased_path_candidates"
     # AssertionError
     "test_locking_multiprocess"
+    # OSError: [Errno 95] Operation not supported
+    "test_move_preserves_xattrs"
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
+    # maetral daemon does not start but worked in real environment
+    "test_catching_non_ignored_events"
+    "test_connection"
+    "test_event_handler"
+    "test_fs_ignore_tree_creation"
+    "test_lifecycle"
+    "test_notify_level"
+    "test_notify_snooze"
+    "test_receiving_events"
+    "test_remote_exceptions"
+    "test_start_already_running"
+    "test_stop"
   ];
 
-  pythonImportsCheck = [
-    "maestral"
-  ];
+  pythonImportsCheck = [ "maestral" ];
 
-  passthru.tests.maestral = nixosTests.maestral;
-
-  meta = with lib; {
-    description = "Open-source Dropbox client for macOS and Linux";
-    homepage = "https://maestral.app";
-    changelog = "https://github.com/samschott/maestral/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ peterhoeg sfrijters ];
-    platforms = platforms.unix;
+  passthru = {
+    updateScript = gitUpdater {
+      ignoredVersions = "dev";
+      rev-prefix = "v";
+    };
+    tests.maestral = nixosTests.maestral;
   };
-}
+
+  meta = {
+    description = "Open-source Dropbox client for macOS and Linux";
+    mainProgram = "maestral";
+    homepage = "https://maestral.app";
+    changelog = "https://github.com/samschott/maestral/releases/tag/v${finalAttrs.version}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [
+      natsukium
+      peterhoeg
+      sfrijters
+    ];
+  };
+})

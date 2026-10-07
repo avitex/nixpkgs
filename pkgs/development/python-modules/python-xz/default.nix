@@ -1,34 +1,42 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, setuptools-scm
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  hatchling,
+  hatch-vcs,
+  pytestCheckHook,
+  pytest-cov-stub,
 }:
 
 buildPythonPackage rec {
   pname = "python-xz";
-  version = "0.5.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.6";
+  version = "0.6.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-oYjwQ26BFFXxvaYdzp2+bw/BQwM0v/n1r9DmaLs1R3Q=";
+    inherit version;
+    pname = "python_xz";
+    hash = "sha256-yNxRBweZ7p533dndIHoRzJFw6SmFQvgecYcHLg1UNHg=";
   };
 
-  nativeBuildInputs = [ setuptools-scm ];
+  build-system = [
+    hatchling
+    hatch-vcs
+  ];
 
-  # has no tests
-  doCheck = false;
+  nativeCheckInputs = [
+    pytestCheckHook
+    pytest-cov-stub
+  ];
 
   pythonImportsCheck = [ "xz" ];
 
-  meta = with lib; {
+  meta = {
     description = "Pure Python library for seeking within compressed xz files";
     homepage = "https://github.com/Rogdham/python-xz";
-    license = licenses.mit;
+    changelog = "https://github.com/Rogdham/python-xz/blob/v${version}/CHANGELOG.md";
+    license = lib.licenses.mit;
     maintainers = with lib.maintainers; [ mxmlnkn ];
-    platforms = platforms.all;
+    platforms = lib.platforms.all;
   };
 }

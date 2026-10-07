@@ -1,10 +1,10 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pybind11
-, pytestCheckHook
-, pythonOlder
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pybind11,
+  pytestCheckHook,
+  setuptools,
 }:
 
 buildPythonPackage rec {
@@ -12,12 +12,10 @@ buildPythonPackage rec {
   version = "0.1.13";
   pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
   src = fetchFromGitHub {
     owner = "glmcdona";
     repo = "binary2strings";
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     hash = "sha256-3UPT0PdnPAhOu3J2vU5NxE3f4Nb1zwuX3hJiy87nLD0=";
   };
 
@@ -26,23 +24,17 @@ buildPythonPackage rec {
     setuptools
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "binary2strings"
-  ];
+  pythonImportsCheck = [ "binary2strings" ];
 
-  pytestFlagsArray = [
-    "tests/test.py"
-  ];
+  enabledTestPaths = [ "tests/test.py" ];
 
-  meta = with lib; {
+  meta = {
     description = "Module to extract Ascii, Utf8, and Unicode strings from binary data";
     homepage = "https://github.com/glmcdona/binary2strings";
     changelog = "https://github.com/glmcdona/binary2strings/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

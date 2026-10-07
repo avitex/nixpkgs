@@ -1,50 +1,54 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, fetchpatch
-, arcan
-, audit
-, dbus
-, libepoxy
-, fontutil
-, libGL
-, libX11
-, libXau
-, libXdmcp
-, libXfont2
-, libdrm
-, libgcrypt
-, libmd
-, libselinux
-, libtirpc
-, libxcb
-, libxkbfile
-, libxshmfence
-, mesa
-, meson
-, nettle
-, ninja
-, openssl
-, pixman
-, pkg-config
-, systemd
-, xcbutil
-, xcbutilwm
-, xkbcomp
-, xkeyboard_config
-, xorgproto
-, xtrans
+{
+  lib,
+  stdenv,
+  fetchFromCodeberg,
+  arcan,
+  audit,
+  dbus,
+  dri-pkgconfig-stub,
+  libepoxy,
+  font-util,
+  libGL,
+  libx11,
+  libxau,
+  libxdmcp,
+  libxfont_2,
+  libdrm,
+  libgcrypt,
+  libmd,
+  libselinux,
+  libtirpc,
+  libxcb,
+  libxkbfile,
+  libxshmfence,
+  libgbm,
+  mesa-gl-headers,
+  meson,
+  nettle,
+  ninja,
+  openssl,
+  pixman,
+  pkg-config,
+  systemd,
+  libxcb-util,
+  libxcb-wm,
+  libxcb-image,
+  xkbcomp,
+  xkeyboard_config,
+  xorgproto,
+  xtrans,
+  unstableGitUpdater,
 }:
 
-stdenv.mkDerivation (finalPackages: {
+stdenv.mkDerivation (finalPackages: rec {
   pname = "xarcan";
-  version = "unstable-2023-11-03";
+  version = "0.7.1";
 
-  src = fetchFromGitHub {
+  src = fetchFromCodeberg {
     owner = "letoram";
     repo = "xarcan";
-    rev = "380ea856307f593535dfc8b23799938db69e31b0";
-    hash = "sha256-RdizezCbJylQDkOmUdqL0lBTNLsjyvo+lKAjfZXTXf4=";
+    tag = version;
+    hash = "sha256-j20Wz/Ae4QTincAPgMoj19EfKAPxIGm0Jgmi4sUR88o=";
   };
 
   nativeBuildInputs = [
@@ -57,13 +61,14 @@ stdenv.mkDerivation (finalPackages: {
     arcan
     audit
     dbus
+    dri-pkgconfig-stub
     libepoxy
-    fontutil
+    font-util
     libGL
-    libX11
-    libXau
-    libXdmcp
-    libXfont2
+    libx11
+    libxau
+    libxdmcp
+    libxfont_2
     libdrm
     libgcrypt
     libmd
@@ -72,13 +77,15 @@ stdenv.mkDerivation (finalPackages: {
     libxcb
     libxkbfile
     libxshmfence
-    mesa
+    libgbm
+    mesa-gl-headers
     nettle
     openssl
     pixman
     systemd
-    xcbutil
-    xcbutilwm
+    libxcb-util
+    libxcb-wm
+    libxcb-image
     xkbcomp
     xkeyboard_config
     xorgproto
@@ -104,16 +111,19 @@ stdenv.mkDerivation (finalPackages: {
     "--with-xkb-path=${xkeyboard_config}/share/X11/xkb"
   ];
 
-  meta =  {
-    homepage = "https://github.com/letoram/letoram";
+  passthru.updateScript = unstableGitUpdater { };
+
+  meta = {
+    homepage = "https://codeberg.org/letoram/xarcan";
     description = "Patched Xserver that bridges connections to Arcan";
+    mainProgram = "Xarcan";
     longDescription = ''
       xarcan is a patched X server with a KDrive backend that uses the
       arcan-shmif to map Xlib/Xcb/X clients to a running arcan instance. It
       allows running an X session as a window under Arcan.
     '';
-    license = with lib.licenses; [ mit ];
-    maintainers = with lib.maintainers; [ AndersonTorres ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
     platforms = lib.platforms.unix;
   };
 })

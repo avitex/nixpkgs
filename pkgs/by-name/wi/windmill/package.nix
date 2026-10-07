@@ -1,166 +1,265 @@
-{ lib
-, rustPlatform
-, fetchFromGitHub
-, buildNpmPackage
-, bash
-, cmake
-, cairo
-, deno
-, fetchurl
-, go
-, lld
-, makeWrapper
-, nsjail
-, openssl
-, pango
-, pixman
-, giflib
-, pkg-config
-, python3
-, rustfmt
-, stdenv
-, swagger-cli
+{
+  lib,
+  callPackage,
+  rustPlatform,
+  fetchFromGitHub,
+  buildNpmPackage,
+  bash,
+  cmake,
+  cairo,
+  deno,
+  go,
+  lld,
+  makeWrapper,
+  nsjail,
+  openssl,
+  pango,
+  pixman,
+  pkg-config,
+  python312,
+  rustfmt,
+  stdenv,
+  perl,
+  _experimental-update-script-combinators,
+  nix-update-script,
+  librusty_v8 ? (
+    callPackage ./librusty_v8.nix {
+      inherit (callPackage ./fetchers.nix { }) fetchLibrustyV8;
+    }
+  ),
+  ui_builder ? (callPackage ./ui_builder.nix { }),
+  libxml2,
+  xmlsec,
+  libxslt,
+  flock,
+  powershell,
+  uv,
+  bun,
+  dotnet-sdk_9,
+  php,
+  procps,
+  cargo,
+  coreutils,
+  withEnterpriseFeatures ? false,
+  withClosedSourceFeatures ? false,
+  nixosTests,
 }:
 
 let
   pname = "windmill";
-  version = "1.246.15";
+  version = "1.601.1";
 
   src = fetchFromGitHub {
     owner = "windmill-labs";
     repo = "windmill";
     rev = "v${version}";
-    hash = "sha256-5KDSCag70ww1mYvfKf3rg2RTi80rEWZnMTXB+/6VsNM=";
-  };
-
-  pythonEnv = python3.withPackages (ps: [ ps.pip-tools ]);
-
-  frontend-build = buildNpmPackage {
-    inherit version src;
-
-    pname = "windmill-ui";
-
-    sourceRoot = "${src.name}/frontend";
-
-    npmDepsHash = "sha256-PdRNjUQdr1NgTO5UaWfH8rJeiFB/VJ6sJkwhpmPo/1A=";
-
-    # without these you get a
-    # FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
-    env.NODE_OPTIONS="--max-old-space-size=8192";
-
-    preBuild = ''
-      npm run generate-backend-client
-    '';
-
-    buildInputs = [ pixman cairo pango giflib ];
-    nativeBuildInputs = [ python3 pkg-config ];
-
-    installPhase = ''
-      mkdir -p $out/share
-      mv build $out/share/windmill-frontend
-    '';
+    hash = "sha256-3Djrk8gHW3NjNzSy4A38LmTfl18LKDKgFeNMBPKlhfM=";
   };
 in
-rustPlatform.buildRustPackage {
-  inherit pname version;
-  src = "${src}/backend";
+rustPlatform.buildRustPackage (finalAttrs: {
+  inherit pname version src;
+  sourceRoot = "${src.name}/backend";
 
   env = {
     SQLX_OFFLINE = "true";
-    RUSTY_V8_ARCHIVE =
-      let
-        fetch_librusty_v8 = args:
-          fetchurl {
-            name = "librusty_v8-${args.version}";
-            url = "https://github.com/denoland/rusty_v8/releases/download/v${args.version}/librusty_v8_release_${stdenv.hostPlatform.rust.rustcTarget}.a";
-            sha256 = args.shas.${stdenv.hostPlatform.system} or (throw "Unsupported platform ${stdenv.hostPlatform.system}");
-            meta = { inherit (args) version; };
-          };
-      in
-      fetch_librusty_v8 {
-        version = "0.74.3";
-        shas = {
-          x86_64-linux = "sha256-8pa8nqA6rbOSBVnp2Q8/IQqh/rfYQU57hMgwU9+iz4A=";
-          aarch64-linux = "sha256-3kXOV8rlCNbNBdXgOtd3S94qO+JIKyOByA4WGX+XVP0=";
-          x86_64-darwin = "sha256-iBBVKZiSoo08YEQ8J/Rt1/5b7a+2xjtuS6QL/Wod5nQ=";
-          aarch64-darwin = "sha256-Djnuc3l/jQKvBf1aej8LG5Ot2wPT0m5Zo1B24l1UHsM=";
-        };
-      };
+    FRONTEND_BUILD_DIR = "${finalAttrs.passthru.web-ui}/share/windmill-frontend";
+    RUSTY_V8_ARCHIVE = librusty_v8;
   };
 
-  cargoLock = {
-    lockFile = ./Cargo.lock;
-    outputHashes = {
-      "archiver-rs-0.5.1" = "sha256-ZIik0mMABmhdx/ullgbOrKH5GAtqcOKq5A6vB7aBSjk=";
-      "pg-embed-0.7.2" = "sha256-R/SrlzNK7aAOyXVTQ/WPkiQb6FyMg9tpsmPTsiossDY=";
-      "progenitor-0.3.0" = "sha256-F6XRZFVIN6/HfcM8yI/PyNke45FL7jbcznIiqj22eIQ=";
-      "tinyvector-0.1.0" = "sha256-NYGhofU4rh+2IAM+zwe04YQdXY8Aa4gTmn2V2HtzRfI=";
-    };
-  };
+  cargoHash = "sha256-ivfseD1zWcy4P8Anbo/e1r2rRma/6mj25blkrXpwNHE=";
+
+  buildFeatures = [
+    "agent_worker_server"
+    # "benchmark" # DO NOT ACTIVATE, this is for benchmark testing
+    #"bigquery"
+    "cloud"
+    "csharp"
+    "default"
+    "deno_core"
+    "dind"
+    #"duckdb"
+    "embedding"
+    "flow_testing"
+    "gcp_trigger"
+    "http_trigger"
+    #"java"
+    "jemalloc"
+    "kafka"
+    "license"
+    "loki"
+    "mcp"
+    "mqtt_trigger"
+    #"mssql"
+    #"mysql"
+    "nats"
+    #"nu"
+    "oauth2"
+    "openidconnect"
+    #"oracledb"
+    "parquet"
+    "php"
+    "postgres_trigger"
+    "python"
+    #"ruby"
+    #"rust" # compiler environment is incomplete
+    "scoped_cache"
+    "smtp"
+    "sqlx"
+    "sqs_trigger"
+    "static_frontend"
+    "websocket"
+    "zip"
+  ]
+  ++ (lib.optionals withEnterpriseFeatures [
+    "enterprise_saml"
+    "enterprise"
+    "otel"
+    "prometheus"
+    "stripe"
+    "tantivy"
+  ])
+  ++ (lib.optionals withClosedSourceFeatures [ "private" ]);
 
   patches = [
-    ./swagger-cli.patch
-    ./run.go.config.proto.patch
-    ./run.python3.config.proto.patch
+    ./download.py.config.proto.patch
+    ./python_executor.patch
+    ./python_versions.patch
+    ./run.ansible.config.proto.patch
     ./run.bash.config.proto.patch
+    ./run.bun.config.proto.patch
+    ./run.csharp.config.proto.patch
+    ./run.go.config.proto.patch
+    ./run.php.config.proto.patch
+    ./run.powershell.config.proto.patch
+    ./run.python3.config.proto.patch
+    ./run.rust.config.proto.patch
+    ./rust_executor.patch
   ];
 
   postPatch = ''
-    substituteInPlace windmill-worker/src/bash_executor.rs \
-      --replace '"/bin/bash"' '"${bash}/bin/bash"'
-
-    substituteInPlace windmill-api/src/lib.rs \
-      --replace 'unknown-version' 'v${version}'
-
-    substituteInPlace src/main.rs \
-      --replace 'unknown-version' 'v${version}'
-
-    pushd ..
-
-    mkdir -p frontend/build
-    cp -R ${frontend-build}/share/windmill-frontend/* frontend/build
-    cp ${src}/openflow.openapi.yaml .
-
-    popd
+    substituteInPlace windmill-common/src/utils.rs \
+      --replace-fail 'unknown-version' 'v${version}'
   '';
 
   buildInputs = [
     openssl
     rustfmt
     lld
-    stdenv.cc.cc.lib
+    (lib.getLib stdenv.cc.cc)
+    libxml2
+    xmlsec
+    libxslt
   ];
 
   nativeBuildInputs = [
     pkg-config
     makeWrapper
-    swagger-cli
     cmake # for libz-ng-sys crate
+    perl
   ];
 
   # needs a postgres database running
   doCheck = false;
 
   postFixup = ''
-    patchelf --set-rpath ${lib.makeLibraryPath [openssl]} $out/bin/windmill
-
     wrapProgram "$out/bin/windmill" \
-      --prefix PATH : ${lib.makeBinPath [go pythonEnv deno nsjail bash]} \
-      --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath [stdenv.cc.cc.lib]} \
-      --set PYTHON_PATH "${pythonEnv}/bin/python3" \
+      --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath [ stdenv.cc.cc ]} \
+      --prefix PATH : ${
+        lib.makeBinPath [
+          # uv searches for python on path as well!
+          python312
+
+          procps # bash_executor
+          coreutils # bash_executor
+        ]
+      } \
+      --set PYTHON_PATH "${python312}/bin/python3" \
       --set GO_PATH "${go}/bin/go" \
       --set DENO_PATH "${deno}/bin/deno" \
-      --set NSJAIL_PATH "${nsjail}/bin/nsjail"
+      --set NSJAIL_PATH "${nsjail}/bin/nsjail" \
+      --set FLOCK_PATH "${flock}/bin/flock" \
+      --set BASH_PATH "${bash}/bin/bash" \
+      --set POWERSHELL_PATH "${powershell}/bin/pwsh" \
+      --set BUN_PATH "${bun}/bin/bun" \
+      --set UV_PATH "${uv}/bin/uv" \
+      --set DOTNET_PATH "${dotnet-sdk_9}/bin/dotnet" \
+      --set DOTNET_ROOT "${dotnet-sdk_9}/share/dotnet" \
+      --set PHP_PATH "${php}/bin/php" \
+      --set CARGO_PATH "${cargo}/bin/cargo"
   '';
+
+  passthru.web-ui = buildNpmPackage {
+    inherit version src;
+
+    pname = "windmill-ui";
+
+    sourceRoot = "${src.name}/frontend";
+
+    npmDepsHash = "sha256-eVN7q8hRH7NYjZiE5dLRMUKlyrtnAPGPdYV6/S4Sc+4=";
+
+    # without these you get a
+    # FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaScript heap out of memory
+    env.NODE_OPTIONS = "--max-old-space-size=8192";
+
+    postUnpack = ''
+      cp ${src}/openflow.openapi.yaml .
+    '';
+
+    # WORKS
+    npmFlags = [
+      # Skip "postinstall" script that attempts to download and unpack ui-builder (patching out the url with nix-store path doesn't work)
+      "--ignore-scripts"
+    ];
+
+    preBuild = ''
+      npm run generate-backend-client
+    '';
+
+    buildInputs = [
+      pixman
+      cairo
+      pango
+    ];
+    nativeBuildInputs = [
+      pkg-config
+    ];
+
+    installPhase = ''
+      mkdir -p $out/share
+      mv build $out/share/windmill-frontend
+
+      mkdir -p $out/share/windmill-frontend/static
+      ln -s ${ui_builder} $out/share/windmill-frontend/static/ui_builder
+    '';
+  };
+
+  passthru.updateScript = _experimental-update-script-combinators.sequence [
+    (nix-update-script {
+      extraArgs = [
+        "--subpackage"
+        "web-ui"
+      ];
+    })
+    ./update-librusty.sh
+    ./update-ui_builder.sh
+  ];
+
+  passthru.tests = lib.optionalAttrs (stdenv.hostPlatform.isLinux) nixosTests.windmill;
 
   meta = {
     changelog = "https://github.com/windmill-labs/windmill/blob/${src.rev}/CHANGELOG.md";
     description = "Open-source developer platform to turn scripts into workflows and UIs";
     homepage = "https://windmill.dev";
     license = lib.licenses.agpl3Only;
-    maintainers = with lib.maintainers; [ dit7ya happysalada ];
+    maintainers = with lib.maintainers; [
+      happysalada
+    ];
     mainProgram = "windmill";
     # limited by librusty_v8
-    platforms = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+    # nsjail not available on darwin
+    platforms = [
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
   };
-}
+})

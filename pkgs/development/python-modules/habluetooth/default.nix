@@ -1,46 +1,43 @@
-{ lib
-, bleak
-, bleak-retry-connector
-, bluetooth-adapters
-, bluetooth-auto-recovery
-, bluetooth-data-tools
-, buildPythonPackage
-, cython
-, fetchFromGitHub
-, poetry-core
-, pytestCheckHook
-, pythonOlder
-, setuptools
-, wheel
+{
+  lib,
+  async-interrupt,
+  bleak-retry-connector,
+  bleak,
+  bluetooth-adapters,
+  bluetooth-auto-recovery,
+  bluetooth-data-tools,
+  buildPythonPackage,
+  cython,
+  fetchFromGitHub,
+  freezegun,
+  poetry-core,
+  pytest-asyncio,
+  pytest-codspeed,
+  pytest-cov-stub,
+  pytestCheckHook,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "habluetooth";
-  version = "2.1.0";
+  version = "6.26.11";
   pyproject = true;
-
-  disabled = pythonOlder "3.10";
 
   src = fetchFromGitHub {
     owner = "Bluetooth-Devices";
     repo = "habluetooth";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-oPdKmaj2wKgOQw7QYwOQc8efcNtQiGryZgNJ+bbB6L8=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-US5ElghTeGV4N96g2Iy+ZsBrYndf8yLMGEpdSakXqjw=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace " --cov=habluetooth --cov-report=term-missing:skip-covered" ""
-  '';
-
-  nativeBuildInputs = [
+  build-system = [
     cython
     poetry-core
     setuptools
-    wheel
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
+    async-interrupt
     bleak
     bleak-retry-connector
     bluetooth-adapters
@@ -49,18 +46,20 @@ buildPythonPackage rec {
   ];
 
   nativeCheckInputs = [
+    freezegun
+    pytest-asyncio
+    pytest-codspeed
+    pytest-cov-stub
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "habluetooth"
-  ];
+  pythonImportsCheck = [ "habluetooth" ];
 
-  meta = with lib; {
+  meta = {
     description = "Library for high availability Bluetooth";
     homepage = "https://github.com/Bluetooth-Devices/habluetooth";
-    changelog = "https://github.com/Bluetooth-Devices/habluetooth/blob/v${version}/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/Bluetooth-Devices/habluetooth/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

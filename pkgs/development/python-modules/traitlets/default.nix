@@ -1,37 +1,44 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonAtLeast,
 
-# build-system
-, hatchling
+  # build-system
+  hatchling,
 
-# tests
-, argcomplete
-, pytest-mock
-, pytestCheckHook
+  # tests
+  argcomplete,
+  pytest-mock,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "traitlets";
-  version = "5.14.0";
-  format = "pyproject";
+  version = "5.15.1";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-/NqorEnATfoO0+4zhO9t/bXW83QVAr4kcnlAdnkpZ3I=";
+  src = fetchFromGitHub {
+    owner = "ipython";
+    repo = "traitlets";
+    tag = "v${version}";
+    hash = "sha256-c4OZSC2MrX6Jx8x49lOzlkgwpwz+/2l+GGVCzpO/P+8=";
   };
 
-  nativeBuildInputs = [
-    hatchling
-  ];
+  build-system = [ hatchling ];
 
   nativeCheckInputs = [
     argcomplete
     pytest-mock
     pytestCheckHook
+  ];
+
+  disabledTests = [
+    # https://github.com/ipython/traitlets/issues/902
+    "test_complete_custom_completers"
+    # https://github.com/ipython/traitlets/issues/925
+    "test_complete_simple_app"
+    "test_complete_subcommands_subapp1"
   ];
 
   disabledTestPaths = [
@@ -44,6 +51,5 @@ buildPythonPackage rec {
     description = "Traitlets Python config system";
     homepage = "https://github.com/ipython/traitlets";
     license = lib.licenses.bsd3;
-    maintainers = with lib.maintainers; [ fridh ];
   };
 }

@@ -1,30 +1,36 @@
-{ lib
-, php
-, fetchFromGitHub
+{
+  lib,
+  php,
+  fetchFromGitHub,
+  makeBinaryWrapper,
+  versionCheckHook,
 }:
 
-php.buildComposerProject (finalAttrs: {
+php.buildComposerProject2 (finalAttrs: {
   pname = "phpdocumentor";
-  version = "3.4.1";
+  version = "3.10.0";
 
   src = fetchFromGitHub {
     owner = "phpDocumentor";
     repo = "phpDocumentor";
-    rev = "v${finalAttrs.version}";
-    hash = "sha256-fNjix3pJDRCTWM3Xtn+AtZe4RJfgQ60kiJB9J9tC5t4=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-sieLh5CG0ev4wMco+VG9A+2GxxalN7/FLGz+IDEgH4g=";
   };
 
-  vendorHash = "sha256-rsBg2EHbvYLVr6haN1brHZFVjLDaxqdkNWf0HL3Eoy0=";
+  vendorHash = "sha256-hz0Fw1gR2mPGdmVi4i7yjmAJiQTfkxDUC3D2ylNpdbU=";
 
-  installPhase = ''
-    runHook preInstall
+  nativeBuildInputs = [ makeBinaryWrapper ];
 
+  postInstall = ''
     wrapProgram "$out/bin/phpdoc" \
       --set-default APP_CACHE_DIR /tmp \
       --set-default APP_LOG_DIR /tmp/log
-
-    runHook postInstall
   '';
+
+  nativeInstallCheckInputs = [
+    versionCheckHook
+  ];
+  doInstallCheck = true;
 
   meta = {
     changelog = "https://github.com/phpDocumentor/phpDocumentor/releases/tag/v${finalAttrs.version}";
@@ -32,6 +38,6 @@ php.buildComposerProject (finalAttrs: {
     homepage = "https://phpdoc.org";
     license = lib.licenses.mit;
     mainProgram = "phpdoc";
-    maintainers = with lib.maintainers; [ drupol ];
+    maintainers = [ lib.maintainers.patka ];
   };
 })

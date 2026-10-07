@@ -1,6 +1,3 @@
-if [ -e "$NIX_ATTRS_SH_FILE" ]; then . "$NIX_ATTRS_SH_FILE"; elif [ -f .attrs.sh ]; then . .attrs.sh; fi
-source $stdenv/setup
-
 unpackManually() {
     skip=$(sed 's/^skip=//; t; d' $src)
     tail -n +$skip $src | bsdtar xvf -
@@ -10,23 +7,6 @@ unpackManually() {
 
 unpackFile() {
     sh $src -x || unpackManually
-}
-
-
-buildPhase() {
-    runHook preBuild
-
-    if [ -n "$bin" ]; then
-        # Create the module.
-        echo "Building linux driver against kernel: $kernel";
-        cd kernel
-        unset src # used by the nv makefile
-        make $makeFlags -j $NIX_BUILD_CORES module
-
-        cd ..
-    fi
-
-    runHook postBuild
 }
 
 
@@ -71,6 +51,7 @@ installPhase() {
         rm -f $i/lib/lib{glx,nvidia-wfb}.so.* # handled separately
         rm -f $i/lib/libnvidia-gtk* # built from source
         rm -f $i/lib/libnvidia-wayland-client* # built from source
+        rm -f $i/lib/libnvidia-egl-* # built from source
         if [ "$useGLVND" = "1" ]; then
             # Pre-built libglvnd
             rm $i/lib/lib{GL,GLX,EGL,GLESv1_CM,GLESv2,OpenGL,GLdispatch}.so.*
@@ -80,6 +61,9 @@ installPhase() {
         # Move VDPAU libraries to their place
         mkdir $i/lib/vdpau
         mv $i/lib/libvdpau* $i/lib/vdpau
+
+        # Compatibility with openssl 1.1, unused
+        rm -f $i/lib/libnvidia-pkcs11.so*
 
         # Install ICDs, make absolute paths.
         # Be careful not to modify any original files because this runs twice.
@@ -96,13 +80,7 @@ installPhase() {
             else
                 sed -E "s#(libGLX_nvidia)#$i/lib/\\1#" nvidia_icd.json > nvidia_icd.json.fixed
             fi
-
-            # nvidia currently only supports x86_64 and i686
-            if [ "$i" == "$lib32" ]; then
-                install -Dm644 nvidia_icd.json.fixed $i/share/vulkan/icd.d/nvidia_icd.i686.json
-            else
-                install -Dm644 nvidia_icd.json.fixed $i/share/vulkan/icd.d/nvidia_icd.x86_64.json
-            fi
+            install -Dm644 nvidia_icd.json.fixed $i/share/vulkan/icd.d/nvidia_icd.json
         fi
 
         if [ -e nvidia_layers.json ]; then
@@ -112,25 +90,24 @@ installPhase() {
 
         # EGL
         if [ "$useGLVND" = "1" ]; then
-            sed -E "s#(libEGL_nvidia)#$i/lib/\\1#" 10_nvidia.json > 10_nvidia.json.fixed
-            sed -E "s#(libnvidia-egl-wayland)#$i/lib/\\1#" 10_nvidia_wayland.json > 10_nvidia_wayland.json.fixed
-
-            install -Dm644 10_nvidia.json.fixed $i/share/glvnd/egl_vendor.d/10_nvidia.json
-            install -Dm644 10_nvidia_wayland.json.fixed $i/share/egl/egl_external_platform.d/10_nvidia_wayland.json
+            # glvnd icd
+            mkdir -p "$i/share/glvnd/egl_vendor.d"
+            for icdname in "10_nvidia.json";
+            do
+                cat "$icdname" | jq ".ICD.library_path |= \"$i/lib/\(.)\"" | tee "$i/share/glvnd/egl_vendor.d/$icdname"
+            done
 
             if [[ -f "15_nvidia_gbm.json" ]]; then
-              sed -E "s#(libnvidia-egl-gbm)#$i/lib/\\1#" 15_nvidia_gbm.json > 15_nvidia_gbm.json.fixed
-              install -Dm644 15_nvidia_gbm.json.fixed $i/share/egl/egl_external_platform.d/15_nvidia_gbm.json
-
               mkdir -p $i/lib/gbm
               ln -s $i/lib/libnvidia-allocator.so $i/lib/gbm/nvidia-drm_gbm.so
             fi
         fi
 
         # Install libraries needed by Proton to support DLSS
-        if [ -e nvngx.dll ] && [ -e _nvngx.dll ]; then
-            install -Dm644 -t $i/lib/nvidia/wine/ nvngx.dll _nvngx.dll
-        fi
+        for winelib in $(find . -name '*nvngx*.dll')
+        do
+            install -Dm644 -t $i/lib/nvidia/wine/ "$winelib"
+        done
     done
 
 
@@ -150,13 +127,6 @@ installPhase() {
         mkdir -p $bin/lib/xorg/modules/extensions
         cp -p libglx*.so* $bin/lib/xorg/modules/extensions
 
-        # Install the kernel module.
-        mkdir -p $bin/lib/modules/$kernelVersion/misc
-        for i in $(find ./kernel -name '*.ko'); do
-            nuke-refs $i
-            cp $i $bin/lib/modules/$kernelVersion/misc/
-        done
-
         # Install application profiles.
         if [ "$useProfiles" = "1" ]; then
             mkdir -p $bin/share/nvidia
@@ -165,9 +135,14 @@ installPhase() {
         fi
     fi
 
+    # Install the proprietary kernel module build files.
+    if [ -n "$modsrc" ]; then
+        cp -r kernel $modsrc
+    fi
+
     if [ -n "$firmware" ]; then
         # Install the GSP firmware
-        install -Dm644 -t $firmware/lib/firmware/nvidia/$version firmware/gsp*.bin
+        install -Dm644 -t $firmware/lib/firmware/nvidia/$version firmware/*.bin
     fi
 
     # All libs except GUI-only are installed now, so fixup them.
@@ -181,20 +156,32 @@ installPhase() {
         patchelf --set-rpath "$out/lib:$libPath" "$libname"
       fi
 
-      libname_short=`echo -n "$libname" | sed 's/so\..*/so/'`
+      # Manually create the right symlinks for the libraries.
+      #
+      # We can't just use ldconfig, because it does not create libfoo.so symlinks,
+      # only libfoo.so.1.
+      # Also, the symlink chain must be libfoo.so -> libfoo.so.1 -> libfoo.so.123.45,
+      # or ldconfig will explode.
+      # See: https://github.com/bminor/glibc/blob/6f3f6c506cdaf981a4374f1f12863b98ac7fea1a/elf/ldconfig.c#L854-L877
 
-      if [[ "$libname" != "$libname_short" ]]; then
-        ln -srnf "$libname" "$libname_short"
+      libbase=$(basename "$libname")
+      libdir=$(dirname "$libname")
+      soname=$(patchelf --print-soname "$libname")
+      unversioned=${libbase/\.so\.[0-9\.]*/.so}
+
+      if [[ -n "$soname" ]]; then
+        if [[ "$soname" != "$libbase" ]]; then
+          ln -s "$libbase" "$libdir/$soname"
+        fi
+
+        if [[ "$soname" != "$unversioned" ]]; then
+          ln -s "$soname" "$libdir/$unversioned"
+        fi
       fi
 
-      if [[ $libname_short =~ libEGL.so || $libname_short =~ libEGL_nvidia.so || $libname_short =~ libGLX.so || $libname_short =~ libGLX_nvidia.so ]]; then
-          major=0
-      else
-          major=1
-      fi
-
-      if [[ "$libname" != "$libname_short.$major" ]]; then
-        ln -srnf "$libname" "$libname_short.$major"
+      # FIXME: libglxserver_nvidia does not have a soname, but must still be symlinked
+      if [[ "$unversioned" == "libglxserver_nvidia.so" ]]; then
+        ln -s "$libbase" "$libdir/$unversioned"
       fi
     done
 
@@ -217,8 +204,10 @@ installPhase() {
                     --set-rpath $out/lib:$libPath $bin/bin/$i
             fi
         done
-        # FIXME: needs PATH and other fixes
-        # install -Dm755 nvidia-bug-report.sh $bin/bin/nvidia-bug-report.sh
+        substituteInPlace nvidia-bug-report.sh \
+          --replace /bin/grep grep \
+          --replace /bin/ls ls
+        install -Dm755 nvidia-bug-report.sh $bin/bin/nvidia-bug-report.sh
     fi
 
     runHook postInstall

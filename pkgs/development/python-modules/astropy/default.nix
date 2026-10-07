@@ -1,50 +1,81 @@
-{ lib
-, fetchPypi
-, buildPythonPackage
-, pythonOlder
+{
+  lib,
+  fetchFromGitHub,
+  buildPythonPackage,
 
-# build time
-, astropy-extension-helpers
-, cython_3
-, jinja2
-, oldest-supported-numpy
-, setuptools-scm
-, wheel
-# testing
-, pytestCheckHook
-, pytest-xdist
-, pytest-astropy
+  # build time
+  stdenv,
+  cython,
+  extension-helpers,
+  setuptools,
+  setuptools-scm,
 
-# runtime
-, astropy-iers-data
-, numpy
-, packaging
-, pyerfa
-, pyyaml
+  # dependencies
+  astropy-iers-data,
+  numpy,
+  packaging,
+  pyerfa,
+  pyyaml,
+
+  # optional-dependencies
+  scipy,
+  matplotlib,
+  ipython,
+  ipywidgets,
+  ipykernel,
+  pandas,
+  certifi,
+  dask,
+  h5py,
+  pyarrow,
+  beautifulsoup4,
+  html5lib,
+  sortedcontainers,
+  pytz,
+  jplephem,
+  mpmath,
+  asdf,
+  asdf-astropy,
+  bottleneck,
+  fsspec,
+  s3fs,
+  uncompresspy,
+
+  # testing
+  hypothesis,
+  pytestCheckHook,
+  pytest-xdist,
+  pytest-astropy-header,
+  pytest-doctestplus,
+  pytest-remotedata,
+  threadpoolctl,
+
 }:
 
 buildPythonPackage rec {
   pname = "astropy";
-  version = "6.0.0";
+  version = "8.0.0";
   pyproject = true;
 
-  disabled = pythonOlder "3.8"; # according to setup.cfg
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-A82AGlUwXaUjzY14DXY1n1clXc3Fn+C91x/VFU/Hd9k=";
+  src = fetchFromGitHub {
+    owner = "astropy";
+    repo = "astropy";
+    tag = "v${version}";
+    hash = "sha256-pKptFnbhiE6DfsEZ557ugd6nrbWGg2FmEdhp78z+bUM=";
   };
 
-  nativeBuildInputs = [
-    astropy-extension-helpers
-    cython_3
-    jinja2
-    oldest-supported-numpy
+  env = lib.optionalAttrs stdenv.cc.isClang {
+    NIX_CFLAGS_COMPILE = "-Wno-error=unused-command-line-argument";
+  };
+
+  build-system = [
+    cython
+    extension-helpers
+    setuptools
     setuptools-scm
-    wheel
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     astropy-iers-data
     numpy
     packaging
@@ -52,33 +83,89 @@ buildPythonPackage rec {
     pyyaml
   ];
 
+  optional-dependencies = lib.fix (self: {
+    recommended = [
+      scipy
+      matplotlib
+    ];
+    ipython = [
+      ipython
+    ];
+    jupyter = [
+      ipywidgets
+      ipykernel
+      # ipydatagrid
+      pandas
+    ]
+    ++ self.ipython;
+    all = [
+      certifi
+      dask
+      h5py
+      pyarrow
+      beautifulsoup4
+      html5lib
+      sortedcontainers
+      pytz
+      jplephem
+      mpmath
+      asdf
+      asdf-astropy
+      bottleneck
+      fsspec
+      s3fs
+      uncompresspy
+    ]
+    ++ self.recommended
+    ++ self.ipython
+    ++ self.jupyter
+    ++ dask.optional-dependencies.array
+    ++ fsspec.optional-dependencies.http;
+  });
+
   nativeCheckInputs = [
+    hypothesis
     pytestCheckHook
     pytest-xdist
-    pytest-astropy
-  ];
+    pytest-astropy-header
+    pytest-doctestplus
+    pytest-remotedata
+    threadpoolctl
+    # FIXME remove in 7.2.0
+    # see https://github.com/astropy/astropy/pull/18882
+    uncompresspy
+  ]
+  ++ optional-dependencies.recommended;
 
-  # Not running it inside the build directory. See:
-  # https://github.com/astropy/astropy/issues/15316#issuecomment-1722190547
+  pythonImportsCheck = [ "astropy" ];
+
+  __darwinAllowLocalNetworking = true;
+
   preCheck = ''
-    cd "$out"
     export HOME="$(mktemp -d)"
-    export OMP_NUM_THREADS=$(( $NIX_BUILD_CORES / 4 ))
+
+    # See https://github.com/astropy/astropy/issues/17649 and see
+    # --hypothesis-profile=ci pytest flag below.
+    cp conftest.py $out/
+    # https://github.com/NixOS/nixpkgs/issues/255262
+    cd "$out"
   '';
-  pythonImportsCheck = [
-    "astropy"
+  pytestFlags = [
+    "--hypothesis-profile=ci"
   ];
-  disabledTests = [
-    # May fail due to parallelism, see:
-    # https://github.com/astropy/astropy/issues/15441
-    "TestUnifiedOutputRegistry"
-  ];
+  postCheck = ''
+    rm conftest.py
+  '';
 
   meta = {
+    changelog = "https://docs.astropy.org/en/${src.tag}/changelog.html";
     description = "Astronomy/Astrophysics library for Python";
     homepage = "https://www.astropy.org";
     license = lib.licenses.bsd3;
     platforms = lib.platforms.all;
-    maintainers = with lib.maintainers; [ kentjames doronbehar ];
+    maintainers = with lib.maintainers; [
+      kentjames
+      doronbehar
+    ];
   };
 }

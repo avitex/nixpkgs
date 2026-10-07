@@ -1,49 +1,46 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, pythonOlder
-, requests
-, responses
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  requests,
+  responses,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "nvdlib";
-  version = "0.7.6";
+  version = "0.8.3";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "Vehemont";
     repo = "nvdlib";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-p2xx+QC0P30FR+nMiFW/PoINbcTM49ufADW9B9u2WxI=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-FjeYJMMccao9KJMcJBKtt5QhpQEEbcPyNunj+VqMdx0=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  postPatch = ''
+    substituteInPlace setup.py \
+      --replace-fail "version='0.8.2'," "version = '${finalAttrs.version}',"
+  '';
 
-  propagatedBuildInputs = [
-    requests
-  ];
+  build-system = [ setuptools ];
+
+  dependencies = [ requests ];
 
   nativeCheckInputs = [
     pytestCheckHook
     responses
   ];
 
-  pythonImportsCheck = [
-    "nvdlib"
-  ];
+  pythonImportsCheck = [ "nvdlib" ];
 
-  meta = with lib; {
+  meta = {
     description = "Module to interact with the National Vulnerability CVE/CPE API";
     homepage = "https://github.com/Vehemont/nvdlib/";
-    changelog = "https://github.com/vehemont/nvdlib/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/vehemont/nvdlib/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

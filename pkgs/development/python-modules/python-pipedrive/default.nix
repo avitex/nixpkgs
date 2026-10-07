@@ -1,7 +1,8 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, httplib2
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  httplib2,
 }:
 
 buildPythonPackage rec {
@@ -18,10 +19,10 @@ buildPythonPackage rec {
 
   doCheck = false; # Tests are not provided.
 
-  meta = with lib; {
+  meta = {
     description = "Python library for interacting with the pipedrive.com API";
     homepage = "https://github.com/jscott1989/python-pipedrive";
-    license = licenses.unfree;
-    maintainers = with maintainers; [ mrmebelman ];
+    license = lib.licenses.unfree;
+    maintainers = with lib.maintainers; [ mrmebelman ];
   };
 }

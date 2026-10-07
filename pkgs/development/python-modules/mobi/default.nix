@@ -1,44 +1,48 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-
-, loguru
-, poetry-core
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  loguru,
+  hatchling,
+  standard-imghdr,
+  pytestCheckHook,
+  pythonOlder,
 }:
 
 buildPythonPackage rec {
   pname = "mobi";
-  version = "0.3.3";
+  version = "0.4.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "iscc";
     repo = "mobi";
-    rev = "v${version}";
-    hash = "sha256-g1L72MkJdrKQRsEdew+Qsn8LfCn8+cmj2pmY6s4nv2U=";
+    tag = "v${version}";
+    hash = "sha256-Hbw4TX/yKkuxYQ9vZZp/wasDCop8pvyQc5zWloMQbng=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-    poetry-core
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
+  pythonRelaxDeps = [ "loguru" ];
+
+  dependencies = [
     loguru
+    standard-imghdr
   ];
 
-  pythonImportsCheck = [
-    "mobi"
+  pythonRemoveDeps = lib.optionals (pythonOlder "3.13") [ "standard-imghdr" ];
+
+  nativeCheckInputs = [
+    pytestCheckHook
   ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "mobi" ];
+
+  meta = {
     description = "Library for unpacking unencrypted mobi files";
+    mainProgram = "mobiunpack";
     homepage = "https://github.com/iscc/mobi";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.gpl3Only;
+    maintainers = [ ];
   };
 }

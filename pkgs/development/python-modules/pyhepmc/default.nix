@@ -1,29 +1,28 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, cmake
-, setuptools
-, setuptools-scm
-, numpy
-, pybind11
-, wheel
-, pytestCheckHook
-, pythonOlder
-, graphviz
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  cmake,
+  setuptools,
+  setuptools-scm,
+  backports-zstd,
+  numpy,
+  pybind11,
+  wheel,
+  pytestCheckHook,
+  graphviz,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pyhepmc";
-  version = "2.13.2";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "2.16.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "scikit-hep";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-M18Bq6WrAINpgPx5+uh8dufPBxIklRHpbBWUYMC8v10=";
+    repo = "pyhepmc";
+    tag = finalAttrs.version;
+    hash = "sha256-FMxcebZikZXwgEW3BIlHtDVQPweN8zBku0K8FOmF6vA=";
     fetchSubmodules = true;
   };
 
@@ -34,21 +33,16 @@ buildPythonPackage rec {
     wheel
   ];
 
-  buildInputs = [
-    pybind11
-  ];
+  buildInputs = [ pybind11 ];
 
-  propagatedBuildInputs = [
+  dependencies = [
+    backports-zstd
     numpy
   ];
 
   dontUseCmakeConfigure = true;
 
-  CMAKE_ARGS = [ "-DEXTERNAL_PYBIND11=ON" ];
-
-  preBuild = ''
-    export CMAKE_BUILD_PARALLEL_LEVEL="$NIX_BUILD_CORES"
-  '';
+  env.CMAKE_ARGS = toString [ "-DEXTERNAL_PYBIND11=ON" ];
 
   nativeCheckInputs = [
     graphviz
@@ -57,12 +51,11 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "pyhepmc" ];
 
-  meta = with lib; {
+  meta = {
     description = "Easy-to-use Python bindings for HepMC3";
     homepage = "https://github.com/scikit-hep/pyhepmc";
-    changelog = "https://github.com/scikit-hep/pyhepmc/releases/tag/v${version}";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ veprbl ];
+    changelog = "https://github.com/scikit-hep/pyhepmc/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ veprbl ];
   };
-}
-
+})

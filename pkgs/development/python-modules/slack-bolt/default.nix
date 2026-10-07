@@ -1,64 +1,62 @@
-{ aiohttp
-, bottle
-, buildPythonPackage
-, chalice
-, cherrypy
-, django
-, docker
-, falcon
-, fastapi
-, fetchFromGitHub
-, flask
-, flask-sockets
-, gunicorn
-, lib
-, moto
-, numpy
-, pyramid
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, sanic
-, setuptools
-, sanic-testing
-, slack-sdk
-, starlette
-, tornado
-, uvicorn
-, websocket-client
-, websockets
-, werkzeug
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+  pkg-resources-backport,
+
+  # dependencies
+  slack-sdk,
+
+  # optional-dependencies
+  # - async
+  aiohttp,
+  websockets,
+  # - adapter
+  bottle,
+  chalice,
+  cherrypy,
+  django,
+  falcon,
+  fastapi,
+  flask,
+  gunicorn,
+  moto,
+  pyramid,
+  sanic,
+  sanic-testing,
+  starlette,
+  tornado,
+  uvicorn,
+  websocket-client,
+  werkzeug,
+
+  # tests
+  docker,
+  pytest-asyncio,
+  pytestCheckHook,
+  writableTmpDirAsHomeHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "slack-bolt";
-  version = "1.18.1";
+  version = "1.30.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "slackapi";
     repo = "bolt-python";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-UwVStemFVA4hgqnSpCKpQGwLYG+p5z7MwFXXnIhrvNk=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-B9yE2nZ+GF2s2pj5mCaVUiV2rSr6ilaXgQUiLB0XVRQ=";
   };
 
-  # The packaged pytest-runner version is too new as of 2023-07-27. It's not really needed anyway. Unfortunately,
-  # pythonRelaxDepsHook doesn't work on setup_requires packages.
-  postPatch = ''
-    substituteInPlace setup.py --replace "pytest-runner==5.2" ""
-  '';
+  build-system = [ setuptools ];
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  dependencies = [ slack-sdk ];
 
-  propagatedBuildInputs = [
-    slack-sdk
-  ];
-
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     async = [
       aiohttp
       websockets
@@ -71,7 +69,6 @@ buildPythonPackage rec {
       falcon
       fastapi
       flask
-      flask-sockets
       gunicorn
       moto
       pyramid
@@ -85,41 +82,43 @@ buildPythonPackage rec {
     ];
   };
 
+  pythonImportsCheck = [ "slack_bolt" ];
+
   nativeCheckInputs = [
     docker
+    pkg-resources-backport
     pytest-asyncio
     pytestCheckHook
-  ] ++ lib.flatten (builtins.attrValues passthru.optional-dependencies);
+    writableTmpDirAsHomeHook
+  ]
+  ++ lib.flatten (builtins.attrValues finalAttrs.passthru.optional-dependencies);
 
-  # Work around "Read-only file system: '/homeless-shelter'" errors
-  preCheck = ''
-    export HOME="$(mktemp -d)"
-  '';
+  __darwinAllowLocalNetworking = true;
 
   disabledTestPaths = [
     # boddle is not packaged as of 2023-07-15
     "tests/adapter_tests/bottle/"
-    # Tests are blocking at some point. Blocking could be performance-related.
-    "tests/scenario_tests_async/"
-    "tests/slack_bolt_async/"
   ];
 
   disabledTests = [
     # Require network access
-    "test_events"
-    "test_interactions"
-    "test_lazy_listener_calls"
-    "test_lazy_listeners"
     "test_failure"
+    # TypeError
+    "test_oauth"
+    # AssertionError
+    "test_buffer_size_overrides"
+    "test_buffer_size_overrides"
+    "test_default_params"
+    "test_default_params"
+    "test_parameter_overrides"
+    "test_parameter_overrides"
   ];
 
-  pythonImportsCheck = [ "slack_bolt" ];
-
-  meta = with lib; {
-    description = "A framework to build Slack apps using Python";
+  meta = {
+    description = "Framework to build Slack apps using Python";
     homepage = "https://github.com/slackapi/bolt-python";
-    changelog = "https://github.com/slackapi/bolt-python/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ samuela ];
+    changelog = "https://github.com/slackapi/bolt-python/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ samuela ];
   };
-}
+})

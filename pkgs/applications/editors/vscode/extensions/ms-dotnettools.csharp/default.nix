@@ -1,136 +1,163 @@
-{ lib
-, fetchurl
-, vscode-utils
-, patchelf
-, icu
-, stdenv
-, openssl
-, coreutils
+{
+  lib,
+  stdenv,
+  fetchzip,
+  vscode-utils,
+  autoPatchelfHook,
+  icu,
+  openssl,
+  libz,
+  glibc,
+  libkrb5,
+  coreutils,
+  jq,
+  patchelf,
 }:
 let
-  inherit (stdenv.hostPlatform) system;
+  extInfo = (
+    {
+      x86_64-linux = {
+        arch = "linux-x64";
+        hash = "sha256-NnINb4ywaINKqNagJK6XampTqhBb3ztT/crNe0YV0fg=";
+      };
+      aarch64-linux = {
+        arch = "linux-arm64";
+        hash = "sha256-ejzWiDT7Ie3rWkfXHUEyIJGh7Tn/vwXAHRz7q7gwjD8=";
+      };
+      aarch64-darwin = {
+        arch = "darwin-arm64";
+        hash = "sha256-LXAtSvfxEGxt7YHMl8S9imDIb6/Mfi7BsTamwnx9sGE=";
+      };
+    }
+    .${stdenv.hostPlatform.system} or (throw "Unsupported system: ${stdenv.hostPlatform.system}")
+  );
 
-  version = "1.25.4";
-
-  vsixInfo =
-    let
-      linuxDebuggerBins = [
-        ".debugger/vsdbg-ui"
-        ".debugger/vsdbg"
-      ];
-      darwinX86DebuggerBins = [
-        ".debugger/x86_64/vsdbg-ui"
-        ".debugger/x86_64/vsdbg"
-      ];
-      darwinAarch64DebuggerBins = [
-        ".debugger/arm64/vsdbg-ui"
-        ".debugger/arm64/vsdbg"
-      ];
-      omniSharpBins = [
-        ".omnisharp/1.39.4-net6.0/OmniSharp"
-      ];
-      razorBins = [
-        ".razor/createdump"
-        ".razor/rzls"
-      ];
-    in
-      {
-        x86_64-linux = {
-          url = "https://github.com/OmniSharp/omnisharp-vscode/releases/download/v${version}/csharp-${version}-linux-x64.vsix";
-          sha256 = "08k0wxyj8wz8npw1yqrkdpbvwbnrdnsngdkrd2p5ayn3v608ifc2";
-          binaries = linuxDebuggerBins ++ omniSharpBins ++ razorBins;
-        };
-        aarch64-linux = {
-          url = "https://github.com/OmniSharp/omnisharp-vscode/releases/download/v${version}/csharp-${version}-linux-arm64.vsix";
-          sha256 = "09r2d463dk35905f2c3msqzxa7ylcf0ynhbp3n6d12y3x1200pr2";
-          binaries = linuxDebuggerBins ++ omniSharpBins ++ razorBins;
-        };
-        x86_64-darwin = {
-          url = "https://github.com/OmniSharp/omnisharp-vscode/releases/download/v${version}/csharp-${version}-darwin-x64.vsix";
-          sha256 = "0mp550kq33zwmlvrhymwnixl4has62imw3ia5z7a01q7mp0w9wpn";
-          binaries = darwinX86DebuggerBins ++ omniSharpBins ++ razorBins;
-        };
-        aarch64-darwin = {
-          url = "https://github.com/OmniSharp/omnisharp-vscode/releases/download/v${version}/csharp-${version}-darwin-arm64.vsix";
-          sha256 = "08406xz2raal8f10bmnkz1mwdfprsbkjxzc01v0i4sax1hr2a2yl";
-          binaries = darwinAarch64DebuggerBins ++ darwinX86DebuggerBins ++ omniSharpBins ++ razorBins;
-        };
-      }.${system} or (throw "Unsupported system: ${system}");
+  # Get url from runtimeDependencies in package.json
+  # TODO: Automate fetching runtimeDependencies from package.json
+  #       ideally should be done at the vscode-extensions level for
+  #       everyone to reuse.
+  roslyn-copilot = fetchzip {
+    url = "https://roslyn.blob.core.windows.net/releases/Microsoft.VisualStudio.Copilot.Roslyn.LanguageServer-18.3.72-alpha.zip";
+    hash = "sha256-vzowJOPp/VVeWkPihvWX2jvTrbFMZMtgX03eLezdanE=";
+    # Must be written to $out: fetchzip runs postFetch with cwd = $TMPDIR/unpack,
+    # which stripRoot has already emptied by moving the payload to $out.
+    postFetch = ''
+      touch "$out/install.Lock"
+    '';
+  };
 in
-vscode-utils.buildVscodeMarketplaceExtension rec {
+vscode-utils.buildVscodeMarketplaceExtension {
   mktplcRef = {
     name = "csharp";
     publisher = "ms-dotnettools";
-    inherit version;
+    version = "2.160.4";
+    inherit (extInfo) hash arch;
   };
 
-  vsix = fetchurl {
-    name = "${mktplcRef.publisher}-${mktplcRef.name}.zip";
-    inherit (vsixInfo) url sha256;
-  };
-
-  nativeBuildInputs = [
+  nativeBuildInputs = lib.optionals stdenv.hostPlatform.isLinux [
+    autoPatchelfHook
+    jq
     patchelf
+  ];
+  buildInputs = lib.optionals stdenv.hostPlatform.isLinux [
+    (lib.getLib glibc) # libgcc_s.so.1
+    (lib.getLib icu) # libicui18n.so libicuuc.so
+    (lib.getLib libkrb5) # libgssapi_krb5.so
+    (lib.getLib libz) # libz.so.1
+    (lib.getLib openssl) # libopenssl.so.3
+    (lib.getLib stdenv.cc.cc) # libstdc++.so.6
   ];
 
   postPatch = ''
-    declare ext_unique_id
-    # See below as to why we cannot take the whole basename.
-    ext_unique_id="$(basename "$out" | head -c 32)"
+    substituteInPlace dist/extension.js \
+      --replace-fail 'uname -m' '${lib.getExe' coreutils "uname"} -m'
+  '';
 
-    # Fix 'Unable to connect to debuggerEventsPipeName .. exceeds the maximum length 107.' when
-    # attempting to launch a specific test in debug mode. The extension attemps to open
-    # a pipe in extension dir which would fail anyway. We change to target file path
-    # to a path in tmp dir with a short name based on the unique part of the nix store path.
-    # This is however a brittle patch as we're working on minified code.
-    # Hence the attempt to only hold on stable names.
-    # However, this really would better be fixed upstream.
-    sed -i \
-      -E -e 's/(this\._pipePath=[a-zA-Z0-9_]+\.join\()([a-zA-Z0-9_]+\.getExtensionPath\(\)[^,]*,)/\1require("os").tmpdir(), "'"$ext_unique_id"'"\+/g' \
-      "$PWD/dist/extension.js"
+  postInstall = ''
+    ln -s ${roslyn-copilot} "$out"/share/vscode/extensions/ms-dotnettools.csharp/.roslynCopilot
+  '';
 
-    # Fix reference to uname
-    sed -i \
-      -E -e 's_uname -m_${coreutils}/bin/uname -m_g' \
-      "$PWD/dist/extension.js"
+  preFixup = ''
+    (
+      set -euo pipefail
+      shopt -s globstar
+      shopt -s dotglob
 
-    patchelf_add_icu_as_needed() {
-      declare elf="''${1?}"
-      declare icu_major_v="${
-      lib.head (lib.splitVersion (lib.getVersion icu.name))
-    }"
+      # Fix all binaries.
+      for file in "$out"/**/*; do
+        if [[ ! -f "$file" || "$file" == *.so || "$file" == *.a || "$file" == *.dylib ]] ||
+            (! isELF "$file" && ! isMachO "$file"); then
+            continue
+        fi
 
-      for icu_lib in icui18n icuuc icudata; do
-        patchelf --add-needed "lib''${icu_lib}.so.$icu_major_v" "$elf"
+        echo Making "$file" executable...
+        chmod +x "$file"
+
+        ${lib.optionalString stdenv.hostPlatform.isLinux ''
+          # Add .NET deps if it is an apphost.
+          if grep 'You must install .NET to run this application.' "$file" > /dev/null; then
+            echo "Adding .NET needed libraries to: $file"
+            patchelf \
+              --add-needed libicui18n.so \
+              --add-needed libicuuc.so \
+              --add-needed libgssapi_krb5.so \
+              --add-needed libssl.so \
+              "$file"
+          fi
+        ''}
       done
-    }
 
-    patchelf_common() {
-      declare elf="''${1?}"
+      ${lib.optionalString stdenv.hostPlatform.isLinux ''
+        # Add the ICU libraries as needed to the globalization DLLs.
+        for file in "$out"/**/{libcoreclr.so,*System.Globalization.Native.so}; do
+          echo "Adding ICU libraries to: $file"
+          patchelf \
+            --add-needed libicui18n.so \
+            --add-needed libicuuc.so \
+            "$file"
+        done
 
-      patchelf_add_icu_as_needed "$elf"
-      patchelf --add-needed "libssl.so" "$elf"
-      patchelf --set-interpreter "$(cat $NIX_CC/nix-support/dynamic-linker)" \
-        --set-rpath "${lib.makeLibraryPath [ stdenv.cc.cc openssl icu.out ]}:\$ORIGIN" \
-        "$elf"
-    }
+        # Add the Kerberos libraries as needed to the native security DLL.
+        for file in "$out"/**/*System.Net.Security.Native.so; do
+          echo "Adding Kerberos libraries to: $file"
+          patchelf \
+            --add-needed libgssapi_krb5.so \
+            "$file"
+        done
 
-  '' + (lib.concatStringsSep "\n" (map
-    (bin: ''
-      chmod +x "${bin}"
-    '')
-    vsixInfo.binaries))
-  + lib.optionalString stdenv.isLinux (lib.concatStringsSep "\n" (map
-    (bin: ''
-      patchelf_common "${bin}"
-    '')
-    vsixInfo.binaries));
+        # Add the OpenSSL libraries as needed to the OpenSSL native security DLL.
+        for file in "$out"/**/*System.Security.Cryptography.Native.OpenSsl.so; do
+          echo "Adding OpenSSL libraries to: $file"
+          patchelf \
+            --add-needed libssl.so \
+            "$file"
+        done
+
+        # Add the needed binaries to the apphost binaries.
+        for file in $(jq -r '.runtimeDependencies | map(select(.binaries != null) | .installPath + "/" + .binaries[]) | sort | unique | map(sub("/\\./"; "/")) | .[]' < "$out"/share/vscode/extensions/ms-dotnettools.csharp/package.json); do
+          [ -f "$out"/share/vscode/extensions/ms-dotnettools.csharp/"$file" ] || continue
+
+          echo "Adding .NET needed libraries to: $out/share/vscode/extensions/ms-dotnettools.csharp/$file"
+          patchelf \
+            --add-needed libicui18n.so \
+            --add-needed libicuuc.so \
+            --add-needed libgssapi_krb5.so \
+            --add-needed libssl.so \
+            "$out"/share/vscode/extensions/ms-dotnettools.csharp/"$file"
+        done
+      ''}
+    )
+  '';
 
   meta = {
-    description = "C# for Visual Studio Code (powered by OmniSharp)";
-    homepage = "https://github.com/OmniSharp/omnisharp-vscode";
-    license = lib.licenses.mit;
-    maintainers = [ lib.maintainers.jraygauthier ];
-    platforms = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+    description = "Official C# support for Visual Studio Code";
+    homepage = "https://github.com/dotnet/vscode-csharp";
+    license = lib.licenses.unfree;
+    maintainers = [ ];
+    platforms = [
+      "x86_64-linux"
+      "aarch64-linux"
+      "aarch64-darwin"
+    ];
   };
 }

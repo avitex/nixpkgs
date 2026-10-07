@@ -1,47 +1,74 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools
-, attrs
-, asn1crypto
-, cryptodatahub
-, python-dateutil
-, urllib3
-, pytestCheckHook
+{
+  lib,
+  asn1crypto,
+  attrs,
+  buildPythonPackage,
+  cryptodatahub,
+  fetchFromGitLab,
+  fetchpatch2,
+  pyfakefs,
+  setuptools,
+  setuptools-scm,
+  pytestCheckHook,
+  urllib3,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "cryptoparser";
-  version = "0.12.1";
-  format = "pyproject";
+  version = "1.5.0";
+  pyproject = true;
 
-  src = fetchPypi {
-    pname = "CryptoParser";
-    inherit version;
-    hash = "sha256-Q05koDfVaVgiQYhULkwzl9uzUIumO8ZIGJPfxRBUsj0=";
+  src = fetchFromGitLab {
+    owner = "coroner";
+    repo = "cryptoparser";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-HlsjenwXFDOA1uK+sn1oDHWxbzxIDriWS6pcZycEsis=";
   };
 
-  nativeBuildInputs = [
-    setuptools
+  patches = [
+    (fetchpatch2 {
+      url = "https://gitlab.com/coroner/cryptoparser/-/merge_requests/2.diff";
+      hash = "sha256-T8dK6OMR41XUMrZ6B7ZybEtljZJOR2QbCiZl04dT3wA=";
+    })
   ];
 
-  propagatedBuildInputs = [
+  build-system = [
+    setuptools
+    setuptools-scm
+  ];
+
+  dependencies = [
     asn1crypto
     attrs
     cryptodatahub
-    python-dateutil
     urllib3
   ];
 
-  pythonImportsCheck = [
-    "cryptoparser"
+  env.PYTHONDONTWRITEBYTECODE = 1;
+
+  nativeCheckInputs = [
+    pyfakefs
+    pytestCheckHook
   ];
 
-  meta = with lib; {
+  disabledTests = [
+    # pytest incorrectly collects abstract base classes
+    "TestCasesBasesHttpHeader"
+  ];
+
+  postInstall = ''
+    find $out -name __pycache__ -type d | xargs rm -rv
+  '';
+
+  pythonImportsCheck = [ "cryptoparser" ];
+
+  passthru.updateScript = ../cryptodatahub/update.sh;
+
+  meta = {
     description = "Security protocol parser and generator";
     homepage = "https://gitlab.com/coroner/cryptoparser";
-    changelog = "https://gitlab.com/coroner/cryptoparser/-/blob/v${version}/CHANGELOG.md";
-    license = licenses.mpl20;
-    maintainers = with maintainers; [ kranzes ];
+    changelog = "https://gitlab.com/coroner/cryptoparser/-/blob/${finalAttrs.src.tag}/CHANGELOG.rst";
+    license = lib.licenses.mpl20;
+    teams = with lib.teams; [ ngi ];
   };
-}
+})

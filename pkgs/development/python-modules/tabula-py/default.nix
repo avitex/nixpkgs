@@ -1,59 +1,51 @@
-{ lib
-, buildPythonPackage
-, distro
-, fetchFromGitHub
-, jre
-, numpy
-, pandas
-, pytestCheckHook
-, pythonOlder
-, setuptools
-, setuptools-scm
-, jpype1
+{
+  lib,
+  buildPythonPackage,
+  distro,
+  fetchFromGitHub,
+  jre,
+  numpy,
+  pandas,
+  pytestCheckHook,
+  setuptools,
+  setuptools-scm,
+  jpype1,
 }:
 
 buildPythonPackage rec {
   pname = "tabula-py";
-  version = "2.9.0";
+  version = "2.10.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "chezou";
     repo = "tabula-py";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-MGv2n8DoSjumD3lRcqwI0sEsaEDgs1n+st8DwZuZauo=";
+    tag = "v${version}";
+    hash = "sha256-PQbwm9ho3XtpmZ7N7ASkrV8gk9Jom+yQKlt2fUa948s=";
   };
 
   postPatch = ''
     substituteInPlace tabula/backend.py \
-      --replace '"java"' '"${lib.getExe jre}"'
+      --replace-fail '"java"' '"${lib.getExe jre}"'
   '';
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     setuptools-scm
   ];
 
-  buildInputs = [
-    jre
-  ];
+  buildInputs = [ jre ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     distro
     numpy
     pandas
     jpype1
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "tabula"
-  ];
+  pythonImportsCheck = [ "tabula" ];
 
   disabledTests = [
     # Tests require network access
@@ -68,11 +60,11 @@ buildPythonPackage rec {
     "test_read_pdf_with_silent_true"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Module to extract table from PDF into pandas DataFrame";
     homepage = "https://github.com/chezou/tabula-py";
     changelog = "https://github.com/chezou/tabula-py/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

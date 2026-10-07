@@ -1,24 +1,31 @@
-{ lib, stdenv
-, fetchurl
-, meson
-, ninja
-, pkg-config
-, python3
-, bash-completion
-, gst-plugins-base
-, gst-plugins-bad
-, gst-devtools
-, libxml2
-, flex
-, gettext
-, gobject-introspection
-# Checks meson.is_cross_build(), so even canExecute isn't enough.
-, enableDocumentation ? stdenv.hostPlatform == stdenv.buildPlatform, hotdoc
+{
+  lib,
+  stdenv,
+  fetchurl,
+  meson,
+  ninja,
+  pkg-config,
+  python3,
+  bash-completion,
+  gst-plugins-base,
+  gst-plugins-bad,
+  gst-devtools,
+  libxml2,
+  flex,
+  gettext,
+  gobject-introspection,
+  # for passthru.gstreamerCpeParts
+  gstreamer,
+  # Checks meson.is_cross_build(), so even canExecute isn't enough.
+  enableDocumentation ? stdenv.hostPlatform == stdenv.buildPlatform,
+  hotdoc,
+  directoryListingUpdater,
+  apple-sdk_gstreamer,
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "gst-editing-services";
-  version = "1.22.8";
+  version = "1.28.7";
 
   outputs = [
     "out"
@@ -26,9 +33,14 @@ stdenv.mkDerivation rec {
   ];
 
   src = fetchurl {
-    url = "https://gstreamer.freedesktop.org/src/${pname}/${pname}-${version}.tar.xz";
-    hash = "sha256-0dXnXhkOsL4/1JQJ5Bo6qOaM+03qpzU0iFVGdJVs0d8=";
+    url = "https://gstreamer.freedesktop.org/src/gst-editing-services/gst-editing-services-${finalAttrs.version}.tar.xz";
+    hash = "sha256-b/wOXM7JCq1gkdP8Aa0px5Y3UFXhO5N4r/a44cIkaKM=";
   };
+
+  separateDebugInfo = true;
+
+  __structuredAttrs = true;
+  strictDeps = true;
 
   nativeBuildInputs = [
     meson
@@ -38,7 +50,8 @@ stdenv.mkDerivation rec {
     gobject-introspection
     python3
     flex
-  ] ++ lib.optionals enableDocumentation [
+  ]
+  ++ lib.optionals enableDocumentation [
     hotdoc
   ];
 
@@ -47,6 +60,9 @@ stdenv.mkDerivation rec {
     libxml2
     gst-devtools
     python3
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
+    apple-sdk_gstreamer
   ];
 
   propagatedBuildInputs = [
@@ -56,6 +72,7 @@ stdenv.mkDerivation rec {
 
   mesonFlags = [
     (lib.mesonEnable "doc" enableDocumentation)
+    (lib.mesonEnable "tests" finalAttrs.finalPackage.doCheck)
   ];
 
   postPatch = ''
@@ -63,11 +80,21 @@ stdenv.mkDerivation rec {
       scripts/extract-release-date-from-doap-file.py
   '';
 
-  meta = with lib; {
-    description = "Library for creation of audio/video non-linear editors";
-    homepage = "https://gstreamer.freedesktop.org";
-    license = licenses.lgpl2Plus;
-    platforms = platforms.unix;
-    maintainers = with maintainers; [ lilyinstarlight ];
+  preFixup = ''
+    moveToOutput "lib/gstreamer-1.0/pkgconfig" "$dev"
+  '';
+
+  passthru = {
+    updateScript = directoryListingUpdater { odd-unstable = true; };
   };
-}
+
+  meta = {
+    description = "Library for creation of audio/video non-linear editors";
+    mainProgram = "ges-launch-1.0";
+    homepage = "https://gstreamer.freedesktop.org";
+    license = lib.licenses.lgpl2Plus;
+    platforms = lib.platforms.unix;
+    maintainers = with lib.maintainers; [ tmarkus ];
+    identifiers.cpeParts = gstreamer.passthru.gstreamerCpeParts finalAttrs.version;
+  };
+})

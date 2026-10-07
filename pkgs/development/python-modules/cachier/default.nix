@@ -1,54 +1,57 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, pythonRelaxDepsHook
-, setuptools
-, watchdog
-, portalocker
-, pytestCheckHook
-, pymongo
-, dnspython
-, pymongo-inmemory
-, pandas
-, birch
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  click,
+  watchdog,
+  pympler,
+  portalocker,
+  pytestCheckHook,
+  pytest-cov-stub,
+  pytest-asyncio,
+  aiosqlite,
+  sqlalchemy,
+  pymongo,
+  dnspython,
+  pymongo-inmemory,
+  pandas,
+  birch,
 }:
 
 buildPythonPackage rec {
   pname = "cachier";
-  version = "2.2.2";
+  version = "4.2.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "python-cachier";
     repo = "cachier";
-    rev = "v${version}";
-    hash = "sha256-zUZqT4SIwZRqhRS/wHIzIYVULnp5aYcytCQd17T0D/4=";
+    tag = "v${version}";
+    hash = "sha256-hiyevLMtKV8M8znB2mznHLRM+pVN6uCxZZVf3H0gjTI=";
   };
 
   pythonRemoveDeps = [ "setuptools" ];
 
   nativeBuildInputs = [
-    pythonRelaxDepsHook
     setuptools
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     watchdog
+    pympler
     portalocker
+    # not listed as dep, but needed to run main script entrypoint
+    click
   ];
-
-  preCheck = ''
-    substituteInPlace pytest.ini \
-      --replace  \
-        "--cov" \
-        "#--cov"
-  '';
 
   nativeCheckInputs = [
     pytestCheckHook
+    pytest-cov-stub
+    pytest-asyncio
+    aiosqlite
+    sqlalchemy
     pymongo
     dnspython
     pymongo-inmemory
@@ -69,20 +72,40 @@ buildPythonPackage rec {
 
     # don't test formatting
     "test_flake8"
+
+    # slow, spawns 800+ threads
+    "test_inotify_instance_limit_reached"
+
+    # timing sensitive
+    "test_being_calc_next_time"
+    "test_pickle_being_calculated"
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
+    # sensitive to host file system
+    # Unhandled exception in FSEventsEmitter -  RuntimeError: Cannot add watch - it is already scheduled
+    "test_bad_cache_file"
+    "test_delete_cache_file"
+  ];
+
+  disabledTestPaths = [
+    # Keeps breaking due to concurrent access or failing to close the db between tests.
+    "tests/sql_tests/test_sql_core.py"
   ];
 
   preBuild = ''
     export HOME="$(mktemp -d)"
   '';
 
-  pythonImportsCheck = [
-    "cachier"
-    "cachier.scripts"
-  ];
+  # removes .dev0 from the METADATA version
+  env.RELEASING_PROCESS = "1";
+
+  pythonImportsCheck = [ "cachier" ];
 
   meta = {
     homepage = "https://github.com/python-cachier/cachier";
+    changelog = "https://github.com/python-cachier/cachier/releases/tag/${src.tag}";
     description = "Persistent, stale-free, local and cross-machine caching for functions";
+    mainProgram = "cachier";
     maintainers = with lib.maintainers; [ pbsds ];
     license = lib.licenses.mit;
   };

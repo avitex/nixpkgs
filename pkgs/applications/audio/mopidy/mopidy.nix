@@ -1,53 +1,76 @@
-{ lib, stdenv, fetchFromGitHub, pythonPackages, wrapGAppsNoGuiHook
-, gst_all_1, glib-networking, gobject-introspection
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  pythonPackages,
+  wrapGAppsNoGuiHook,
+  gst_all_1,
+  glib-networking,
+  gobject-introspection,
+  pipewire,
+  nixosTests,
 }:
 
-pythonPackages.buildPythonApplication rec {
+pythonPackages.buildPythonApplication (finalAttrs: {
   pname = "mopidy";
   version = "3.4.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "mopidy";
     repo = "mopidy";
-    rev = "refs/tags/v${version}";
-    sha256 = "sha256-2OFav2HaQq/RphmZxLyL1n3suwzt1Y/d4h33EdbStjk=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-2OFav2HaQq/RphmZxLyL1n3suwzt1Y/d4h33EdbStjk=";
   };
 
   nativeBuildInputs = [ wrapGAppsNoGuiHook ];
 
-  buildInputs = with gst_all_1; [
-    glib-networking
-    gst-plugins-bad
-    gst-plugins-base
-    gst-plugins-good
-    gst-plugins-ugly
-    gst-plugins-rs
-  ];
+  buildInputs =
+    with gst_all_1;
+    [
+      glib-networking
+      gst-plugins-bad
+      gst-plugins-base
+      gst-plugins-good
+      gst-plugins-ugly
+      gst-plugins-rs
+      gst-libav
+    ]
+    ++ lib.optionals (!stdenv.hostPlatform.isDarwin) [ pipewire ];
 
-  propagatedBuildInputs = [
-    gobject-introspection
-  ] ++ (with pythonPackages; [
+  propagatedNativeBuildInputs = [ gobject-introspection ];
+
+  propagatedBuildInputs = [ gobject-introspection ];
+
+  build-system = [ pythonPackages.setuptools ];
+
+  dependencies =
+    with pythonPackages;
+    [
       gst-python
       pygobject3
       pykka
       requests
-      setuptools
+      # Provides pkg_resources required by Mopidy 3 and affected extensions.
+      # Remove when updating to Mopidy 4.
+      setuptools_80
       tornado
-    ] ++ lib.optional (!stdenv.isDarwin) dbus-python
-  );
-
-  propagatedNativeBuildInputs = [
-    gobject-introspection
-  ];
+    ]
+    ++ lib.optionals (!stdenv.hostPlatform.isDarwin) [ dbus-python ];
 
   # There are no tests
   doCheck = false;
 
-  meta = with lib; {
-    homepage = "https://www.mopidy.com/";
-    description = "An extensible music server that plays music from local disk, Spotify, SoundCloud, and more";
-    license = licenses.asl20;
-    maintainers = [ maintainers.fpletz ];
-    hydraPlatforms = [];
+  passthru.tests = {
+    inherit (nixosTests) mopidy;
   };
-}
+
+  meta = {
+    homepage = "https://www.mopidy.com/";
+    description = "Extensible music server that plays music from local disk, Spotify, SoundCloud, and more";
+    mainProgram = "mopidy";
+    license = lib.licenses.asl20;
+    maintainers = [ lib.maintainers.fpletz ];
+    hydraPlatforms = [ ];
+  };
+})

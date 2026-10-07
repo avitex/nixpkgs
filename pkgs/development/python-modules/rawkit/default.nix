@@ -1,6 +1,12 @@
-{ lib, fetchPypi, buildPythonPackage, fetchpatch
-, libraw
-, pytest, mock }:
+{
+  lib,
+  fetchPypi,
+  buildPythonPackage,
+  fetchpatch,
+  libraw,
+  pytest,
+  mock,
+}:
 
 buildPythonPackage rec {
   pname = "rawkit";
@@ -22,16 +28,19 @@ buildPythonPackage rec {
 
   buildInputs = [ libraw ];
 
-  nativeCheckInputs = [ pytest mock ];
+  nativeCheckInputs = [
+    pytest
+    mock
+  ];
 
   checkPhase = ''
     py.test tests
   '';
 
-  meta = with lib; {
+  meta = {
     description = "CTypes based LibRaw bindings for Python";
     homepage = "https://rawkit.readthedocs.org/";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

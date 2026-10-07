@@ -1,28 +1,30 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, nix-update-script
-, pkg-config
-, meson
-, ninja
-, vala
-, gtk3
-, granite
-, libgee
-, libhandy
-, gst_all_1
-, wrapGAppsHook
+{
+  stdenv,
+  lib,
+  fetchFromGitHub,
+  nix-update-script,
+  meson,
+  ninja,
+  pkg-config,
+  vala,
+  wrapGAppsHook4,
+  gdk-pixbuf,
+  granite7,
+  gst_all_1,
+  gtk4,
+  libadwaita,
+  libgee,
 }:
 
 stdenv.mkDerivation rec {
   pname = "elementary-videos";
-  version = "3.0.0";
+  version = "8.0.2";
 
   src = fetchFromGitHub {
     owner = "elementary";
     repo = "videos";
     rev = version;
-    sha256 = "sha256-O98478E3NlY2NYqjyy8mcXZ3lG+wIV+VrPzdzOp44yA=";
+    hash = "sha256-lvIsLjsb4HqwXDsH2krBlxmy7kJdadpjDcw+svaWV+Q=";
   };
 
   nativeBuildInputs = [
@@ -30,34 +32,35 @@ stdenv.mkDerivation rec {
     ninja
     pkg-config
     vala
-    wrapGAppsHook
+    wrapGAppsHook4
   ];
 
   buildInputs = [
-    granite
-    gtk3
-    libgee
-    libhandy
-  ] ++ (with gst_all_1; [
-    gst-libav
-    gst-plugins-bad
-    gst-plugins-base
+    gdk-pixbuf
+    granite7
+    gst_all_1.gst-libav
+    gst_all_1.gst-plugins-bad
+    gst_all_1.gst-plugins-base
     # https://github.com/elementary/videos/issues/356
-    (gst-plugins-good.override { gtkSupport = true; })
-    gst-plugins-ugly
-    gstreamer
-  ]);
+    (gst_all_1.gst-plugins-good.override { gtkSupport = true; })
+    gst_all_1.gst-plugins-rs # GTK 4 Sink
+    gst_all_1.gst-plugins-ugly
+    gst_all_1.gstreamer
+    gtk4
+    libadwaita
+    libgee
+  ];
 
   passthru = {
     updateScript = nix-update-script { };
   };
 
-  meta = with lib; {
+  meta = {
     description = "Video player and library app designed for elementary OS";
     homepage = "https://github.com/elementary/videos";
-    license = licenses.gpl3Plus;
-    platforms = platforms.linux;
-    maintainers = teams.pantheon.members;
+    license = lib.licenses.gpl3Plus;
+    platforms = lib.platforms.linux;
+    teams = [ lib.teams.pantheon ];
     mainProgram = "io.elementary.videos";
   };
 }

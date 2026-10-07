@@ -1,12 +1,17 @@
-{ lib, stdenv, fetchFromGitHub, python3 }:
-stdenv.mkDerivation rec {
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  python3,
+}:
+stdenv.mkDerivation (finalAttrs: {
   pname = "auto-epp";
   version = "1.2.1";
 
   src = fetchFromGitHub {
     owner = "jothi-prasath";
     repo = "auto-epp";
-    rev = "refs/tags/v${version}";
+    tag = "v${finalAttrs.version}";
     hash = "sha256-7sI8K+7ZAdzBN/XOzYQQZ1f9t+fFo6fcXYzX6abNyQ8=";
   };
 
@@ -18,12 +23,12 @@ stdenv.mkDerivation rec {
     runHook postInstall
   '';
 
-  meta = with lib; {
+  meta = {
     mainProgram = "auto-epp";
     homepage = "https://github.com/jothi-prasath/auto-epp";
-    description = "Auto-epp (energy performance preference) for AMD processors when amd_pstate=active";
-    platforms = platforms.linux;
-    license = licenses.mit;
-    maintainers = [ maintainers.lamarios ];
+    description = "Energy performance preference tuner for AMD processors when amd_pstate=active";
+    platforms = lib.platforms.linux;
+    license = lib.licenses.mit;
+    maintainers = [ lib.maintainers.lamarios ];
   };
-}
+})

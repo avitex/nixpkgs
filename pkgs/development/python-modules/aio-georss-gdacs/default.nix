@@ -1,50 +1,51 @@
-{ lib
-, aio-georss-client
-, aresponses
-, buildPythonPackage
-, dateparser
-, fetchFromGitHub
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  aio-georss-client,
+  aiointercept,
+  aioresponses,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytest-asyncio,
+  pytestCheckHook,
+  python-dateutil,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "aio-georss-gdacs";
-  version = "0.8";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "2026.6.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "exxamalte";
     repo = "python-aio-georss-gdacs";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-1mpOWd4Z2gTQtRewWfZsfEtmS6i5uMPAMTlC8UpawxM=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-2Ot7w2TU7nwnHePFCaCr7LZNbKbOLxADnHoieFUGg40=";
   };
-
-  propagatedBuildInputs = [
-    aio-georss-client
-    dateparser
-  ];
 
   __darwinAllowLocalNetworking = true;
 
+  build-system = [ setuptools ];
+
+  dependencies = [
+    aio-georss-client
+    python-dateutil
+  ];
+
   nativeCheckInputs = [
-    aresponses
+    aiointercept
+    aioresponses
     pytest-asyncio
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "aio_georss_gdacs"
-  ];
+  pythonImportsCheck = [ "aio_georss_gdacs" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python library for accessing GeoRSS feeds";
     homepage = "https://github.com/exxamalte/python-aio-georss-gdacs";
-    changelog = "https://github.com/exxamalte/python-aio-georss-gdacs/releases/tag/v${version}";
-    license = with licenses; [ asl20 ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/exxamalte/python-aio-georss-gdacs/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

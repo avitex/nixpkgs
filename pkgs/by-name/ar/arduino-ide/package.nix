@@ -1,38 +1,44 @@
-{ appimageTools
-, fetchurl
-, lib
+{
+  appimageTools,
+  fetchurl,
+  lib,
+  python3,
 }:
 
 let
   pname = "arduino-ide";
-  version = "2.2.1";
+  version = "2.3.10";
 
   src = fetchurl {
     url = "https://github.com/arduino/arduino-ide/releases/download/${version}/arduino-ide_${version}_Linux_64bit.AppImage";
-    hash = "sha256-77uS/3ean3dWG/vDHG+ry238hiJlYub7H03f15eJu+I=";
+    hash = "sha256-echZChdEwiDXLL7Q6pHG4qf0WUKSaZsvszZOvXE81WY=";
   };
 
-  appimageContents = appimageTools.extractType2 { inherit pname version src; };
+  appimageContents = appimageTools.extract { inherit pname version src; };
 in
 appimageTools.wrapType2 {
   inherit pname version src;
 
   extraInstallCommands = ''
-    mv $out/bin/{${pname}-${version},${pname}}
-
-    install -Dm444 ${appimageContents}/${pname}.desktop -t $out/share/applications/
-    install -Dm444 ${appimageContents}/${pname}.png -t $out/share/pixmaps/
+    install -Dm444 ${appimageContents}/arduino-ide.desktop -t $out/share/applications/
+    install -Dm444 ${appimageContents}/arduino-ide.png -t $out/share/icons/hicolor/512x512/apps
+    substituteInPlace $out/share/applications/arduino-ide.desktop --replace-fail 'Exec=AppRun --no-sandbox %U' 'Exec=arduino-ide %U'
   '';
 
-  extraPkgs = pkgs: with pkgs; [ libsecret ];
+  extraPkgs = pkgs: [
+    pkgs.libsecret
+    (python3.withPackages (ps: [
+      ps.pyserial # for esptool
+    ]))
+  ];
 
-  meta = with lib; {
+  meta = {
     description = "Open-source electronics prototyping platform";
     homepage = "https://www.arduino.cc/en/software";
     changelog = "https://github.com/arduino/arduino-ide/releases/tag/${version}";
-    license = licenses.agpl3Only;
+    license = lib.licenses.agpl3Only;
     mainProgram = "arduino-ide";
-    maintainers = with maintainers; [ clerie ];
+    maintainers = with lib.maintainers; [ clerie ];
     platforms = [ "x86_64-linux" ];
   };
 }

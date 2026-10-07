@@ -1,67 +1,80 @@
-{ lib
-, mkDerivation
-, fetchFromGitHub
-, cmake
-, extra-cmake-modules
-, fcitx5
-, fcitx5-qt
-, qtx11extras
-, qtquickcontrols2
-, kwidgetsaddons
-, kdeclarative
-, kirigami2
-, isocodes
-, xkeyboardconfig
-, libxkbfile
-, libXdmcp
-, plasma5Packages
-, plasma-framework
-, kcmSupport ? true
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  cmake,
+  extra-cmake-modules,
+  pkg-config,
+  fcitx5,
+  fcitx5-qt,
+  qtbase,
+  qtsvg,
+  qtwayland,
+  qtdeclarative,
+  kitemviews,
+  kwidgetsaddons,
+  kcmutils,
+  kcoreaddons,
+  kdeclarative,
+  kirigami ? null,
+  isocodes,
+  xkeyboard-config,
+  libxkbfile,
+  libplasma ? null,
+  wrapQtAppsHook,
+  kcmSupport ? true,
 }:
 
-mkDerivation rec {
+stdenv.mkDerivation rec {
   pname = "fcitx5-configtool";
-  version = "5.1.3";
+  version = "5.1.16";
 
   src = fetchFromGitHub {
     owner = "fcitx";
     repo = pname;
     rev = version;
-    sha256 = "sha256-IwGlhIeON0SenW738p07LWZAzVDMtxOSMuUIAgfmTEg=";
+    hash = "sha256-d+BQgULy6X3GP5/DqQtY+QzNPYyKy8z1N1yiw7jaicY=";
   };
 
   cmakeFlags = [
-    "-DKDE_INSTALL_USE_QT_SYS_PATHS=ON"
+    (lib.cmakeBool "KDE_INSTALL_USE_QT_SYS_PATHS" true)
+    (lib.cmakeBool "ENABLE_KCM" kcmSupport)
   ];
 
   nativeBuildInputs = [
     cmake
     extra-cmake-modules
+    pkg-config
+    wrapQtAppsHook
   ];
 
   buildInputs = [
     fcitx5
     fcitx5-qt
-    qtx11extras
-    qtquickcontrols2
-    kirigami2
-    isocodes
-    xkeyboardconfig
-    libxkbfile
-    libXdmcp
-  ] ++ lib.optionals kcmSupport [
-    kdeclarative
+    qtbase
+    qtsvg
+    qtwayland
+    kitemviews
     kwidgetsaddons
-    plasma5Packages.kiconthemes
-    plasma-framework
+    isocodes
+    xkeyboard-config
+    libxkbfile
+  ]
+  ++ lib.optionals kcmSupport [
+    qtdeclarative
+    kcoreaddons
+    kdeclarative
+    kcmutils
+    libplasma
+    kirigami
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Configuration Tool for Fcitx5";
     homepage = "https://github.com/fcitx/fcitx5-configtool";
-    license = licenses.gpl2Plus;
-    maintainers = with maintainers; [ poscat ];
-    platforms = platforms.linux;
+    license = lib.licenses.gpl2Plus;
+    maintainers = with lib.maintainers; [ poscat ];
+    platforms = lib.platforms.linux;
     mainProgram = "fcitx5-config-qt";
   };
 }

@@ -1,14 +1,17 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, coloredlogs
-, numpy
-, onnx
-, packaging
-, psutil
-, py-cpuinfo
-, py3nvml
-, sympy
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+
+  # dependencies
+  coloredlogs,
+  numpy,
+  onnx,
+  packaging,
+  psutil,
+  py-cpuinfo,
+  py3nvml,
+  sympy,
 }:
 
 buildPythonPackage rec {
@@ -28,7 +31,7 @@ buildPythonPackage rec {
     hash = "sha256-Hf+Ii1xIKsW8Yn8S4QhEX+/LPWAMQ/Y2M5dTFv5hetg=";
   };
 
-  propagatedBuildInputs = [
+  dependencies = [
     coloredlogs
     numpy
     onnx
@@ -41,10 +44,13 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "onnxruntime_tools" ];
 
-  meta = with lib; {
+  # no tests
+  doCheck = false;
+
+  meta = {
     description = "Transformers Model Optimization Tool of ONNXRuntime";
     homepage = "https://pypi.org/project/onnxruntime-tools/";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ happysalada ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ happysalada ];
   };
 }

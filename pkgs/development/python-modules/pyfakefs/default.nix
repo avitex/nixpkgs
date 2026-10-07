@@ -1,62 +1,70 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchPypi,
 
-# build-system
-, setuptools
+  # build-system
+  setuptools,
 
-# tests
-, pytestCheckHook
+  # tests
+  pytestCheckHook,
+
+  # extra tests
+  openpyxl,
+  pandas,
+  xlrd,
 }:
+let
+  self = buildPythonPackage (finalAttrs: {
+    pname = "pyfakefs";
+    version = "6.2.0";
+    pyproject = true;
 
-buildPythonPackage rec {
-  pname = "pyfakefs";
-  version = "5.3.2";
-  pyproject = true;
+    src = fetchPypi {
+      inherit (finalAttrs) pname version;
+      hash = "sha256-5Zo220R79QnOnJerPRUQwIzFGJXFMRMlpWCl5bXcGUA=";
+    };
 
-  disabled = pythonOlder "3.5";
+    build-system = [ setuptools ];
 
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-qDd2o8EEbU0QPy9TACmqbN/18Dht/9WcFe4WkmE1STw=";
-  };
+    pythonImportsCheck = [ "pyfakefs" ];
 
-  postPatch = ''
-    # test doesn't work in sandbox
-    substituteInPlace pyfakefs/tests/fake_filesystem_test.py \
-      --replace "test_expand_root" "notest_expand_root"
-    substituteInPlace pyfakefs/tests/fake_os_test.py \
-      --replace "test_path_links_not_resolved" "notest_path_links_not_resolved" \
-      --replace "test_append_mode_tell_linux_windows" "notest_append_mode_tell_linux_windows"
-  '' + (lib.optionalString stdenv.isDarwin ''
-    # this test fails on darwin due to case-insensitive file system
-    substituteInPlace pyfakefs/tests/fake_os_test.py \
-      --replace "test_rename_dir_to_existing_dir" "notest_rename_dir_to_existing_dir"
-  '');
+    nativeCheckInputs = [
+      pytestCheckHook
+    ];
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+    enabledTestPaths = [
+      "pyfakefs/tests"
+    ];
 
-  pythonImportsCheck = [
-    "pyfakefs"
-  ];
+    disabledTests = [
+      "test_expand_root"
+    ]
+    ++ (lib.optionals stdenv.hostPlatform.isDarwin [
+      # this test fails on darwin due to case-insensitive file system
+      "test_rename_dir_to_existing_dir"
+    ]);
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+    # Keep the big pandas 'extra' dependency outside the standard build: providing it enables only two additional tests
+    # The other two members of the 'extra' group (xlrd and openpyxl) enable two more tests
+    passthru.tests.extra = self.overridePythonAttrs (prevPythonAttrs: {
+      nativeCheckInputs = prevPythonAttrs.nativeCheckInputs ++ [
+        pandas
+        xlrd
+        openpyxl
+      ];
+    });
 
-  # https://github.com/jmcgeheeiv/pyfakefs/issues/581 (OSError: [Errno 9] Bad file descriptor)
-  #disabledTests = [ "test_open_existing_pipe" ];
+    __structuredAttrs = true;
 
-
-  meta = with lib; {
-    description = "Fake file system that mocks the Python file system modules";
-    homepage = "http://pyfakefs.org/";
-    changelog = "https://github.com/jmcgeheeiv/pyfakefs/blob/v${version}/CHANGES.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ gebner ];
-  };
-}
+    meta = {
+      description = "Fake file system that mocks the Python file system modules";
+      homepage = "https://pyfakefs.org/";
+      changelog = "https://github.com/jmcgeheeiv/pyfakefs/blob/v${finalAttrs.version}/CHANGES.md";
+      license = lib.licenses.asl20;
+      maintainers = [ ];
+    };
+  });
+in
+self

@@ -1,50 +1,42 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchFromGitHub
-, lsprotocol
-, poetry-core
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, pythonRelaxDepsHook
-, typeguard
-, websockets
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  attrs,
+  cattrs,
+  lsprotocol,
+  websockets,
+  pytest-asyncio,
+  pytestCheckHook,
+  nix-update-script,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pygls";
-  version = "1.2.1";
+  version = "2.1.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "openlawlibrary";
     repo = "pygls";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-ARez9fs50kScfMp/W/aFIOcJonpFrcfyrzJuVwou7fk=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-jxc1nKxfiRenb629a2WCZOzqyIOvT5XU4NrjmKPlDHk=";
   };
-
-  pythonRelaxDeps = [
-    # https://github.com/openlawlibrary/pygls/pull/432
-    "lsprotocol"
-  ];
 
   nativeBuildInputs = [
     poetry-core
-    pythonRelaxDepsHook
   ];
 
   propagatedBuildInputs = [
+    attrs
+    cattrs
     lsprotocol
-    typeguard
   ];
 
-  passthru.optional-dependencies = {
-    ws = [
-      websockets
-    ];
+  optional-dependencies = {
+    ws = [ websockets ];
   };
 
   nativeCheckInputs = [
@@ -55,20 +47,26 @@ buildPythonPackage rec {
   # Fixes hanging tests on Darwin
   __darwinAllowLocalNetworking = true;
 
-  preCheck = lib.optionalString stdenv.isDarwin ''
+  preCheck = lib.optionalString stdenv.hostPlatform.isDarwin ''
     # Darwin issue: OSError: [Errno 24] Too many open files
     ulimit -n 1024
   '';
 
-  pythonImportsCheck = [
-    "pygls"
-  ];
+  pythonImportsCheck = [ "pygls" ];
 
-  meta = with lib; {
+  passthru.updateScript = nix-update-script {
+    extraArgs = [
+      # Skips pre-releases
+      "--version-regex"
+      "^v([0-9.]+)$"
+    ];
+  };
+
+  meta = {
     description = "Pythonic generic implementation of the Language Server Protocol";
     homepage = "https://github.com/openlawlibrary/pygls";
-    changelog = "https://github.com/openlawlibrary/pygls/blob/${version}/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ kira-bruneau ];
+    changelog = "https://github.com/openlawlibrary/pygls/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ kira-bruneau ];
   };
-}
+})

@@ -1,8 +1,9 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
-, six
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pytestCheckHook,
+  six,
 }:
 
 buildPythonPackage rec {
@@ -20,10 +21,10 @@ buildPythonPackage rec {
     six
   ];
 
-  meta = with lib; {
-    description = "All-in-one infinity value for Python. Can be compared to any object.";
+  meta = {
+    description = "All-in-one infinity value for Python. Can be compared to any object";
     homepage = "https://github.com/kvesteri/infinity";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ mupdt ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ mupdt ];
   };
 }

@@ -1,29 +1,52 @@
-{ lib
-, writeScript
-, coreutils
-, curl
-, gnugrep
-, jq
-, gnupg
-, common-updater-scripts
-, majorVersion
-, nix
-, runtimeShell
+{
+  lib,
+  writeScript,
+  common-updater-scripts,
+  coreutils,
+  curl,
+  fetchurl,
+  gnugrep,
+  gnupg,
+  jq,
+  majorVersion,
+  runtimeShell,
 }:
 
+let
+  rev = "481637f813e912c4aa3622d7964ab426c97b8e8d"; # should be the HEAD of nodejs/release-keys
+  pubring = fetchurl {
+    url = "https://github.com/nodejs/release-keys/raw/${rev}/gpg-only-active-keys/pubring.kbx";
+    hash = "sha256-FA8q1SYP1idztiQ86OHTAJZF1VjxIbgmLFXjg9woWTI=";
+  };
+in
 writeScript "update-nodejs" ''
   #!${runtimeShell}
-  PATH=${lib.makeBinPath [ common-updater-scripts coreutils curl gnugrep jq gnupg nix ]}
 
-  HOME=`mktemp -d`
-  cat ${./nodejs-release-keys.asc} | gpg --import
+  set -e
+  set -o pipefail
 
-  tags=`curl --silent https://api.github.com/repos/nodejs/node/git/refs/tags`
-  version=`echo $tags | jq -r '.[] | select(.ref | startswith("refs/tags/v${majorVersion}")) | .ref' | sort --version-sort  | tail -1 | grep -oP "^refs/tags/v\K.*"`
+  PATH=${
+    lib.makeBinPath [
+      common-updater-scripts
+      coreutils
+      curl
+      gnugrep
+      gnupg
+      jq
+    ]
+  }
 
-  curl --silent -o $HOME/SHASUMS256.txt.asc https://nodejs.org/dist/v''${version}/SHASUMS256.txt.asc
-  hash_hex=`gpgv --keyring=$HOME/.gnupg/pubring.kbx --output - $HOME/SHASUMS256.txt.asc | grep -oP "^([0-9a-f]{64})(?=\s+node-v''${version}.tar.xz$)"`
-  hash=`nix-hash --type sha256 --to-base32 ''${hash_hex}`
+  version=`\
+    curl --silent https://api.github.com/repos/nodejs/node/git/refs/tags | \
+    jq -r '.[] | select(.ref | startswith("refs/tags/v${majorVersion}")) | .ref' | \
+    sort --version-sort | \
+    tail -1 | \
+    grep -oP "^refs/tags/v\K.*"`
 
-  update-source-version nodejs_${majorVersion} "''${version}" "''${hash}"
+  hash_hex=`
+    curl --silent "https://nodejs.org/dist/v''${version}/SHASUMS256.txt.asc" | \
+    gpgv --keyring="${pubring}" --output - | \
+    grep -oP "^([0-9a-f]{64})(?=\s+node-v''${version}.tar.xz$)"`
+
+  update-source-version nodejs-slim_${majorVersion} "''${version}" "''${hash_hex}"
 ''

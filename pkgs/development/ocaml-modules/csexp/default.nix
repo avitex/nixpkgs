@@ -1,11 +1,16 @@
-{ lib, fetchurl, buildDunePackage, liquidsoap }:
+{
+  lib,
+  fetchurl,
+  buildDunePackage,
+  liquidsoap,
+}:
 
-buildDunePackage rec {
+buildDunePackage (finalAttrs: {
   pname = "csexp";
   version = "1.5.2";
 
   src = fetchurl {
-    url = "https://github.com/ocaml-dune/csexp/releases/download/${version}/csexp-${version}.tbz";
+    url = "https://github.com/ocaml-dune/csexp/releases/download/${finalAttrs.version}/csexp-${finalAttrs.version}.tbz";
     hash = "sha256-GhTdBLtDeaQZkCSFUGKMd5E6nAfzw1wTcLaWDml3h/8=";
   };
 
@@ -15,11 +20,11 @@ buildDunePackage rec {
     inherit liquidsoap;
   };
 
-  meta = with lib; {
+  meta = {
     description = "Minimal support for Canonical S-expressions";
     homepage = "https://github.com/ocaml-dune/csexp";
-    changelog = "https://github.com/ocaml-dune/csexp/raw/${version}/CHANGES.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ marsam ];
+    changelog = "https://github.com/ocaml-dune/csexp/raw/${finalAttrs.version}/CHANGES.md";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
-}
+})

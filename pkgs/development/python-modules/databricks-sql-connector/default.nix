@@ -1,46 +1,47 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, alembic
-, lz4
-, numpy
-, oauthlib
-, openpyxl
-, pandas
-, poetry-core
-, pyarrow
-, pytestCheckHook
-, pythonOlder
-, pythonRelaxDepsHook
-, sqlalchemy
-, thrift
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  alembic,
+  lz4,
+  numpy,
+  oauthlib,
+  openpyxl,
+  pandas,
+  poetry-core,
+  pyarrow,
+  pybreaker,
+  pyjwt,
+  pytestCheckHook,
+  sqlalchemy,
+  thrift,
+  requests,
+  urllib3,
 }:
 
 buildPythonPackage rec {
   pname = "databricks-sql-connector";
-  version = "3.0.1";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "4.2.4";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "databricks";
     repo = "databricks-sql-python";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-ymR/PL+LC7Bt+thtCJs5kfbJgKDgioUo+T79E7ZUQWY=";
+    tag = "v${version}";
+    hash = "sha256-QoauhA2Zx2UvlCuKe9mxaOFJKpglVHQmPVVS56np4A0=";
   };
 
   pythonRelaxDeps = [
-    "numpy"
+    "pandas"
+    "pyarrow"
     "thrift"
   ];
 
-  nativeBuildInputs = [
+  build-system = [
     poetry-core
-    pythonRelaxDepsHook
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     alembic
     lz4
     numpy
@@ -48,30 +49,25 @@ buildPythonPackage rec {
     openpyxl
     pandas
     pyarrow
+    pybreaker
+    pyjwt
     sqlalchemy
     thrift
+    requests
+    urllib3
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pytestFlagsArray = [
-    "tests/unit"
-  ];
+  enabledTestPaths = [ "tests/unit" ];
 
-  pythonImportsCheck = [
-    "databricks"
-  ];
+  pythonImportsCheck = [ "databricks" ];
 
-  meta = with lib; {
+  meta = {
     description = "Databricks SQL Connector for Python";
     homepage = "https://docs.databricks.com/dev-tools/python-sql-connector.html";
-    changelog = "https://github.com/databricks/databricks-sql-python/blob/v${version}/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ harvidsen ];
-    # No SQLAlchemy 2.0 support
-    # https://github.com/databricks/databricks-sql-python/issues/91
-    broken = true;
+    changelog = "https://github.com/databricks/databricks-sql-python/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ harvidsen ];
   };
 }

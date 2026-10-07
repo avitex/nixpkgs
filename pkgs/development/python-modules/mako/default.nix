@@ -1,60 +1,57 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchPypi
-, isPyPy
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  isPyPy,
 
-# build-system
-, setuptools
+  # build-system
+  setuptools_80,
 
-# propagates
-, markupsafe
+  # propagates
+  markupsafe,
 
-# optional-dependencies
-, babel
-, lingua
+  # optional-dependencies
+  babel,
+  lingua,
 
-# tests
-, chameleon
-, mock
-, pytestCheckHook
+  # tests
+  chameleon,
+  mock,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "mako";
-  version = "1.3.0";
+  version = "1.3.12";
   pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    pname = "Mako";
-    inherit version;
-    hash = "sha256-46nTiP0A6HBD7b6HkvRYgKwBFOnErcafbpv7LFXjsRs=";
+  src = fetchFromGitHub {
+    owner = "sqlalchemy";
+    repo = "mako";
+    tag = "rel_${lib.replaceString "." "_" finalAttrs.version}";
+    hash = "sha256-YIMmP8CIGUlgnB8/96lR9yDvEZTES766dSN0vT0JfbM=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  postPatch = ''
+    substituteInPlace setup.cfg \
+      --replace-fail "tag_build = dev" ""
+  '';
 
-  propagatedBuildInputs = [
-    markupsafe
-  ];
+  build-system = [ setuptools_80 ];
 
-  passthru.optional-dependencies = {
-    babel = [
-      babel
-    ];
-    lingua = [
-      lingua
-    ];
+  dependencies = [ markupsafe ];
+
+  optional-dependencies = {
+    babel = [ babel ];
+    lingua = [ lingua ];
   };
 
   nativeCheckInputs = [
     chameleon
     mock
     pytestCheckHook
-  ] ++ lib.flatten (lib.attrValues passthru.optional-dependencies);
+  ]
+  ++ lib.concatAttrValues finalAttrs.passthru.optional-dependencies;
 
   disabledTests = lib.optionals isPyPy [
     # https://github.com/sqlalchemy/mako/issues/315
@@ -66,12 +63,13 @@ buildPythonPackage rec {
     "test_bytestring_passthru"
   ];
 
-  meta = with lib; {
+  meta = {
+    changelog = "https://github.com/sqlalchemy/mako/releases/tag/${finalAttrs.src.tag}";
     description = "Super-fast templating language";
+    mainProgram = "mako-render";
     homepage = "https://www.makotemplates.org/";
-    changelog = "https://docs.makotemplates.org/en/latest/changelog.html";
-    license = licenses.mit;
-    platforms = platforms.unix;
-    maintainers = with maintainers; [ domenkozar ];
+    license = lib.licenses.mit;
+    platforms = lib.platforms.unix;
+    maintainers = [ ];
   };
-}
+})

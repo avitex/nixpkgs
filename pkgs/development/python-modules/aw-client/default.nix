@@ -1,39 +1,32 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, poetry-core
-, aw-core
-, requests
-, persist-queue
-, click
-, tabulate
-, typing-extensions
-, pytestCheckHook
-, gitUpdater
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  aw-core,
+  requests,
+  persist-queue,
+  click,
+  tabulate,
+  typing-extensions,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "aw-client";
-  version = "0.5.13";
+  version = "0.5.15";
+  pyproject = true;
 
-  format = "pyproject";
-
-  # pypi distribution doesn't include tests, so build from source instead
   src = fetchFromGitHub {
     owner = "ActivityWatch";
     repo = "aw-client";
-    rev = "v${version}";
-    sha256 = "sha256-A9f1Wj4F6qRvCVj3iRQvsnILewJK1L5tfI2MnAXZ4nY=";
+    tag = "v${version}";
+    hash = "sha256-AS29DIfEQ6/vh8idcMMQoGmiRM8MMf3eVQzvNPsXgpA=";
   };
 
-  disabled = pythonOlder "3.8";
+  build-system = [ poetry-core ];
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
-
-  propagatedBuildInputs = [
+  dependencies = [
     aw-core
     requests
     persist-queue
@@ -42,13 +35,11 @@ buildPythonPackage rec {
     typing-extensions
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   # Only run this test, the others are integration tests that require
   # an instance of aw-server running in order to function.
-  pytestFlagsArray = [ "tests/test_requestqueue.py" ];
+  enabledTestPaths = [ "tests/test_requestqueue.py" ];
 
   preCheck = ''
     # Fake home folder for tests that write to $HOME
@@ -57,14 +48,12 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "aw_client" ];
 
-  passthru.updateScript = gitUpdater {
-    rev-prefix = "v";
-  };
-
-  meta = with lib; {
+  meta = {
     description = "Client library for ActivityWatch";
     homepage = "https://github.com/ActivityWatch/aw-client";
-    maintainers = with maintainers; [ huantian ];
-    license = licenses.mpl20;
+    changelog = "https://github.com/ActivityWatch/aw-client/releases/tag/v${version}";
+    license = lib.licenses.mpl20;
+    maintainers = with lib.maintainers; [ huantian ];
+    mainProgram = "aw-client";
   };
 }

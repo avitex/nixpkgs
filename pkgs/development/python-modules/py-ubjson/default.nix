@@ -1,7 +1,8 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
@@ -11,32 +12,26 @@ buildPythonPackage rec {
 
   src = fetchFromGitHub {
     owner = "Iotic-Labs";
-    repo = pname;
+    repo = "py-ubjson";
     rev = "v${version}";
     sha256 = "1frn97xfa88zrfmpnvdk1pc03yihlchhph99bhjayvzlfcrhm5v3";
   };
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   disabledTests = [
     # https://github.com/Iotic-Labs/py-ubjson/issues/18
     "test_recursion"
   ];
 
-  pytestFlagsArray = [
-    "test/test.py"
-  ];
+  enabledTestPaths = [ "test/test.py" ];
 
-  pythonImportsCheck = [
-    "ubjson"
-  ];
+  pythonImportsCheck = [ "ubjson" ];
 
-  meta = with lib; {
+  meta = {
     description = "Universal Binary JSON draft-12 serializer for Python";
     homepage = "https://github.com/Iotic-Labs/py-ubjson";
-    license = with licenses; [ asl20 ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

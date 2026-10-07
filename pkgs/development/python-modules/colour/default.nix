@@ -1,7 +1,8 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
@@ -19,22 +20,18 @@ buildPythonPackage rec {
     ./remove-unmaintained-d2to1.diff
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pytestFlagsArray = [
-    "--doctest-glob=\"*.rst\""
+  pytestFlags = [
+    "--doctest-glob=*.rst"
     "--doctest-modules"
   ];
 
-  pythonImportsCheck = [
-    "colour"
-  ];
+  pythonImportsCheck = [ "colour" ];
 
-  meta = with lib; {
+  meta = {
     description = "Converts and manipulates common color representation (RGB, HSV, web, ...)";
     homepage = "https://github.com/vaab/colour";
-    license = licenses.bsd2;
+    license = lib.licenses.bsd2;
   };
 }

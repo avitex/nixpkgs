@@ -1,47 +1,40 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, pdm-backend
-, packaging
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pdm-backend,
+  packaging,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "dep-logic";
-  version = "0.0.4";
+  version = "0.7.2";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "pdm-project";
     repo = "dep-logic";
-    rev = version;
-    hash = "sha256-AFiCNzHlo3BADqbjRBruA80cfM6Ytdb+gReEg5hUmro=";
+    tag = finalAttrs.version;
+    hash = "sha256-PozbYtR3glvmYYQUbLiwD9humrt9+Cbc6Yv58qOs+2s=";
   };
 
-  nativeBuildInputs = [
-    pdm-backend
-  ];
+  nativeBuildInputs = [ pdm-backend ];
 
-  propagatedBuildInputs = [
-    packaging
-  ];
+  propagatedBuildInputs = [ packaging ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "dep_logic"
-  ];
+  pythonImportsCheck = [ "dep_logic" ];
 
   meta = {
-    changelog = "https://github.com/pdm-project/dep-logic/releases/tag/${src.rev}";
+    changelog = "https://github.com/pdm-project/dep-logic/releases/tag/${finalAttrs.src.tag}";
     description = "Python dependency specifications supporting logical operations";
     homepage = "https://github.com/pdm-project/dep-logic";
     license = lib.licenses.asl20;
-    maintainers = with lib.maintainers; [ tomasajt ];
+    maintainers = with lib.maintainers; [
+      tomasajt
+      misilelab
+    ];
   };
-}
+})

@@ -1,44 +1,47 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, packaging
-, setuptools
-, setuptools-scm
-, shapely
-, sqlalchemy
-, alembic
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  packaging,
+  setuptools,
+  setuptools-scm,
+  shapely,
+  sqlalchemy,
+  alembic,
+  pytest-benchmark,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "geoalchemy2";
-  version = "0.14.3";
+  version = "0.18.4";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "geoalchemy";
     repo = "geoalchemy2";
-    rev = "refs/tags/${version}";
-    hash = "sha256-L3/gLbiEF2VEqyhfVPnREMUPFbf9cD3tqGJ+AbThPkQ=";
+    tag = version;
+    hash = "sha256-kSsKud4/uL5ycPiuS+JPXJ6XH9ZgQ+kHOTC5RtG9C0I=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     sqlalchemy
     packaging
   ];
 
   nativeCheckInputs = [
     alembic
+    pytest-benchmark
     pytestCheckHook
-  ] ++ passthru.optional-dependencies.shapely;
+  ]
+  ++ optional-dependencies.shapely;
+
+  pytestFlags = [ "--benchmark-disable" ];
 
   disabledTestPaths = [
     # tests require live databases
@@ -56,19 +59,17 @@ buildPythonPackage rec {
     "tests/test_pickle.py"
   ];
 
-  pythonImportsCheck = [
-    "geoalchemy2"
-  ];
+  pythonImportsCheck = [ "geoalchemy2" ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     shapely = [ shapely ];
   };
 
-  meta = with lib; {
+  meta = {
     description = "Toolkit for working with spatial databases";
     homepage = "https://geoalchemy-2.readthedocs.io/";
-    changelog = "https://github.com/geoalchemy/geoalchemy2/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ nickcao ];
+    changelog = "https://github.com/geoalchemy/geoalchemy2/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ nickcao ];
   };
 }

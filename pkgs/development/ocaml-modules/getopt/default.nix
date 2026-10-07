@@ -1,6 +1,10 @@
-{ lib, fetchFromGitHub, buildDunePackage }:
+{
+  lib,
+  fetchFromGitHub,
+  buildDunePackage,
+}:
 
-buildDunePackage rec {
+buildDunePackage (finalAttrs: {
   pname = "getopt";
   version = "20230213";
 
@@ -9,7 +13,7 @@ buildDunePackage rec {
   src = fetchFromGitHub {
     owner = "scemama";
     repo = "ocaml-getopt";
-    rev = version;
+    rev = finalAttrs.version;
     hash = "sha256-oYDm945LgjIW+8x7UrO4FlbHywnu8480aiEVvnjBxc8=";
   };
 
@@ -21,4 +25,4 @@ buildDunePackage rec {
     license = lib.licenses.mit;
     maintainers = [ lib.maintainers.ulrikstrid ];
   };
-}
+})

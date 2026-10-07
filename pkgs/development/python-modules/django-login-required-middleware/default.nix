@@ -1,48 +1,41 @@
-{ lib
-, buildPythonPackage
-, django
-, djangorestframework
-, fetchFromGitHub
-, python
-, setuptools-scm
+{
+  lib,
+  buildPythonPackage,
+  django,
+  djangorestframework,
+  fetchFromGitHub,
+  python,
+  setuptools-scm,
 }:
 
 buildPythonPackage rec {
   pname = "django-login-required-middleware";
   version = "0.9.0";
-  format = "pyproject";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "CleitonDeLima";
-    repo = pname;
-    rev = "refs/tags/${version}";
+    repo = "django-login-required-middleware";
+    tag = version;
     hash = "sha256-WFQ/JvKh6gkUxPV27QBd2TzwFS8hfQGmcTInTnmh6iA=";
   };
 
-  nativeBuildInputs = [
-    setuptools-scm
-  ];
+  nativeBuildInputs = [ setuptools-scm ];
 
-  propagatedBuildInputs = [
-    django
-  ];
+  propagatedBuildInputs = [ django ];
 
-  checkInputs = [
-    djangorestframework
-  ];
+  checkInputs = [ djangorestframework ];
 
-  pythonImportsCheck = [
-    "login_required"
-  ];
+  pythonImportsCheck = [ "login_required" ];
 
   checkPhase = ''
     ${python.interpreter} -m django test --settings tests.settings
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Requires login to all requests through middleware in Django";
     homepage = "https://github.com/CleitonDeLima/django-login-required-middleware";
-    license = licenses.mit;
-    maintainers = with maintainers; [ onny ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ onny ];
   };
 }

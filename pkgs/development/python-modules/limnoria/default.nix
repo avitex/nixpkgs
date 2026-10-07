@@ -1,31 +1,37 @@
-{ lib
-, buildPythonPackage
-, chardet
-, cryptography
-, feedparser
-, fetchPypi
-, mock
-, pysocks
-, pytestCheckHook
-, python-dateutil
-, python-gnupg
-, pythonOlder
-, pytz
+{
+  lib,
+  buildPythonPackage,
+  setuptools,
+  chardet,
+  cryptography,
+  feedparser,
+  fetchPypi,
+  mock,
+  pysocks,
+  pytestCheckHook,
+  python-dateutil,
+  python-gnupg,
+  pytz,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "limnoria";
-  version = "2023.11.18";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.6";
+  version = "2026.3.21";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-Ftm5OGTt1emQsYso3hAUA9yMNBkIK5jybdFaRKJJk0o=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-hg4NYKyUMu4jDv9i3gdejbz0w/v0ptswzO7TUSXP3+4=";
   };
 
-  propagatedBuildInputs = [
+  postPatch = ''
+    substituteInPlace setup.py \
+      --replace-fail "version=version" 'version="${finalAttrs.version}"'
+  '';
+
+  build-system = [ setuptools ];
+
+  dependencies = [
     chardet
     cryptography
     feedparser
@@ -33,18 +39,9 @@ buildPythonPackage rec {
     pysocks
     python-dateutil
     python-gnupg
-  ] ++ lib.optionals (pythonOlder "3.9") [
-    pytz
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
-
-  postPatch = ''
-    substituteInPlace setup.py \
-      --replace "version=version" 'version="${version}"'
-  '';
+  nativeCheckInputs = [ pytestCheckHook ];
 
   checkPhase = ''
     runHook preCheck
@@ -58,10 +55,10 @@ buildPythonPackage rec {
     "supybot"
   ];
 
-  meta = with lib; {
-    description = "A modified version of Supybot, an IRC bot";
+  meta = {
+    description = "Modified version of Supybot, an IRC bot";
     homepage = "https://github.com/ProgVal/Limnoria";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ goibhniu ];
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
-}
+})

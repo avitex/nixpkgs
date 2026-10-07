@@ -1,67 +1,66 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, setuptools
-, numpy
-, pytestCheckHook
-, absl-py
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  cmake,
+  ninja,
+  scikit-build-core,
+
+  # dependencies
+  numpy,
+
+  # tests
+  absl-py,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "ml-dtypes";
-  version = "0.3.2";
+  version = "0.6.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
     owner = "jax-ml";
     repo = "ml_dtypes";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-epWunA5FULmCuTABl3uckFuNaSEpqJxtp0n0loCb6Q0=";
+    tag = "v${finalAttrs.version}";
     # Since this upstream patch (https://github.com/jax-ml/ml_dtypes/commit/1bfd097e794413b0d465fa34f2eff0f3828ff521),
     # the attempts to use the nixpkgs packaged eigen dependency have failed.
     # Hence, we rely on the bundled eigen library.
     fetchSubmodules = true;
+    hash = "sha256-NvsZrSiXfJMEVdpxBD3JmyAy5inEKSZVeLvI7YiGBy0=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace "numpy~=1.21.2" "numpy" \
-      --replace "numpy~=1.23.3" "numpy" \
-      --replace "numpy~=1.26.0" "numpy" \
-      --replace "setuptools~=68.1.0" "setuptools"
-  '';
-
-  nativeBuildInputs = [
-    setuptools
+  build-system = [
+    cmake
+    ninja
+    scikit-build-core
   ];
+  dontUseCmakeConfigure = true;
 
-  propagatedBuildInputs = [
-    numpy
-  ];
+  dependencies = [ numpy ];
 
   nativeCheckInputs = [
-    pytestCheckHook
     absl-py
+    pytestCheckHook
   ];
 
+  # Otherwise Python import `ml_dtypes` from the sources instead of the installed files in $out.
   preCheck = ''
-    # remove src module, so tests use the installed module instead
-    mv ./ml_dtypes/tests ./tests
-    rm -rf ./ml_dtypes
+    rm ml_dtypes/__init__.py
   '';
 
-  pythonImportsCheck = [
-    "ml_dtypes"
-  ];
+  pythonImportsCheck = [ "ml_dtypes" ];
 
-  meta = with lib; {
-    description = "A stand-alone implementation of several NumPy dtype extensions used in machine learning libraries";
+  meta = {
+    description = "Stand-alone implementation of several NumPy dtype extensions used in machine learning libraries";
     homepage = "https://github.com/jax-ml/ml_dtypes";
-    changelog = "https://github.com/jax-ml/ml_dtypes/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ GaetanLepage samuela ];
+    changelog = "https://github.com/jax-ml/ml_dtypes/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [
+      GaetanLepage
+      samuela
+    ];
   };
-}
+})

@@ -1,7 +1,8 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, cmake
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  cmake,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -19,6 +20,16 @@ stdenv.mkDerivation (finalAttrs: {
     cmake
   ];
 
+  postPatch = ''
+    substituteInPlace CMakeLists.txt \
+      --replace-fail "cmake_minimum_required( VERSION 2.8 )" "cmake_minimum_required(VERSION 3.10)"
+  '';
+
+  env = lib.optionalAttrs stdenv.cc.isClang {
+    # fixes: error: 'sprintf' is deprecated: This function is provided for compatibility reasons only.
+    NIX_CFLAGS_COMPILE = "-Wno-error=deprecated-declarations";
+  };
+
   meta = {
     homepage = "https://github.com/vietjtnguyen/argagg";
     description = "Argument Aggregator";
@@ -34,7 +45,7 @@ stdenv.mkDerivation (finalAttrs: {
       pointers into the original command line argument C-strings.
     '';
     license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ AndersonTorres ];
+    maintainers = [ ];
     platforms = lib.platforms.all;
     badPlatforms = [ "aarch64-darwin" ];
   };

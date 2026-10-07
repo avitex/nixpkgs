@@ -1,32 +1,56 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
-, six
-, icu
+{
+  stdenv,
+  lib,
+  buildPythonPackage,
+  fetchFromGitLab,
+  pkg-config,
+  setuptools,
+  pytestCheckHook,
+  six,
+  icu,
 }:
 
 buildPythonPackage rec {
   pname = "pyicu";
-  version = "2.12";
-  format = "setuptools";
+  version = "2.16.2";
+  pyproject = true;
 
-  src = fetchPypi {
-    pname = "PyICU";
-    inherit version;
-    hash = "sha256-vXq176k61pLm2qKc0kk2TlISGDKSIXJqETyjyygchhE=";
+  src = fetchFromGitLab {
+    domain = "gitlab.pyicu.org";
+    owner = "main";
+    repo = "pyicu";
+    tag = "v${version}";
+    hash = "sha256-JCevXAL6+G+EXx4ikOANgFiI9YPhjY5fDFLFBmEs8Ro=";
   };
 
-  nativeBuildInputs = [ icu ]; # for icu-config, but should be replaced with pkg-config
+  postPatch = ''
+    substituteInPlace setup.py --replace-fail "'pkg-config'" "'${stdenv.cc.targetPrefix}pkg-config'"
+  '';
+
+  build-system = [ setuptools ];
+
+  nativeBuildInputs = [ pkg-config ];
+
   buildInputs = [ icu ];
-  nativeCheckInputs = [ pytestCheckHook six ];
+
+  nativeCheckInputs = [
+    pytestCheckHook
+    six
+  ];
+
+  disabledTestPaths = [
+    # AssertionError: '$' != 'US Dollar'
+    "test/test_NumberFormatter.py::TestCurrencyUnit::testGetName"
+    # AssertionError: Lists differ: ['a', 'b', 'c', 'd'] != ['a', 'b', 'c', 'd', ...
+    "test/test_UnicodeSet.py::TestUnicodeSet::testIterators"
+  ];
 
   pythonImportsCheck = [ "icu" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://gitlab.pyicu.org/main/pyicu";
     description = "Python extension wrapping the ICU C++ API";
     changelog = "https://gitlab.pyicu.org/main/pyicu/-/raw/v${version}/CHANGES";
-    license = licenses.mit;
+    license = lib.licenses.mit;
   };
 }

@@ -1,8 +1,9 @@
-{ stdenv
-, python
-, flit-core
-, installer
-, packaging
+{
+  stdenv,
+  python,
+  flit-core,
+  installer,
+  packaging,
 }:
 
 stdenv.mkDerivation {
@@ -27,4 +28,7 @@ stdenv.mkDerivation {
 
     runHook postInstall
   '';
+
+  strictDeps = true;
+  __structuredAttrs = true;
 }

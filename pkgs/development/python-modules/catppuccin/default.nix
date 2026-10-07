@@ -1,47 +1,54 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, poetry-dynamic-versioning
-, pygments
-, rich
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  matplotlib,
+  pygments,
+  rich,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "catppuccin";
-  version = "1.3.2";
+  version = "2.5.0";
+
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "catppuccin";
     repo = "python";
-    rev = "v${version}";
-    hash = "sha256-spPZdQ+x3isyeBXZ/J2QE6zNhyHRfyRQGiHreuXzzik=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-wumJ8kpr+C2pdw8jYf+IqYTdSB6Iy37yZqPKycYmOSs=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-    poetry-dynamic-versioning
+  patches = [
+    # https://github.com/catppuccin/python/pull/130
+    ./matplotlib-3.11.patch
   ];
 
-  passthru.optional-dependencies = {
+  build-system = [ hatchling ];
+
+  optional-dependencies = {
+    matplotlib = [ matplotlib ];
     pygments = [ pygments ];
     rich = [ rich ];
   };
 
-  nativeCheckInputs = [ pytestCheckHook ];
-
-  disabledTestPaths = [
-    "tests/test_flavour.py" # would download a json to check correctness of flavours
-  ];
+  nativeCheckInputs = [
+    pytestCheckHook
+  ]
+  ++ lib.concatAttrValues finalAttrs.passthru.optional-dependencies;
 
   pythonImportsCheck = [ "catppuccin" ];
 
   meta = {
     description = "Soothing pastel theme for Python";
     homepage = "https://github.com/catppuccin/python";
-    maintainers = with lib.maintainers; [ fufexan tomasajt ];
+    maintainers = with lib.maintainers; [
+      fufexan
+      tomasajt
+    ];
     license = lib.licenses.mit;
   };
-}
+})

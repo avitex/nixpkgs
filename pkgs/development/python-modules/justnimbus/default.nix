@@ -1,46 +1,37 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, pythonOlder
-, requests
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  requests,
 }:
 
 buildPythonPackage rec {
   pname = "justnimbus";
-  version = "0.7.3";
+  version = "0.7.4";
   pyproject = true;
-
-  disabled = pythonOlder "3.10";
 
   src = fetchFromGitHub {
     owner = "kvanzuijlen";
     repo = "justnimbus";
-    rev = "refs/tags/${version}";
-    hash = "sha256-JO8T0JItkkNHxlnDKOO8kM9KSzT7QML4sszPymgXSBA=";
+    tag = version;
+    hash = "sha256-FsuvpmMWBYI1LheO3NFfCeaW4m3YQ41Tc81TP3gdNqo=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  nativeBuildInputs = [ poetry-core ];
 
-  propagatedBuildInputs = [
-    requests
-  ];
+  propagatedBuildInputs = [ requests ];
 
   # Module has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "justnimbus"
-  ];
+  pythonImportsCheck = [ "justnimbus" ];
 
-  meta = with lib; {
+  meta = {
     description = "Library for the JustNimbus API";
     homepage = "https://github.com/kvanzuijlen/justnimbus";
     changelog = "https://github.com/kvanzuijlen/justnimbus/releases/tag/${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }
-

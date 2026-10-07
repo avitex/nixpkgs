@@ -1,46 +1,54 @@
-{ lib
-, stdenv
-, python
-, build
-, flit-core
-, installer
-, packaging
-, pyproject-hooks
-, tomli
-, makeWrapper
+{
+  stdenv,
+  python,
+  build,
+  flit-core,
+  installer,
+  packaging,
+  pyproject-hooks,
+  tomli,
+  makeWrapper,
 }:
 let
-  buildBootstrapPythonModule = basePackage: attrs: stdenv.mkDerivation ({
-    pname = "${python.libPrefix}-bootstrap-${basePackage.pname}";
-    inherit (basePackage) version src meta;
+  buildBootstrapPythonModule =
+    basePackage: attrs:
+    stdenv.mkDerivation (
+      {
+        pname = "${python.libPrefix}-bootstrap-${basePackage.pname}";
+        inherit (basePackage) version src meta;
 
-    nativeBuildInputs = [ makeWrapper ];
+        nativeBuildInputs = [ makeWrapper ];
 
-    buildPhase = ''
-      runHook preBuild
+        buildPhase = ''
+          runHook preBuild
 
-      PYTHONPATH="${flit-core}/${python.sitePackages}" \
-        ${python.interpreter} -m flit_core.wheel
+          PYTHONPATH="${flit-core}/${python.sitePackages}" \
+            ${python.interpreter} -m flit_core.wheel
 
-      runHook postBuild
-    '';
+          runHook postBuild
+        '';
 
-    installPhase = ''
-      runHook preInstall
+        installPhase = ''
+          runHook preInstall
 
-      PYTHONPATH="${installer}/${python.sitePackages}" \
-        ${python.interpreter} -m installer \
-          --destdir "$out" --prefix "" dist/*.whl
+          PYTHONPATH="${installer}/${python.sitePackages}" \
+            ${python.interpreter} -m installer \
+              --destdir "$out" --prefix "" dist/*.whl
 
-      runHook postInstall
-    '';
-  } // attrs);
+          runHook postInstall
+        '';
 
-  bootstrap-packaging = buildBootstrapPythonModule packaging {};
+        strictDeps = true;
+        __structuredAttrs = true;
+      }
+      // attrs
+    );
 
-  bootstrap-pyproject-hooks = buildBootstrapPythonModule pyproject-hooks {};
+  bootstrap-packaging = buildBootstrapPythonModule packaging { };
 
-  bootstrap-tomli = buildBootstrapPythonModule tomli {};
+  bootstrap-pyproject-hooks = buildBootstrapPythonModule pyproject-hooks { };
+
+  bootstrap-tomli = buildBootstrapPythonModule tomli { };
 
   sitePkgs = python.sitePackages;
 in

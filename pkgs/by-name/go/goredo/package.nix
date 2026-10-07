@@ -1,18 +1,19 @@
-{ buildGoModule
-, fetchurl
-, lib
-, zstd
-, sharness
-, python3
-, perl
+{
+  buildGoModule,
+  fetchurl,
+  lib,
+  zstd,
+  sharness,
+  python3,
+  perl,
 }:
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "goredo";
   version = "2.6.0";
 
   src = fetchurl {
-    url = "http://www.goredo.cypherpunks.ru/download/${pname}-${version}.tar.zst";
+    url = "http://www.goredo.cypherpunks.ru/download/goredo-${finalAttrs.version}.tar.zst";
     hash = "sha256-XTL/otfCKC55TsUBBVors2kgFpOFh+6oekOOafOhcUs=";
   };
 
@@ -23,9 +24,14 @@ buildGoModule rec {
 
   nativeBuildInputs = [ zstd ];
 
-  nativeCheckInputs = lib.optionals doCheck [ python3 perl ];
+  nativeCheckInputs = lib.optionals finalAttrs.finalPackage.doCheck [
+    python3
+    perl
+  ];
 
-  inherit (sharness) SHARNESS_TEST_SRCDIR;
+  env = {
+    inherit (sharness) SHARNESS_TEST_SRCDIR;
+  };
 
   vendorHash = null;
 
@@ -50,13 +56,16 @@ buildGoModule rec {
     cp goredo.info "$out/share/info"
   '';
 
-  outputs = [ "out" "info" ];
+  outputs = [
+    "out"
+    "info"
+  ];
 
-  meta = with lib; {
+  meta = {
     outputsToInstall = [ "out" ];
-    description = "djb's redo, a system for building files from source files. Written in Go";
+    description = "Makefile replacement that sucks less";
     homepage = "https://www.goredo.cypherpunks.ru";
-    license = licenses.gpl3;
-    maintainers = [ maintainers.spacefrogg ];
+    license = lib.licenses.gpl3;
+    maintainers = [ lib.maintainers.spacefrogg ];
   };
-}
+})

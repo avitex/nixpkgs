@@ -1,8 +1,8 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, uncompyle6
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  uncompyle6,
 }:
 
 buildPythonPackage rec {
@@ -10,14 +10,12 @@ buildPythonPackage rec {
   version = "2.3.0";
   format = "setuptools";
 
-  disabled = pythonOlder "3.7";
-
   src = fetchPypi {
     inherit pname version;
     sha256 = "0yl4qdwp3in170ks98qnldqz3r2iyzil5g1775ccg98qkh95s724";
   };
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     ZiX = [ uncompyle6 ];
   };
 
@@ -26,11 +24,12 @@ buildPythonPackage rec {
   # upstream has no unit tests
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/Lattyware/unrpa";
     changelog = "https://github.com/Lattyware/unrpa/releases/tag/${version}";
-    description = "A program to extract files from the RPA archive format";
-    license = licenses.gpl3;
-    maintainers = with maintainers; [ leo60228 ];
+    description = "Program to extract files from the RPA archive format";
+    mainProgram = "unrpa";
+    license = lib.licenses.gpl3;
+    maintainers = with lib.maintainers; [ leo60228 ];
   };
 }

@@ -1,277 +1,267 @@
-{ lib
-, config
-, aws-sdk-cpp
-, boehmgc
-, callPackage
-, fetchFromGitHub
-, fetchpatch
-, fetchpatch2
-, runCommand
-, Security
-
-, storeDir ? "/nix/store"
-, stateDir ? "/nix/var"
-, confDir ? "/etc"
+{
+  lib,
+  config,
+  stdenv,
+  nixDependencies,
+  generateSplicesForMkScope,
+  fetchFromGitHub,
+  runCommand,
+  pkgs,
+  pkgsi686Linux,
+  pkgsStatic,
+  nixosTests,
 }:
 let
-  boehmgc-nix_2_3 = boehmgc.override { enableLargeConfig = true; };
-
-  boehmgc-nix = boehmgc-nix_2_3.overrideAttrs (drv: {
-    # Part of the GC solution in https://github.com/NixOS/nix/pull/4944
-    patches = (drv.patches or [ ]) ++ [ ./patches/boehmgc-coroutine-sp-fallback.patch ];
-  });
-
-  # old nix fails to build with newer aws-sdk-cpp and the patch doesn't apply
-  aws-sdk-cpp-old-nix = (aws-sdk-cpp.override {
-    apis = [ "s3" "transfer" ];
-    customMemoryManagement = false;
-  }).overrideAttrs (args: rec {
-    # intentionally overriding postPatch
-    version = "1.9.294";
-
-    src = fetchFromGitHub {
-      owner = "aws";
-      repo = "aws-sdk-cpp";
-      rev = version;
-      hash = "sha256-Z1eRKW+8nVD53GkNyYlZjCcT74MqFqqRMeMc33eIQ9g=";
-    };
-    postPatch = ''
-      # Avoid blanket -Werror to evade build failures on less
-      # tested compilers.
-      substituteInPlace cmake/compiler_settings.cmake \
-        --replace '"-Werror"' ' '
-
-      # Missing includes for GCC11
-      sed '5i#include <thread>' -i \
-        aws-cpp-sdk-cloudfront-integration-tests/CloudfrontOperationTest.cpp \
-        aws-cpp-sdk-cognitoidentity-integration-tests/IdentityPoolOperationTest.cpp \
-        aws-cpp-sdk-dynamodb-integration-tests/TableOperationTest.cpp \
-        aws-cpp-sdk-elasticfilesystem-integration-tests/ElasticFileSystemTest.cpp \
-        aws-cpp-sdk-lambda-integration-tests/FunctionTest.cpp \
-        aws-cpp-sdk-mediastore-data-integration-tests/MediaStoreDataTest.cpp \
-        aws-cpp-sdk-queues/source/sqs/SQSQueue.cpp \
-        aws-cpp-sdk-redshift-integration-tests/RedshiftClientTest.cpp \
-        aws-cpp-sdk-s3-crt-integration-tests/BucketAndObjectOperationTest.cpp \
-        aws-cpp-sdk-s3-integration-tests/BucketAndObjectOperationTest.cpp \
-        aws-cpp-sdk-s3control-integration-tests/S3ControlTest.cpp \
-        aws-cpp-sdk-sqs-integration-tests/QueueOperationTest.cpp \
-        aws-cpp-sdk-transfer-tests/TransferTests.cpp
-      # Flaky on Hydra
-      rm aws-cpp-sdk-core-tests/aws/auth/AWSCredentialsProviderTest.cpp
-      # Includes aws-c-auth private headers, so only works with submodule build
-      rm aws-cpp-sdk-core-tests/aws/auth/AWSAuthSignerTest.cpp
-      # TestRandomURLMultiThreaded fails
-      rm aws-cpp-sdk-core-tests/http/HttpClientTest.cpp
-    '' + lib.optionalString aws-sdk-cpp.stdenv.isi686 ''
-      # EPSILON is exceeded
-      rm aws-cpp-sdk-core-tests/aws/client/AdaptiveRetryStrategyTest.cpp
-    '';
-
-    patches = (args.patches or [ ]) ++ [ ./patches/aws-sdk-cpp-TransferManager-ContentEncoding.patch ];
-
-    # only a stripped down version is build which takes a lot less resources to build
-    requiredSystemFeatures = [ ];
-  });
-
-  aws-sdk-cpp-nix = (aws-sdk-cpp.override {
-    apis = [ "s3" "transfer" ];
-    customMemoryManagement = false;
-  }).overrideAttrs {
-    # only a stripped down version is build which takes a lot less resources to build
-    requiredSystemFeatures = [ ];
-  };
-
-
-  common = args:
-    callPackage
-      (import ./common.nix ({ inherit lib fetchFromGitHub; } // args))
-      {
-        inherit Security storeDir stateDir confDir;
-        boehmgc = boehmgc-nix;
-        aws-sdk-cpp = if lib.versionAtLeast args.version "2.12pre" then aws-sdk-cpp-nix else aws-sdk-cpp-old-nix;
-      };
-
-  # https://github.com/NixOS/nix/pull/7585
-  patch-monitorfdhup = fetchpatch2 {
-    name = "nix-7585-monitor-fd-hup.patch";
-    url = "https://github.com/NixOS/nix/commit/1df3d62c769dc68c279e89f68fdd3723ed3bcb5a.patch";
-    hash = "sha256-f+F0fUO+bqyPXjt+IXJtISVr589hdc3y+Cdrxznb+Nk=";
-  };
-
-  # https://github.com/NixOS/nix/pull/7473
-  patch-sqlite-exception = fetchpatch2 {
-    name = "nix-7473-sqlite-exception-add-message.patch";
-    url = "https://github.com/hercules-ci/nix/commit/c965f35de71cc9d88f912f6b90fd7213601e6eb8.patch";
-    hash = "sha256-tI5nKU7SZgsJrxiskJ5nHZyfrWf5aZyKYExM0792N80=";
-  };
-
-  patch-non-existing-output = fetchpatch {
-    # https://github.com/NixOS/nix/pull/7283
-    name = "fix-requires-non-existing-output.patch";
-    url = "https://github.com/NixOS/nix/commit/3ade5f5d6026b825a80bdcc221058c4f14e10a27.patch";
-    hash = "sha256-s1ybRFCjQaSGj7LKu0Z5g7UiHqdJGeD+iPoQL0vaiS0=";
-  };
-
-  patch-rapidcheck-shared = fetchpatch2 {
-    # https://github.com/NixOS/nix/pull/9431
-    name = "fix-missing-librapidcheck.patch";
-    url = "https://github.com/NixOS/nix/commit/46131567da96ffac298b9ec54016b37114b0dfd5.patch";
-    hash = "sha256-lShYxYKRDWwBqCysAFmFBudhhAL1eendWcL8sEFLCGg=";
-  };
-
   # Intentionally does not support overrideAttrs etc
   # Use only for tests that are about the package relation to `pkgs` and/or NixOS.
-  addTestsShallowly = tests: pkg: pkg // {
-    tests = pkg.tests // tests;
-    # In case someone reads the wrong attribute
-    passthru.tests = pkg.tests // tests;
-  };
+  addTestsShallowly =
+    tests: pkg:
+    pkg
+    // {
+      tests = pkg.tests // tests;
+      # In case someone reads the wrong attribute
+      passthru.tests = pkg.tests // tests;
+    };
 
-  addFallbackPathsCheck = pkg: addTestsShallowly
-    { nix-fallback-paths =
-        runCommand "test-nix-fallback-paths-version-equals-nix-stable" {
-          paths = lib.concatStringsSep "\n" (builtins.attrValues (import ../../../../nixos/modules/installer/tools/nix-fallback-paths.nix));
-        } ''
-          if [[ "" != $(grep -v 'nix-${pkg.version}$' <<< "$paths") ]]; then
-            echo "nix-fallback-paths not up to date with nixVersions.stable (nix-${pkg.version})"
-            echo "The following paths are not up to date:"
-            grep -v 'nix-${pkg.version}$' <<< "$paths"
-            echo
-            echo "Fix it by running in nixpkgs:"
-            echo
-            echo "curl https://releases.nixos.org/nix/nix-${pkg.version}/fallback-paths.nix >nixos/modules/installer/tools/nix-fallback-paths.nix"
-            echo
-            exit 1
-          else
-            echo "nix-fallback-paths versions up to date"
-            touch $out
-          fi
-        '';
-    }
-    pkg;
+  addFallbackPathsCheck =
+    pkg:
+    addTestsShallowly {
+      nix-fallback-paths =
+        runCommand "test-nix-fallback-paths-version-equals-nix-stable"
+          {
+            paths = lib.concatStringsSep "\n" (
+              builtins.attrValues (import ../../../../nixos/modules/installer/tools/nix-fallback-paths.nix)
+            );
+          }
+          ''
+            # NOTE: name may contain cross compilation details between the pname
+            #       and version this is permitted thanks to ([^-]*-)*
+            if [[ "" != $(grep -vE 'nix-([^-]*-)*${
+              lib.strings.replaceStrings [ "." ] [ "\\." ] pkg.version
+            }$' <<< "$paths") ]]; then
+              echo "nix-fallback-paths not up to date with nixVersions.stable (nix-${pkg.version})"
+              echo "The following paths are not up to date:"
+              grep -v 'nix-${pkg.version}$' <<< "$paths"
+              echo
+              echo "Fix it by running in nixpkgs:"
+              echo
+              echo "curl https://releases.nixos.org/nix/nix-${pkg.version}/fallback-paths.nix >nixos/modules/installer/tools/nix-fallback-paths.nix"
+              echo
+              exit 1
+            else
+              echo "nix-fallback-paths versions up to date"
+              touch $out
+            fi
+          '';
+    } pkg;
 
-in lib.makeExtensible (self: ({
-  nix_2_3 = (common {
-    version = "2.3.17";
-    hash = "sha256-EK0pgHDekJFqr0oMj+8ANIjq96WPjICe2s0m4xkUdH4=";
-    patches = [
-      patch-monitorfdhup
-    ];
-    maintainers = with lib.maintainers; [ flokli raitobezarius ];
-  }).override { boehmgc = boehmgc-nix_2_3; };
-
-  nix_2_10 = common {
-    version = "2.10.3";
-    hash = "sha256-B9EyDUz/9tlcWwf24lwxCFmkxuPTVW7HFYvp0C4xGbc=";
-    patches = [
-      ./patches/flaky-tests.patch
-      patch-non-existing-output
-      patch-monitorfdhup
-      patch-sqlite-exception
-    ];
-  };
-
-  nix_2_11 = common {
-    version = "2.11.1";
-    hash = "sha256-qCV65kw09AG+EkdchDPq7RoeBznX0Q6Qa4yzPqobdOk=";
-    patches = [
-      ./patches/flaky-tests.patch
-      patch-non-existing-output
-      patch-monitorfdhup
-      patch-sqlite-exception
-    ];
-  };
-
-  nix_2_12 = common {
-    version = "2.12.1";
-    hash = "sha256-GmHKhq0uFtdOiJnuBwj2YwlZjvh6YTkfQZgeu4e0dLU=";
-    patches = [
-      ./patches/flaky-tests.patch
-      patch-monitorfdhup
-      patch-sqlite-exception
-    ];
-  };
-
-  nix_2_13 = common {
-    version = "2.13.6";
-    hash = "sha256-pd2yGmHWn4njfbrSP6cMJx8qL+yeGieqcbLNICzcRFs=";
-  };
-
-  nix_2_14 = common {
-    version = "2.14.1";
-    hash = "sha256-5aCmGZbsFcLIckCDfvnPD4clGPQI7qYAqHYlttN/Wkg=";
-    patches = [
-      patch-rapidcheck-shared
-    ];
-  };
-
-  nix_2_15 = common {
-    version = "2.15.3";
-    hash = "sha256-sfFXbjC5iIdSAbctZIuFozxX0uux/KFBNr9oh33xINs=";
-    patches = [
-      patch-rapidcheck-shared
-    ];
-  };
-
-  nix_2_16 = common {
-    version = "2.16.2";
-    hash = "sha256-VXIYCDkvAWeMoU0W2ZI0TeOszCZA1o8trz6YCPFD5ac=";
-    patches = [
-      patch-rapidcheck-shared
-    ];
-  };
-
-  nix_2_17 = common {
-    version = "2.17.1";
-    hash = "sha256-Q5L+rHzjp0bYuR2ogg+YPCn6isjmlQ4CJVT0zpn/hFc=";
-    patches = [
-      patch-rapidcheck-shared
-    ];
-  };
-
-  nix_2_18 = common {
-    version = "2.18.1";
-    hash = "sha256-WNmifcTsN9aG1ONkv+l2BC4sHZZxtNKy0keqBHXXQ7w=";
-    patches = [
-      patch-rapidcheck-shared
-    ];
-  };
-
-  nix_2_19 = common {
-    version = "2.19.3";
-    hash = "sha256-EtL6M0H5+0mFbFh+teVjm+0B+xmHoKwtBvigS5NMWoo=";
-  };
-
-  # The minimum Nix version supported by Nixpkgs
-  # Note that some functionality *might* have been backported into this Nix version,
-  # making this package an inaccurate representation of what features are available
-  # in the actual lowest minver.nix *patch* version.
-  minimum =
+  # (meson based packaging)
+  # Add passthru tests to the package, and re-expose package set overriding
+  # functions. This will not incorporate the tests into the package set.
+  # TODO (roberth): add package-set level overriding to the "everything" package.
+  addTests =
+    selfAttributeName: pkg:
     let
-      minver = import ../../../../lib/minver.nix;
-      major = lib.versions.major minver;
-      minor = lib.versions.minor minver;
-      attribute = "nix_${major}_${minor}";
-      nix = self.${attribute};
+      tests =
+        pkg.tests or { }
+        // import ./tests.nix {
+          inherit
+            runCommand
+            lib
+            stdenv
+            pkgs
+            pkgsi686Linux
+            pkgsStatic
+            nixosTests
+            ;
+          inherit (pkg) version src;
+          nix = pkg;
+          self_attribute_name = selfAttributeName;
+        };
     in
-    if ! self ? ${attribute} then
-      throw "The minimum supported Nix version is ${minver} (declared in lib/minver.nix), but pkgs.nixVersions.${attribute} does not exist."
+    # preserve old pkg, including overrideSource, etc
+    pkg
+    // {
+      tests = pkg.tests or { } // tests;
+      passthru = pkg.passthru or { } // {
+        tests =
+          lib.warn "nix.passthru.tests is deprecated. Use nix.tests instead." pkg.passthru.tests or { }
+          // tests;
+      };
+    };
+
+  # Factored out for when we have package sets for multiple versions of
+  # Nix.
+  #
+  # `nixPackages_*` would be the most regular name, analogous to
+  # `linuxPackages_*`, especially if we put other 3rd-party software in
+  # here, but `nixPackages_*` would also be *very* confusing to humans!
+  generateSplicesForNixComponents =
+    nixComponentsAttributeName:
+    generateSplicesForMkScope [
+      "nixVersions"
+      nixComponentsAttributeName
+    ];
+
+  teams = [
+    lib.teams.nix
+    lib.teams.security-review
+  ];
+
+  # Comment out functional tests from meson.build file
+  # This is to prevent test list reordering between releases in `tests/functional/**/meson.build`
+  # `tests` is a list of `{ file; test; }`
+  removeFunctionalTests =
+    tests: src:
+    # empty implies noop
+    if tests == [ ] then
+      src
     else
-      nix;
+      runCommand src.name { inherit src; } ''
+        cp -r "$src" "$out"
+        chmod -R u+w "$out"
+        ${lib.concatMapStringsSep "\n" (
+          { file, test }:
+          ''substituteInPlace "$out/${file}" --replace-fail "'${test}'," "# '${test}',"''
+        ) tests}
+      '';
 
-  stable = addFallbackPathsCheck self.nix_2_18;
+  # Disables tests that have been flaky due to the darwin sandbox and fork safety
+  # with missing shebangs.
+  # See:
+  # - https://github.com/NixOS/nix/pull/14778
+  # - https://github.com/NixOS/nixpkgs/issues/476794
+  # - https://github.com/NixOS/nix/issues/13106
+  commonDisabledTests = lib.optionals (stdenv.hostPlatform.system == "aarch64-darwin") [
+    {
+      file = "tests/functional/meson.build";
+      test = "nix-shell.sh";
+    }
+    {
+      file = "tests/functional/meson.build";
+      test = "user-envs.sh";
+    }
+    {
+      file = "tests/functional/ca/meson.build";
+      test = "nix-shell.sh";
+    }
+    {
+      file = "tests/functional/flakes/meson.build";
+      test = "shebang.sh";
+    }
+  ];
+in
+lib.makeExtensible (
+  self:
+  (
+    {
+      nixComponents_2_31 =
+        (nixDependencies.callPackage ./modular/packages.nix rec {
+          version = "2.31.5";
+          inherit teams;
+          otherSplices = generateSplicesForNixComponents "nixComponents_2_31";
+          src = fetchFromGitHub {
+            owner = "NixOS";
+            repo = "nix";
+            tag = version;
+            hash = "sha256-b7fhCXxl9qKTNPQvG8T/+nOxB95kalt9/aSY+ZSRctk=";
+          };
+        }).appendPatches
+          (
+            lib.optionals stdenv.hostPlatform.isDarwin [
+              # Avoid recursive arch probes when libnixstore is preloaded by Cachix.
+              # https://github.com/NixOS/nixpkgs/issues/562481
+              ./detect-rosetta-via-runtime-file.patch
+            ]
+          );
 
-  unstable = self.nix_2_19;
-} // lib.optionalAttrs config.allowAliases {
-  nix_2_4 = throw "nixVersions.nix_2_4 has been removed";
+      nix_2_31 = addTests "nix_2_31" self.nixComponents_2_31.nix-everything;
 
-  nix_2_5 = throw "nixVersions.nix_2_5 has been removed";
+      nixComponents_2_34 =
+        (nixDependencies.callPackage ./modular/packages.nix rec {
+          version = "2.34.8";
+          inherit teams;
+          otherSplices = generateSplicesForNixComponents "nixComponents_2_34";
+          src = removeFunctionalTests commonDisabledTests (fetchFromGitHub {
+            owner = "NixOS";
+            repo = "nix";
+            tag = version;
+            hash = "sha256-Rvy1PmIUMGI0IS/kwDwmf/VrorU8v1iZYejssSVu1rY=";
+          });
+        }).appendPatches
+          [ ];
 
-  nix_2_6 = throw "nixVersions.nix_2_6 has been removed";
+      nix_2_34 = addTests "nix_2_34" self.nixComponents_2_34.nix-everything;
 
-  nix_2_7 = throw "nixVersions.nix_2_7 has been removed";
+      nixComponents_2_35 =
+        (nixDependencies.callPackage ./modular/packages.nix rec {
+          version = "2.35.2";
+          inherit teams;
+          otherSplices = generateSplicesForNixComponents "nixComponents_2_35";
+          src = removeFunctionalTests commonDisabledTests (fetchFromGitHub {
+            owner = "NixOS";
+            repo = "nix";
+            tag = version;
+            hash = "sha256-C/YEm/5IPiAMxQH5aHlkwgQMkLqK7NVsudEWdlzBZAA=";
+          });
+        }).appendPatches
+          [ ];
 
-  nix_2_8 = throw "nixVersions.nix_2_8 has been removed";
+      nix_2_35 = addTests "nix_2_35" self.nixComponents_2_35.nix-everything;
 
-  nix_2_9 = throw "nixVersions.nix_2_9 has been removed";
-}))
+      nixComponents_git =
+        let
+          src = fetchFromGitHub {
+            owner = "NixOS";
+            repo = "nix";
+            rev = "203f85b2e851fc52e253e8e33eff5fb92936736a";
+            hash = "sha256-ahm58Y+ASv19VGVzC2IwNsQpkVR8rgEwwHDYwnMadkI=";
+          };
+        in
+        (nixDependencies.callPackage ./modular/packages.nix {
+          version = "2.36pre20260912_${lib.substring 0 8 src.rev}";
+          inherit teams;
+          otherSplices = generateSplicesForNixComponents "nixComponents_git";
+          src = removeFunctionalTests commonDisabledTests src;
+        }).appendPatches
+          [ ];
+
+      git = addTests "git" self.nixComponents_git.nix-everything;
+
+      latest = self.nix_2_35;
+
+      # Read ./README.md before bumping a major release
+      stable = addFallbackPathsCheck self.nix_2_34;
+    }
+    // lib.optionalAttrs config.allowAliases (
+      lib.listToAttrs (
+        map (
+          minor:
+          let
+            attr = "nix_2_${toString minor}";
+          in
+          lib.nameValuePair attr (throw "${attr} has been removed")
+        ) (lib.range 4 23)
+      )
+      // {
+        nixComponents_2_27 = throw "nixComponents_2_27 has been removed. use nixComponents_2_31.";
+        nixComponents_2_29 = throw "nixComponents_2_29 has been removed. use nixComponents_2_31.";
+        nixComponents_2_30 = throw "nixComponents_2_30 has been removed. use nixComponents_2_31.";
+        nixComponents_2_32 = throw "nixComponents_2_32 has been removed. use nixComponents_2_34.";
+        nixComponents_2_33 = throw "nixComponents_2_33 has been removed. use nixComponents_2_34.";
+        nix_2_24 = throw "nix_2_24 has been removed. use nix_2_31.";
+        nix_2_26 = throw "nix_2_26 has been removed. use nix_2_31.";
+        nix_2_27 = throw "nix_2_27 has been removed. use nix_2_31.";
+        nix_2_25 = throw "nix_2_25 has been removed. use nix_2_31.";
+        nix_2_28 = throw "nix_2_28 has been removed. use nix_2_31.";
+        nix_2_29 = throw "nix_2_29 has been removed. use nix_2_31.";
+        nix_2_30 = throw "nix_2_30 has been removed. use nix_2_31.";
+        nix_2_32 = throw "nix_2_32 has been removed. use nix_2_34.";
+        nix_2_33 = throw "nix_2_33 has been removed. use nix_2_34.";
+
+        minimum = throw "nixVersions.minimum has been removed. Use a specific version instead.";
+        unstable = throw "nixVersions.unstable has been removed. use nixVersions.latest or the nix flake.";
+      }
+    )
+  )
+)

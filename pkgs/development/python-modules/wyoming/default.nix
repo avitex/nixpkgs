@@ -1,61 +1,64 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# build-system
-, setuptools
+  # build-system
+  setuptools,
 
-# optional-dependencies
-, zeroconf
+  # optional-dependencies
+  flask,
+  swagger-ui-py,
+  zeroconf,
 
-# tests
-, wyoming-faster-whisper
-, wyoming-openwakeword
-, wyoming-piper
+  # tests
+  pytest-asyncio,
+  pytestCheckHook,
+  wyoming-faster-whisper,
+  wyoming-openwakeword,
+  wyoming-piper,
 }:
 
 buildPythonPackage rec {
   pname = "wyoming";
-  version = "1.4.0";
+  version = "1.10.2";
   pyproject = true;
 
   src = fetchFromGitHub {
-    owner = "rhasspy";
+    owner = "OHF-Voice";
     repo = "wyoming";
-    rev = "refs/tags/${version}";
-    hash = "sha256-59/6tRHHAu31VFuKhj2LCEUqkdVi81fu5POuGJmw9bw=";
+    tag = "v${version}";
+    hash = "sha256-8FrdmhjQKlZqTYiVA81WKNHK0vRxkEpPyMzwJU43KkA=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  passthru.optional-dependencies = {
-    zeroconf = [
-      zeroconf
-    ];
+  optional-dependencies = {
+    http = [
+      flask
+      swagger-ui-py
+    ]
+    ++ flask.optional-dependencies.async;
+    zeroconf = [ zeroconf ];
   };
 
-  pythonImportsCheck = [
-    "wyoming"
-  ];
+  pythonImportsCheck = [ "wyoming" ];
 
-  # no tests
-  doCheck = false;
+  nativeCheckInputs = [
+    pytest-asyncio
+    pytestCheckHook
+  ]
+  ++ lib.concatAttrValues optional-dependencies;
 
   passthru.tests = {
-    inherit
-      wyoming-faster-whisper
-      wyoming-openwakeword
-      wyoming-piper
-    ;
+    inherit wyoming-faster-whisper wyoming-openwakeword wyoming-piper;
   };
 
-  meta = with lib; {
-    changelog = "https://github.com/rhasspy/wyoming/releases/tag/${version}";
+  meta = {
+    changelog = "https://github.com/OHF-Voice/wyoming/releases/tag/${src.tag}";
     description = "Protocol for Rhasspy Voice Assistant";
-    homepage = "https://github.com/rhasspy/wyoming";
-    license = licenses.mit;
-    maintainers = with maintainers; [ hexa ];
+    homepage = "https://github.com/OHF-Voice/wyoming";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ hexa ];
   };
 }

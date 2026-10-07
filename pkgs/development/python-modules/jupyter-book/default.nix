@@ -1,85 +1,85 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, flit-core
-, pythonRelaxDepsHook
-, click
-, docutils
-, jinja2
-, jsonschema
-, linkify-it-py
-, myst-nb
-, pyyaml
-, sphinx
-, sphinx-comments
-, sphinx-copybutton
-, sphinx-external-toc
-, sphinx-jupyterbook-latex
-, sphinx-design
-, sphinx-thebe
-, sphinx-book-theme
-, sphinx-togglebutton
-, sphinxcontrib-bibtex
-, sphinx-multitoc-numbering
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fetchNpmDeps,
+
+  # build-system
+  hatch-deps-selector,
+  hatch-jupyter-builder,
+  hatch-nodejs-version,
+  hatchling,
+
+  # nativeBuildInputs
+  nodejs,
+  npmHooks,
+
+  # dependencies
+  jupyter-core,
+  jupyter-server,
+  ipykernel,
+  nodeenv,
+
+  # tests
+  versionCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "jupyter-book";
-  version = "0.15.1";
+  version = "2.1.7";
+  pyproject = true;
+  __structuredAttrs = true;
 
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-ihY07Bb37t7g0Rbx5ft8SCAyia2S2kLglRnccdlWwBA=";
+  src = fetchFromGitHub {
+    owner = "jupyter-book";
+    repo = "jupyter-book";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-8jOPjF9tFwXmq5iWGW3V8qif7UdPPrDZW4cVjtSdbYY=";
   };
+
+  npmDeps = fetchNpmDeps {
+    inherit (finalAttrs) src;
+    hash = "sha256-xbDn7jDDd/nWKVvx2R6uJIaWQMSOktCeKv2EBkkzhTY=";
+  };
+
+  build-system = [
+    hatch-deps-selector
+    hatch-jupyter-builder
+    hatch-nodejs-version
+    hatchling
+  ];
 
   nativeBuildInputs = [
-    flit-core
-    pythonRelaxDepsHook
+    nodejs
+    npmHooks.npmConfigHook
   ];
 
+  # jupyter-book requires node at runtime
   propagatedBuildInputs = [
-    click
-    docutils
-    jinja2
-    jsonschema
-    linkify-it-py
-    myst-nb
-    pyyaml
-    sphinx
-    sphinx-comments
-    sphinx-copybutton
-    sphinx-external-toc
-    sphinx-jupyterbook-latex
-    sphinx-design
-    sphinx-thebe
-    sphinx-book-theme
-    sphinx-togglebutton
-    sphinxcontrib-bibtex
-    sphinx-multitoc-numbering
+    nodejs
   ];
 
-  pythonRelaxDeps = [
-    "docutils"
-    "myst-nb"
-    "sphinx"
-    "sphinx-thebe"
-    "sphinxcontrib-bibtex"
+  dependencies = [
+    ipykernel
+    jupyter-core
+    jupyter-server
+    nodeenv
   ];
 
-  pythonImportsCheck = [
-    "jupyter_book"
-  ];
+  pythonImportsCheck = [ "jupyter_book" ];
 
-  meta = with lib; {
+  # No python tests
+  nativeCheckInputs = [
+    versionCheckHook
+  ];
+  versionCheckProgramArg = "--version";
+
+  meta = {
     description = "Build a book with Jupyter Notebooks and Sphinx";
     homepage = "https://jupyterbook.org/";
-    changelog = "https://github.com/executablebooks/jupyter-book/blob/v${version}/CHANGELOG.md";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ marsam ];
+    changelog = "https://github.com/jupyter-book/jupyter-book/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.bsd3;
+    teams = [ lib.teams.jupyter ];
+    mainProgram = "jupyter-book";
   };
-}
+})

@@ -1,33 +1,37 @@
-{ buildPythonPackage
-, cirq-core
-, freezegun
-, google-api-core
-, protobuf
-, pytestCheckHook
-, pythonRelaxDepsHook
-, setuptools
+{
+  buildPythonPackage,
+  setuptools,
+  cirq-core,
+  google-api-core,
+  protobuf,
+  freezegun,
+  pytest-benchmark,
+  pytestCheckHook,
+  typedunits,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "cirq-google";
   pyproject = true;
   inherit (cirq-core) version src meta;
 
-  sourceRoot = "${src.name}/${pname}";
+  sourceRoot = "${finalAttrs.src.name}/${finalAttrs.pname}";
 
-  nativeBuildInputs = [
-    pythonRelaxDepsHook
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  pythonRelaxDeps = [ "protobuf" ];
+
+  dependencies = [
     cirq-core
     google-api-core
     protobuf
-  ] ++ google-api-core.optional-dependencies.grpc;
+    typedunits
+  ]
+  ++ google-api-core.optional-dependencies.grpc;
 
   nativeCheckInputs = [
     freezegun
+    pytest-benchmark
     pytestCheckHook
   ];
 
@@ -47,5 +51,4 @@ buildPythonPackage rec {
     # Calibration issue
     "test_xeb_to_calibration_layer"
   ];
-
-}
+})

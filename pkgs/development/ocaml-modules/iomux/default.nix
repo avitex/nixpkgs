@@ -1,20 +1,20 @@
-{ lib
-, fetchurl
-, buildDunePackage
-, dune-configurator
-, alcotest
+{
+  lib,
+  fetchurl,
+  buildDunePackage,
+  dune-configurator,
+  alcotest,
 }:
 
-buildDunePackage rec {
+buildDunePackage (finalAttrs: {
   pname = "iomux";
-  version = "0.3";
+  version = "0.4";
 
   minimalOCamlVersion = "4.08";
-  duneVersion = "3";
 
   src = fetchurl {
-    url = "https://github.com/haesbaert/ocaml-${pname}/releases/download/v${version}/${pname}-${version}.tbz";
-    sha256 = "zNJ3vVOv0BEpHLiC8Y610F87uiMlfYNo28ej0H+EU+c=";
+    url = "https://github.com/haesbaert/ocaml-iomux/releases/download/v${finalAttrs.version}/iomux-${finalAttrs.version}.tbz";
+    hash = "sha256-Hjk/rlWUdoSMXHBSUHaxEHDoBqVJ7rrghLBGqXcrqzU=";
   };
 
   buildInputs = [
@@ -26,9 +26,9 @@ buildDunePackage rec {
   ];
 
   meta = {
-    homepage = "https://github.com/haesbaert/ocaml-${pname}";
+    homepage = "https://github.com/haesbaert/ocaml-iomux";
     description = "IO Multiplexers for OCaml";
-    license = with lib.licenses; [ isc ];
+    license = lib.licenses.isc;
     maintainers = with lib.maintainers; [ toastal ];
   };
-}
+})

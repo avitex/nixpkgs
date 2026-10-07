@@ -1,47 +1,43 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, pythonOlder
-, requests
-, requests-mock
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  requests,
+  requests-mock,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "losant-rest";
-  version = "1.19.3";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "2.3.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "Losant";
     repo = "losant-rest-python";
-    rev = "v${version}";
-    hash = "sha256-Ppy7vOA7ix76nvzVEP+BkL8dsoN0oXNX/5IZyhXDoSw=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-7KSW9jZRhByAKQlDBx74Jd+nyN5KqEDu0DFoHeTp7nU=";
   };
 
-  propagatedBuildInputs = [
-    requests
-  ];
+  build-system = [ setuptools ];
+
+  dependencies = [ requests ];
 
   nativeCheckInputs = [
     pytestCheckHook
     requests-mock
   ];
 
-  pytestFlagsArray = [
-    "tests/losantrest_tests.py"
-  ];
+  enabledTestPaths = [ "tests/losant_rest_test.py" ];
 
-  pythonImportsCheck = [
-    "losantrest"
-  ];
+  pythonImportsCheck = [ "losant_rest" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python module for consuming the Losant IoT Platform API";
     homepage = "https://github.com/Losant/losant-rest-python";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/Losant/losant-rest-python/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

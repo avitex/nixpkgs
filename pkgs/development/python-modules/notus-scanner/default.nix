@@ -1,62 +1,51 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, paho-mqtt
-, poetry-core
-, psutil
-, pytestCheckHook
-, python-gnupg
-, pythonOlder
-, pythonRelaxDepsHook
-, sentry-sdk
-, tomli
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  paho-mqtt,
+  poetry-core,
+  psutil,
+  pytestCheckHook,
+  python-gnupg,
+  sentry-sdk,
 }:
 
 buildPythonPackage rec {
   pname = "notus-scanner";
-  version = "22.6.2";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "23.0.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "greenbone";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-V70cFSfQ9SuLhCSUa8DuYA7qaabwiK9IbIkYcQMgVUk=";
+    repo = "notus-scanner";
+    tag = "v${version}";
+    hash = "sha256-OgfJyQPmkV1nRYIQZJpyptbPdf7L6amuLP9pIz0Btbk=";
   };
 
   pythonRelaxDeps = [
+    "packaging"
+    "psutil"
     "python-gnupg"
   ];
 
-  nativeBuildInputs = [
-    poetry-core
-    pythonRelaxDepsHook
-  ];
+  build-system = [ poetry-core ];
 
   propagatedBuildInputs = [
     paho-mqtt
     psutil
     python-gnupg
     sentry-sdk
-  ] ++ lib.optionals (pythonOlder "3.11") [
-    tomli
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "notus.scanner"
-  ];
+  pythonImportsCheck = [ "notus.scanner" ];
 
-  meta = with lib; {
+  meta = {
     description = "Helper to create results from local security checks";
     homepage = "https://github.com/greenbone/notus-scanner";
-    changelog = "https://github.com/greenbone/notus-scanner/releases/tag/v${version}";
-    license = with licenses; [ agpl3Plus ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/greenbone/notus-scanner/releases/tag/${src.tag}";
+    license = lib.licenses.agpl3Plus;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

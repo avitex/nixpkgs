@@ -1,53 +1,49 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# build-system
-, setuptools
-, wheel
+  # build-system
+  setuptools,
 
-# dependencies
-, pyserial
+  # dependencies
+  pyserial,
 
-# tests
-, pytestCheckHook
-, pytest-asyncio
+  # tests
+  pytestCheckHook,
+  pytest-asyncio,
 }:
 
 buildPythonPackage rec {
   pname = "pyserial-asyncio-fast";
-  version = "0.11";
+  version = "0.16";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "bdraco";
     repo = "pyserial-asyncio-fast";
     rev = version;
-    hash = "sha256-B1CLk7ggI7l+DaMDlnMjl2tfh+evvaf1nxzBpmqMBZk=";
+    hash = "sha256-bEJySiVVy77vSF/M5f3WGxjeay/36vU8oBbmkpDCFrI=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-    wheel
-  ];
+  patches = [ ./python3.14-compat.patch ];
 
-  propagatedBuildInputs = [
-    pyserial
-  ];
+  build-system = [ setuptools ];
 
-  pythonImportsCheck = [
-    "serial_asyncio_fast"
-  ];
+  dependencies = [ pyserial ];
+
+  pythonImportsCheck = [ "serial_asyncio_fast" ];
 
   nativeCheckInputs = [
     pytestCheckHook
     pytest-asyncio
   ];
 
-  meta = with lib; {
+  meta = {
+    changelog = "https://github.com/home-assistant-libs/pyserial-asyncio-fast/releases/tag/${version}";
     description = "Fast asyncio extension package for pyserial that implements eager writes";
     homepage = "https://github.com/bdraco/pyserial-asyncio-fast";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ hexa ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ hexa ];
   };
 }

@@ -1,13 +1,13 @@
-{ lib
-, fetchurl
-, buildDunePackage
-, ocaml
-, decompress
-, stdlib-shims
-, alcotest
+{
+  lib,
+  fetchurl,
+  buildDunePackage,
+  decompress,
+  stdlib-shims,
+  alcotest,
 }:
 
-buildDunePackage rec {
+buildDunePackage (finalAttrs: {
   minimalOCamlVersion = "4.08";
   version = "20221222";
   pname = "imagelib";
@@ -15,11 +15,14 @@ buildDunePackage rec {
   duneVersion = "3";
 
   src = fetchurl {
-    url = "https://github.com/rlepigre/ocaml-imagelib/releases/download/${version}/imagelib-${version}.tbz";
+    url = "https://github.com/rlepigre/ocaml-imagelib/releases/download/${finalAttrs.version}/imagelib-${finalAttrs.version}.tbz";
     hash = "sha256-BQ2TVxGlpc6temteK84TKXpx0MtHZSykL/TjKN9xGP0=";
   };
 
-  propagatedBuildInputs = [ decompress stdlib-shims ];
+  propagatedBuildInputs = [
+    decompress
+    stdlib-shims
+  ];
 
   doCheck = true;
   checkInputs = [ alcotest ];
@@ -31,4 +34,4 @@ buildDunePackage rec {
     maintainers = [ lib.maintainers.vbgl ];
     mainProgram = "imagetool";
   };
-}
+})

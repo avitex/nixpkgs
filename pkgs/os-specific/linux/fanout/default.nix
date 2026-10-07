@@ -1,6 +1,14 @@
-{ lib, stdenv, fetchFromGitHub, kernel, kmod }:
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  kernel,
+  kernelModuleMakeFlags,
+  kmod,
+  nixosTests,
+}:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation {
   pname = "fanout";
   version = "unstable-2022-10-17-${kernel.version}";
 
@@ -19,19 +27,24 @@ stdenv.mkDerivation rec {
     ./remove_auto_mknod.patch
   ];
 
-  hardeningDisable = [ "format" "pic" ];
+  hardeningDisable = [
+    "format"
+    "pic"
+  ];
 
   nativeBuildInputs = [ kmod ] ++ kernel.moduleBuildDependencies;
 
-  makeFlags = kernel.makeFlags ++ [
+  makeFlags = kernelModuleMakeFlags ++ [
     "KERNELDIR=${kernel.dev}/lib/modules/${kernel.modDirVersion}/build"
   ];
 
-  meta = with lib; {
+  passthru.tests = { inherit (nixosTests) fanout; };
+
+  meta = {
     description = "Kernel-based publish-subscribe system";
     homepage = "https://github.com/bob-linuxtoys/fanout";
-    license = licenses.gpl2Only;
-    maintainers = with maintainers; [ therishidesai ];
-    platforms = platforms.linux;
+    license = lib.licenses.gpl2Only;
+    maintainers = with lib.maintainers; [ therishidesai ];
+    platforms = lib.platforms.linux;
   };
 }

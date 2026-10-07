@@ -1,31 +1,50 @@
-{ lib, skawarePackages }:
+{
+  lib,
+  stdenv,
+  skawarePackages,
+  skalibs,
+  execline,
+  s6,
+  targetPackages,
+}:
 
-with skawarePackages;
-
-buildPackage {
+skawarePackages.buildPackage {
   pname = "s6-linux-init";
-  version = "1.1.2.0";
-  sha256 = "sha256-Ea4I0KZiELXla2uu4Pa5sbafvtsF/aEoWxFaMcpGx38=";
+  version = "1.2.0.2";
+  sha256 = "sha256-b60BTaFiwMgZJBl8V9FuGnXBM7NKIOQjQxobdB6Qex0=";
 
-  description = "A set of minimalistic tools used to create a s6-based init system, including a /sbin/init binary, on a Linux kernel";
-  platforms = lib.platforms.linux;
+  meta.description = "Set of minimalistic tools used to create a s6-based init system, including a /sbin/init binary, on a Linux kernel";
+  meta.platforms = lib.platforms.linux;
 
-  outputs = [ "bin" "dev" "doc" "out" ];
+  outputs = [
+    "bin"
+    "dev"
+    "doc"
+    "out"
+  ];
+  buildInputs = [
+    skalibs
+    execline
+    s6
+  ];
 
   configureFlags = [
-    "--bindir=\${bin}/bin"
-    "--includedir=\${dev}/include"
+    "--libdir=${placeholder "out"}/lib"
+    "--dynlibdir=${placeholder "out"}/lib"
+    "--libexecdir=${placeholder "out"}/libexec"
+    "--bindir=${placeholder "bin"}/bin"
+    "--includedir=${placeholder "dev"}/include"
+    "--pkgconfdir=${placeholder "dev"}/lib/pkgconfig"
     "--with-sysdeps=${skalibs.lib}/lib/skalibs/sysdeps"
-    "--with-include=${skalibs.dev}/include"
-    "--with-include=${execline.dev}/include"
-    "--with-include=${s6.dev}/include"
-    "--with-lib=${skalibs.lib}/lib"
-    "--with-lib=${s6.out}/lib"
-    "--with-lib=${execline.lib}/lib"
-    "--with-dynlib=${skalibs.lib}/lib"
-    "--with-dynlib=${execline.lib}/lib"
-    "--with-dynlib=${s6.out}/lib"
   ];
+
+  # See ../s6-rc/default.nix for an explanation
+  postConfigure = lib.optionalString (stdenv.hostPlatform != stdenv.targetPlatform) ''
+    substituteInPlace src/init/s6-linux-init-maker.c \
+        --replace-fail '<execline/config.h>' '"${targetPackages.execline.dev}/include/execline/config.h"' \
+        --replace-fail '<s6/config.h>' '"${targetPackages.s6.dev}/include/s6/config.h"' \
+        --replace-fail '<s6-linux-init/config.h>' '"${targetPackages.s6-linux-init.dev}/include/s6-linux-init/config.h"'
+  '';
 
   postInstall = ''
     # remove all s6 executables from build directory

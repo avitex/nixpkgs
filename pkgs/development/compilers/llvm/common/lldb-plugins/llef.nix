@@ -1,24 +1,27 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, makeWrapper
-, lldb
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  makeWrapper,
+  lldb,
 }:
 
-stdenv.mkDerivation {
+stdenv.mkDerivation (finalAttrs: {
   pname = "llef";
-  version = "unstable-2023-10-18";
+  version = "2.2.4";
 
   src = fetchFromGitHub {
     owner = "foundryzero";
     repo = "llef";
-    rev = "629bd75f44c356f7a3576a6436d3919ce111240d";
-    hash = "sha256-JtCHG89s436Di/6+V7Le4CZnkIPh/RYIllfXEO/B7+8";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-pUZ2d9ch1mQzfWqHy0srOJwNULGH7dUgVapCaImLa0g=";
   };
 
   dontBuild = true;
 
   nativeBuildInputs = [ makeWrapper ];
+
+  strictDeps = true;
 
   installPhase = ''
     runHook preInstall
@@ -32,12 +35,14 @@ stdenv.mkDerivation {
     runHook postInstall
   '';
 
-  meta = with lib; {
+  __structuredAttrs = true;
+
+  meta = {
     description = "LLEF is a plugin for LLDB to make it more useful for RE and VR";
     homepage = "https://github.com/foundryzero/llef";
-    license = licenses.mit;
-    platforms = platforms.all;
-    maintainers = with maintainers; [ nrabulinski ];
+    license = lib.licenses.mit;
+    platforms = lib.platforms.all;
+    maintainers = with lib.maintainers; [ nrabulinski ];
     mainProgram = "llef";
   };
-}
+})

@@ -1,35 +1,39 @@
-{ lib
-, buildPythonPackage
-, pythonAtLeast
-, pythonOlder
-, fetchpatch
-, fetchPypi
-, setuptools
-, setuptools-scm
-, cssselect
-, jaraco-test
-, lxml
-, mock
-, pytestCheckHook
-, importlib-resources
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools-scm,
+  encutils,
+  more-itertools,
+  cssselect,
+  jaraco-test,
+  lxml,
+  mock,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "cssutils";
-  version = "2.9.0";
+  version = "2.15.0";
+  pyproject = true;
 
-  disabled = pythonOlder "3.8";
-
-  format = "pyproject";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-iUd7PRfXkOl7n7Te9wh2cGEFV5Wq5vfIKuMulnyb5M0=";
+  src = fetchFromGitHub {
+    owner = "jaraco";
+    repo = "cssutils";
+    tag = "v${version}";
+    hash = "sha256-K9jbuX7AueSB3AB7PAVjpQhzb3Umn9OoHaL4RrMzKEs=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-    setuptools-scm
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail '"coherent.licensed",' ""
+  '';
+
+  build-system = [ setuptools-scm ];
+
+  dependencies = [
+    encutils
+    more-itertools
   ];
 
   nativeCheckInputs = [
@@ -38,24 +42,20 @@ buildPythonPackage rec {
     lxml
     mock
     pytestCheckHook
-  ] ++ lib.optionals (pythonOlder "3.9") [
-    importlib-resources
   ];
 
   disabledTests = [
     # access network
-    "test_parseUrl"
-    "encutils"
     "website.logging"
   ];
 
   pythonImportsCheck = [ "cssutils" ];
 
-  meta = with lib; {
-    description = "A CSS Cascading Style Sheets library for Python";
+  meta = {
+    description = "CSS Cascading Style Sheets library for Python";
     homepage = "https://github.com/jaraco/cssutils";
-    changelog = "https://github.com/jaraco/cssutils/blob/v${version}/CHANGES.rst";
-    license = licenses.lgpl3Plus;
-    maintainers = with maintainers; [ dotlambda ];
+    changelog = "https://github.com/jaraco/cssutils/blob/${src.tag}/NEWS.rst";
+    license = lib.licenses.lgpl3Plus;
+    maintainers = with lib.maintainers; [ dotlambda ];
   };
 }

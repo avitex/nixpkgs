@@ -1,15 +1,14 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "maxcube-api";
   version = "0.4.3";
   format = "setuptools";
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "hackercowboy";
@@ -22,9 +21,7 @@ buildPythonPackage rec {
     substituteInPlace setup.py --replace "license=license" "license='MIT'"
   '';
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   disabledTests = [
     "testSendRadioMsgClosesConnectionOnErrorAndRetriesIfReusingConnection"
@@ -36,10 +33,10 @@ buildPythonPackage rec {
     "maxcube.cube"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "eQ-3/ELV MAX! Cube Python API";
     homepage = "https://github.com/hackercowboy/python-maxcube-api";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

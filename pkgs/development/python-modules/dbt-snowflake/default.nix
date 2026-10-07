@@ -1,45 +1,52 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, dbt-core
-, pytestCheckHook
-, snowflake-connector-python
+{
+  lib,
+  buildPythonPackage,
+  dbt-core,
+  fetchPypi,
+  pytestCheckHook,
+  hatchling,
+  snowflake-connector-python,
 }:
 
 buildPythonPackage rec {
   pname = "dbt-snowflake";
-  version = "1.7.0";
-  format = "setuptools";
+  version = "1.11.1";
+  pyproject = true;
 
-  src = fetchFromGitHub {
-    owner = "dbt-labs";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-v+9uxHeROZU7vZvvB7UYUFNM6ez97qiZmgDiunUKf04=";
+  # missing tags on GitHub
+  src = fetchPypi {
+    pname = "dbt_snowflake";
+    inherit version;
+    hash = "sha256-C2uS13vwN9AuZ0XgrdRHMsunuzSwoM06HGFmJ45Bs0A=";
   };
 
-  propagatedBuildInputs = [
+  pythonRelaxDeps = [
+    "certifi"
+  ];
+
+  build-system = [ hatchling ];
+
+  dependencies = [
     dbt-core
     snowflake-connector-python
-  ] ++ snowflake-connector-python.optional-dependencies.secure-local-storage;
+  ]
+  ++ snowflake-connector-python.optional-dependencies.secure-local-storage;
 
-  nativeCheckInputs = [
-    pytestCheckHook
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  enabledTestPaths = [ "tests/unit" ];
+
+  pytestFlags = [
+    # pyproject.toml specifies -n auto which only pytest-xdist understands
+    "--override-ini=addopts="
   ];
 
-  pytestFlagsArray = [
-    "tests/unit"
-  ];
+  pythonImportsCheck = [ "dbt.adapters.snowflake" ];
 
-  pythonImportsCheck = [
-    "dbt.adapters.snowflake"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Plugin enabling dbt to work with Snowflake";
-    homepage = "https://github.com/dbt-labs/dbt-snowflake";
-    changelog = "https://github.com/dbt-labs/dbt-snowflake/blob/${version}/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ tjni ];
+    homepage = "https://github.com/dbt-labs/dbt-adapters/blob/main/dbt-snowflake";
+    changelog = "https://github.com/dbt-labs/dbt-adapters/blob/main/dbt-snowflake/CHANGELOG.md";
+    license = lib.licenses.asl20;
   };
 }

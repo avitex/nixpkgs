@@ -1,40 +1,35 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, rustPlatform
-, darwin
-, pkg-config
-, libiconv
+{
+  lib,
+  rustPlatform,
+  fetchFromGitHub,
+  enableLTO ? true,
+  nrxAlias ? true,
 }:
-
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "nrr";
-  version = "0.5.0";
+  version = "0.11.0";
 
   src = fetchFromGitHub {
     owner = "ryanccn";
     repo = "nrr";
-    rev = "v${version}";
-    hash = "sha256-jkI5t+1P7Ae6MkSnyy7Ur3Z0Vt8+hWTgf6dgL5tzhY8=";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-wkt2F7drBxi4AJhJXvlxpD/CVZuQ2M3wL6IqZ72m3vI=";
   };
 
-  cargoHash = "sha256-9qLeFuaKAGhtyHFHOBS6HA0wAWuk0ZJppVySpMwUGYc=";
+  cargoHash = "sha256-uOPkTAypThZPof2DaBS/uGJThlV179jNj0SkSJ0X6r8=";
 
-  buildInputs = lib.optionals stdenv.isDarwin [
-    darwin.apple_sdk.frameworks.CoreFoundation
-    darwin.apple_sdk.frameworks.Security
-    darwin.apple_sdk.frameworks.IOKit
-    libiconv
-  ];
+  env = lib.optionalAttrs enableLTO {
+    CARGO_PROFILE_RELEASE_LTO = "fat";
+    CARGO_PROFILE_RELEASE_CODEGEN_UNITS = "1";
+  };
 
-  nativeBuildInputs = [
-    pkg-config
-  ];
+  postInstall = lib.optionalString nrxAlias "ln -s $out/bin/nr{r,x}";
 
-  meta = with lib; {
-    description = "Minimal, blazing fast Node.js script runner";
-    maintainers = with maintainers; [ ryanccn ];
-    license = licenses.gpl3Only;
+  meta = {
+    description = "Minimal, blazing fast npm scripts runner";
+    homepage = "https://github.com/ryanccn/nrr";
+    maintainers = with lib.maintainers; [ ryanccn ];
+    license = lib.licenses.gpl3Only;
     mainProgram = "nrr";
   };
-}
+})

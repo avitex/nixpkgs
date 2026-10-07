@@ -1,64 +1,59 @@
-{ lib
-, aiohttp
-, aresponses
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, mashumaro
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, syrupy
-, yarl
+{
+  lib,
+  aiohttp,
+  aioresponses,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  mashumaro,
+  pytest-asyncio,
+  pytest-cov-stub,
+  pytestCheckHook,
+  syrupy,
+  yarl,
 }:
 
 buildPythonPackage rec {
   pname = "pvo";
-  version = "2.1.1";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.11";
+  version = "3.0.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "frenck";
     repo = "python-pvoutput";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-Js8oPEMxJyWK1E6GDm1xwm2BilnV3WBM6Hibf6oFOKE=";
+    tag = "v${version}";
+    hash = "sha256-qCODRfE+fM3Cwgz8sOUTJ8AXQSlr3I4Q0I+gJmMaDjM=";
   };
 
   postPatch = ''
     # Upstream doesn't set a version for the pyproject.toml
     substituteInPlace pyproject.toml \
-      --replace "0.0.0" "${version}" \
-      --replace "--cov" ""
+      --replace "0.0.0" "${version}"
   '';
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
     mashumaro
     yarl
   ];
 
   nativeCheckInputs = [
-    aresponses
+    aioresponses
     pytest-asyncio
+    pytest-cov-stub
     pytestCheckHook
     syrupy
   ];
 
-  pythonImportsCheck = [
-    "pvo"
-  ];
+  pythonImportsCheck = [ "pvo" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python module to interact with the PVOutput API";
     homepage = "https://github.com/frenck/python-pvoutput";
-    changelog = "https://github.com/frenck/python-pvoutput/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/frenck/python-pvoutput/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

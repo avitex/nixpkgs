@@ -1,38 +1,36 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, pyparsing
-, matplotlib
-, latex2mathml
-, ziafont
-, ziamath
-, pytestCheckHook
-, nbval
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  pyparsing,
+  matplotlib,
+  latex2mathml,
+  ziafont,
+  ziamath,
+  pytestCheckHook,
+  nbval,
+  writableTmpDirAsHomeHook,
 }:
 
 buildPythonPackage rec {
   pname = "schemdraw";
-  version = "0.17";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "0.23";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "cdelker";
-    repo = pname;
-    rev = version;
-    hash = "sha256-wa/IeNGZynU/xKwyFwebXcFaruhBFqGWsrZYaIEVa8Q=";
+    repo = "schemdraw";
+    tag = version;
+    hash = "sha256-NAvJDrJKf4CYs9W4zdNAU8WnuXlCK6FU44+5flWzyAk=";
   };
 
-  propagatedBuildInputs = [
-    pyparsing
-  ];
+  build-system = [ setuptools ];
 
-  passthru.optional-dependencies = {
-    matplotlib = [
-      matplotlib
-    ];
+  dependencies = [ pyparsing ];
+
+  optional-dependencies = {
+    matplotlib = [ matplotlib ];
     svgmath = [
       latex2mathml
       ziafont
@@ -47,22 +45,25 @@ buildPythonPackage rec {
     latex2mathml
     ziafont
     ziamath
+    writableTmpDirAsHomeHook
   ];
 
   # Strip out references to unfree fonts from the test suite
   postPatch = ''
-    substituteInPlace test/test_styles.ipynb --replace "font='Times', " ""
+    substituteInPlace test/test_backend.ipynb --replace-fail "(font='Times')" "()"
   '';
 
-  pytestFlagsArray = [ "--nbval-lax" ];
+  preCheck = "rm test/test_pictorial.ipynb"; # Tries to download files
+
+  pytestFlags = [ "--nbval-lax" ];
 
   pythonImportsCheck = [ "schemdraw" ];
 
-  meta = with lib; {
-    description = "A package for producing high-quality electrical circuit schematic diagrams";
+  meta = {
+    description = "Package for producing high-quality electrical circuit schematic diagrams";
     homepage = "https://schemdraw.readthedocs.io/en/latest/";
     changelog = "https://schemdraw.readthedocs.io/en/latest/changes.html";
-    license = licenses.mit;
-    maintainers = with maintainers; [ sfrijters ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ sfrijters ];
   };
 }

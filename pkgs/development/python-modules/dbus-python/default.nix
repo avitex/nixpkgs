@@ -1,49 +1,113 @@
-{ lib, stdenv, fetchPypi, buildPythonPackage, python, pkg-config, dbus, dbus-glib, isPyPy
-, ncurses, pygobject3, isPy3k, pythonAtLeast }:
+{
+  lib,
+  fetchPypi,
+  buildPythonPackage,
+  fetchpatch,
+  isPyPy,
+  python,
 
-buildPythonPackage rec {
+  # build-system
+  meson,
+  meson-python,
+  pkg-config,
+
+  # native dependencies
+  dbus,
+  dbus-glib,
+
+  # test dependencies
+  pygobject3,
+}:
+
+buildPythonPackage (finalAttrs: {
   pname = "dbus-python";
-  version = "1.2.18";
+  version = "1.4.0";
+  pyproject = true;
 
-  # ModuleNotFoundError: No module named 'distutils'
-  disabled = isPyPy || pythonAtLeast "3.12";
-  format = "other";
-  outputs = [ "out" "dev" ];
+  disabled = isPyPy;
+
+  outputs = [
+    "out"
+    "dev"
+  ];
 
   src = fetchPypi {
-    inherit pname version;
-    sha256 = "0q3jrw515z98mqdk9x822nd95rky455zz9876f1nqna5igkd3gcj";
+    pname = "dbus-python";
+    inherit (finalAttrs) version;
+    hash = "sha256-mRZm5Jj2Db8+Sbi3Z49VWbimUDT99hquYs3s232Jx3A=";
   };
 
   patches = [
-    ./fix-includedir.patch
+    # reduce required dependencies
+    # https://gitlab.freedesktop.org/dbus/dbus-python/-/merge_requests/23
+    (fetchpatch {
+      url = "https://gitlab.freedesktop.org/dbus/dbus-python/-/commit/d5e19698a8d6e1485f05b67a5b2daa2392819aaf.patch";
+      hash = "sha256-Rmj/ByRLiLnIF3JsMBElJugxsG8IARcBdixLhoWgIYU=";
+    })
+
+    # Fix on Python 3.15, the patch did not achieve what it aimed for anyway.
+    # https://gitlab.freedesktop.org/dbus/dbus-python/-/work_items/59
+    (fetchpatch {
+      url = "https://gitlab.freedesktop.org/dbus/dbus-python/-/commit/ebecd1747c382a57ad8e47d0e32112cdbd454b40.patch";
+      hash = "sha256-Hg4o+FPJvQ1/RW9fd8UJg/YEeVOvbJCov7SS7bT0vvs=";
+      revert = true;
+    })
   ];
 
-  preConfigure = lib.optionalString (lib.versionAtLeast stdenv.hostPlatform.darwinMinVersion "11" && stdenv.isDarwin) ''
-    MACOSX_DEPLOYMENT_TARGET=10.16
+  postPatch = ''
+    # we provide patchelf natively, not through the python package
+    sed -i '/patchelf/d' pyproject.toml
+
+    patchShebangs test/*.sh
   '';
 
-  configureFlags = [
-    "PYTHON=${python.pythonOnBuildForHost.interpreter}"
+  nativeBuildInputs = [
+    dbus # build systems checks for `dbus-run-session` in PATH
+    meson
+    meson-python
+    pkg-config
   ];
 
-  nativeBuildInputs = [ pkg-config ];
-  buildInputs = [ dbus dbus-glib ]
-    # My guess why it's sometimes trying to -lncurses.
-    # It seems not to retain the dependency anyway.
-    ++ lib.optional (! python ? modules) ncurses;
+  buildInputs = [
+    dbus
+    dbus-glib
+  ];
 
-  doCheck = isPy3k;
-  nativeCheckInputs = [ dbus.out pygobject3 ];
+  checkInputs = [
+    pygobject3
+  ];
 
+  mesonFlags = [
+    (lib.mesonEnable "tests" finalAttrs.finalPackage.doInstallCheck)
+  ];
+
+  # workaround bug in meson-python
+  # https://github.com/mesonbuild/meson-python/issues/240
   postInstall = ''
-    cp -r dbus_python.egg-info $out/${python.sitePackages}/
+    mkdir -p $dev/lib
+    mv $out/${python.sitePackages}/.dbus_python.mesonpy.libs/pkgconfig/ $dev/lib
   '';
 
-  meta = with lib; {
+  # make sure the Cflags in the pkgconfig file are correct and make the structure backwards compatible
+  postFixup = ''
+    ln -s $dev/include/*/dbus_python/dbus-1.0/ $dev/include/dbus-1.0
+  '';
+
+  nativeCheckInputs = [ dbus.out ];
+
+  checkPhase = ''
+    runHook preCheck
+
+    meson test -C build --no-rebuild --print-errorlogs --timeout-multiplier 0
+
+    runHook postCheck
+  '';
+
+  meta = {
     description = "Python DBus bindings";
-    license = licenses.mit;
+    homepage = "https://gitlab.freedesktop.org/dbus/dbus-python";
+    license = lib.licenses.mit;
     platforms = dbus.meta.platforms;
-    maintainers = with maintainers; [ ];
+    maintainers = [ ];
   };
-}
+})

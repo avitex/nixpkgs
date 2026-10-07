@@ -1,27 +1,25 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, isPyPy
-, mock
-, pytestCheckHook
-, pythonAtLeast
-, pythonOlder
-, setuptools
-, simplejson
-, twisted
-, versioneer
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  isPyPy,
+  mock,
+  pytestCheckHook,
+  pythonAtLeast,
+  setuptools,
+  simplejson,
+  twisted,
+  versioneer,
 }:
 
 buildPythonPackage rec {
   pname = "pyutil";
-  version = "3.3.6";
+  version = "3.4.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-XcPWu5xbq6u10Ldz4JQEXXVxLos0ry0psOKGAmaCZ8A=";
+    hash = "sha256-8RHsCEieQ3/uHPkNai+sUBR2hDJAVrYy5DMlp6YRw6c=";
   };
 
   prePatch = lib.optionalString isPyPy ''
@@ -33,10 +31,8 @@ buildPythonPackage rec {
     versioneer
   ];
 
-  passthru.optional-dependencies = {
-    jsonutil = [
-      simplejson
-    ];
+  optional-dependencies = {
+    jsonutil = [ simplejson ];
     # Module not available
     # randcookie = [
     #   zbase32
@@ -47,11 +43,10 @@ buildPythonPackage rec {
     mock
     twisted
     pytestCheckHook
-  ] ++ lib.flatten (builtins.attrValues passthru.optional-dependencies);
+  ]
+  ++ lib.concatAttrValues optional-dependencies;
 
-  pythonImportsCheck = [
-    "pyutil"
-  ];
+  pythonImportsCheck = [ "pyutil" ];
 
   disabledTests = lib.optionals (pythonAtLeast "3.12") [
     # https://github.com/tpltnt/pyutil/issues/10
@@ -59,7 +54,7 @@ buildPythonPackage rec {
     "test_float"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Collection of mature utilities for Python programmers";
     longDescription = ''
       These are a few data structures, classes and functions which
@@ -71,8 +66,7 @@ buildPythonPackage rec {
       we're not alone in wanting tools like these.
     '';
     homepage = "https://github.com/tpltnt/pyutil";
-    license = licenses.gpl2Plus;
-    maintainers = with maintainers; [ prusnak ];
+    license = lib.licenses.gpl2Plus;
+    maintainers = with lib.maintainers; [ prusnak ];
   };
-
 }

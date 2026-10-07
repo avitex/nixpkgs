@@ -1,6 +1,7 @@
-{ lib
-, buildPythonPackage
-, flatbuffers
+{
+  lib,
+  buildPythonPackage,
+  flatbuffers,
 }:
 
 buildPythonPackage rec {
@@ -12,7 +13,7 @@ buildPythonPackage rec {
 
   # flatbuffers needs VERSION environment variable for setting the correct
   # version, otherwise it uses the current date.
-  VERSION = version;
+  env.VERSION = version;
 
   pythonImportsCheck = [ "flatbuffers" ];
 

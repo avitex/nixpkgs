@@ -1,6 +1,17 @@
-{ lib, buildPythonPackage, fetchPypi, isPy3k,
-  numpy, django-colorful, pillow, psycopg2,
-  pyparsing, django, celery, boto3, importlib-metadata
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  isPy3k,
+  numpy,
+  django-colorful,
+  pillow,
+  psycopg2,
+  pyparsing,
+  django,
+  celery,
+  boto3,
+  importlib-metadata,
 }:
 
 buildPythonPackage rec {
@@ -18,12 +29,21 @@ buildPythonPackage rec {
   # Tests require a postgresql + postgis server
   doCheck = false;
 
-  propagatedBuildInputs = [ numpy django-colorful pillow psycopg2
-                            pyparsing django celery boto3 importlib-metadata ];
+  propagatedBuildInputs = [
+    numpy
+    django-colorful
+    pillow
+    psycopg2
+    pyparsing
+    django
+    celery
+    boto3
+    importlib-metadata
+  ];
 
-  meta = with lib; {
+  meta = {
     description = "Basic raster data integration for Django";
     homepage = "https://github.com/geodesign/django-raster";
-    license = licenses.mit;
+    license = lib.licenses.mit;
   };
 }

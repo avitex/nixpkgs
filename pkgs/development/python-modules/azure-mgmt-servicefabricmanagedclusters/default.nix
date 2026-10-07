@@ -1,39 +1,42 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, msrest
-, msrestazure
-, azure-common
-, azure-mgmt-core
+{
+  lib,
+  azure-common,
+  azure-mgmt-core,
+  buildPythonPackage,
+  fetchPypi,
+  isodate,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "azure-mgmt-servicefabricmanagedclusters";
-  version = "1.0.0";
-  format = "setuptools";
+  version = "2.1.0b3";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    extension = "zip";
-    hash = "sha256-EJyjolHrt92zWg+IKWFKTapwZaFrwTtSyEIu5/mZXOg=";
+    pname = "azure_mgmt_servicefabricmanagedclusters";
+    inherit version;
+    hash = "sha256-52i8y0V2qy3yDP/mJi7zATE0+qi5H+F8Zcjnoc2qQTU=";
   };
 
-  propagatedBuildInputs = [
-    msrest
-    msrestazure
+  build-system = [ setuptools ];
+
+  dependencies = [
+    isodate
     azure-common
     azure-mgmt-core
   ];
 
   pythonNamespaces = [ "azure.mgmt" ];
 
-  # has no tests
+  # Module has tests in mono-repo
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "This is the Microsoft Azure Service Fabric Cluster Management Client Library";
-    homepage = "https://github.com/Azure/azure-sdk-for-python";
-    license = licenses.mit;
-    maintainers = with maintainers; [ jonringer ];
+    homepage = "https://github.com/Azure/azure-sdk-for-python/tree/main/sdk/servicefabricmanagedclusters/azure-mgmt-servicefabricmanagedclusters";
+    changelog = "https://github.com/Azure/azure-sdk-for-python/blob/azure-mgmt-servicefabricmanagedclusters_${version}/sdk/servicefabricmanagedclusters/azure-mgmt-servicefabricmanagedclusters/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

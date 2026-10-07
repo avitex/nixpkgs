@@ -1,52 +1,42 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, httpx
-, pytestCheckHook
-, python
-, pythonOlder
-, requests
-, six
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  httpx,
+  pytestCheckHook,
+  requests,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "requests-aws4auth";
-  version = "1.2.3";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "1.3.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "tedder";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-9ySuX7eKrSwgxgFoMdnVTsIfpnm9kVcI9AqSb+AsVaU=";
+    repo = "requests-aws4auth";
+    tag = "v${version}";
+    hash = "sha256-GIbv4/a1ZdcIOemanzDiueLcKg8pUVeIFSAfErIr0HI=";
   };
 
-  propagatedBuildInputs = [
-    requests
-    six
-  ];
+  build-system = [ setuptools ];
 
-  passthru.optional-dependencies = {
-    httpx = [
-      httpx
-    ];
+  dependencies = [ requests ];
+
+  optional-dependencies = {
+    httpx = [ httpx ];
   };
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ] ++ passthru.optional-dependencies.httpx;
+  nativeCheckInputs = [ pytestCheckHook ] ++ optional-dependencies.httpx;
 
-  pythonImportsCheck = [
-    "requests_aws4auth"
-  ];
+  pythonImportsCheck = [ "requests_aws4auth" ];
 
-  meta = with lib; {
+  meta = {
     description = "Amazon Web Services version 4 authentication for the Python Requests library";
     homepage = "https://github.com/sam-washington/requests-aws4auth";
     changelog = "https://github.com/tedder/requests-aws4auth/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ basvandijk ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ basvandijk ];
   };
 }

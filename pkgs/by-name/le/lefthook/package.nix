@@ -1,32 +1,34 @@
-{ lib
-, buildGoModule
-, fetchFromGitHub
-, installShellFiles
+{
+  lib,
+  stdenv,
+  buildGoModule,
+  fetchFromGitHub,
+  installShellFiles,
 }:
 
-let
+buildGoModule (finalAttrs: {
   pname = "lefthook";
-  version = "1.5.7";
-in
-buildGoModule rec {
-  inherit pname version;
+  version = "2.1.15";
 
   src = fetchFromGitHub {
     owner = "evilmartians";
     repo = "lefthook";
-    rev = "v${version}";
-    hash = "sha256-0z4hTx9ClGh20Ncf23SbwuPBdGoFz80FQUx7s77l7y8=";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-gBgydS6E35Jd3r8Tp1hvCk3c6E39kcNE5Gu60RCtLw4=";
   };
 
-  vendorHash = "sha256-/VLS7+nPERjIU7V2CzqXH69Z3/y+GKZbAFn+KcRKRuA=";
+  vendorHash = "sha256-61w4BJKInUbQOInbqjshWiwyrpGSM+/JziMRmK9pik4=";
 
   nativeBuildInputs = [ installShellFiles ];
 
-  ldflags = [ "-s" "-w" ];
+  ldflags = [
+    "-s"
+    "-w"
+  ];
 
   doCheck = false;
 
-  postInstall = ''
+  postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
     installShellCompletion --cmd lefthook \
       --bash <($out/bin/lefthook completion bash) \
       --fish <($out/bin/lefthook completion fish) \
@@ -36,9 +38,9 @@ buildGoModule rec {
   meta = {
     description = "Fast and powerful Git hooks manager for any type of projects";
     homepage = "https://github.com/evilmartians/lefthook";
-    changelog = "https://github.com/evilmartians/lefthook/raw/v${version}/CHANGELOG.md";
+    changelog = "https://github.com/evilmartians/lefthook/raw/v${finalAttrs.version}/CHANGELOG.md";
     license = lib.licenses.mit;
     mainProgram = "lefthook";
-    maintainers = with lib.maintainers; [ AndersonTorres ];
+    maintainers = with lib.maintainers; [ nightconcept ];
   };
-}
+})

@@ -1,97 +1,111 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchPypi,
+  pythonOlder,
 
-# Build dependencies
-, setuptools
+  # Build dependencies
+  setuptools,
 
-# Runtime dependencies
-, appnope
-, backcall
-, decorator
-, exceptiongroup
-, jedi
-, matplotlib-inline
-, pexpect
-, pickleshare
-, prompt-toolkit
-, pygments
-, stack-data
-, traitlets
-, typing-extensions
+  # Runtime dependencies
+  decorator,
+  ipython-pygments-lexers,
+  jedi,
+  matplotlib-inline,
+  pexpect,
+  prompt-toolkit,
+  psutil,
+  pygments,
+  stack-data,
+  traitlets,
+  typing-extensions,
 
-# Test dependencies
-, pytestCheckHook
-, testpath
+  # Optional dependencies
+  matplotlib,
+
+  # Reverse dependency
+  sage,
+
+  # Test dependencies
+  pickleshare,
+  pytest-asyncio,
+  pytestCheckHook,
+  testpath,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "ipython";
-  version = "8.18.1";
-  format = "pyproject";
-  disabled = pythonOlder "3.8";
+  version = "9.14.0";
+  outputs = [
+    "out"
+    "man"
+  ];
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    sha256 = "sha256-ym8Hm7M0V8ZuIz5FgOv8QSiFW0z2Nw3d1zhCqVY+iic=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-byf/Dx2eoFDgVR9xVovEs02KuleejxEcW0F19ErGtKo=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
-    backcall
+  dependencies = [
     decorator
+    ipython-pygments-lexers
     jedi
     matplotlib-inline
     pexpect
-    pickleshare
     prompt-toolkit
+    psutil
     pygments
     stack-data
     traitlets
-  ] ++ lib.optionals (pythonOlder "3.11") [
-    exceptiongroup
-  ] ++ lib.optionals (pythonOlder "3.10") [
-    typing-extensions
-  ] ++ lib.optionals stdenv.isDarwin [
-    appnope
-  ];
+  ]
+  ++ lib.optionals (pythonOlder "3.12") [ typing-extensions ];
 
-  pythonImportsCheck = [
-    "IPython"
-  ];
+  optional-dependencies = {
+    matplotlib = [ matplotlib ];
+  };
+
+  pythonImportsCheck = [ "IPython" ];
 
   preCheck = ''
     export HOME=$TMPDIR
 
     # doctests try to fetch an image from the internet
     substituteInPlace pyproject.toml \
-      --replace '"--ipdoctest-modules",' '"--ipdoctest-modules", "--ignore=IPython/core/display.py",'
+      --replace-fail '"--ipdoctest-modules",' '"--ipdoctest-modules", "--ignore=IPython/core/display.py",'
   '';
 
   nativeCheckInputs = [
+    pickleshare
+    pytest-asyncio
     pytestCheckHook
     testpath
   ];
 
   disabledTests = [
-    # UnboundLocalError: local variable 'child' referenced before assignment
-    "test_system_interrupt"
-  ] ++ lib.optionals (stdenv.isDarwin) [
+    # timing sensitive
+    "test_debug_magic_passes_through_generators"
+    "test_nest_embed"
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
     # FileNotFoundError: [Errno 2] No such file or directory: 'pbpaste'
     "test_clipboard_get"
   ];
 
-  meta = with lib; {
+  passthru.tests = {
+    inherit sage;
+  };
+
+  meta = {
     description = "IPython: Productive Interactive Computing";
     downloadPage = "https://github.com/ipython/ipython/";
-    homepage = "https://ipython.org/";
-    changelog = "https://github.com/ipython/ipython/blob/${version}/docs/source/whatsnew/version${lib.versions.major version}.rst";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ bjornfor fridh ];
+    homepage = "https://ipython.readthedocs.io/en/stable/";
+    changelog = "https://github.com/ipython/ipython/blob/${finalAttrs.version}/docs/source/whatsnew/version${lib.versions.major finalAttrs.version}.rst";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ bjornfor ];
+    teams = [ lib.teams.jupyter ];
   };
-}
+})

@@ -1,12 +1,14 @@
-{ arcan
-, makeWrapper
-, symlinkJoin
-, appls ? [ ]
-, name ? "arcan-wrapped"
+{
+  arcan,
+  makeWrapper,
+  symlinkJoin,
+  appls ? [ ],
+  name ? "arcan-wrapped",
 }:
 
-symlinkJoin rec {
-  inherit name;
+symlinkJoin {
+  pname = name;
+  inherit (arcan) version;
 
   paths = appls ++ [ arcan ];
 

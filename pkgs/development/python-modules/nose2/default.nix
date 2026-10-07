@@ -1,60 +1,58 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  fetchpatch,
 
-# build-system
-, setuptools
+  # build-system
+  setuptools,
 
-# optional-dependencies
-, coverage
+  # optional-dependencies
+  coverage,
 
-# tests
-, unittestCheckHook
+  # tests
+  unittestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "nose2";
-  version = "0.14.0";
+  version = "0.15.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-XCjXcKC5pwKGK9bDdVuizS95lN1RjJguXOKY1/N0ZqQ=";
+    hash = "sha256-NncPUZ31vs08v+C+5Ku/v5ufa0604DNh0oK378/E8N8=";
   };
 
-  nativeBuildInputs = [
-    setuptools
+  patches = [
+    # Starting with Python 3.14, both `-X` and `--xxx` are surrounded
+    # by ANSI color codes in the argparse help text.
+    (fetchpatch {
+      url = "https://github.com/nose-devs/nose2/commit/2043fdfa264dc04e379e11c227e63a5704cb0185.patch";
+      hash = "sha256-OWzBInMI0ef9g0H3muka7J7FP01IZEFkuzJfaku78bI=";
+    })
   ];
 
-  passthru.optional-dependencies = {
-    coverage = [
-      coverage
-    ];
+  build-system = [ setuptools ];
+
+  optional-dependencies = {
+    coverage_plugin = [ coverage ];
   };
 
-  pythonImportsCheck = [
-    "nose2"
-  ];
+  pythonImportsCheck = [ "nose2" ];
 
   __darwinAllowLocalNetworking = true;
 
   nativeCheckInputs = [
     unittestCheckHook
-  ] ++ lib.flatten (lib.attrValues passthru.optional-dependencies);
+  ];
 
-  preCheck = ''
-    # https://github.com/nose-devs/nose2/issues/588
-    substituteInPlace nose2/tests/functional/test_junitxml_plugin.py \
-      --replace "test_skip_reason_in_message" "dont_test_skip_reason_in_message"
-  '';
-
-  meta = with lib; {
+  meta = {
+    changelog = "https://github.com/nose-devs/nose2/blob/${version}/docs/changelog.rst";
     description = "Test runner for Python";
+    mainProgram = "nose2";
     homepage = "https://github.com/nose-devs/nose2";
-    license = licenses.bsd0;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.bsd0;
+    maintainers = [ ];
   };
 }

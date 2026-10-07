@@ -1,34 +1,40 @@
-{ lib
-, aiohttp
-, aioresponses
-, asynccmd
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  aiohttp,
+  aioresponses,
+  asynccmd,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fetchpatch,
+  poetry-core,
+  pytest-asyncio,
+  pytest8_3CheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "pyspcwebgw";
   version = "0.7.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.9";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "mbrrg";
-    repo = pname;
-    rev = "refs/tags/v${version}";
+    repo = "pyspcwebgw";
+    tag = "v${version}";
     hash = "sha256-gdIrbr25GXaX26B1f7u0NKbqqnAC2tmMFZspzW6I4HI=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
+  patches = [
+    # https://github.com/pyspcwebgw/pyspcwebgw/pull/27
+    (fetchpatch {
+      name = "replace-async-timeout-with-asyncio.timeout.patch";
+      url = "https://github.com/pyspcwebgw/pyspcwebgw/commit/22cacc8db53cf2a244c30c0e62a0dad90fbcb00b.patch";
+      hash = "sha256-Og0imZts49jwjbz7Yp41UIzwU/lVjKVc/Tp4+vNz32U=";
+    })
   ];
 
-  propagatedBuildInputs = [
+  build-system = [ poetry-core ];
+
+  dependencies = [
     asynccmd
     aiohttp
   ];
@@ -36,20 +42,16 @@ buildPythonPackage rec {
   nativeCheckInputs = [
     aioresponses
     pytest-asyncio
-    pytestCheckHook
-  ];
-
-  pytestFlagsArray = [
-    "--asyncio-mode=auto"
+    pytest8_3CheckHook
   ];
 
   pythonImportsCheck = [ "pyspcwebgw" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python module for the SPC Web Gateway REST API";
     homepage = "https://github.com/mbrrg/pyspcwebgw";
     changelog = "https://github.com/pyspcwebgw/pyspcwebgw/releases/tag/v${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

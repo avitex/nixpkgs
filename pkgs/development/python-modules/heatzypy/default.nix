@@ -1,55 +1,41 @@
-{ lib
-, aiohttp
-, buildPythonPackage
-, fetchFromGitHub
-, requests
-, pytestCheckHook
-, pythonOlder
-, setuptools
-, wheel
+{
+  lib,
+  aiohttp,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  setuptools-scm,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "heatzypy";
-  version = "2.2.0";
+  version = "2.6.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.11";
 
   src = fetchFromGitHub {
     owner = "Cyr-ius";
     repo = "heatzypy";
-    rev = "refs/tags/${version}";
-    hash = "sha256-Q6v1Ob1PY8tpMnd8hchepq983dsZ6lJPCKz83RRwL3w=";
+    tag = finalAttrs.version;
+    hash = "sha256-7hoei8uFDmSeqKSBmhmVoF5lZNuDkNqSFT+YjKPnJlk=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace "replace_by_workflow" "${version}"
-  '';
-
-  nativeBuildInputs = [
+  build-system = [
     setuptools
-    wheel
+    setuptools-scm
   ];
 
-  propagatedBuildInputs = [
-    aiohttp
-    requests
-  ];
+  dependencies = [ aiohttp ];
 
   # Module has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "heatzypy"
-  ];
+  pythonImportsCheck = [ "heatzypy" ];
 
-  meta = with lib; {
+  meta = {
     description = "Module to interact with Heatzy devices";
     homepage = "https://github.com/Cyr-ius/heatzypy";
-    changelog = "https://github.com/cyr-ius/heatzypy/releases/tag/${version}";
-    license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/cyr-ius/heatzypy/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.gpl3Plus;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

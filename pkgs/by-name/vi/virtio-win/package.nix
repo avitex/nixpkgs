@@ -1,12 +1,17 @@
-{ lib, stdenv, fetchurl, libarchive }:
+{
+  lib,
+  stdenv,
+  fetchurl,
+  libarchive,
+}:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "virtio-win";
-  version = "0.1.240-1";
+  version = "0.1.302-1";
 
   src = fetchurl {
-    url = "https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-${version}/virtio-win.iso";
-    hash = "sha256-69SCWGaPf3jgJu0nbCip0Z2D4CD/oICtaZENyGu8vMY=";
+    url = "https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-${finalAttrs.version}/virtio-win.iso";
+    hash = "sha256-MD965A2tSV1q5HT9xXHfWJWKTbxcN6Ui2A+aIDhnlJ0=";
   };
 
   nativeBuildInputs = [
@@ -26,13 +31,13 @@ stdenv.mkDerivation rec {
 
   passthru.updateScript = ./update.sh;
 
-  meta = with lib; {
+  meta = {
     description = "Windows VirtIO Drivers";
     homepage = "https://docs.fedoraproject.org/en-US/quick-docs/creating-windows-virtual-machines-using-virtio-drivers/index.html";
     changelog = "https://fedorapeople.org/groups/virt/virtio-win/CHANGELOG";
-    license = [ licenses.bsd3 ];
-    maintainers = with maintainers; [ anthonyroussel ];
-    sourceProvenance = with sourceTypes; [ binaryNativeCode ];
-    platforms = platforms.linux;
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ anthonyroussel ];
+    sourceProvenance = with lib.sourceTypes; [ binaryNativeCode ];
+    platforms = lib.platforms.linux;
   };
-}
+})

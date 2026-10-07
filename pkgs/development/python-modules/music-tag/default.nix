@@ -1,8 +1,9 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, mutagen
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  mutagen,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
@@ -15,27 +16,21 @@ buildPythonPackage rec {
     hash = "sha256-Cqtubu2o3w9TFuwtIZC9dFYbfgNWKrCRzo1Wh828//Y=";
   };
 
-  propagatedBuildInputs = [
-    mutagen
-  ];
+  propagatedBuildInputs = [ mutagen ];
 
-  checkInputs = [
-    pytestCheckHook
-  ];
+  checkInputs = [ pytestCheckHook ];
 
-  pytestFlagsArray = [ "test" ];
+  enabledTestPaths = [ "test" ];
 
   # Tests fail: ModuleNotFoundError: No module named '_test_common'
   doCheck = false;
 
-  pythonImportsCheck = [
-    "music_tag"
-  ];
+  pythonImportsCheck = [ "music_tag" ];
 
-  meta = with lib; {
+  meta = {
     description = "Simple interface to edit audio file metadata";
     homepage = "https://github.com/KristoforMaynard/music-tag";
-    license = licenses.mit;
-    maintainers = with maintainers; [ onny ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ onny ];
   };
 }

@@ -1,13 +1,13 @@
-{ lib
-, buildPythonPackage
-, cython
-, fetchFromGitHub
-, libstatgrab
-, pkg-config
-, pythonOlder
-, setuptools
-, unittestCheckHook
-, wheel
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  cython,
+  fetchFromGitHub,
+  libstatgrab,
+  pkg-config,
+  setuptools,
+  unittestCheckHook,
 }:
 
 buildPythonPackage rec {
@@ -15,39 +15,33 @@ buildPythonPackage rec {
   version = "0.7.2";
   pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
   src = fetchFromGitHub {
     owner = "libstatgrab";
     repo = "pystatgrab";
-    rev = "PYSTATGRAB_${lib.replaceStrings ["."] ["_"] version}";
+    rev = "PYSTATGRAB_${lib.replaceStrings [ "." ] [ "_" ] version}";
     hash = "sha256-0FDhkIK8jy3/SFmCzrl9l4RTeIKDjO0o5UoODx6Wnfs=";
   };
+
+  build-system = [ setuptools ];
 
   nativeBuildInputs = [
     cython
     pkg-config
-    setuptools
-    wheel
   ];
 
-  buildInputs = [
-    libstatgrab
-  ];
+  buildInputs = [ libstatgrab ];
 
-  nativeCheckInputs = [
-    unittestCheckHook
-  ];
+  nativeCheckInputs = [ unittestCheckHook ];
 
-  pythonImportsCheck = [
-    "statgrab"
-  ];
+  pythonImportsCheck = [ "statgrab" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python bindings for libstatgrab";
     homepage = "https://github.com/libstatgrab/pystatgrab";
-    changelog = "https://github.com/libstatgrab/pystatgrab/blob/PYSTATGRAB_${lib.replaceStrings ["."] ["_"] version}/NEWS";
-    license = licenses.lgpl21Only;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/libstatgrab/pystatgrab/blob/PYSTATGRAB_${
+      lib.replaceStrings [ "." ] [ "_" ] version
+    }/NEWS";
+    license = lib.licenses.lgpl21Only;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

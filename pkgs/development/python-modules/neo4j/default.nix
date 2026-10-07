@@ -1,71 +1,55 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, numpy
-, pandas
-, pyarrow
-, pythonOlder
-, pytz
-, setuptools
-, tomlkit
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  numpy,
+  pandas,
+  pyarrow,
+  pytz,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "neo4j";
-  version = "5.16.0";
+  version = "6.3.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "neo4j";
     repo = "neo4j-python-driver";
-    rev = "refs/tags/${version}";
-    hash = "sha256-ly/R2ufd5gEkUyfajpeMQblTiKipC9HFtxkWkh16zLo=";
+    tag = finalAttrs.version;
+    hash = "sha256-8dyOfTviZH5eibN1xwl662JxlshPtV9mAf74N3vWV70=";
   };
 
   postPatch = ''
-    # The dynamic versioning adds a postfix (.dev0) to the version
     substituteInPlace pyproject.toml \
-      --replace '"tomlkit ~= 0.11.6"' '"tomlkit >= 0.11.6"' \
-      --replace 'dynamic = ["version", "readme"]' 'dynamic = ["readme"]' \
-      --replace '#readme = "README.rst"' 'version = "${version}"'
+      --replace-fail "setuptools == 84.0.0" "setuptools" \
+      --replace-fail 'dynamic = ["version"]' 'version = "${finalAttrs.version}"'
   '';
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
-    pytz
-    tomlkit
-  ];
+  dependencies = [ pytz ];
 
-  passthru.optional-dependencies = {
-    numpy = [
-      numpy
-    ];
+  optional-dependencies = {
+    numpy = [ numpy ];
     pandas = [
       numpy
       pandas
     ];
-    pyarrow = [
-      pyarrow
-    ];
+    pyarrow = [ pyarrow ];
   };
 
   # Missing dependencies
   doCheck = false;
 
-  pythonImportsCheck = [
-    "neo4j"
-  ];
+  pythonImportsCheck = [ "neo4j" ];
 
-  meta = with lib; {
+  meta = {
     description = "Neo4j Bolt Driver for Python";
     homepage = "https://github.com/neo4j/neo4j-python-driver";
-    changelog = "https://github.com/neo4j/neo4j-python-driver/releases/tag/${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/neo4j/neo4j-python-driver/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

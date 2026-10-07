@@ -1,36 +1,37 @@
-{ buildPythonPackage
-, lib
-, fetchFromGitLab
-, pyenchant
-, scikit-learn
-, pypillowfight
-, pycountry
-, whoosh
-, termcolor
-, pygobject3
-, pyocr
-, natsort
-, libinsane
-, distro
-, openpaperwork-core
-, openpaperwork-gtk
-, psutil
-, gtk3
-, poppler_gi
-, gettext
-, which
-, shared-mime-info
-, libreoffice
-, unittestCheckHook
-, setuptools-scm
+{
+  buildPythonPackage,
+  lib,
+  callPackage,
+  pyenchant,
+  scikit-learn,
+  pypillowfight,
+  pycountry,
+  whoosh,
+  termcolor,
+  pygobject3,
+  pyocr,
+  natsort,
+  libinsane,
+  distro,
+  openpaperwork-core,
+  openpaperwork-gtk,
+  psutil,
+  gtk3,
+  poppler_gi,
+  gettext,
+  which,
+  shared-mime-info,
+  libreoffice,
+  unittestCheckHook,
+  setuptools-scm,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "paperwork-backend";
-  inherit (import ./src.nix { inherit fetchFromGitLab; }) version src;
-  format = "pyproject";
+  inherit (callPackage ./src.nix { }) version src;
+  pyproject = true;
 
-  sourceRoot = "${src.name}/paperwork-backend";
+  sourceRoot = "${finalAttrs.src.name}/paperwork-backend";
 
   patches = [
     # disables a flaky test https://gitlab.gnome.org/World/OpenPaperwork/paperwork/-/issues/1035#note_1493700
@@ -83,10 +84,13 @@ buildPythonPackage rec {
     export HOME=$TMPDIR
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Backend part of Paperwork (Python API, no UI)";
     homepage = "https://openpaper.work";
-    license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ aszlig symphorien ];
+    license = lib.licenses.gpl3Plus;
+    maintainers = with lib.maintainers; [
+      aszlig
+      symphorien
+    ];
   };
-}
+})

@@ -1,42 +1,41 @@
-{ lib
-, aiohttp
-, aresponses
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, pydantic
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, syrupy
-, yarl
+{
+  lib,
+  aiohttp,
+  aresponses,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  pydantic,
+  pyprojectVersionPatchHook,
+  pytest-asyncio,
+  pytest-cov-stub,
+  pytestCheckHook,
+  syrupy,
+  yarl,
 }:
 
 buildPythonPackage rec {
   pname = "python-opensky";
-  version = "1.0.0";
+  version = "1.0.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.11";
 
   src = fetchFromGitHub {
     owner = "joostlek";
     repo = "python-opensky";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-Ia6/Lr/uNuF1u0s4g0tpYaW+hKeLbUKxYC/O+ZBqiXI=";
+    tag = "v${version}";
+    hash = "sha256-V6iRwWzCnPCvu8eks2sHPYrX3OmaFnNj+i57kQJKYm0=";
   };
 
   postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace 'version = "0.0.0"' 'version = "${version}"' \
-      --replace "--cov" ""
     substituteInPlace src/python_opensky/opensky.py \
       --replace ".joinpath(uri)" "/ uri"
   '';
 
   nativeBuildInputs = [
-    poetry-core
+    pyprojectVersionPatchHook
   ];
+
+  build-system = [ poetry-core ];
 
   propagatedBuildInputs = [
     aiohttp
@@ -47,19 +46,18 @@ buildPythonPackage rec {
   nativeCheckInputs = [
     aresponses
     pytest-asyncio
+    pytest-cov-stub
     pytestCheckHook
     syrupy
   ];
 
-  pythonImportsCheck = [
-    "python_opensky"
-  ];
+  pythonImportsCheck = [ "python_opensky" ];
 
-  meta = with lib; {
+  meta = {
     description = "Asynchronous Python client for the OpenSky API";
     homepage = "https://github.com/joostlek/python-opensky";
     changelog = "https://github.com/joostlek/python-opensky/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

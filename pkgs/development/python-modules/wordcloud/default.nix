@@ -1,56 +1,51 @@
-{ lib
-, buildPythonPackage
-, cython
-, fetchFromGitHub
-, matplotlib
-, mock
-, numpy
-, pillow
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  cython,
+  fetchPypi,
+  matplotlib,
+  numpy,
+  pillow,
+  pytestCheckHook,
+  pytest-cov-stub,
+  setuptools,
+  setuptools-scm,
 }:
 
 buildPythonPackage rec {
   pname = "wordcloud";
-  version = "1.9.1.1";
-  format = "setuptools";
+  version = "1.9.6";
 
-  disabled = pythonOlder "3.7";
+  pyproject = true;
 
-  src = fetchFromGitHub {
-    owner = "amueller";
-    repo = "word_cloud";
-    rev = "refs/tags/${version}";
-    hash = "sha256-Tcle9otT1eBN/RzajwKZDUq8xX0Lhi2t74OvhUrvHZE=";
-  };
-
-  postPatch = ''
-    substituteInPlace setup.cfg \
-      --replace " --cov --cov-report xml --tb=short" ""
-  '';
-
-  nativeBuildInputs = [
-    cython
+  build-system = [
+    setuptools
+    setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  src = fetchPypi {
+    inherit pname version;
+    hash = "sha256-3xfEaP+QO9CrpPh8ZUB0XROkkxIg3Uk3yzY62FpHcbk=";
+  };
+
+  nativeBuildInputs = [ cython ];
+
+  dependencies = [
     matplotlib
     numpy
     pillow
   ];
 
   nativeCheckInputs = [
-    mock
     pytestCheckHook
+    pytest-cov-stub
   ];
 
   preCheck = ''
     cd test
   '';
 
-  pythonImportsCheck = [
-    "wordcloud"
-  ];
+  pythonImportsCheck = [ "wordcloud" ];
 
   disabledTests = [
     # Don't tests CLI
@@ -60,11 +55,12 @@ buildPythonPackage rec {
     "test_coloring_black_works"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Word cloud generator in Python";
+    mainProgram = "wordcloud_cli";
     homepage = "https://github.com/amueller/word_cloud";
     changelog = "https://github.com/amueller/word_cloud/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ jm2dev ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ jm2dev ];
   };
 }

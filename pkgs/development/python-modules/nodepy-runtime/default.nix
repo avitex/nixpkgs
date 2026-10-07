@@ -1,9 +1,10 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, localimport
-, pathlib2
-, six
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  localimport,
+  pathlib2,
+  six,
 }:
 
 buildPythonPackage rec {
@@ -22,11 +23,9 @@ buildPythonPackage rec {
     six
   ];
 
-  pythonImportsCheck = [
-    "nodepy"
-  ];
+  pythonImportsCheck = [ "nodepy" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/nodepy/nodepy";
     description = "Runtime for Python inspired by Node.JS";
     longDescription = ''
@@ -42,7 +41,7 @@ buildPythonPackage rec {
       dependencies of the package manager you must specify the [pm] install
       extra.
     '';
-    license = licenses.mit;
-    maintainers = with maintainers; [ AndersonTorres ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

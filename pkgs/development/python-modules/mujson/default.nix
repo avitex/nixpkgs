@@ -1,6 +1,7 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
 }:
 
 buildPythonPackage rec {
@@ -24,10 +25,10 @@ buildPythonPackage rec {
   doCheck = false;
   pythonImportsCheck = [ "mujson" ];
 
-  meta = with lib; {
+  meta = {
     description = "Use the fastest JSON functions available at import time";
     homepage = "https://github.com/mattgiles/mujson";
-    license = licenses.mit;
-    maintainers = with maintainers; [ artturin ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ artturin ];
   };
 }

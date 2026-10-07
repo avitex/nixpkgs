@@ -1,47 +1,46 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, click
-, colorama
-, cryptography
-, exrex
-, fetchFromGitHub
-, poetry-core
-, pyopenssl
-, pyperclip
-, pytest-mock
-, pytestCheckHook
-, pythonOlder
-, questionary
-, requests
-, requests-mock
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  click,
+  colorama,
+  cryptography,
+  exrex,
+  fetchFromGitHub,
+  poetry-core,
+  pyopenssl,
+  pyperclip,
+  pyprojectVersionPatchHook,
+  pytest-mock,
+  pytestCheckHook,
+  questionary,
+  requests-mock,
+  requests,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "myjwt";
-  version = "1.6.1";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "2.1.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
-    owner = "mBouamama";
+    owner = "tyki6";
     repo = "MyJWT";
-    rev = "refs/tags/${version}";
-    hash = "sha256-qdDA8DpJ9kAPTvCkQcPBHNlUqxwsS0vAESglvUygXhg=";
+    tag = finalAttrs.version;
+    hash = "sha256-jqBnxo7Omn5gLMCQ7SNbjo54nyFK7pn94796z2Qc9lg=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace "1.6.0" "${version}" \
-      --replace 'cryptography = "^39.0.2"' 'cryptography = "^39.0.0"'
-  '';
-
-  nativeBuildInputs = [
-    poetry-core
+  pythonRelaxDeps = [
+    "cryptography"
+    "pyopenssl"
+    "questionary"
   ];
 
-  propagatedBuildInputs = [
+  build-system = [ poetry-core ];
+
+  nativeBuildInputs = [ pyprojectVersionPatchHook ];
+
+  dependencies = [
     click
     colorama
     cryptography
@@ -58,17 +57,16 @@ buildPythonPackage rec {
     requests-mock
   ];
 
-  pythonImportsCheck = [
-    "myjwt"
-  ];
+  pythonImportsCheck = [ "myjwt" ];
 
-  meta = with lib; {
+  meta = {
     description = "CLI tool for testing vulnerabilities of JSON Web Tokens (JWT)";
-    homepage = "https://github.com/mBouamama/MyJWT";
-    changelog = "https://github.com/tyki6/MyJWT/releases/tag/${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    homepage = "https://github.com/tyki6/MyJWT";
+    changelog = "https://github.com/tyki6/MyJWT/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
+    mainProgram = "myjwt";
     # Build failures
-    broken = stdenv.isDarwin;
+    broken = stdenv.hostPlatform.isDarwin;
   };
-}
+})

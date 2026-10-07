@@ -1,38 +1,45 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchFromGitHub
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  gitUpdater,
 
-# build-system
-, setuptools
-, setuptools-lint
-, sphinx
+  # build-system
+  setuptools,
+  setuptools-lint,
+  sphinx,
 
-# dependencies
-, xlib
-, evdev
-, darwin
-, six
+  # dependencies
+  python-xlib,
+  evdev,
+  six,
+  pyobjc-framework-ApplicationServices,
+  pyobjc-framework-Quartz,
 
- # tests
-, unittestCheckHook
- }:
+  # tests
+  unittestCheckHook,
+}:
 
 buildPythonPackage rec {
   pname = "pynput";
-  version = "1.7.6";
-  format = "pyproject";
+  version = "1.8.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "moses-palmer";
     repo = "pynput";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-gRq4LS9NvPL98N0Jk09Z0GfoHS09o3zM284BEWS+NW4=";
+    tag = "v${version}";
+    hash = "sha256-LoolcMYzurJrR7HR1qDO+dvLwP1l9P3+QOzI7uwLdso=";
+  };
+  passthru.updateScript = gitUpdater {
+    rev-prefix = "v";
   };
 
   postPatch = ''
     substituteInPlace setup.py \
-      --replace "'sphinx >=1.3.1'" ""
+      --replace-fail "'sphinx >=1.3.1'," "" \
+      --replace-fail "'twine >=4.0']" "]"
   '';
 
   nativeBuildInputs = [
@@ -43,26 +50,25 @@ buildPythonPackage rec {
 
   propagatedBuildInputs = [
     six
-  ] ++ lib.optionals stdenv.isLinux [
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isLinux [
     evdev
-    xlib
-  ] ++ lib.optionals stdenv.isDarwin (with darwin.apple_sdk.frameworks; [
-    ApplicationServices
-    Quartz
-  ]);
+    python-xlib
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
+    # the darwin backend imports HIServices (ApplicationServices) and Quartz
+    pyobjc-framework-ApplicationServices
+    pyobjc-framework-Quartz
+  ];
 
   doCheck = false; # requires running X server
 
-  nativeCheckInputs = [
-    unittestCheckHook
-  ];
+  nativeCheckInputs = [ unittestCheckHook ];
 
-  meta = with lib; {
-    broken = stdenv.isDarwin;
-    description = "A library to control and monitor input devices";
+  meta = {
+    description = "Library to control and monitor input devices";
     homepage = "https://github.com/moses-palmer/pynput";
-    license = licenses.lgpl3;
-    maintainers = with maintainers; [ nickhu ];
+    license = lib.licenses.lgpl3;
+    maintainers = with lib.maintainers; [ nickhu ];
   };
 }
-

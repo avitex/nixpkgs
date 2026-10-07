@@ -1,36 +1,34 @@
-{ lib
-, buildPythonPackage
-, click
-, colorama
-, fetchPypi
-, flask
-, poetry-core
-, progress
-, pythonOlder
-, pythonRelaxDepsHook
-, requests
-, yt-dlp
+{
+  lib,
+  buildPythonPackage,
+  click,
+  colorama,
+  fetchPypi,
+  flask,
+  poetry-core,
+  progress,
+  requests,
+  yt-dlp,
 }:
 
 buildPythonPackage rec {
   pname = "yark";
-  version = "1.2.10";
+  version = "1.2.12";
   pyproject = true;
-
-  disabled = pythonOlder "3.9";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-Y1fWHpvrqGuBPyJ2dO2y0W2zhEgcTJABtkOAoZ7uyZU=";
+    hash = "sha256-K66LC/HhajAMCWU7PPfxkoaK84kLlAccYAH5FXoc+yE=";
   };
 
   pythonRelaxDeps = [
+    "flask"
     "requests"
+    "yt-dlp"
   ];
 
   nativeBuildInputs = [
     poetry-core
-    pythonRelaxDepsHook
   ];
 
   propagatedBuildInputs = [
@@ -45,15 +43,14 @@ buildPythonPackage rec {
   # Module has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "yark"
-  ];
+  pythonImportsCheck = [ "yark" ];
 
-  meta = with lib; {
+  meta = {
     description = "Module for YouTube archiving";
+    mainProgram = "yark";
     homepage = "https://github.com/Owez/yark";
-    changelog = "https://github.com/Owez/yark/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/Owez/yark/releases/tag/v${lib.versions.majorMinor version}";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

@@ -1,41 +1,41 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchPypi
-, setuptools
-, setuptools-scm
-, fsspec
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  setuptools-scm,
+  fsspec,
+  pathlib-abc,
 }:
 
 buildPythonPackage rec {
   pname = "universal-pathlib";
-  version = "0.1.4";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "0.3.8";
+  pyproject = true;
 
   src = fetchPypi {
     pname = "universal_pathlib";
     inherit version;
-    hash = "sha256-guXYbRaifg6hrcfYisvLqdAtWkVIgWMXT5bZrCidsuQ=";
+    hash = "sha256-6tK2W8o99uEcO3yzb8mEY0C8PC2071cTFVAmBCKwo+g=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     fsspec
+    pathlib-abc
   ];
 
   pythonImportsCheck = [ "upath" ];
 
-  meta = with lib; {
+  meta = {
     description = "Pathlib api extended to use fsspec backends";
     homepage = "https://github.com/fsspec/universal_pathlib";
     changelog = "https://github.com/fsspec/universal_pathlib/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ figsoda ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

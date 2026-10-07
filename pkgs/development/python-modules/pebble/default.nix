@@ -1,39 +1,49 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fetchpatch,
+  pytestCheckHook,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pebble";
-  version = "5.0.6";
-  format = "setuptools";
+  version = "5.2.1";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    pname = "Pebble";
-    inherit version;
-    hash = "sha256-5/fs/QEHq3zsnzu0EahWxNfVUiAtTpqLA46aZK4x/Yw=";
+  src = fetchFromGitHub {
+    owner = "noxdafox";
+    repo = "pebble";
+    tag = finalAttrs.version;
+    hash = "sha256-B2TFhBA0TgN+maqH+eELR2tdGUoPq1t31t2NM+K22vQ=";
   };
 
-  nativeCheckInputs = [
-    pytestCheckHook
+  patches = [
+    # Fix cvise regression: https://github.com/noxdafox/pebble/issues/164
+    (fetchpatch {
+      name = "fix-mutex.patch";
+      url = "https://github.com/noxdafox/pebble/commit/711c98f4193f4006f699e3d245d6855385eb267e.patch";
+      hash = "sha256-dCoOvCv1r9YKSsoKyyZ9rXLNhVmopWnXglBrO5be1Bw=";
+    })
   ];
 
-  doCheck = !stdenv.isDarwin;
-
-  pythonImportsCheck = [
-    "pebble"
+  build-system = [
+    setuptools
   ];
 
-  meta = with lib; {
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  doCheck = !stdenv.hostPlatform.isDarwin;
+
+  pythonImportsCheck = [ "pebble" ];
+
+  meta = {
     description = "API to manage threads and processes within an application";
     homepage = "https://github.com/noxdafox/pebble";
-    changelog = "https://github.com/noxdafox/pebble/releases/tag/${version}";
-    license = licenses.lgpl3Plus;
-    maintainers = with maintainers; [ orivej ];
+    changelog = "https://github.com/noxdafox/pebble/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.lgpl3Plus;
+    maintainers = [ ];
   };
-}
+})

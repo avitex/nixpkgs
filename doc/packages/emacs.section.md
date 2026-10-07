@@ -2,30 +2,34 @@
 
 ## Configuring Emacs {#sec-emacs-config}
 
-The Emacs package comes with some extra helpers to make it easier to configure. `emacs.pkgs.withPackages` allows you to manage packages from ELPA. This means that you will not have to install that packages from within Emacs. For instance, if you wanted to use `company` `counsel`, `flycheck`, `ivy`, `magit`, `projectile`, and `use-package` you could use this as a `~/.config/nixpkgs/config.nix` override:
+The Emacs package comes with some extra helpers to make it easier to configure. `emacs.pkgs.withPackages` manages packages from ELPA. This means that you will not have to install those packages from within Emacs. For instance, if you wanted to use `company`, `counsel`, `flycheck`, `ivy`, `magit`, `projectile`, and `use-package`, you could use this as a `~/.config/nixpkgs/config.nix` override:
 
 ```nix
 {
-  packageOverrides = pkgs: with pkgs; {
-    myEmacs = emacs.pkgs.withPackages (epkgs: (with epkgs.melpaStablePackages; [
-      company
-      counsel
-      flycheck
-      ivy
-      magit
-      projectile
-      use-package
-    ]));
-  }
+  packageOverrides =
+    pkgs: with pkgs; {
+      myEmacs = emacs.pkgs.withPackages (
+        epkgs:
+        (with epkgs.melpaStablePackages; [
+          company
+          counsel
+          flycheck
+          ivy
+          magit
+          projectile
+          use-package
+        ])
+      );
+    };
 }
 ```
 
-You can install it like any other packages via `nix-env -iA myEmacs`. However, this will only install those packages. It will not `configure` them for us. To do this, we need to provide a configuration file. Luckily, it is possible to do this from within Nix! By modifying the above example, we can make Emacs load a custom config file. The key is to create a package that provides a `default.el` file in `/share/emacs/site-start/`. Emacs knows to load this file automatically when it starts.
+You can install it like any other package via `nix-env -iA myEmacs`. However, this will only install those packages. It will not `configure` them for us. To do this, we need to provide a configuration file. Luckily, it is possible to do this from within Nix! By modifying the above example, we can make Emacs load a custom config file. The key is to create a package that provides a `default.el` file in `/share/emacs/site-start/`. Emacs knows to load this file automatically when it starts.  Similarly, for `early-init.el`, you can create a package that provides an `early-default.el` file in `/share/emacs/site-start/`.
 
 ```nix
 {
-  packageOverrides = pkgs: with pkgs; rec {
-    myEmacsConfig = writeText "default.el" ''
+  packageOverrides = pkgs: {
+    myEmacsConfig = pkgs.writeText "default.el" ''
       (eval-when-compile
         (require 'use-package))
 
@@ -80,19 +84,22 @@ You can install it like any other packages via `nix-env -iA myEmacs`. However, t
         (projectile-global-mode))
     '';
 
-    myEmacs = emacs.pkgs.withPackages (epkgs: (with epkgs.melpaStablePackages; [
-      (runCommand "default.el" {} ''
-         mkdir -p $out/share/emacs/site-lisp
-         cp ${myEmacsConfig} $out/share/emacs/site-lisp/default.el
-       '')
-      company
-      counsel
-      flycheck
-      ivy
-      magit
-      projectile
-      use-package
-    ]));
+    myEmacs = emacs.pkgs.withPackages (
+      epkgs:
+      (with epkgs.melpaStablePackages; [
+        (runCommand "default.el" { } ''
+          mkdir -p $out/share/emacs/site-lisp
+          cp ${myEmacsConfig} $out/share/emacs/site-lisp/default.el
+        '')
+        company
+        counsel
+        flycheck
+        ivy
+        magit
+        projectile
+        use-package
+      ])
+    );
   };
 }
 ```
@@ -102,14 +109,18 @@ This provides a fairly full Emacs start file. It will load in addition to the us
 Sometimes `emacs.pkgs.withPackages` is not enough, as this package set has some priorities imposed on packages (with the lowest priority assigned to GNU-devel ELPA, and the highest for packages manually defined in `pkgs/applications/editors/emacs/elisp-packages/manual-packages`). But you can't control these priorities when some package is installed as a dependency. You can override it on a per-package-basis, providing all the required dependencies manually, but it's tedious and there is always a possibility that an unwanted dependency will sneak in through some other package. To completely override such a package, you can use `overrideScope`.
 
 ```nix
-overrides = self: super: rec {
-  haskell-mode = self.melpaPackages.haskell-mode;
-  ...
-};
-((emacsPackagesFor emacs).overrideScope overrides).withPackages
-  (p: with p; [
+let
+  overrides = self: super: rec {
+    haskell-mode = self.melpaPackages.haskell-mode;
+    # ...
+  };
+in
+((emacsPackagesFor emacs).overrideScope overrides).withPackages (
+  p: with p; [
     # here both these package will use haskell-mode of our own choice
     ghc-mod
     dante
-  ])
+  ]
+)
 ```
+}

@@ -1,48 +1,45 @@
-{ lib
-, awesomeversion
-, buildPythonPackage
-, envoy-utils
-, fetchFromGitHub
-, httpx
-, lxml
-, orjson
-, poetry-core
-, pyjwt
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, respx
-, syrupy
-, tenacity
+{
+  lib,
+  aiohttp,
+  aioresponses,
+  awesomeversion,
+  buildPythonPackage,
+  envoy-utils,
+  fetchFromGitHub,
+  lxml,
+  orjson,
+  poetry-core,
+  pyjwt,
+  pytest-asyncio,
+  pytest-cov-stub,
+  pytest-timeout,
+  pytestCheckHook,
+  python-jsonpath,
+  respx,
+  syrupy,
+  tenacity,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pyenphase";
-  version = "1.18.0";
+  version = "4.2.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.11";
 
   src = fetchFromGitHub {
     owner = "pyenphase";
     repo = "pyenphase";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-lnxHWEQ9nVWT7dK0Vz7cCN/ur9C/RfzJDh6AYpFHJds=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-hBcctLol7mBcRVjMgUtp+VYVkmoXXER1tEAu8MwexzY=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace " --cov=pyenphase --cov-report=term-missing:skip-covered" ""
-  '';
+  pythonRelaxDeps = [ "tenacity" ];
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
+  dependencies = [
+    aiohttp
     awesomeversion
     envoy-utils
-    httpx
     lxml
     orjson
     pyjwt
@@ -50,26 +47,28 @@ buildPythonPackage rec {
   ];
 
   nativeCheckInputs = [
+    aioresponses
     pytest-asyncio
+    pytest-cov-stub
+    pytest-timeout
     pytestCheckHook
+    python-jsonpath
     respx
     syrupy
   ];
 
-  disabledTests = [
-    # https://github.com/pyenphase/pyenphase/issues/97
-    "test_with_7_x_firmware"
+  disabledTestPaths = [
+    # Tests need network access
+    "tests/test_retries.py"
   ];
 
-  pythonImportsCheck = [
-    "pyenphase"
-  ];
+  pythonImportsCheck = [ "pyenphase" ];
 
-  meta = with lib; {
+  meta = {
     description = "Library to control enphase envoy";
     homepage = "https://github.com/pyenphase/pyenphase";
-    changelog = "https://github.com/pyenphase/pyenphase/blob/v${version}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/pyenphase/pyenphase/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

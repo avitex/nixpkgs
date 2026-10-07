@@ -1,30 +1,82 @@
-{ lib, buildPythonPackage, fetchPypi, pytest, six, mock }:
+{
+  buildPythonPackage,
+  fetchFromGitHub,
+  lib,
+  pythonAtLeast,
 
-buildPythonPackage rec {
-  version = "2.0.2";
-  format = "setuptools";
+  # build system
+  setuptools,
+
+  # optional dependencies
+  crc32c,
+  lz4,
+  pyperf,
+  python-snappy,
+  zstandard,
+
+  # test dependencies
+  pytestCheckHook,
+  pytest-mock,
+  pytest-timeout,
+  xxhash,
+}:
+
+buildPythonPackage (finalAttrs: {
   pname = "kafka-python";
+  version = "3.0.11";
+  pyproject = true;
+  __structuredAttrs = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "04dfe7fea2b63726cd6f3e79a2d86e709d608d74406638c5da33a01d45a9d7e3";
+  src = fetchFromGitHub {
+    owner = "dpkp";
+    repo = "kafka-python";
+    tag = finalAttrs.version;
+    hash = "sha256-DwehLBH5OK7DSfMlgbAGvkVrkNBCUazjOYRDUgrtsOU=";
   };
 
-  nativeCheckInputs = [ pytest six mock ];
+  build-system = [ setuptools ];
 
-  checkPhase = ''
-    py.test
-  '';
+  optional-dependencies = {
+    benchmarks = [ pyperf ];
+    crc32c = [ crc32c ];
+    lz4 = [ lz4 ];
+    snappy = [ python-snappy ];
+    zstd = [ zstandard ];
+  };
 
-  # Upstream uses tox but we don't on Nix. Running tests manually produces however
-  #     from . import unittest
-  # E   ImportError: cannot import name 'unittest'
-  doCheck = false;
+  pythonImportsCheck = [
+    "kafka"
+    "kafka.admin"
+    "kafka.benchmarks"
+    "kafka.cli"
+    "kafka.consumer"
+    "kafka.coordinator"
+    "kafka.metrics"
+    "kafka.net"
+    "kafka.partitioner"
+    "kafka.producer"
+    "kafka.protocol"
+    "kafka.record"
+    "kafka.serializer"
+    "kafka.vendor"
+  ];
 
-  meta = with lib; {
+  nativeCheckInputs = [
+    pytest-mock
+    pytest-timeout
+    pytestCheckHook
+    xxhash
+  ]
+  ++ lib.concatAttrValues finalAttrs.passthru.optional-dependencies;
+
+  meta = {
+    changelog = "https://github.com/dpkp/kafka-python/blob/${finalAttrs.src.tag}/CHANGES.md";
     description = "Pure Python client for Apache Kafka";
     homepage = "https://github.com/dpkp/kafka-python";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [
+      de11n
+      despsyched
+    ];
   };
-}
+})

@@ -1,30 +1,29 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, git
-, pytestCheckHook
-, pythonOlder
-, setuptools-scm
-, writeScript
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  git,
+  pytestCheckHook,
+  distutils,
+  setuptools-scm,
+  writeScript,
 }:
 
 buildPythonPackage rec {
   pname = "setuptools-odoo";
-  version = "3.2.1";
+  version = "3.3.2";
   format = "setuptools";
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "acsone";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-aS2a1G9lssgGk3uqWgPPWpOpEnqUkCUzWsqPLQfU55k=";
+    repo = "setuptools-odoo";
+    tag = version;
+    hash = "sha256-cGvE/AioSX2R74dsElx4eb2Rp5irA65w/gBE6DFaUiI=";
   };
 
-  propagatedBuildInputs = [
-    setuptools-scm
-  ];
+  nativeBuildInputs = [ distutils ];
+
+  propagatedBuildInputs = [ setuptools-scm ];
 
   # HACK https://github.com/NixOS/nixpkgs/pull/229460
   patchPhase = ''
@@ -37,9 +36,7 @@ buildPythonPackage rec {
     runHook postPatch
   '';
 
-  pythonImportsCheck = [
-    "setuptools_odoo"
-  ];
+  pythonImportsCheck = [ "setuptools_odoo" ];
 
   setupHook = writeScript "setupHook.sh" ''
     setuptoolsOdooHook() {
@@ -73,11 +70,11 @@ buildPythonPackage rec {
     "test_odoo_addon5_wheel"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Setuptools plugin for Odoo addons";
     homepage = "https://github.com/acsone/setuptools-odoo";
     changelog = "https://github.com/acsone/setuptools-odoo/blob/${version}/CHANGES.rst";
-    license = licenses.lgpl3Only;
-    maintainers = with maintainers; [ yajo ];
+    license = lib.licenses.lgpl3Only;
+    maintainers = with lib.maintainers; [ yajo ];
   };
 }

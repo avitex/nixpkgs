@@ -1,29 +1,26 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, fsspec
-, funcy
-, pytest-asyncio
-, pytest-mock
-, pytestCheckHook
-, pythonOlder
-, reflink
-, setuptools-scm
-, shortuuid
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fsspec,
+  pytest-asyncio,
+  pytest-mock,
+  pytestCheckHook,
+  reflink,
+  setuptools-scm,
+  shortuuid,
 }:
 
 buildPythonPackage rec {
   pname = "dvc-objects";
-  version = "3.0.3";
+  version = "5.2.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "iterative";
     repo = "dvc-objects";
-    rev = "refs/tags/${version}";
-    hash = "sha256-JQ3UDUOpuxPavXkoJqbS0T7y3kpwuJ8NvqAl3DahoLU=";
+    tag = version;
+    hash = "sha256-COrHD7RtmShdC7YWFc+S3xi/Xxt+Afrj3vaCLfE8t28=";
   };
 
   postPatch = ''
@@ -31,15 +28,9 @@ buildPythonPackage rec {
       --replace " --benchmark-skip" ""
   '';
 
-  nativeBuildInputs = [
-    setuptools-scm
-  ];
+  build-system = [ setuptools-scm ];
 
-  propagatedBuildInputs = [
-    fsspec
-  ]  ++ lib.optionals (pythonOlder "3.12") [
-    funcy
-  ];
+  dependencies = [ fsspec ];
 
   nativeCheckInputs = [
     pytest-asyncio
@@ -49,20 +40,18 @@ buildPythonPackage rec {
     shortuuid
   ];
 
-  pythonImportsCheck = [
-    "dvc_objects"
-  ];
+  pythonImportsCheck = [ "dvc_objects" ];
 
   disabledTestPaths = [
     # Disable benchmarking
     "tests/benchmarks/"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Library for DVC objects";
     homepage = "https://github.com/iterative/dvc-objects";
-    changelog = "https://github.com/iterative/dvc-objects/releases/tag/${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/iterative/dvc-objects/releases/tag/${src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

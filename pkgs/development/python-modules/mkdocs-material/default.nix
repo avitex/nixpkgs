@@ -1,58 +1,53 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-
-# build-system
-, hatch-requirements-txt
-, hatch-nodejs-version
-, hatchling
-, trove-classifiers
-
-# dependencies
-, babel
-, colorama
-, jinja2
-, markdown
-, mkdocs
-, mkdocs-material-extensions
-, paginate
-, pygments
-, pymdown-extensions
-, pythonOlder
-, regex
-, requests
-
-# optional-dependencies
-, mkdocs-minify-plugin
-, mkdocs-redirects
-, mkdocs-git-revision-date-localized-plugin
-, pillow
-, cairosvg
+{
+  lib,
+  babel,
+  backrefs,
+  buildPythonPackage,
+  cairosvg,
+  colorama,
+  fetchFromGitHub,
+  hatch-nodejs-version,
+  hatch-requirements-txt,
+  hatchling,
+  jinja2,
+  markdown,
+  mkdocs,
+  mkdocs-git-revision-date-localized-plugin,
+  mkdocs-material-extensions,
+  mkdocs-minify-plugin,
+  mkdocs-redirects,
+  mkdocs-rss-plugin,
+  paginate,
+  pillow,
+  pygments,
+  pymdown-extensions,
+  regex,
+  requests,
+  trove-classifiers,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "mkdocs-material";
-  version = "9.4.14";
+  version = "9.7.7";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "squidfunk";
     repo = "mkdocs-material";
-    rev = "refs/tags/${version}";
-    hash = "sha256-oP0DeSRgoLx6boEOa3if5BitGXmJ11DoUVZK16Sjlwg=";
+    tag = finalAttrs.version;
+    hash = "sha256-cos0IwQiiDJyodjhHOOpmE1UemsChfLMigRswpqrIA0=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     hatch-requirements-txt
     hatch-nodejs-version
     hatchling
     trove-classifiers
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     babel
+    backrefs
     colorama
     jinja2
     markdown
@@ -65,11 +60,13 @@ buildPythonPackage rec {
     requests
   ];
 
-  passthru.optional-dependencies = {
+  pythonRelaxDeps = [ "backrefs" ];
+
+  optional-dependencies = {
     recommended = [
       mkdocs-minify-plugin
       mkdocs-redirects
-      # TODO: mkdocs-rss-plugin
+      mkdocs-rss-plugin
     ];
     git = [
       # TODO: gmkdocs-git-committers-plugin
@@ -84,16 +81,17 @@ buildPythonPackage rec {
   # No tests for python
   doCheck = false;
 
-  pythonImportsCheck = [
-    "mkdocs"
-  ];
+  pythonImportsCheck = [ "mkdocs" ];
 
-  meta = with lib; {
-    changelog = "https://github.com/squidfunk/mkdocs-material/blob/${src.rev}/CHANGELOG";
+  meta = {
+    changelog = "https://github.com/squidfunk/mkdocs-material/blob/${finalAttrs.src.tag}/CHANGELOG";
     description = "Material for mkdocs";
     downloadPage = "https://github.com/squidfunk/mkdocs-material";
     homepage = "https://squidfunk.github.io/mkdocs-material/";
-    license = licenses.mit;
-    maintainers = with maintainers; [ dandellion ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [
+      dandellion
+      jaysa68
+    ];
   };
-}
+})

@@ -1,23 +1,36 @@
-{ lib, buildDunePackage, dune_3, csexp, stdune, ordering, pp, xdg, dyn }:
+{
+  lib,
+  buildDunePackage,
+  dune,
+  csexp,
+  stdune,
+  ocamlc-loc,
+  ordering,
+  pp,
+  xdg,
+  dyn,
+}:
 
-buildDunePackage rec {
+buildDunePackage {
   pname = "dune-rpc";
-  inherit (dune_3) src version;
-
-  duneVersion = "3";
+  inherit (dune) src version;
 
   dontAddPrefix = true;
 
-  propagatedBuildInputs = [ csexp stdune ordering pp xdg dyn ];
+  propagatedBuildInputs = [
+    csexp
+    stdune
+    ocamlc-loc
+    ordering
+    pp
+    xdg
+    dyn
+  ];
 
-  preBuild = ''
-    rm -r vendor/csexp
-  '';
-
-  meta = with lib; {
+  meta = {
     description = "Library to connect and control a running dune instance";
-    inherit (dune_3.meta) homepage;
-    maintainers = with lib.maintainers; [ ];
-    license = licenses.mit;
+    inherit (dune.meta) homepage;
+    maintainers = [ ];
+    license = lib.licenses.mit;
   };
 }

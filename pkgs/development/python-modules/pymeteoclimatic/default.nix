@@ -1,49 +1,41 @@
-{ lib
-, beautifulsoup4
-, buildPythonPackage
-, fetchFromGitHub
-, lxml
-, pythonOlder
-, pytestCheckHook
-, setuptools
+{
+  lib,
+  beautifulsoup4,
+  buildPythonPackage,
+  fetchFromGitHub,
+  lxml,
+  pytestCheckHook,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pymeteoclimatic";
-  version = "0.1.0";
+  version = "0.1.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "adrianmo";
     repo = "pymeteoclimatic";
-    rev = "refs/tags/${version}";
-    hash = "sha256-rP0+OYDnQ4GuoV7DzR6jtgH6ilTMLjdaEFJcz3L0GYQ=";
+    tag = finalAttrs.version;
+    hash = "sha256-Yln+uUwnb5mlPS3uRRzpAH6kSc9hU2jEnhk/3ifiwWI=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     beautifulsoup4
     lxml
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "meteoclimatic"
-  ];
+  pythonImportsCheck = [ "meteoclimatic" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python wrapper around the Meteoclimatic service";
     homepage = "https://github.com/adrianmo/pymeteoclimatic";
-    changelog = "https://github.com/adrianmo/pymeteoclimatic/releases/tag/${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/adrianmo/pymeteoclimatic/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

@@ -1,66 +1,46 @@
-{ stdenv
-, lib
-, rustPlatform
-, installShellFiles
-, makeBinaryWrapper
-, darwin
-, fetchFromGitHub
-, nix-update-script
-, nvd
-, use-nom ? true
-, nix-output-monitor ? null
+{
+  lib,
+  symlinkJoin,
+  makeBinaryWrapper,
+  nh-unwrapped,
+  nix-output-monitor,
 }:
-
-assert use-nom -> nix-output-monitor != null;
-
 let
-  version = "3.5.2";
-  runtimeDeps = [ nvd ] ++ lib.optionals use-nom [ nix-output-monitor ];
+  unwrapped = nh-unwrapped;
+  runtimeDeps = [
+    nix-output-monitor
+  ];
 in
-rustPlatform.buildRustPackage {
-  inherit version;
+symlinkJoin {
   pname = "nh";
+  inherit (unwrapped) version;
 
-  src = fetchFromGitHub {
-    owner = "viperML";
-    repo = "nh";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-TwCR7tZvrjsvz6SmgjWYOne7Qz7J2jn4Cr4Er0Yj+LA=";
-  };
-
-  strictDeps = true;
+  paths = [
+    unwrapped
+  ];
 
   nativeBuildInputs = [
-    installShellFiles
     makeBinaryWrapper
   ];
 
-  buildInputs = lib.optionals stdenv.isDarwin [ darwin.apple_sdk.frameworks.SystemConfiguration ];
-
-  preFixup = ''
-    mkdir completions
-    $out/bin/nh completions --shell bash > completions/nh.bash
-    $out/bin/nh completions --shell zsh > completions/nh.zsh
-    $out/bin/nh completions --shell fish > completions/nh.fish
-
-    installShellCompletion completions/*
-  '';
-
-  postFixup = ''
+  postBuild = ''
     wrapProgram $out/bin/nh \
-      --prefix PATH : ${lib.makeBinPath runtimeDeps} \
-      ${lib.optionalString use-nom "--set-default NH_NOM 1"}
+      --prefix PATH : ${lib.makeBinPath runtimeDeps}
   '';
-
-  cargoHash = "sha256-/mYEjIq4dtt9noRDzFWwLZ3CSz7cmlViEGubi6m9R1o=";
-
-  passthru.updateScript = nix-update-script { };
 
   meta = {
-    description = "Yet another nix cli helper";
-    homepage = "https://github.com/viperML/nh";
-    license = lib.licenses.eupl12;
-    mainProgram = "nh";
-    maintainers = with lib.maintainers; [ drupol viperML ];
+    inherit (unwrapped.meta)
+      changelog
+      description
+      homepage
+      license
+      mainProgram
+      maintainers
+      ;
+
+    # To prevent builds on hydra
+    hydraPlatforms = [ ];
+    # prefer wrapper over the package
+    priority = (unwrapped.meta.priority or lib.meta.defaultPriority) - 1;
   };
 }

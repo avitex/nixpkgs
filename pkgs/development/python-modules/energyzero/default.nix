@@ -1,39 +1,36 @@
-{ lib
-, aiohttp
-, aresponses
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, pytest-asyncio
-, pytest-freezer
-, pytestCheckHook
-, pythonOlder
-, yarl
+{
+  lib,
+  aiohttp,
+  aresponses,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  pytest-asyncio,
+  pytest-cov-stub,
+  pytest-freezer,
+  pytestCheckHook,
+  syrupy,
+  yarl,
 }:
 
 buildPythonPackage rec {
   pname = "energyzero";
-  version = "2.1.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.11";
+  version = "5.0.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "klaasnicolaas";
     repo = "python-energyzero";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-NZbCiLCZC+hTcV0twOeCoKKD3eZ0/ZzPTnVpFyMLSfw=";
+    tag = "v${version}";
+    hash = "sha256-Vkx+Exvq3gafnz/aY3Tw462rJHanPlOPh7S6oXVi07I=";
   };
 
   postPatch = ''
     substituteInPlace pyproject.toml \
-      --replace '"0.0.0"' '"${version}"' \
-      --replace 'addopts = "--cov"' ""
+      --replace-fail '"0.0.0"' '"${version}"'
   '';
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ poetry-core ];
 
   propagatedBuildInputs = [
     aiohttp
@@ -43,19 +40,19 @@ buildPythonPackage rec {
   nativeCheckInputs = [
     aresponses
     pytest-asyncio
+    pytest-cov-stub
     pytest-freezer
     pytestCheckHook
+    syrupy
   ];
 
-  pythonImportsCheck = [
-    "energyzero"
-  ];
+  pythonImportsCheck = [ "energyzero" ];
 
-  meta = with lib; {
+  meta = {
     description = "Module for getting the dynamic prices from EnergyZero";
     homepage = "https://github.com/klaasnicolaas/python-energyzero";
     changelog = "https://github.com/klaasnicolaas/python-energyzero/releases/tag/v${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

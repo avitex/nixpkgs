@@ -1,20 +1,20 @@
-{ lib
-, buildPythonPackage
-, factory-boy
-, fetchFromGitHub
-, httpretty
-, inflection
-, jsondate
-, mock
-, more-itertools
-, numpy
-, pandas
-, parameterized
-, pytestCheckHook
-, python-dateutil
-, pythonOlder
-, requests
-, six
+{
+  lib,
+  buildPythonPackage,
+  factory-boy,
+  fetchFromGitHub,
+  httpretty,
+  inflection,
+  jsondate,
+  mock,
+  more-itertools,
+  numpy,
+  pandas,
+  parameterized,
+  pytestCheckHook,
+  python-dateutil,
+  requests,
+  six,
 }:
 
 buildPythonPackage rec {
@@ -22,12 +22,10 @@ buildPythonPackage rec {
   version = "1.0.4";
   format = "setuptools";
 
-  disabled = pythonOlder "3.7";
-
   src = fetchFromGitHub {
     owner = "Nasdaq";
     repo = "data-link-python";
-    rev = "refs/tags/${version}";
+    tag = version;
     hash = "sha256-Q3Ay9FpJsvSVu0WU2bxFyo3ODKP/ZUo3SqsBtOGrIIE=";
   };
 
@@ -50,14 +48,12 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "nasdaqdatalink"
-  ];
+  pythonImportsCheck = [ "nasdaqdatalink" ];
 
-  meta = with lib; {
+  meta = {
     description = "Library for Nasdaq Data Link's RESTful API";
     homepage = "https://github.com/Nasdaq/data-link-python";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

@@ -1,4 +1,14 @@
-{ lib, buildKodiAddon, fetchzip, addonUpdateScript, requests, inputstream-adaptive, inputstreamhelper }:
+{
+  lib,
+  rel,
+  buildKodiAddon,
+  fetchzip,
+  addonUpdateScript,
+  infotagger,
+  requests,
+  inputstream-adaptive,
+  inputstreamhelper,
+}:
 
 buildKodiAddon rec {
   pname = "invidious";
@@ -6,11 +16,12 @@ buildKodiAddon rec {
   version = "0.2.6";
 
   src = fetchzip {
-    url = "https://mirrors.kodi.tv/addons/nexus/plugin.video.invidious/plugin.video.invidious-${version}+nexus.0.zip";
+    url = "https://mirrors.kodi.tv/addons/${lib.toLower rel}/plugin.video.invidious/plugin.video.invidious-${version}+nexus.0.zip";
     sha256 = "sha256-XnlnhvtHMh4uQTupW/SSOmaEV8xZrL61/6GoRpyKR0o=";
   };
 
   propagatedBuildInputs = [
+    infotagger
     requests
     inputstream-adaptive
     inputstreamhelper
@@ -23,10 +34,10 @@ buildKodiAddon rec {
     };
   };
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/petterreinholdtsen/kodi-invidious-plugin";
-    description = "A privacy-friendly way of watching YouTube content";
-    license = licenses.mit;
-    maintainers = teams.kodi.members;
+    description = "Privacy-friendly way of watching YouTube content";
+    license = lib.licenses.mit;
+    teams = [ lib.teams.kodi ];
   };
 }

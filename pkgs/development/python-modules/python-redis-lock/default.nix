@@ -1,62 +1,72 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, eventlet
-, fetchPypi
-, gevent
-, pkgs
-, process-tests
-, pytestCheckHook
-, pythonOlder
-, redis
-, withDjango ? false
-, django-redis
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  setuptools,
+  eventlet,
+  fetchFromGitHub,
+  gevent,
+  pkgs,
+  process-tests,
+  pytestCheckHook,
+  redis,
+  django-redis,
 }:
 
 buildPythonPackage rec {
   pname = "python-redis-lock";
-  version = "4.0.0";
-  format = "setuptools";
+  version = "4.0.1";
 
-  disabled = pythonOlder "3.7";
+  pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-Sr0Lz0kTasrWZye/VIbdJJQHjKVeSe+mk/eUB3MZCRo=";
+  src = fetchFromGitHub {
+    owner = "ionelmc";
+    repo = "python-redis-lock";
+    tag = "v${version}";
+    hash = "sha256-KlmVRglglvj3EuX1m2sLqd/yZeU7CjeRxSUJ/cT4ww4=";
   };
 
-  propagatedBuildInputs = [
-    redis
-  ] ++ lib.optionals withDjango [
-    django-redis
+  # Fix django tests
+  postPatch = ''
+    substituteInPlace tests/test_project/settings.py \
+      --replace-fail "USE_L10N = True" ""
+  '';
+
+  patches = [
+    ./test_signal_expiration_increase_sleep.patch
   ];
+
+  build-system = [ setuptools ];
+
+  dependencies = [ redis ];
+
+  optional-dependencies.django = [ django-redis ];
 
   nativeCheckInputs = [
     eventlet
     gevent
     pytestCheckHook
     process-tests
-    pkgs.redis
-  ];
+    pkgs.valkey
+  ]
+  ++ optional-dependencies.django;
 
-  disabledTests = [
-    # https://github.com/ionelmc/python-redis-lock/issues/86
-    "test_no_overlap2"
-  ] ++ lib.optionals stdenv.isDarwin [
+  # For Django tests
+  preCheck = "export DJANGO_SETTINGS_MODULE=test_project.settings";
+
+  disabledTests = lib.optionals stdenv.hostPlatform.isDarwin [
     # fail on Darwin because it defaults to multiprocessing `spawn`
     "test_reset_signalizes"
     "test_reset_all_signalizes"
   ];
 
-  pythonImportsCheck = [
-    "redis_lock"
-  ];
+  pythonImportsCheck = [ "redis_lock" ];
 
-  meta = with lib; {
+  meta = {
     changelog = "https://github.com/ionelmc/python-redis-lock/blob/v${version}/CHANGELOG.rst";
     description = "Lock context manager implemented via redis SETNX/BLPOP";
     homepage = "https://github.com/ionelmc/python-redis-lock";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ vanschelven ];
+    license = lib.licenses.bsd2;
+    maintainers = with lib.maintainers; [ erictapen ];
   };
 }

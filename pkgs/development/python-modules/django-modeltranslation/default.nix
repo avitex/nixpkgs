@@ -1,46 +1,51 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, django
-, pytestCheckHook
-, pytest-django
-, parameterized
+{
+  lib,
+  buildPythonPackage,
+  django-stubs,
+  django,
+  fetchFromGitHub,
+  parameterized,
+  pytest-cov-stub,
+  pytest-django,
+  pytestCheckHook,
+  hatchling,
+  hatch-vcs,
 }:
-let
-  # 0.18.12 was yanked from PyPI, it refers to this issue:
-  # https://github.com/deschler/django-modeltranslation/issues/701
-  version = "0.18.12";
-in
-buildPythonPackage {
+
+buildPythonPackage rec {
   pname = "django-modeltranslation";
-  inherit version;
+  version = "0.20.6";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "deschler";
     repo = "django-modeltranslation";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-6rAAu3Fd4D93rX8kvkcqhykzBu/lDByQ6zpjWq7J8mg=";
+    tag = "v${version}";
+    hash = "sha256-C06j3bzG03ygo76TGWzYraTwD6IgqP95Vl9eWoLlFA4=";
   };
 
-  # Remove all references to pytest-cov
-  postPatch = ''
-    substituteInPlace pytest.ini \
-      --replace "--no-cov-on-fail" "" \
-      --replace "--cov-report=\"\"" "" \
-      --replace "--cov modeltranslation" ""
-  '';
+  build-system = [
+    hatchling
+    hatch-vcs
+  ];
 
-  disabled = pythonOlder "3.6";
+  dependencies = [ django ];
 
-  propagatedBuildInputs = [ django ];
+  nativeCheckInputs = [
+    django-stubs
+    pytestCheckHook
+    pytest-cov-stub
+    pytest-django
+    parameterized
+  ];
 
-  nativeCheckInputs = [ pytestCheckHook pytest-django parameterized ];
+  pythonImportsCheck = [ "modeltranslation" ];
 
-  meta = with lib; {
+  meta = {
     description = "Translates Django models using a registration approach";
     homepage = "https://github.com/deschler/django-modeltranslation";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ augustebaum ];
+    changelog = "https://github.com/deschler/django-modeltranslation/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ augustebaum ];
   };
 }

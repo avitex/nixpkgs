@@ -1,25 +1,23 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, jinja2
-, pytestCheckHook
-, pythonOlder
-, setuptools-scm
-, selenium
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  jinja2,
+  pytestCheckHook,
+  setuptools-scm,
+  selenium,
 }:
 
 buildPythonPackage rec {
   pname = "branca";
-  version = "0.7.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.8.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "python-visualization";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-DH+XBj+VcS56+nAOGjjrKG0dnSKrqiU6N5vkILm+vSE=";
+    repo = "branca";
+    tag = "v${version}";
+    hash = "sha256-H5hHQI4r0QavygQZzEZAEp+cjra5R9m/OoGHQPtnBg0=";
   };
 
   postPatch = ''
@@ -27,26 +25,21 @@ buildPythonPackage rec {
     rm setup.cfg
   '';
 
-  nativeBuildInputs = [
-    setuptools-scm
-  ];
+  build-system = [ setuptools-scm ];
 
-  propagatedBuildInputs = [
-    jinja2
-  ];
+  dependencies = [ jinja2 ];
 
   nativeCheckInputs = [
     pytestCheckHook
     selenium
   ];
 
-  pythonImportsCheck = [
-    "branca"
-  ];
+  pythonImportsCheck = [ "branca" ];
 
   disabledTestPaths = [
     # Some tests require a browser
     "tests/test_utilities.py"
+    "tests/test_iframe.py"
   ];
 
   disabledTests = [
@@ -54,11 +47,11 @@ buildPythonPackage rec {
     "test_rendering_figure_notebook"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Generate complex HTML+JS pages with Python";
     homepage = "https://github.com/python-visualization/branca";
-    changelog = "https://github.com/python-visualization/branca/blob/v${version}/CHANGES.txt";
-    license = with licenses; [ mit ];
-    maintainers = with lib.maintainers; [ ];
+    changelog = "https://github.com/python-visualization/branca/blob/${src.tag}/CHANGES.txt";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

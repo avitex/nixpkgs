@@ -1,37 +1,35 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools
-, pyyaml
-, twine
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  flit-core,
+  pyyaml,
 }:
 
 buildPythonPackage rec {
   pname = "pycomposefile";
-  version = "0.0.30";
-  format = "setuptools";
+  version = "0.0.34";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    extension = "tar.gz";
-    hash = "sha256-GQopIO8F+G5iDz4NF2GTHCpXo4uqKHdHIzffacihylM=";
+    hash = "sha256-kzqTtDn4aSiCtNUP90ThKj2ZYEAGjpZlGjfdhCEmpQg=";
   };
 
-  nativeBuildInput = [
-    setuptools
-  ];
+  build-system = [ flit-core ];
 
-  propagatedBuildInputs = [
-    pyyaml
-    twine
-  ];
+  dependencies = [ pyyaml ];
 
-  doCheck = false; # tests are broken
+  # Tests are broken
+  doCheck = false;
 
-  meta = with lib; {
+  pythonImportsCheck = [ "pycomposefile" ];
+
+  meta = {
     description = "Python library for structured deserialization of Docker Compose files";
     homepage = "https://github.com/smurawski/pycomposefile";
-    license = licenses.mit;
-    maintainers = with maintainers; [ mdarocha ];
+    changelog = "https://github.com/smurawski/pycomposefile/releases/tag/v${version}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ mdarocha ];
   };
 }

@@ -1,32 +1,26 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytest-timeout
-, pytestCheckHook
-, pythonOlder
-, setuptools
-, setuptools-scm
-, bashInteractive
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytest-timeout,
+  pytestCheckHook,
+  pytest-cov-stub,
+  setuptools,
+  setuptools-scm,
+  bashInteractive,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "shtab";
-  version = "1.6.5";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "1.9.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
-    owner = "iterative";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-jplcKVXWogSrYRGch0qypWGNzO9HErR5B9S1iT4eFcM=";
+    owner = "tqdm";
+    repo = "shtab";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-+9M0IfiD5CJcg4AHqCfq1UON/E63etwzvx7Gc82H0PE=";
   };
-
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace " --cov=shtab --cov-report=term-missing --cov-report=xml" ""
-  '';
 
   nativeBuildInputs = [
     setuptools
@@ -37,17 +31,17 @@ buildPythonPackage rec {
     bashInteractive
     pytest-timeout
     pytestCheckHook
+    pytest-cov-stub
   ];
 
-  pythonImportsCheck = [
-    "shtab"
-  ];
+  pythonImportsCheck = [ "shtab" ];
 
-  meta = with lib; {
-    description = "Module for shell tab completion of Python CLI applications";
-    homepage = "https://docs.iterative.ai/shtab/";
-    changelog = "https://github.com/iterative/shtab/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+  meta = {
+    description = "Automagic shell tab completion for Python CLI applications";
+    mainProgram = "shtab";
+    homepage = "https://tqdm.github.io/shtab/";
+    changelog = "https://github.com/tqdm/shtab/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

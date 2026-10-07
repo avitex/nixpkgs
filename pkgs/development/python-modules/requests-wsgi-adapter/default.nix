@@ -1,7 +1,8 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, requests
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  requests,
 }:
 
 buildPythonPackage rec {
@@ -14,17 +15,15 @@ buildPythonPackage rec {
     hash = "sha256-WncJ6Qq/SdGB9sMqo3eUU39yXeD23UI2K8jIyQgSyHg=";
   };
 
-  propagatedBuildInputs = [
-    requests
-  ];
+  propagatedBuildInputs = [ requests ];
 
   # tests are not contained in pypi-release
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "WSGI Transport Adapter for Requests";
     homepage = "https://github.com/seanbrant/requests-wsgi-adapter";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ betaboon ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ betaboon ];
   };
 }

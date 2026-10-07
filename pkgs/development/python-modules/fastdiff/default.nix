@@ -1,12 +1,13 @@
-{ stdenv
-, lib
-, buildPythonPackage
-, fetchPypi
-, wasmer
-, wasmer-compiler-cranelift
-, py
-, pytestCheckHook
-, pytest-benchmark
+{
+  stdenv,
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  wasmer,
+  wasmer-compiler-cranelift,
+  py,
+  pytestCheckHook,
+  pytest-benchmark,
 }:
 
 buildPythonPackage rec {
@@ -37,20 +38,16 @@ buildPythonPackage rec {
     pytest-benchmark
   ];
 
-  pytestFlagsArray = [
-    "--benchmark-skip"
-  ];
+  pytestFlags = [ "--benchmark-skip" ];
 
-  pythonImportsCheck = [
-    "fastdiff"
-  ];
+  pythonImportsCheck = [ "fastdiff" ];
 
-  meta = with lib; {
-    description = "A fast native implementation of diff algorithm with a pure Python fallback";
+  meta = {
+    description = "Fast native implementation of diff algorithm with a pure Python fallback";
     homepage = "https://github.com/syrusakbary/fastdiff";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
     # resulting compiled object panics at import
-    broken = stdenv.is32bit;
+    broken = stdenv.hostPlatform.is32bit;
   };
 }

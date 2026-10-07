@@ -1,42 +1,68 @@
-{ buildPythonPackage, fetchPypi, lib, isPy27, marshmallow, pytestCheckHook
-, pytest-aiohttp, webtest, webtest-aiohttp, flask, django, bottle, tornado
-, pyramid, falcon, aiohttp }:
+{
+  lib,
+  aiohttp,
+  bottle,
+  buildPythonPackage,
+  django,
+  falcon,
+  fetchPypi,
+  flask,
+  flit-core,
+  marshmallow,
+  packaging,
+  pkg-resources-backport,
+  pyramid,
+  pytest-aiohttp,
+  pytestCheckHook,
+  tornado,
+  webtest-aiohttp,
+  webtest,
+}:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "webargs";
-  version = "8.4.0";
-  format = "setuptools";
-  disabled = isPy27;
+  version = "8.7.1";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-6pk2ghSkzmE5JL6Z1x21jCaWMele/0+gm3NU5S3ABqU=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-eZv5A5x2wj/Y3BlREHp1qeVhIDwV1q6PicHkbiNGNsE=";
   };
 
-  pythonImportsCheck = [
-    "webargs"
-  ];
+  build-system = [ flit-core ];
 
-  propagatedBuildInputs = [ marshmallow ];
+  dependencies = [
+    marshmallow
+    packaging
+    pkg-resources-backport
+  ];
 
   nativeCheckInputs = [
-    pytestCheckHook
+    aiohttp
+    bottle
+    django
+    falcon
+    flask
+    pyramid
     pytest-aiohttp
+    pytestCheckHook
+    tornado
     webtest
     webtest-aiohttp
-    flask
-    django
-    bottle
-    tornado
-    pyramid
-    falcon
-    aiohttp
   ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "webargs" ];
+
+  disabledTests = [
+    # Tests is outdated
+    "test_it_should_handle_type_error_on_load_json"
+  ];
+
+  meta = {
     description = "Declarative parsing and validation of HTTP request objects, with built-in support for popular web frameworks";
     homepage = "https://github.com/marshmallow-code/webargs";
-    license = licenses.mit;
-    maintainers = with maintainers; [ cript0nauta ];
+    changelog = "https://github.com/marshmallow-code/webargs/blob/${finalAttrs.version}/CHANGELOG.rst";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ cript0nauta ];
   };
-}
+})

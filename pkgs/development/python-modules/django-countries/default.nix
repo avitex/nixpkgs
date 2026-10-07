@@ -1,39 +1,43 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# build
-, setuptools
+  # build-system
+  uv-build,
 
-# propagates
-, asgiref
-, typing-extensions
+  # dependencies
+  asgiref,
+  typing-extensions,
 
-# tests
-, django
-, djangorestframework
-, graphene-django
-, pytestCheckHook
-, pytest-django
+  # tests
+  django,
+  djangorestframework,
+  graphene-django,
+  pytestCheckHook,
+  pytest-django,
 }:
 
 buildPythonPackage rec {
   pname = "django-countries";
-  version = "7.5.1";
-  format = "pyproject";
+  version = "9.1.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "SmileyChris";
     repo = "django-countries";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-se6s0sgIfMLW0sIMp/3vK4KdDPQ5ahg6OQCDAs4my4M=";
+    tag = "v${version}";
+    hash = "sha256-LR6mD3i/1e6c3DXqBgKqv2BhR0VbXzyskGHkPSXD3Gg=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail "uv_build>=0.9.6,<0.10.0" uv_build
+  '';
 
-  propagatedBuildInputs = [
+  build-system = [ uv-build ];
+
+  dependencies = [
     asgiref
     typing-extensions
   ];
@@ -46,15 +50,15 @@ buildPythonPackage rec {
     pytest-django
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Provides a country field for Django models";
     longDescription = ''
       A Django application that provides country choices for use with
       forms, flag icons static files, and a country field for models.
     '';
     homepage = "https://github.com/SmileyChris/django-countries";
-    changelog = "https://github.com/SmileyChris/django-countries/blob/v${version}/CHANGES.rst";
-    license = licenses.mit;
-    maintainers = with maintainers; [ hexa ];
+    changelog = "https://github.com/SmileyChris/django-countries/blob/v${version}/CHANGES.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ hexa ];
   };
 }

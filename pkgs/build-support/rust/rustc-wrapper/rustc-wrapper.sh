@@ -1,10 +1,10 @@
 #!@shell@
 
-defaultSysroot=(@sysroot@)
+defaultSysroot=(@sysrootFlag@)
 
 for arg; do
     case "$arg" in
-        --sysroot)
+        --sysroot|--sysroot=*)
             defaultSysroot=()
             ;;
         --)
@@ -13,8 +13,8 @@ for arg; do
     esac
 done
 
-extraBefore=("${defaultSysroot[@]}")
-extraAfter=($NIX_RUSTFLAGS)
+extraBefore=(@defaultArgs@ "${defaultSysroot[@]}")
+extraAfter=($@extraFlagsVar@)
 
 # Optionally print debug info.
 if (( "${NIX_DEBUG:-0}" >= 1 )); then

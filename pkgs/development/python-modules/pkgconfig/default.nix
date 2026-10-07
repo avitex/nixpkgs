@@ -1,16 +1,17 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, poetry-core
-, pkg-config
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonOlder,
+  poetry-core,
+  pkg-config,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "pkgconfig";
   version = "1.5.5";
-  format = "pyproject";
+  pyproject = true;
 
   inherit (pkg-config)
     setupHooks
@@ -46,10 +47,10 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "pkgconfig" ];
 
-  meta = with lib; {
+  meta = {
     description = "Interface Python with pkg-config";
     homepage = "https://github.com/matze/pkgconfig";
-    license = licenses.mit;
-    maintainers = with maintainers; [ nickcao ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ nickcao ];
   };
 }

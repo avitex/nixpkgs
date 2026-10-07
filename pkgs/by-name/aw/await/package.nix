@@ -1,15 +1,23 @@
-{ lib, stdenv, fetchFromGitHub }:
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  installShellFiles,
+  versionCheckHook,
+}:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "await";
-  version = "0.999";
+  version = "2.8.0";
 
   src = fetchFromGitHub {
     owner = "slavaGanzin";
     repo = "await";
-    rev = "v${version}";
-    hash = "sha256-z178TKA0x6UnpBQaA8dig2FLeJKGxPndfvwtmylAD90=";
+    tag = finalAttrs.version;
+    hash = "sha256-j8MuqU/Fv/bFJeNNkgMlWwmXlWGai9d54AeOyMhJ89I=";
   };
+
+  nativeBuildInputs = [ installShellFiles ];
 
   buildPhase = ''
     runHook preBuild
@@ -23,16 +31,23 @@ stdenv.mkDerivation rec {
     install -Dm755 await -t $out/bin
     install -Dm444 LICENSE -t $out/share/licenses/await
     install -Dm444 README.md -t $out/share/doc/await
+    installShellCompletion --cmd await autocompletions/await.{bash,fish,zsh}
 
     runHook postInstall
   '';
 
-  meta = with lib; {
+  nativeInstallCheckInputs = [
+    versionCheckHook
+  ];
+  doInstallCheck = true;
+
+  meta = {
+    changelog = "https://github.com/slavaGanzin/await/releases/tag/${finalAttrs.version}";
     description = "Small binary that runs a list of commands in parallel and awaits termination";
-    homepage = "https://await-cli.app";
-    license = licenses.mit;
-    maintainers = with maintainers; [ chewblacka ];
-    platforms = platforms.all;
+    homepage = "https://github.com/slavaGanzin/await";
+    license = lib.licenses.mit;
+    maintainers = [ ];
+    platforms = lib.platforms.all;
     mainProgram = "await";
   };
-}
+})

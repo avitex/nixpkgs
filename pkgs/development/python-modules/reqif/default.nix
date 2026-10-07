@@ -1,59 +1,54 @@
-{ lib
-, buildPythonPackage
-, python
-, fetchFromGitHub
-, hatchling
-, beautifulsoup4
-, lxml
-, jinja2
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  jinja2,
+  lxml,
+  pytestCheckHook,
+  python,
+  xmlschema,
 }:
 
 buildPythonPackage rec {
   pname = "reqif";
-  version = "0.0.35";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "0.0.54";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "strictdoc-project";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-3yOLOflPqzJRv3qCQXFK3rIFftBq8FkYy7XhOfWH82Y=";
+    repo = "reqif";
+    tag = version;
+    hash = "sha256-42iDfZTlNiYMWz/l5NO4aQ/MqfhNj/RXcv9qOiAaloM=";
   };
 
   postPatch = ''
-    substituteInPlace ./tests/unit/conftest.py --replace \
-       "os.path.abspath(os.path.join(__file__, \"../../../../reqif\"))" \
+    substituteInPlace ./tests/unit/conftest.py \
+      --replace-fail "os.path.abspath(os.path.join(__file__, \"../../../../reqif\"))" \
       "\"${placeholder "out"}/${python.sitePackages}/reqif\""
-    substituteInPlace requirements.txt --replace "==" ">="
   '';
 
-  nativeBuildInputs = [
+  build-system = [
     hatchling
   ];
 
-  propagatedBuildInputs = [
-    beautifulsoup4
+  dependencies = with python.pkgs; [
     lxml
     jinja2
+    xmlschema
+    openpyxl
   ];
 
-  pythonImportsCheck = [
-    "reqif"
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  pythonImportsCheck = [ "reqif" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python library for ReqIF format";
+    mainProgram = "reqif";
     homepage = "https://github.com/strictdoc-project/reqif";
-    changelog = "https://github.com/strictdoc-project/reqif/releases/tag/${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ yuu ];
+    changelog = "https://github.com/strictdoc-project/reqif/releases/tag/${src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
 }

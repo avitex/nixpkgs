@@ -1,23 +1,33 @@
-{ stdenv, lib, buildPythonPackage, fetchPypi, cups, libiconv }:
+{
+  stdenv,
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  cups,
+  libiconv,
+  setuptools,
+}:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pycups";
-  version = "2.0.1";
-  format = "setuptools";
+  version = "2.0.4";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-V0NM5fYlSOsSlJyoIX8Gb07rIaXWq4sTRx3ONQ44DJA=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-hD44XB2/aUmWyoTvAqfzDCg3YDVYj1++rNa64AXPfI0=";
   };
 
-  buildInputs = [ cups ] ++ lib.optional stdenv.isDarwin libiconv;
+  build-system = [ setuptools ];
+
+  buildInputs = [ cups ] ++ lib.optional stdenv.hostPlatform.isDarwin libiconv;
 
   # Wants to connect to CUPS
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "Python bindings for libcups";
     homepage = "http://cyberelk.net/tim/software/pycups/";
-    license = with licenses; [ gpl2Plus ];
+    license = lib.licenses.gpl2Plus;
   };
-}
+})

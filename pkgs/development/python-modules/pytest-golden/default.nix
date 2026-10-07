@@ -1,71 +1,47 @@
-{ lib
-, atomicwrites
-, buildPythonPackage
-, fetchFromGitHub
-  #, hatchling
-, ruamel-yaml
-, poetry-core
-, pytest
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, pythonRelaxDepsHook
-, testfixtures
+{
+  lib,
+  atomicwrites,
+  buildPythonPackage,
+  fetchFromGitHub,
+  ruamel-yaml,
+  hatchling,
+  pytest,
+  pytestCheckHook,
+  testfixtures,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pytest-golden";
-  version = "0.2.2";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "1.0.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "oprypin";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-l5fXWDK6gWJc3dkYFTokI9tWvawMRnF0td/lSwqkYXE=";
+    repo = "pytest-golden";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-E8H9HmTbWft5SDPUbuD9zRDRm7gHJsvWJfm9jznd1tY=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace "poetry>=0.12" poetry-core \
-      --replace poetry.masonry.api poetry.core.masonry.api
-  '';
+  pythonRelaxDeps = [ "testfixtures" ];
 
-  pythonRelaxDeps = [
-    "testfixtures"
-  ];
+  build-system = [ hatchling ];
 
-  nativeBuildInputs = [
-    # hatchling used for > 0.2.2
-    poetry-core
-    pythonRelaxDepsHook
-  ];
+  buildInputs = [ pytest ];
 
-  buildInputs = [
-    pytest
-  ];
-
-  propagatedBuildInputs = [
+  dependencies = [
     atomicwrites
     ruamel-yaml
     testfixtures
   ];
 
-  nativeCheckInputs = [
-    pytest-asyncio
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "pytest_golden"
-  ];
+  pythonImportsCheck = [ "pytest_golden" ];
 
-  meta = with lib; {
+  meta = {
     description = "Plugin for pytest that offloads expected outputs to data files";
     homepage = "https://github.com/oprypin/pytest-golden";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

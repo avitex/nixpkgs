@@ -1,32 +1,31 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, jaraco-classes
-, keyring
-, pytestCheckHook
-, pythonOlder
-, setuptools-scm
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  jaraco-classes,
+  jaraco-context,
+  keyring,
+  pytestCheckHook,
+  setuptools-scm,
 }:
 
 buildPythonPackage rec {
   pname = "keyrings-alt";
-  version = "5.0.0";
-  format = "pyproject";
+  version = "5.0.2";
+  pyproject = true;
 
-  disabled = pythonOlder "3.8";
-
-  src = fetchPypi {
-    pname = "keyrings.alt";
-    inherit version;
-    hash = "sha256-nURstHu86pD/ouzD6AA6z0FXP8IBv0S0vxO9DhFISCg=";
+  src = fetchFromGitHub {
+    owner = "jaraco";
+    repo = "keyrings.alt";
+    tag = "v${version}";
+    hash = "sha256-m/hIXjri3FZ3rPIymiIBy8cKNOwJoj14WjsOyDtcWmU=";
   };
 
-  nativeBuildInputs = [
-    setuptools-scm
-  ];
+  build-system = [ setuptools-scm ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     jaraco-classes
+    jaraco-context
   ];
 
   nativeCheckInputs = [
@@ -34,15 +33,13 @@ buildPythonPackage rec {
     keyring
   ];
 
-  pythonImportsCheck = [
-    "keyrings.alt"
-  ];
+  pythonImportsCheck = [ "keyrings.alt" ];
 
-  meta = with lib; {
+  meta = {
     description = "Alternate keyring implementations";
     homepage = "https://github.com/jaraco/keyrings.alt";
     changelog = "https://github.com/jaraco/keyrings.alt/blob/v${version}/NEWS.rst";
-    license = licenses.mit;
-    maintainers = with maintainers; [ nyarly ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ nyarly ];
   };
 }

@@ -1,9 +1,7 @@
-import ./make-test-python.nix ({ pkgs, ... }: {
+{ pkgs, ... }:
+{
   name = "cloudlog";
-  meta = {
-    maintainers = with pkgs.lib.maintainers; [ melling ];
-  };
-  nodes = {
+  containers = {
     machine = {
       services.mysql.package = pkgs.mariadb;
       services.cloudlog.enable = true;
@@ -15,4 +13,4 @@ import ./make-test-python.nix ({ pkgs, ... }: {
     machine.wait_for_open_port(80);
     machine.wait_until_succeeds("curl -s -L --fail http://localhost | grep 'Login - Cloudlog'")
   '';
-})
+}

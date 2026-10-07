@@ -1,36 +1,31 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonRelaxDepsHook
-, installShellFiles
-, libnitrokey
-, flit-core
-, certifi
-, cffi
-, click
-, cryptography
-, ecdsa
-, fido2
-, intelhex
-, nkdfu
-, python-dateutil
-, pyusb
-, requests
-, spsdk
-, tqdm
-, tlv8
-, typing-extensions
-, pyserial
-, protobuf
-, click-aliases
-, semver
-, nethsm
-, importlib-metadata
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchPypi,
+  installShellFiles,
+  libnitrokey,
+  poetry-core,
+  cffi,
+  click,
+  cryptography,
+  fido2,
+  hidapi,
+  intelhex,
+  nkdfu,
+  pyusb,
+  requests,
+  tqdm,
+  tlv8,
+  semver,
+  nethsm,
+  nitrokey,
+  pyscard,
 }:
 
 let
   pname = "pynitrokey";
-  version = "0.4.45";
+  version = "0.13.0";
   mainProgram = "nitropy";
 in
 
@@ -40,68 +35,64 @@ buildPythonPackage {
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-iY4ThrmXP7pEjTYYU4lePVAbuJGTdHX3iKswXzuf7W8=";
+    hash = "sha256-PpckFLz1T0YthxZgqAODWJ7C+MW+5rklhpLTX1q2qqA=";
   };
 
-  propagatedBuildInputs = [
-    certifi
+  nativeBuildInputs = [ installShellFiles ];
+
+  build-system = [ poetry-core ];
+
+  dependencies = [
     cffi
     click
     cryptography
-    ecdsa
     fido2
+    hidapi
     intelhex
     nkdfu
-    python-dateutil
+    nitrokey
     pyusb
     requests
-    spsdk
     tqdm
     tlv8
-    typing-extensions
-    pyserial
-    protobuf
-    click-aliases
     semver
     nethsm
-    importlib-metadata
   ];
 
-  nativeBuildInputs = [
-    flit-core
-    installShellFiles
-    pythonRelaxDepsHook
-  ];
+  optional-dependencies = {
+    pcsc = [
+      pyscard
+    ];
+  };
 
   pythonRelaxDeps = true;
 
-  # pythonRelaxDepsHook runs in postBuild so cannot be used
-  pypaBuildFlags = [ "--skip-dependency-check" ];
-
   # libnitrokey is not propagated to users of the pynitrokey Python package.
   # It is only usable from the wrapped bin/nitropy
-  makeWrapperArgs = [
-    "--set LIBNK_PATH ${lib.makeLibraryPath [ libnitrokey ]}"
-  ];
-
-  # no tests
-  doCheck = false;
+  makeWrapperArgs = [ "--set LIBNK_PATH ${lib.makeLibraryPath [ libnitrokey ]}" ];
 
   pythonImportsCheck = [ "pynitrokey" ];
 
-  postInstall = ''
+  postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
     installShellCompletion --cmd ${mainProgram} \
       --bash <(_NITROPY_COMPLETE=bash_source $out/bin/${mainProgram}) \
       --zsh <(_NITROPY_COMPLETE=zsh_source $out/bin/${mainProgram}) \
       --fish <(_NITROPY_COMPLETE=fish_source $out/bin/${mainProgram})
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Python client for Nitrokey devices";
     homepage = "https://github.com/Nitrokey/pynitrokey";
     changelog = "https://github.com/Nitrokey/pynitrokey/releases/tag/v${version}";
-    license = with licenses; [ asl20 mit ];
-    maintainers = with maintainers; [ frogamic ];
+    license =
+      with lib.licenses;
+      OR [
+        asl20
+        mit
+      ];
+    maintainers = with lib.maintainers; [
+      panicgh
+    ];
     inherit mainProgram;
   };
 }

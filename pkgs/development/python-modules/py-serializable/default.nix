@@ -1,35 +1,31 @@
-{ lib
-, buildPythonPackage
-, defusedxml
-, fetchFromGitHub
-, lxml
-, poetry-core
-, pytestCheckHook
-, pythonOlder
-, xmldiff
+{
+  lib,
+  buildPythonPackage,
+  defusedxml,
+  fetchFromGitHub,
+  lxml,
+  poetry-core,
+  pytestCheckHook,
+  xmldiff,
 }:
 
 buildPythonPackage rec {
   pname = "py-serializable";
-  version = "1.0.0";
+  version = "2.1.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "madpah";
     repo = "serializable";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-7WYe3X4wVUC7HyYoCVQYWm61C+J3r91Ci8IHNeWBTVE=";
+    tag = "v${version}";
+    hash = "sha256-nou1/80t9d2iKOdZZbcN4SI3dlvuC8T55KMCP/cDEEU=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
-    defusedxml
-  ];
+  pythonRelaxDeps = [ "defusedxml" ];
+
+  dependencies = [ defusedxml ];
 
   nativeCheckInputs = [
     lxml
@@ -37,9 +33,7 @@ buildPythonPackage rec {
     xmldiff
   ];
 
-  pythonImportsCheck = [
-    "serializable"
-  ];
+  pythonImportsCheck = [ "py_serializable" ];
 
   disabledTests = [
     # AssertionError: '<ns0[155 chars]itle>The Phoenix
@@ -47,11 +41,11 @@ buildPythonPackage rec {
     "test_serializable_with_defaultNS"
   ];
 
-  meta = with lib; {
-    description = "Pythonic library to aid with serialisation and deserialisation to/from JSON and XML";
+  meta = {
+    description = "Library to aid with serialisation and deserialisation to/from JSON and XML";
     homepage = "https://github.com/madpah/serializable";
-    changelog = "https://github.com/madpah/serializable/blob/v${version}/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/madpah/serializable/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

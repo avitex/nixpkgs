@@ -1,23 +1,21 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pdm-backend
-, pdm-pep517
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pdm-backend,
+  pdm-pep517,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "jsonref";
   version = "1.1.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "gazpachoking";
     repo = "jsonref";
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     hash = "sha256-tOhabmqCkktJUZjCrzjOjUGgA/X6EVz0KqehyLtigfc=";
   };
 
@@ -26,23 +24,17 @@ buildPythonPackage rec {
     pdm-pep517
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pytestFlagsArray = [
-    "tests.py"
-  ];
+  enabledTestPaths = [ "tests.py" ];
 
-  pythonImportsCheck = [
-    "jsonref"
-  ];
+  pythonImportsCheck = [ "jsonref" ];
 
-  meta = with lib; {
-    description = "An implementation of JSON Reference for Python";
+  meta = {
+    description = "Implementation of JSON Reference for Python";
     homepage = "https://github.com/gazpachoking/jsonref";
     changelog = "https://github.com/gazpachoking/jsonref/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

@@ -1,50 +1,42 @@
-{ lib
-, stdenv
-, build
-, buildPythonPackage
-, fetchFromGitHub
-, flit-core
-, filelock
-, packaging
-, pyproject-hooks
-, pytest-mock
-, pytest-rerunfailures
-, pytest-xdist
-, pytestCheckHook
-, pythonOlder
-, setuptools
-, tomli
-, wheel
+{
+  lib,
+  stdenv,
+  build,
+  buildPythonPackage,
+  fetchFromGitHub,
+  flit-core,
+  filelock,
+  packaging,
+  pyproject-hooks,
+  pytest-mock,
+  pytest-rerunfailures,
+  pytest-xdist,
+  pytestCheckHook,
+  setuptools,
+  uv,
+  virtualenv,
+  wheel,
 }:
 
 buildPythonPackage rec {
   pname = "build";
-  version = "1.0.3";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "1.5.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "pypa";
     repo = "build";
-    rev = "refs/tags/${version}";
-    hash = "sha256-SGWpm+AGIfqKMpDfmz2aMYmcs+XVREbHIXSuU4R7U/k=";
+    tag = version;
+    hash = "sha256-vm47wuSEKfU4CjonokylTyGe62jGS/5m2dhLKhY5TPc=";
   };
 
-  postPatch = ''
-    # not strictly required, causes circular dependency cycle
-    sed -i '/importlib-metadata >= 4.6/d' pyproject.toml
-  '';
+  build-system = [ flit-core ];
 
-  nativeBuildInputs = [
-    flit-core
-  ];
+  pythonRemoveDeps = [ "importlib-metadata" ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     packaging
     pyproject-hooks
-  ] ++ lib.optionals (pythonOlder "3.11") [
-    tomli
   ];
 
   # We need to disable tests because this package is part of the bootstrap chain
@@ -55,7 +47,7 @@ buildPythonPackage rec {
     pytest = buildPythonPackage {
       pname = "${pname}-pytest";
       inherit src version;
-      format = "other";
+      pyproject = false;
 
       dontBuild = true;
       dontInstall = true;
@@ -68,12 +60,13 @@ buildPythonPackage rec {
         pytest-xdist
         pytestCheckHook
         setuptools
+        uv
+        virtualenv
         wheel
       ];
 
-      pytestFlagsArray = [
-        "-W"
-        "ignore::DeprecationWarning"
+      pytestFlags = [
+        "-Wignore::DeprecationWarning"
       ];
 
       __darwinAllowLocalNetworking = true;
@@ -87,18 +80,23 @@ buildPythonPackage rec {
         "test_init"
         "test_output"
         "test_wheel_metadata"
-      ] ++ lib.optionals stdenv.isDarwin [
+        # Tests require network access to run pip install
+        "test_logging_output"
+        "test_pythonpath_does_not_interfere_with_outer_pip"
+        "test_requirement_installation"
+        "test_verbose_logging_output"
+        "test_verbose_output"
+      ]
+      ++ lib.optionals stdenv.hostPlatform.isDarwin [
         # Expects Apple's Python and its quirks
         "test_can_get_venv_paths_with_conflicting_default_scheme"
       ];
     };
   };
 
-  pythonImportsCheck = [
-    "build"
-  ];
+  pythonImportsCheck = [ "build" ];
 
-  meta = with lib; {
+  meta = {
     mainProgram = "pyproject-build";
     description = "Simple, correct PEP517 package builder";
     longDescription = ''
@@ -106,8 +104,9 @@ buildPythonPackage rec {
       is a simple build tool and does not perform any dependency management.
     '';
     homepage = "https://github.com/pypa/build";
-    changelog = "https://github.com/pypa/build/blob/${version}/CHANGELOG.rst";
-    license = licenses.mit;
-    maintainers = teams.python.members ++ [ maintainers.fab ];
+    changelog = "https://github.com/pypa/build/blob/${src.tag}/CHANGELOG.rst";
+    license = lib.licenses.mit;
+    maintainers = [ lib.maintainers.fab ];
+    teams = [ lib.teams.python ];
   };
 }

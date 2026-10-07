@@ -1,10 +1,8 @@
-{ lib
-, buildPythonPackage
-, callPackage
-, fetchurl
-, libeduvpn-common
-, selenium
-, setuptools
+{
+  buildPythonPackage,
+  libeduvpn-common,
+  selenium,
+  setuptools,
 }:
 
 buildPythonPackage rec {
@@ -20,16 +18,14 @@ buildPythonPackage rec {
                       --subst-var-by libeduvpn-common ${libeduvpn-common.out}/lib/lib${pname}-${version}.so
   '';
 
-  format = "pyproject";
+  pyproject = true;
 
   propagatedBuildInputs = [
     libeduvpn-common
     setuptools
   ];
 
-  nativeCheckInputs = [
-    selenium
-  ];
+  nativeCheckInputs = [ selenium ];
 
   pythonImportsCheck = [ "eduvpn_common" ];
 

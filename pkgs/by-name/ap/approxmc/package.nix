@@ -1,24 +1,25 @@
-{ stdenv
-, fetchFromGitHub
-, cmake
-, zlib
-, gmp
-, cryptominisat
-, boost
-, arjun-cnf
-, louvain-community
-, lib
+{
+  stdenv,
+  fetchFromGitHub,
+  cmake,
+  zlib,
+  gmp,
+  cryptominisat,
+  boost,
+  arjun-cnf,
+  louvain-community,
+  lib,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "approxmc";
-  version = "4.1.23";
+  version = "4.1.24";
 
   src = fetchFromGitHub {
     owner = "meelgroup";
     repo = "approxmc";
     rev = finalAttrs.version;
-    hash = "sha256-pE2m6Cc2u53H/5CM+2JuQxZOhjhHUZOi0kn23CJmALM=";
+    hash = "sha256-rADPC7SVwzjUN5jb7Wt341oGfr6+LszIaBUe8QgmpRU=";
   };
 
   nativeBuildInputs = [ cmake ];
@@ -32,12 +33,12 @@ stdenv.mkDerivation (finalAttrs: {
     louvain-community
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Approximate Model Counter";
     homepage = "https://github.com/meelgroup/approxmc";
-    license = licenses.mit;
-    maintainers = with maintainers; [ t4ccer ];
-    platforms = platforms.linux;
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ t4ccer ];
+    platforms = lib.platforms.linux;
     mainProgram = "approxmc";
   };
 })

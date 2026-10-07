@@ -1,41 +1,51 @@
-{ lib
-, stdenv
-, darwin
-, fetchFromGitHub
-, openssl
-, pkg-config
-, rustPlatform
+{
+  lib,
+  fetchFromGitHub,
+  openssl,
+  pkg-config,
+  rustPlatform,
+  perl,
+  nix-update-script,
 }:
 
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "matrix-commander-rs";
-  version = "0.3.0";
+  version = "0.11.0";
 
   src = fetchFromGitHub {
     owner = "8go";
     repo = "matrix-commander-rs";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-aecmd7LtHowH+nqLcRNDSfAxZDKtBTrG1KNyRup8CYI=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-eWD1nj+xRWNkyC3lM/hIZACI2i1Awl9NTgslR8rJZSc=";
   };
 
-  cargoHash = "sha256-2biUWLWE0XtmB79yxFahQqLmqwH/6q50IhkcbUrBifU=";
+  cargoHash = "sha256-OWuKwaJfwOAtwtN0so/afWeHq2oslAT2YahnJC0QB6w=";
+
+  __structuredAttrs = true;
 
   nativeBuildInputs = [
     pkg-config
+    perl
   ];
 
-  buildInputs = [
-    openssl
-  ] ++ lib.optionals stdenv.isDarwin [
-    darwin.apple_sdk.frameworks.Security
-  ];
+  buildInputs = [ openssl ];
 
-  meta = with lib; {
+  passthru.updateScript = nix-update-script {
+    extraArgs = [
+      "--version-regex"
+      "^v(0.*)$" # https://github.com/8go/matrix-commander-rs/issues/194#issuecomment-4864773450
+    ];
+  };
+
+  meta = {
     description = "CLI-based Matrix client app for sending and receiving";
     homepage = "https://github.com/8go/matrix-commander-rs";
-    changelog = "https://github.com/8go/matrix-commander-rs/releases/tag/v${version}";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/8go/matrix-commander-rs/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.gpl3Only;
+    maintainers = with lib.maintainers; [
+      fab
+      ilkecan
+    ];
     mainProgram = "matrix-commander-rs";
   };
-}
+})

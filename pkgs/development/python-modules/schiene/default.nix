@@ -1,17 +1,15 @@
-{ lib
-, beautifulsoup4
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, requests
+{
+  lib,
+  beautifulsoup4,
+  buildPythonPackage,
+  fetchPypi,
+  requests,
 }:
 
 buildPythonPackage rec {
   pname = "schiene";
   version = "0.26";
   format = "setuptools";
-
-  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
@@ -26,14 +24,12 @@ buildPythonPackage rec {
   # Module has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "schiene"
-  ];
+  pythonImportsCheck = [ "schiene" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python library for interacting with Bahn.de";
     homepage = "https://github.com/kennell/schiene";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

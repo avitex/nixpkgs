@@ -1,32 +1,53 @@
-{ lib, buildPythonPackage, fetchPypi, pytestCheckHook
-, atpublic, psutil, pytest-cov, sybil
-, pdm-pep517
+{
+  lib,
+  atpublic,
+  buildPythonPackage,
+  fetchPypi,
+  hatchling,
+  psutil,
+  pytest-cov-stub,
+  pytestCheckHook,
+  sybil,
 }:
 
 buildPythonPackage rec {
-  pname = "flufl.lock";
-  version = "7.1.1";
-  format = "pyproject";
+  pname = "flufl-lock";
+  version = "9.1.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-rxQXKzW7xYaHvQa3DRaT/Y1Iy/D/3n5RphjBSK4kBC0=";
+    pname = "flufl_lock";
+    inherit version;
+    hash = "sha256-jXPIjKt8mLeSZxApnBFivsfOJT+bnF8KLKgDf58kAjQ=";
   };
 
-  nativeBuildInputs = [ pdm-pep517 ];
-  propagatedBuildInputs = [ atpublic psutil ];
-  nativeCheckInputs = [ pytestCheckHook pytest-cov sybil ];
+  build-system = [ hatchling ];
+
+  dependencies = [
+    atpublic
+    psutil
+  ];
+
+  nativeCheckInputs = [
+    pytestCheckHook
+    pytest-cov-stub
+    sybil
+  ];
 
   # disable code coverage checks for all OS. Upstream does not enforce these
   # checks on Darwin, and code coverage cannot be improved downstream nor is it
   # relevant to the user.
-  pytestFlagsArray = [ "--no-cov" ];
+  pytestFlags = [ "--no-cov" ];
 
-  meta = with lib; {
-    homepage = "https://flufllock.readthedocs.io/";
+  pythonImportsCheck = [ "flufl.lock" ];
+
+  pythonNamespaces = [ "flufl" ];
+
+  meta = {
     description = "NFS-safe file locking with timeouts for POSIX and Windows";
-    maintainers = with maintainers; [ qyliss ];
-    license = licenses.asl20;
-    platforms = platforms.all;
+    homepage = "https://flufllock.readthedocs.io/";
+    changelog = "https://gitlab.com/warsaw/flufl.lock/-/blob/${version}/docs/NEWS.rst";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ qyliss ];
   };
 }

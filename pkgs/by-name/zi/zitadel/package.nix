@@ -1,30 +1,32 @@
-{ stdenv
-, buildGoModule
-, callPackage
-, fetchFromGitHub
-, lib
+{
+  stdenv,
+  buildGoModule,
+  callPackage,
+  fetchFromGitHub,
+  lib,
 
-, buf
-, cacert
-, grpc-gateway
-, protoc-gen-go
-, protoc-gen-go-grpc
-, protoc-gen-validate
-, sass
-, statik
+  buf,
+  cacert,
+  grpc-gateway,
+  protoc-gen-go,
+  protoc-gen-go-grpc,
+  protoc-gen-validate,
+  sass,
+  statik,
 }:
 
 let
-  version = "2.40.3";
+  version = "2.71.7";
   zitadelRepo = fetchFromGitHub {
     owner = "zitadel";
     repo = "zitadel";
     rev = "v${version}";
-    hash = "sha256-WqsK6DAYkLs5wBNvkVGarLMm/unBLtipFkl07pR90HI=";
+    hash = "sha256-0ZOiwJ/ehDBkbd7iTTyVJzLj6Etph5/oxrDrck30ZL8=";
   };
-  goModulesHash = "sha256-IVf1YVnhyEYgZqM31Cv3aBFnPG7v5WW6fCEvlN+sTIE=";
+  goModulesHash = "sha256-iZCjHSpQ7Gy41Dd4svRLbyEh1N8VE8U0uCOlN9rfJQU=";
 
-  buildZitadelProtocGen = name:
+  buildZitadelProtocGen =
+    name:
     buildGoModule {
       pname = "protoc-gen-${name}";
       inherit version;
@@ -51,23 +53,29 @@ let
   # can download what it needs, and output the relevant generated code for use
   # during the main build.
   generateProtobufCode =
-    { pname
-    , nativeBuildInputs ? [ ]
-    , bufArgs ? ""
-    , workDir ? "."
-    , outputPath
-    , hash
+    {
+      pname,
+      version,
+      nativeBuildInputs ? [ ],
+      bufArgs ? "",
+      workDir ? ".",
+      outputPath,
+      hash,
     }:
     stdenv.mkDerivation {
-      name = "${pname}-buf-generated";
+      pname = "${pname}-buf-generated";
+      inherit version;
 
       src = zitadelRepo;
+      patches = [ ./console-use-local-protobuf-plugins.patch ];
 
-      nativeBuildInputs = nativeBuildInputs ++ [ buf ];
+      nativeBuildInputs = nativeBuildInputs ++ [
+        buf
+        cacert
+      ];
 
       buildPhase = ''
         cd ${workDir}
-        export SSL_CERT_FILE="${cacert}/etc/ssl/certs/ca-bundle.crt"
         HOME=$TMPDIR buf generate ${bufArgs}
       '';
 
@@ -82,6 +90,7 @@ let
 
   protobufGenerated = generateProtobufCode {
     pname = "zitadel";
+    inherit version;
     nativeBuildInputs = [
       grpc-gateway
       protoc-gen-authoption
@@ -91,23 +100,27 @@ let
       protoc-gen-zitadel
     ];
     outputPath = ".artifacts";
-    hash = "sha256-xrEF1B4pMoCZs1WO9F6IoqHnSyt5BhPVTIABMWK/q2E=";
+    hash = "sha256-rc5A2bQ2iWkybprQ7IWsQ/LLAQxPqhlxzVvPn8Ec56E=";
   };
 in
 buildGoModule rec {
-  name = "zitadel";
+  pname = "zitadel";
   inherit version;
 
   src = zitadelRepo;
 
-  nativeBuildInputs = [ sass statik ];
+  nativeBuildInputs = [
+    sass
+    statik
+  ];
 
   proxyVendor = true;
   vendorHash = goModulesHash;
+  ldflags = [ "-X 'github.com/zitadel/zitadel/cmd/build.version=${version}'" ];
 
   # Adapted from Makefile in repo, with dependency fetching and protobuf codegen
   # bits removed
-  buildPhase = ''
+  preBuild = ''
     mkdir -p pkg/grpc
     cp -r ${protobufGenerated}/grpc/github.com/zitadel/zitadel/pkg/grpc/* pkg/grpc
     mkdir -p openapi/v2/zitadel
@@ -122,29 +135,28 @@ buildGoModule rec {
     go run internal/api/assets/generator/asset_generator.go -directory=internal/api/assets/generator/ -assets=docs/apis/assets/assets.md
 
     cp -r ${passthru.console}/* internal/api/ui/console/static
-    CGO_ENABLED=0 go build -o zitadel -v -ldflags="-s -w -X 'github.com/zitadel/zitadel/cmd/build.version=${version}'"
   '';
+
+  doCheck = false;
 
   installPhase = ''
     mkdir -p $out/bin
-    install -Dm755 zitadel $out/bin/
+    install -Dm755 $GOPATH/bin/zitadel $out/bin/
   '';
 
   passthru = {
-    console = callPackage
-      (import ./console.nix {
-        inherit generateProtobufCode version zitadelRepo;
-      })
-      { };
+    console = callPackage (import ./console.nix {
+      inherit generateProtobufCode version zitadelRepo;
+    }) { };
   };
 
-  meta = with lib; {
+  meta = {
     description = "Identity and access management platform";
     homepage = "https://zitadel.com/";
     downloadPage = "https://github.com/zitadel/zitadel/releases";
-    platforms = platforms.linux ++ platforms.darwin;
-    license = licenses.asl20;
-    sourceProvenance = [ sourceTypes.fromSource ];
-    maintainers = with maintainers; [ Sorixelle ];
+    platforms = lib.platforms.linux ++ lib.platforms.darwin;
+    license = lib.licenses.asl20;
+    sourceProvenance = [ lib.sourceTypes.fromSource ];
+    maintainers = [ lib.maintainers.nrabulinski ];
   };
 }

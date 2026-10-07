@@ -1,40 +1,29 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchFromGitHub
-, fetchpatch
-, pydicom
-, pyfakefs
-, pytestCheckHook
-, sqlalchemy
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  flit-core,
+  pydicom,
+  pyfakefs,
+  pytestCheckHook,
+  sqlalchemy,
 }:
 
 buildPythonPackage rec {
   pname = "pynetdicom";
-  version = "2.0.2";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "3.0.4";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "pydicom";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-/JWQUtFBW4uqCbs/nUxj1pRBfTCXV4wcqTkqvzpdFrM=";
+    repo = "pynetdicom";
+    tag = "v${version}";
+    hash = "sha256-4LISckHH+fVBmPcBr8rM62E6r3IkKAgdUneVHyc5Vm8=";
   };
 
-  patches = [
-    (fetchpatch {
-      name = "fix-python-3.11-test-attribute-errors";
-      url = "https://github.com/pydicom/pynetdicom/pull/754/commits/2126bd932d6dfb3f07045eb9400acb7eaa1b3069.patch";
-      hash = "sha256-t6Lg0sTZSWIE5q5pkBvEoHDQ+cklDn8SgNBcFk1myp4=";
-     })
-  ];
+  build-system = [ flit-core ];
 
-  propagatedBuildInputs = [
-    pydicom
-  ];
+  dependencies = [ pydicom ];
 
   nativeCheckInputs = [
     pyfakefs
@@ -74,16 +63,13 @@ buildPythonPackage rec {
     "pynetdicom/apps/tests/"
   ];
 
-  pythonImportsCheck = [
-    "pynetdicom"
-  ];
+  pythonImportsCheck = [ "pynetdicom" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python implementation of the DICOM networking protocol";
     homepage = "https://github.com/pydicom/pynetdicom";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
-    # Tests are not passing on Darwin/Aarch64, thus it's assumed that it doesn't work
-    broken = stdenv.isDarwin || stdenv.isAarch64;
+    changelog = "https://github.com/pydicom/pynetdicom/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

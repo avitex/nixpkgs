@@ -1,38 +1,44 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, dulwich
-, pbr
-, sphinx
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  dulwich,
+  pbr,
+  sphinx,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "openstackdocstheme";
-  version = "3.2.0";
-  format = "setuptools";
+  version = "3.5.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-PwSWLJr5Hjwz8cRXXutnE4Jc+vLcL3TJTZl6biK/4E4=";
+    hash = "sha256-3h1dXtIMk1/CgbUP30ppUo+Q8qdb7PQtGIRD9eGWwJ8=";
   };
 
   postPatch = ''
-    # only a small portion of the listed packages are actually needed for running the tests
-    # so instead of removing them one by one remove everything
-    rm test-requirements.txt
+    patchShebangs bin/
   '';
 
-  propagatedBuildInputs = [ dulwich pbr sphinx ];
+  build-system = [ setuptools ];
+
+  dependencies = [
+    dulwich
+    pbr
+    sphinx
+  ];
 
   # no tests
   doCheck = false;
 
   pythonImportsCheck = [ "openstackdocstheme" ];
 
-  meta = with lib; {
+  meta = {
     description = "Sphinx theme for RST-sourced documentation published to docs.openstack.org";
     homepage = "https://github.com/openstack/openstackdocstheme";
-    license = licenses.asl20;
-    maintainers = teams.openstack.members;
+    license = lib.licenses.asl20;
+    teams = [ lib.teams.openstack ];
   };
 }

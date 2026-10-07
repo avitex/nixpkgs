@@ -1,35 +1,34 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pyasn1";
-  version = "0.5.1";
+  version = "0.6.4";
   pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-bTkaluWbIxMKXPp01v1/OI274mzI8e3zn93fCNnWZ2w=";
+  src = fetchFromGitHub {
+    owner = "pyasn1";
+    repo = "pyasn1";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-ZtsHANVUGk+LF17dEjePDm8ofX61P4f2/BTHqlscNd0=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  pythonImportsCheck = [
-    "pyasn1"
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "pyasn1" ];
+
+  meta = {
     description = "Generic ASN.1 library for Python";
     homepage = "https://pyasn1.readthedocs.io";
-    changelog = "https://github.com/etingof/pyasn1/blob/master/CHANGES.rst";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/pyasn1/pyasn1/blob/${finalAttrs.src.tag}/CHANGES.rst";
+    license = lib.licenses.bsd2;
+    maintainers = [ ];
   };
-}
+})

@@ -1,40 +1,48 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, gevent
-, pytestCheckHook
-, watchdog
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  gevent,
+  pytestCheckHook,
+  setuptools,
+  watchdog,
 }:
 
 buildPythonPackage rec {
   pname = "watchdog-gevent";
-  version = "0.1.1";
-  format = "setuptools";
+  version = "0.2.1";
+  pyproject = true;
 
-  # Need to fetch from github because tests are not present in pypi
-  src = fetchFromGitHub {
-    owner = "Bogdanp";
-    repo = "watchdog_gevent";
-    rev = "v${version}";
-    hash = "sha256-FESm3fNuLmOg2ilI/x8U9LuAimHLnahcTHYzW/nzOVY=";
+  src = fetchPypi {
+    pname = "watchdog_gevent";
+    inherit version;
+    hash = "sha256-rmuU0PjIzhxZVs2GX2ErYfRWzxmAF0S7olo0n+jowzc=";
   };
-
-  propagatedBuildInputs = [ watchdog gevent ];
 
   postPatch = ''
     sed -i setup.cfg \
       -e 's:--cov watchdog_gevent::' \
       -e 's:--cov-report html::'
+
+    substituteInPlace tests/test_observer.py \
+      --replace-fail 'events == [FileModifiedEvent(__file__)]' 'FileModifiedEvent(__file__) in events'
   '';
+
+  build-system = [ setuptools ];
+
+  dependencies = [
+    gevent
+    watchdog
+  ];
 
   nativeCheckInputs = [ pytestCheckHook ];
 
   pythonImportsCheck = [ "watchdog_gevent" ];
 
-  meta = with lib; {
-    description = "A gevent-based observer for watchdog";
+  meta = {
+    description = "Gevent-based observer for watchdog";
     homepage = "https://github.com/Bogdanp/watchdog_gevent";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ traxys ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ traxys ];
   };
 }

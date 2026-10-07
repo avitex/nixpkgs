@@ -1,38 +1,36 @@
-{ lib
-, attrs
-, buildPythonPackage
-, commoncode
-, fetchPypi
-, packaging
-, pyparsing
-, pytestCheckHook
-, pythonOlder
-, saneyaml
-, semantic-version
-, semver
-, setuptools-scm
+{
+  lib,
+  attrs,
+  buildPythonPackage,
+  commoncode,
+  fetchPypi,
+  packaging,
+  pytestCheckHook,
+  saneyaml,
+  semantic-version,
+  semver,
+  setuptools,
+  setuptools-scm,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "univers";
-  version = "30.11.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "32.0.1";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-xyrg8B+C5xUN8zHLrMbAe/MWjZb8fCL0MIAz2w4B7/U=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-+uGHJF9yvuFYHymwsLbpBwSbLqE24+Ur+Njtv+8Q5/A=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
+    setuptools
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     attrs
     packaging
-    pyparsing
     semantic-version
     semver
   ];
@@ -45,9 +43,7 @@ buildPythonPackage rec {
 
   dontConfigure = true; # ./configure tries to setup virtualenv and downloads dependencies
 
-  pythonImportsCheck = [
-    "univers"
-  ];
+  pythonImportsCheck = [ "univers" ];
 
   disabledTests = [
     # No value for us
@@ -57,11 +53,17 @@ buildPythonPackage rec {
     "test_semver_version"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Library for parsing version ranges and expressions";
-    homepage = "https://github.com/nexB/univers";
-    changelog = "https://github.com/nexB/univers/blob/v${version}/CHANGELOG.rst";
-    license = with licenses; [ asl20 bsd3 mit ];
-    maintainers = with maintainers; [ armijnhemel sbruder ];
+    homepage = "https://github.com/aboutcode-org/univers";
+    changelog = "https://github.com/aboutcode-org/univers/blob/${finalAttrs.version}/CHANGELOG.rst";
+    license = with lib.licenses; [
+      asl20
+      bsd3
+      mit
+    ];
+    maintainers = with lib.maintainers; [
+      armijnhemel
+    ];
   };
-}
+})

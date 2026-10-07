@@ -1,53 +1,49 @@
-{ buildPythonPackage
-, cython
-, fetchFromGitHub
-, isPy38
-, lib
-, lz4
-, numpy
-, pandas
-, pytestCheckHook
-, python-dateutil
-, python-snappy
-, pythonOlder
-, zstandard
+{
+  buildPythonPackage,
+  cython,
+  fetchFromGitHub,
+  lib,
+  lz4,
+  numpy,
+  pandas,
+  pytestCheckHook,
+  python-dateutil,
+  cramjam,
+  setuptools,
+  zlib-ng,
+  zstandard,
 }:
 
 buildPythonPackage rec {
   pname = "fastavro";
-  version = "1.9.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.6";
+  version = "1.12.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
-    owner = pname;
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-10r12Ya+FKMgdOTmgYH1xb6vOXNLLw073VzCvo2x9kg=";
+    owner = "fastavro";
+    repo = "fastavro";
+    tag = version;
+    hash = "sha256-r/zaQ44ZPuSR1HxaqxD26kZPWREhmKP+oTOSa5QCEU4=";
   };
 
   preBuild = ''
     export FASTAVRO_USE_CYTHON=1
   '';
 
-  nativeBuildInputs = [ cython ];
+  build-system = [
+    cython
+    setuptools
+  ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     codecs = [
+      cramjam
       lz4
-      python-snappy
       zstandard
     ];
-    snappy = [
-      python-snappy
-    ];
-    zstandard = [
-      zstandard
-    ];
-    lz4 = [
-      lz4
-    ];
+    snappy = [ cramjam ];
+    zstandard = [ zstandard ];
+    lz4 = [ lz4 ];
   };
 
   nativeCheckInputs = [
@@ -55,22 +51,22 @@ buildPythonPackage rec {
     pandas
     pytestCheckHook
     python-dateutil
-  ] ++ lib.flatten (builtins.attrValues passthru.optional-dependencies);
+    zlib-ng
+  ]
+  ++ lib.concatAttrValues optional-dependencies;
 
   # Fails with "AttributeError: module 'fastavro._read_py' has no attribute
   # 'CYTHON_MODULE'." Doesn't appear to be serious. See https://github.com/fastavro/fastavro/issues/112#issuecomment-387638676.
   disabledTests = [ "test_cython_python" ];
 
-  # CLI tests are broken on Python 3.8. See https://github.com/fastavro/fastavro/issues/558.
-  disabledTestPaths = lib.optionals isPy38 [ "tests/test_main_cli.py" ];
-
   pythonImportsCheck = [ "fastavro" ];
 
-  meta = with lib; {
+  meta = {
     description = "Fast read/write of AVRO files";
+    mainProgram = "fastavro";
     homepage = "https://github.com/fastavro/fastavro";
-    changelog = "https://github.com/fastavro/fastavro/blob/${version}/ChangeLog";
-    license = licenses.mit;
-    maintainers = with maintainers; [ samuela ];
+    changelog = "https://github.com/fastavro/fastavro/blob/${src.tag}/ChangeLog";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ samuela ];
   };
 }

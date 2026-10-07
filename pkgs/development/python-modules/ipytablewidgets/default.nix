@@ -1,67 +1,66 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
-, pythonOlder
-, ipywidgets
-, jupyter-packaging
-, jupyterlab
-, lz4
-, numpy
-, pandas
-, setuptools
-, traitlets
-, traittypes
-, wheel
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+
+  # build-system
+  jupyter-packaging,
+  jupyterlab,
+  setuptools,
+
+  # dependencies
+  ipywidgets,
+  lz4,
+  numpy,
+  pandas,
+  traitlets,
+
+  # tests
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "ipytablewidgets";
-  version = "0.3.1";
-  format = "pyproject";
+  version = "0.3.4";
+  pyproject = true;
+  __structuredAttrs = true;
 
-  disabled = pythonOlder "3.7";
-
+  # The GitHub tarball does not ship the pre-built labextension assets, which
+  # `jupyter_packaging` requires at build time. Only the sdist does.
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-14vIih+r/PHLxhgG29YtwuosSBLpewD2CluWpH2+pLc=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-ni4933km+meObT131hsPWBckhBwjZBbQVG0iepNxjRk=";
   };
 
-  # Opened https://github.com/progressivis/ipytablewidgets/issues/3 to ask if
-  # jupyterlab can be updated upstream. (From commits, it looks like it was
-  # set to this version on purpose.) In the meantime, the build still works.
-  #
   postPatch = ''
     substituteInPlace pyproject.toml \
-      --replace 'jupyterlab>=3.0.0,<3.7' 'jupyterlab>=3.0.0'
+      --replace-fail \
+        "setuptools>=40.8.0,<80" \
+        "setuptools"
   '';
 
-  nativeBuildInputs = [
+  build-system = [
     jupyter-packaging
     jupyterlab
     setuptools
-    wheel
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     ipywidgets
     lz4
     numpy
     pandas
     traitlets
-    traittypes
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   pythonImportsCheck = [ "ipytablewidgets" ];
 
-  meta = with lib; {
+  meta = {
     description = "Traitlets and widgets to efficiently data tables (e.g. Pandas DataFrame) using the jupyter notebook";
     homepage = "https://github.com/progressivis/ipytablewidgets";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ natsukium ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ natsukium ];
   };
-}
+})

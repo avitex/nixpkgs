@@ -1,15 +1,27 @@
-{ lib
-, kaem
-, ln-boot
-, mes
-, mes-libc
+let
+  sourcesJson = (builtins.fromJSON (builtins.readFile ./sources.json));
+in
+
+{
+  lib,
+  kaem,
+  ln-boot,
+  mes,
+  buildPlatform,
 }:
 let
   pname = "mes-libc";
   inherit (mes.compiler) version;
 
-  sources = (import ./sources.nix).x86.linux.gcc;
-  inherit (sources) libtcc1_SOURCES libc_gnu_SOURCES;
+  arch =
+    {
+      i686-linux = "x86";
+      x86_64-linux = "x86_64";
+    }
+    .${buildPlatform.system};
+
+  sources = sourcesJson."${arch}.linux.gcc";
+  inherit (sources) libtcc1_SOURCES libc_gnu1_SOURCES libc_gnu2_SOURCES;
 
   # Concatenate all source files into a convenient bundle
   # "gcc" variants of source files (eg. "lib/linux/x86-mes-gcc") can also be
@@ -17,44 +29,52 @@ let
   #
   # Passing this many arguments is too much for kaem so we need to split
   # the operation in two
-  firstLibc = lib.take 100 libc_gnu_SOURCES;
-  lastLibc = lib.drop 100 libc_gnu_SOURCES;
+  #
+  # We also vendor a copy of ldexpl. We do not `fetchurl` it as the mes GitLab
+  # often has force pushes and links are thus unstable.
+  firstLibc = libc_gnu1_SOURCES + " " + ./ldexpl.c;
+  lastLibc = libc_gnu2_SOURCES;
 in
-kaem.runCommand "${pname}-${version}" {
-  inherit pname version;
+kaem.runCommand "${pname}-${version}"
+  {
+    inherit pname version;
 
-  nativeBuildInputs = [ ln-boot ];
+    extraPath = "${ln-boot}/bin";
 
-  passthru.CFLAGS = "-DHAVE_CONFIG_H=1 -I${mes-libc}/include -I${mes-libc}/include/linux/x86";
+    passthru.CFLAGS = "-std=c11";
 
-  meta = with lib; {
-    description = "The Mes C Library";
-    homepage = "https://www.gnu.org/software/mes";
-    license = licenses.gpl3Plus;
-    maintainers = teams.minimal-bootstrap.members;
-    platforms = [ "i686-linux" ];
-  };
-} ''
-  cd ${mes.srcPrefix}
+    meta = {
+      description = "Mes C Library";
+      homepage = "https://www.gnu.org/software/mes";
+      license = lib.licenses.gpl3Plus;
+      teams = [ lib.teams.minimal-bootstrap ];
+      platforms = [
+        "i686-linux"
+        "x86_64-linux"
+      ];
+    };
+  }
+  ''
+    cd ${mes.srcPrefix}
 
-  # mescc compiled libc.a
-  mkdir -p ''${out}/lib/x86-mes
+    # mescc compiled libc.a
+    mkdir -p ''${out}/lib/${arch}-mes
 
-  # libc.c
-  catm ''${TMPDIR}/first.c ${lib.concatStringsSep " " firstLibc}
-  catm ''${out}/lib/libc.c ''${TMPDIR}/first.c ${lib.concatStringsSep " " lastLibc}
+    # libc.c
+    catm ''${TMPDIR}/first.c ${firstLibc}
+    catm ''${out}/lib/libc.c ''${TMPDIR}/first.c ${lastLibc}
 
-  # crt{1,n,i}.c
-  cp lib/linux/x86-mes-gcc/crt1.c ''${out}/lib
-  cp lib/linux/x86-mes-gcc/crtn.c ''${out}/lib
-  cp lib/linux/x86-mes-gcc/crti.c ''${out}/lib
+    # crt{1,n,i}.c
+    cp lib/linux/${arch}-mes-gcc/crt1.c ''${out}/lib
+    cp lib/linux/${arch}-mes-gcc/crtn.c ''${out}/lib
+    cp lib/linux/${arch}-mes-gcc/crti.c ''${out}/lib
 
-  # libtcc1.c
-  catm ''${out}/lib/libtcc1.c ${lib.concatStringsSep " " libtcc1_SOURCES}
+    # libtcc1.c
+    catm ''${out}/lib/libtcc1.c ${libtcc1_SOURCES}
 
-  # getopt.c
-  cp lib/posix/getopt.c ''${out}/lib/libgetopt.c
+    # getopt.c
+    cp lib/posix/getopt.c ''${out}/lib/libgetopt.c
 
-  # Install headers
-  ln -s ${mes.srcPrefix}/include ''${out}/include
-''
+    # Install headers
+    ${ln-boot}/bin/ln -s ${mes.srcPrefix}/include ''${out}/include
+  ''

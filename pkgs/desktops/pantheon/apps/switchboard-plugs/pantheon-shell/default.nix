@@ -1,37 +1,37 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, nix-update-script
-, meson
-, ninja
-, pkg-config
-, vala
-, glib
-, libgee
-, libhandy
-, granite
-, gexiv2
-, gnome-settings-daemon
-, elementary-settings-daemon
-, gtk3
-, gnome-desktop
-, gala
-, wingpanel
-, elementary-dock
-, switchboard
-, gettext
-, bamf
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  nix-update-script,
+  meson,
+  ninja,
+  pkg-config,
+  vala,
+  glib,
+  libadwaita,
+  libgee,
+  granite7,
+  gexiv2_0_10,
+  gnome-settings-daemon,
+  elementary-settings-daemon,
+  gtk4,
+  gala,
+  wingpanel,
+  wingpanel-indicator-keyboard,
+  wingpanel-quick-settings,
+  switchboard,
+  gettext,
 }:
 
 stdenv.mkDerivation rec {
   pname = "switchboard-plug-pantheon-shell";
-  version = "6.5.0";
+  version = "8.3.0";
 
   src = fetchFromGitHub {
     owner = "elementary";
-    repo = pname;
-    rev = version;
-    sha256 = "sha256-iq1QXC6eQ2w5j9RCxhTc0dApMfiDGcVuj8nocEFLFNk=";
+    repo = "settings-desktop";
+    tag = version;
+    hash = "sha256-qczv+G0v47SiMsLlWjDPK0ZY4J+V/CXe/l7b6pWG+WY=";
   };
 
   nativeBuildInputs = [
@@ -43,31 +43,30 @@ stdenv.mkDerivation rec {
   ];
 
   buildInputs = [
-    bamf
-    elementary-dock
     elementary-settings-daemon
     gnome-settings-daemon
     gala
-    gexiv2
+    gexiv2_0_10
     glib
-    gnome-desktop
-    granite
-    gtk3
+    granite7
+    gtk4
+    libadwaita
     libgee
-    libhandy
     switchboard
     wingpanel
+    wingpanel-indicator-keyboard # gsettings schemas
+    wingpanel-quick-settings # gsettings schemas
   ];
 
   passthru = {
     updateScript = nix-update-script { };
   };
 
-  meta = with lib; {
+  meta = {
     description = "Switchboard Desktop Plug";
-    homepage = "https://github.com/elementary/switchboard-plug-pantheon-shell";
-    license = licenses.gpl3Plus;
-    platforms = platforms.linux;
-    maintainers = teams.pantheon.members;
+    homepage = "https://github.com/elementary/settings-desktop";
+    license = lib.licenses.gpl3Plus;
+    platforms = lib.platforms.linux;
+    teams = [ lib.teams.pantheon ];
   };
 }

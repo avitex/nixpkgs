@@ -1,20 +1,21 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
-, python-json-logger
-, setuptools
-, setuptools-scm
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pytestCheckHook,
+  python-json-logger,
+  setuptools,
+  setuptools-scm,
 }:
 
 buildPythonPackage rec {
   pname = "daiquiri";
-  version = "3.2.3";
+  version = "3.4.0";
   pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-P8rvN2/WgIi5I5E3R6t+4S2Lf7Kvf4xfIOWYCZfp6DU=";
+    hash = "sha256-yh0ywsCgbzYU/4A6h6wdUNYo2zTQv37ZffDKV2MyBU8=";
   };
 
   nativeBuildInputs = [
@@ -22,20 +23,16 @@ buildPythonPackage rec {
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
-    python-json-logger
-  ];
+  propagatedBuildInputs = [ python-json-logger ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   pythonImportsCheck = [ "daiquiri" ];
 
-  meta = with lib; {
+  meta = {
     description = "Library to configure Python logging easily";
     homepage = "https://github.com/Mergifyio/daiquiri";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
 }

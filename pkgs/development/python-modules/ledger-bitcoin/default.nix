@@ -1,28 +1,28 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools
-, ledgercomm
-, packaging
-, bip32
-, coincurve
-, typing-extensions
- }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  ledgercomm,
+  packaging,
+  bip32,
+  coincurve,
+  typing-extensions,
+  hidapi,
+}:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "ledger-bitcoin";
-  version = "0.2.2";
-  format = "pyproject";
+  version = "0.4.1";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit version;
+    inherit (finalAttrs) version;
     pname = "ledger_bitcoin";
-    hash = "sha256-MEZuwIthIOwBkRdR7dEsEznO+GVBeOf7/5xmwNW1SvI=";
+    hash = "sha256-PLQpftflV++YNJzcvWZ+9zaMBH1oGMfNy8p6+YuABrY=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
   propagatedBuildInputs = [
     ledgercomm
@@ -30,15 +30,14 @@ buildPythonPackage rec {
     bip32
     coincurve
     typing-extensions
+    hidapi
   ];
 
-  pythonImportsCheck = [
-    "ledger_bitcoin"
-  ];
+  pythonImportsCheck = [ "ledger_bitcoin" ];
 
-  meta = with lib; {
-    description = "Client library for Ledger Bitcoin application.";
+  meta = {
+    description = "Client library for Ledger Bitcoin application";
     homepage = "https://github.com/LedgerHQ/app-bitcoin-new/tree/develop/bitcoin_client/ledger_bitcoin";
-    license = licenses.asl20;
+    license = lib.licenses.asl20;
   };
-}
+})

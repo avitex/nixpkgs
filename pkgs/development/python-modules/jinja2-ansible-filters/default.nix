@@ -1,6 +1,9 @@
-{ lib, buildPythonPackage, fetchPypi
-, jinja2
-, pyyaml
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  jinja2,
+  pyyaml,
 }:
 
 buildPythonPackage rec {
@@ -23,10 +26,10 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "jinja2_ansible_filters" ];
 
-  meta = with lib; {
+  meta = {
     description = "Jinja2 Ansible Filters";
     homepage = "https://pypi.org/project/jinja2-ansible-filters/";
-    license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ jonringer ];
+    license = lib.licenses.gpl3Plus;
+    maintainers = [ ];
   };
 }

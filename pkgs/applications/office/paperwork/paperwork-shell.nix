@@ -1,29 +1,30 @@
-{ buildPythonPackage
-, lib
-, fetchFromGitLab
+{
+  buildPythonPackage,
+  lib,
+  callPackage,
 
-, isPy3k
-, isPyPy
+  isPy3k,
+  isPyPy,
 
-, openpaperwork-core
-, openpaperwork-gtk
-, paperwork-backend
-, fabulous
-, rich
-, getkey
-, psutil
-, shared-mime-info
-, setuptools-scm
+  openpaperwork-core,
+  openpaperwork-gtk,
+  paperwork-backend,
+  fabulous,
+  rich,
+  getkey,
+  psutil,
+  shared-mime-info,
+  setuptools-scm,
 
-, pkgs
+  pkgs,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "paperwork-shell";
-  inherit (import ./src.nix { inherit fetchFromGitLab; }) version src;
-  format = "pyproject";
+  inherit (callPackage ./src.nix { }) version src;
+  pyproject = true;
 
-  sourceRoot = "${src.name}/paperwork-shell";
+  sourceRoot = "${finalAttrs.src.name}/paperwork-shell";
 
   # Python 2.x is not supported.
   disabled = !isPy3k && !isPyPy;
@@ -65,6 +66,9 @@ buildPythonPackage rec {
     description = "CLI for Paperwork";
     homepage = "https://openpaper.work/";
     license = lib.licenses.gpl3Plus;
-    maintainers = with lib.maintainers; [ aszlig symphorien ];
+    maintainers = with lib.maintainers; [
+      aszlig
+      symphorien
+    ];
   };
-}
+})

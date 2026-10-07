@@ -3,11 +3,11 @@
 {
   pname = "musl";
 
-  meta = with lib; {
-    description = "An efficient, small, quality libc implementation";
+  meta = {
+    description = "Efficient, small, quality libc implementation";
     homepage = "https://musl.libc.org";
-    license = licenses.mit;
-    maintainers = teams.minimal-bootstrap.members;
-    platforms = platforms.unix;
+    license = lib.licenses.mit;
+    teams = [ lib.teams.minimal-bootstrap ];
+    platforms = lib.platforms.unix;
   };
 }

@@ -1,24 +1,23 @@
-{ lib
-, aiohttp
-, buildPythonPackage
-, fetchFromGitHub
-, pytest-aiohttp
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  aiohttp,
+  async-timeout,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytest-aiohttp,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "moonraker-api";
-  version = "2.0.5";
+  version = "2.0.6";
   format = "setuptools";
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "cmroche";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-PgFsXmdAmHXK0wZ6xLTu94RdME1L2H1Mb6V+qFlGXSk=";
+    repo = "moonraker-api";
+    tag = "v${version}";
+    hash = "sha256-AwSHF9BbxKBXIQdG4OX1vYYP/ST4jSz3uMMDUx0MSEg=";
   };
 
   postPatch = ''
@@ -29,6 +28,7 @@ buildPythonPackage rec {
 
   propagatedBuildInputs = [
     aiohttp
+    async-timeout
   ];
 
   nativeCheckInputs = [
@@ -36,14 +36,12 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "moonraker_api"
-  ];
+  pythonImportsCheck = [ "moonraker_api" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python API for the Moonraker API";
     homepage = "https://github.com/cmroche/moonraker-api";
-    license = with licenses; [ gpl3Only ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.gpl3Only;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

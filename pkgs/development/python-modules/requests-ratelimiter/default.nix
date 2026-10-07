@@ -1,46 +1,47 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, pyrate-limiter
-, requests
-, pytestCheckHook
-, requests-mock
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  pyrate-limiter,
+  pytestCheckHook,
+  requests-mock,
+  requests,
+  requests-cache,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "requests-ratelimiter";
-  version = "0.4.2";
+  version = "0.10.0";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "JWCook";
     repo = "requests-ratelimiter";
-    rev = "v${version}";
-    hash = "sha256-w4cBQRpk9UTuGA0lPDsqpQ3UEIQdYe38NYXz+V4+Lvc=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-P6tDx/jzGEyFC10WIyHQZIFMSEmtMnHjl+jEih987j8=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     pyrate-limiter
     requests
   ];
 
   nativeCheckInputs = [
     pytestCheckHook
+    requests-cache
     requests-mock
   ];
 
   pythonImportsCheck = [ "requests_ratelimiter" ];
 
-  meta = with lib; {
-    description = "Easy rate-limiting for python requests";
+  meta = {
+    description = "Module for rate-limiting for requests";
     homepage = "https://github.com/JWCook/requests-ratelimiter";
-    changelog = "https://github.com/JWCook/requests-ratelimiter/blob/${src.rev}/HISTORY.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ mbalatsko ];
+    changelog = "https://github.com/JWCook/requests-ratelimiter/blob/${finalAttrs.src.tag}/HISTORY.md";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
-}
+})

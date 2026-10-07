@@ -1,30 +1,40 @@
-{ stdenv
-, lib
-, fetchFromGitHub
-, docbook-xsl-nons
-, gobject-introspection
-, gtk-doc
-, meson
-, ninja
-, pkg-config
-, libxml2
-, glib
-, gtk3
-, shared-mime-info
-, gitUpdater
+{
+  stdenv,
+  lib,
+  fetchFromGitLab,
+  docbook-xsl-nons,
+  gobject-introspection,
+  gtk-doc,
+  meson,
+  ninja,
+  pkg-config,
+  libgedit-amtk,
+  libgedit-gfls,
+  libxml2,
+  glib,
+  gtk3,
+  shared-mime-info,
+  gitUpdater,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "libgedit-gtksourceview";
-  version = "299.0.5";
+  version = "299.7.1";
 
-  outputs = [ "out" "dev" "devdoc" ];
+  outputs = [
+    "out"
+    "dev"
+    "devdoc"
+  ];
 
-  src = fetchFromGitHub {
-    owner = "gedit-technology";
+  src = fetchFromGitLab {
+    domain = "gitlab.gnome.org";
+    group = "World";
+    owner = "gedit";
     repo = "libgedit-gtksourceview";
-    rev = finalAttrs.version;
-    hash = "sha256-PQ7cpul9h1JzywDWm9YyD95B1ONSdUUk0EQJMEGoRN0=";
+    tag = finalAttrs.version;
+    forceFetchGit = true; # To avoid occasional 501 failures.
+    hash = "sha256-i+6Rfqm/KPJrLSvhvTVY53Q6O+LJEU9WjLJ/L3hMSUA=";
   };
 
   patches = [
@@ -44,6 +54,8 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   buildInputs = [
+    libgedit-amtk
+    libgedit-gfls
     libxml2
   ];
 
@@ -55,15 +67,13 @@ stdenv.mkDerivation (finalAttrs: {
     shared-mime-info
   ];
 
-  passthru.updateScript = gitUpdater {
-    odd-unstable = true;
-  };
+  passthru.updateScript = gitUpdater { ignoredVersions = "(alpha|beta|rc).*"; };
 
-  meta = with lib; {
+  meta = {
     description = "Source code editing widget for GTK";
-    homepage = "https://github.com/gedit-technology/libgedit-gtksourceview";
-    license = licenses.lgpl21Plus;
-    maintainers = with maintainers; [ bobby285271 ];
-    platforms = platforms.linux;
+    homepage = "https://gitlab.gnome.org/World/gedit/libgedit-gtksourceview";
+    license = lib.licenses.lgpl21Plus;
+    maintainers = with lib.maintainers; [ bobby285271 ];
+    platforms = lib.platforms.linux;
   };
 })

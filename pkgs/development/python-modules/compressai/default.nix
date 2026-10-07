@@ -1,53 +1,74 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, pybind11
-, setuptools
-, wheel
-, numpy
-, matplotlib
-, pytorch-msssim
-, scipy
-, torch
-, torchvision
-, ipywidgets
-, jupyter
-, plotly
-, pytestCheckHook
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonAtLeast,
+
+  # build-system
+  pybind11,
+  setuptools,
+
+  # dependencies
+  einops,
+  matplotlib,
+  numpy,
+  pandas,
+  pytorch-msssim,
+  scipy,
+  tomli,
+  torch,
+  torch-geometric,
+  torchvision,
+  tqdm,
+  typing-extensions,
+
+  # optional-dependencies
+  ipywidgets,
+  jupyter,
+
+  # tests
+  plotly,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "compressai";
-  version = "1.2.4";
+  version = "1.2.8";
   pyproject = true;
-
-  disabled = pythonOlder "3.6";
 
   src = fetchFromGitHub {
     owner = "InterDigitalInc";
     repo = "CompressAI";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-nT2vd7t67agIWobJalORbRuns0UJGRGGbTX2/8vbTiY=";
+    tag = "v${finalAttrs.version}";
     fetchSubmodules = true;
+    hash = "sha256-Fgobh7Q1rKomcqAT4kJl2RsM1W13ErO8sFB2urCqrCk=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     pybind11
     setuptools
-    wheel
   ];
 
-  propagatedBuildInputs = [
-    numpy
+  pythonRelaxDeps = [
+    "numpy"
+  ];
+  dependencies = [
+    einops
     matplotlib
+    numpy
+    pandas
     pytorch-msssim
     scipy
+    tomli
     torch
+    torch-geometric
     torchvision
+    tqdm
+    typing-extensions
   ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     tutorials = [
       ipywidgets
       jupyter
@@ -59,11 +80,9 @@ buildPythonPackage rec {
     "compressai._CXX"
   ];
 
+  # We have to delete the source because otherwise it is used instead the installed package.
   preCheck = ''
-    # We have to delete the source because otherwise it is used intead the installed package.
     rm -rf compressai
-
-    export HOME=$(mktemp -d)
   '';
 
   nativeCheckInputs = [
@@ -78,12 +97,31 @@ buildPythonPackage rec {
     "test_eval_model_pretrained"
     "test_cheng2020_anchor"
     "test_pretrained"
+
+    # Flaky (AssertionError: assert 0.08889999999999998 < 0.064445)
+    "test_compiling"
+    "test_find_close"
+  ]
+  ++ lib.optionals (pythonAtLeast "3.14") [
+    # AttributeError: '...' object has no attribute '__annotations__'
+    "test_gdn"
+    "test_gdn1"
+    "test_lower_bound_script"
   ];
 
-  meta = with lib; {
-    description = "A PyTorch library and evaluation platform for end-to-end compression research";
+  disabledTestPaths = lib.optionals stdenv.hostPlatform.isDarwin [
+    # Cause pytest to hang on Darwin after the tests are done
+    "tests/test_eval_model.py"
+    "tests/test_train.py"
+
+    # fails in sandbox as it tries to launch a web browser (which fails due to missing `osascript`)
+    "tests/test_plot.py::test_plot[plotly-ms-ssim-rgb]"
+  ];
+
+  meta = {
+    description = "PyTorch library and evaluation platform for end-to-end compression research";
     homepage = "https://github.com/InterDigitalInc/CompressAI";
-    license = licenses.bsd3Clear;
-    maintainers = with maintainers; [ GaetanLepage ];
+    license = lib.licenses.bsd3Clear;
+    maintainers = with lib.maintainers; [ GaetanLepage ];
   };
-}
+})

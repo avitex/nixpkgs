@@ -1,83 +1,50 @@
-{ lib
-, buildPythonPackage
-, cached-property
-, click
-, fetchFromGitHub
-, fetchpatch
-, packaging
-, pydantic
-, pytest-timeout
-, pytestCheckHook
-, pythonOlder
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  click,
+  fetchFromGitHub,
+  packaging,
+  pytest-cov-stub,
+  pytest-timeout,
+  pytestCheckHook,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pythonfinder";
-  version = "2.0.6";
+  version = "3.0.4";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "sarugaku";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-C/Em8Vmv7q030hmH3jU/apBRSSC9QFK9mbBWjBjJHXg=";
+    repo = "pythonfinder";
+    tag = finalAttrs.version;
+    hash = "sha256-MX5o8KIMpZjUj93QwL54CDp6OjAnhw8TtuEGT8wkKtw=";
   };
 
-  patches = [
-    # https://github.com/sarugaku/pythonfinder/issues/142
-    (fetchpatch {
-      name = "pydantic_2-compatibility.patch";
-      url = "https://gitlab.archlinux.org/archlinux/packaging/packages/python-pythonfinder/-/raw/2.0.6-1/python-pythonfinder-2.0.6-pydantic2.patch";
-      hash = "sha256-mON1MeA+pj6VTB3zpBjF3LfB30wG0QH9nU4bD1djWwg=";
-    })
-  ];
+  build-system = [ setuptools ];
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace " --cov" ""
-  '';
+  dependencies = [ packaging ];
 
-  nativeBuildInputs = [
-    setuptools
-  ];
-
-  propagatedBuildInputs = [
-    packaging
-    pydantic
-  ] ++ lib.optionals (pythonOlder "3.8") [
-    cached-property
-  ];
-
-  passthru.optional-dependencies = {
-    cli = [
-      click
-    ];
+  optional-dependencies = {
+    cli = [ click ];
   };
 
   nativeCheckInputs = [
+    pytest-cov-stub
     pytest-timeout
     pytestCheckHook
-  ] ++ lib.flatten (builtins.attrValues passthru.optional-dependencies);
+  ]
+  ++ lib.flatten (builtins.attrValues finalAttrs.passthru.optional-dependencies);
 
-  pythonImportsCheck = [
-    "pythonfinder"
-  ];
+  pythonImportsCheck = [ "pythonfinder" ];
 
-  # these tests invoke git in a subprocess and
-  # for some reason git can't be found even if included in nativeCheckInputs
-  # disabledTests = [
-  #   "test_shims_are_kept"
-  #   "test_shims_are_removed"
-  # ];
-
-  meta = with lib; {
+  meta = {
     description = "Cross platform search tool for finding Python";
     homepage = "https://github.com/sarugaku/pythonfinder";
-    changelog = "https://github.com/sarugaku/pythonfinder/blob/v${version}/CHANGELOG.rst";
-    license = licenses.mit;
-    maintainers = with maintainers; [ cpcloud ];
+    changelog = "https://github.com/sarugaku/pythonfinder/blob/${finalAttrs.src.tag}/CHANGELOG.rst";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ cpcloud ];
+    mainProgram = "pyfinder";
   };
-}
+})

@@ -1,75 +1,70 @@
-{ lib
-, aiohttp
-, aresponses
-, backoff
-, buildPythonPackage
-, fetchFromGitHub
-, packaging
-, poetry-core
-, pydantic
-, pytest-asyncio
-, pytest-mock
-, pytestCheckHook
-, pythonOlder
-, yarl
+{
+  lib,
+  aiohttp,
+  aresponses,
+  python-backoff,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  packaging,
+  pydantic,
+  pytest-asyncio,
+  pytest-cov-stub,
+  pytest-mock,
+  pytest-xdist,
+  pytestCheckHook,
+  yarl,
+  zeroconf,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "python-bsblan";
-  version = "0.5.18";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.9";
+  version = "6.1.8";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "liudger";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-SJUIJhsVn4LZiUx9h3Q2uWoeaQiKoIRrijTfPgCHnAA=";
+    repo = "python-bsblan";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-W9SmN9QDbjbOPoyyWXWKJDn+s4089NSIVqRzxZTQ6pc=";
   };
 
   postPatch = ''
     substituteInPlace pyproject.toml \
-      --replace 'version = "0.0.0"' 'version = "${version}"' \
-      --replace "--cov" ""
-    sed -i "/covdefaults/d" pyproject.toml
-    sed -i "/ruff/d" pyproject.toml
+      --replace-fail 'version = "0.0.0"' 'version = "${finalAttrs.version}"'
   '';
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
+  pythonRelaxDeps = [ "async-timeout" ];
+
+  dependencies = [
     aiohttp
-    backoff
     packaging
     pydantic
+    python-backoff
     yarl
   ];
 
   nativeCheckInputs = [
     aresponses
     pytest-asyncio
+    pytest-cov-stub
     pytest-mock
+    pytest-xdist
     pytestCheckHook
+    zeroconf
   ];
 
-  disabledTests = lib.optionals (lib.versionAtLeast aiohttp.version "3.9.0") [
-    # https://github.com/liudger/python-bsblan/issues/808
-    "test_http_error400"
-    "test_not_authorized_401_response"
-  ];
+  __darwinAllowLocalNetworking = true;
 
-  pythonImportsCheck = [
-    "bsblan"
-  ];
+  pythonImportsCheck = [ "bsblan" ];
 
-  meta = with lib; {
+  meta = {
     description = "Module to control and monitor an BSBLan device programmatically";
     homepage = "https://github.com/liudger/python-bsblan";
-    changelog = "https://github.com/liudger/python-bsblan/releases/tag/v${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/liudger/python-bsblan/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

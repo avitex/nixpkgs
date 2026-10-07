@@ -1,38 +1,42 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, mock
-, ply
-, pytestCheckHook
-, six
-, pythonOlder
+{
+  buildPythonPackage,
+  fetchFromGitHub,
+  lib,
+  jinja2,
+  mock,
+  packaging,
+  pytestCheckHook,
+  setuptools,
+  setuptools-scm,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "stone";
-  version = "3.3.1";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "3.5.3";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "dropbox";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-0FWdYbv+paVU3Wj6g9OrSNUB0pH8fLwTkhVIBPeFB/U=";
+    repo = "stone";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-79CY4eJcsMrhJvRCdD3brwmPkl8kxLQbGIqxIA9UXPg=";
   };
 
   postPatch = ''
-    # https://github.com/dropbox/stone/issues/288
-    substituteInPlace stone/frontend/ir_generator.py \
-      --replace "inspect.getargspec" "inspect.getfullargspec"
-    substituteInPlace setup.py \
-      --replace "'pytest-runner == 5.2.0'," ""
+    # https://github.com/dropbox/stone/pull/373 pins setuptools-scm to <9,
+    # but that version is not in nixpkgs and it seems to work anyway?
+    substituteInPlace pyproject.toml \
+      --replace-fail "setuptools-scm>=8,<9" "setuptools-scm"
   '';
 
-  propagatedBuildInputs = [
-    ply
-    six
+  build-system = [
+    setuptools
+    setuptools-scm
+  ];
+
+  dependencies = [
+    jinja2
+    packaging
   ];
 
   nativeCheckInputs = [
@@ -40,19 +44,14 @@ buildPythonPackage rec {
     mock
   ];
 
-  disabledTests = [
-    "test_type_name_with_module"
-  ];
+  pythonImportsCheck = [ "stone" ];
 
-  pythonImportsCheck = [
-    "stone"
-  ];
-
-  meta = with lib; {
-    description = "Official Api Spec Language for Dropbox";
+  meta = {
+    description = "Official API Spec Language for Dropbox API V2";
     homepage = "https://github.com/dropbox/stone";
-    changelog = "https://github.com/dropbox/stone/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ jonringer ];
+    changelog = "https://github.com/dropbox/stone/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = [ ];
+    mainProgram = "stone";
   };
-}
+})

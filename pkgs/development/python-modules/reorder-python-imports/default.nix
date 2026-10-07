@@ -1,48 +1,41 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, pythonOlder
-, aspy-refactor-imports
-, classify-imports
+{
+  lib,
+  buildPythonPackage,
+  classify-imports,
+  fetchFromGitHub,
+  pytestCheckHook,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "reorder-python-imports";
-  version = "3.12.0";
-  format = "setuptools";
-  disabled = pythonOlder "3.8";
+  version = "3.17.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "asottile";
     repo = "reorder_python_imports";
-    rev = "v${version}";
-    hash = "sha256-bKv9APbraR2359IzzkzXs4sEXrTvGK3J4LO3wFHOti0=";
+    tag = "v${version}";
+    hash = "sha256-xOHBIjdyrd1R2Iavkvsgk7wVE66YEYdbz29BEyFGtp8=";
   };
 
-  propagatedBuildInputs = [
-    aspy-refactor-imports
-    classify-imports
-  ];
+  build-system = [ setuptools ];
 
-  pythonImportsCheck = [
-    "reorder_python_imports"
-  ];
+  dependencies = [ classify-imports ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  pythonImportsCheck = [ "reorder_python_imports" ];
+
+  nativeCheckInputs = [ pytestCheckHook ];
 
   # prints an explanation about PYTHONPATH first
   # and therefore fails the assertion
-  disabledTests = [
-    "test_success_messages_are_printed_on_stderr"
-  ];
+  disabledTests = [ "test_success_messages_are_printed_on_stderr" ];
 
-  meta = with lib; {
+  meta = {
     description = "Tool for automatically reordering python imports";
     homepage = "https://github.com/asottile/reorder_python_imports";
-    license = licenses.mit;
-    maintainers = with maintainers; [ gador ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ gador ];
+    mainProgram = "reorder-python-imports";
   };
 }

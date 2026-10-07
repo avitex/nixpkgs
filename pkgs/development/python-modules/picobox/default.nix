@@ -1,11 +1,11 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, flask
-, hatchling
-, hatch-vcs
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  flask,
+  hatchling,
+  hatch-vcs,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
@@ -14,12 +14,10 @@ buildPythonPackage rec {
 
   pyproject = true;
 
-  disabled = pythonOlder "3.8";
-
   src = fetchFromGitHub {
     owner = "ikalnytskyi";
-    repo = pname;
-    rev = "refs/tags/${version}";
+    repo = "picobox";
+    tag = version;
     hash = "sha256-JtrwUVo3b4G34OUShX4eJS2IVubl4vBmEtB/Jhk4eJI=";
   };
 
@@ -33,14 +31,12 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "picobox"
-  ];
+  pythonImportsCheck = [ "picobox" ];
 
-  meta = with lib; {
+  meta = {
     description = "Opinionated dependency injection framework";
     homepage = "https://github.com/ikalnytskyi/picobox";
-    license = licenses.mit;
-    maintainers = with maintainers; [ flokli ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ flokli ];
   };
 }

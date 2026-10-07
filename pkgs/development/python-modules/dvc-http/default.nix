@@ -1,51 +1,50 @@
-{ lib
-, aiohttp-retry
-, buildPythonPackage
-, fetchFromGitHub
-, dvc-objects
-, fsspec
-, pythonOlder
-, pythonRelaxDepsHook
-, setuptools-scm
+{
+  lib,
+  aiohttp-retry,
+  buildPythonPackage,
+  fetchFromGitHub,
+  dvc-objects,
+  fsspec,
+  funcy,
+  setuptools,
+  setuptools-scm,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "dvc-http";
   version = "2.32.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "iterative";
-    repo = pname;
-    rev = "refs/tags/${version}";
+    repo = "dvc-http";
+    tag = finalAttrs.version;
     hash = "sha256-ru/hOFv/RcS/7SBpTJU8xFxdllmaiH4dV1ouS6GGKkY=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
+    setuptools
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
+    aiohttp-retry
     dvc-objects
     fsspec
-    aiohttp-retry
+    funcy
   ];
 
   # Currently it's not possible to run the tests
   # ModuleNotFoundError: No module named 'dvc.testing'
   doCheck = false;
 
-  pythonImportsCheck = [
-    "dvc_http"
-  ];
+  pythonImportsCheck = [ "dvc_http" ];
 
-  meta = with lib; {
+  meta = {
     description = "HTTP plugin for dvc";
     homepage = "https://github.com/iterative/dvc-http";
-    changelog = "https://github.com/iterative/dvc-http/releases/tag/${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/iterative/dvc-http/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

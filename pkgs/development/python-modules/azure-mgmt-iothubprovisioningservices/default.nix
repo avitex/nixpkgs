@@ -1,25 +1,31 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, msrest
-, msrestazure
-, azure-common
-, azure-mgmt-core
-, azure-mgmt-nspkg
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  msrest,
+  msrestazure,
+  azure-common,
+  azure-mgmt-core,
+  azure-mgmt-nspkg,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "azure-mgmt-iothubprovisioningservices";
   version = "1.1.0";
-  format = "setuptools";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
+    inherit (finalAttrs) pname version;
     extension = "zip";
     hash = "sha256-04OoJuff93L62G6IozpmHpEaUbHHHD6nKlkMHVoJvJ4=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     msrest
     msrestazure
     azure-common
@@ -32,10 +38,14 @@ buildPythonPackage rec {
   # has no tests
   doCheck = false;
 
-  meta = with lib; {
+  pythonImportsCheck = [ "azure.mgmt.iothubprovisioningservices" ];
+
+  meta = {
     description = "This is the Microsoft Azure IoTHub Provisioning Services Client Library";
     homepage = "https://github.com/Azure/azure-sdk-for-python";
-    license = licenses.mit;
-    maintainers = with maintainers; [ jonringer maxwilson ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [
+      maxwilson
+    ];
   };
-}
+})

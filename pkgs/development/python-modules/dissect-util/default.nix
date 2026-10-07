@@ -1,44 +1,44 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools
-, setuptools-scm
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  setuptools-scm,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "dissect-util";
-  version = "3.14";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.9";
+  version = "3.24";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "fox-it";
     repo = "dissect.util";
-    rev = "refs/tags/${version}";
-    hash = "sha256-NzqQW6OFv+CtAxa5J2X/XGS9UCFfhMp4elvgcTrA1Wg=";
+    tag = version;
+    hash = "sha256-AbkIVtUbQkkui7H1ZT/xHl1tCfZMvlrbZ2RD3YJAh0E=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     setuptools-scm
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  pythonImportsCheck = [ "dissect.util" ];
+
+  disabledTests = [
+    # File handling issue
+    "test_cpio_formats"
   ];
 
-  pythonImportsCheck = [
-    "dissect.util"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Dissect module implementing various utility functions for the other Dissect modules";
     homepage = "https://github.com/fox-it/dissect.util";
-    changelog = "https://github.com/fox-it/dissect.util/releases/tag/${version}";
-    license = licenses.agpl3Only;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/fox-it/dissect.util/releases/tag/${src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
+    mainProgram = "dump-nskeyedarchiver";
   };
 }

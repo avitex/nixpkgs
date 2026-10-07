@@ -1,30 +1,34 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "types-pillow";
-  version = "10.1.0.20240106";
-  format = "setuptools";
+  version = "10.2.0.20240822";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit version;
+    inherit (finalAttrs) version;
     pname = "types-Pillow";
-    hash = "sha256-0sLtfs5rC+y02vFQ4jdMj02Xf+bv7GJe+VLiYldhkOc=";
+    hash = "sha256-VZ+1Ki75kcMm5KDSCsyzu2Onuo1A60k+DssDELpS8NM=";
   };
+
+  build-system = [ setuptools ];
 
   # Modules doesn't have tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "PIL-stubs"
-  ];
+  pythonImportsCheck = [ "PIL-stubs" ];
 
-  meta = with lib; {
+  meta = {
     description = "Typing stubs for Pillow";
     homepage = "https://github.com/python/typeshed";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ arjan-s ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ arjan-s ];
   };
-}
+})

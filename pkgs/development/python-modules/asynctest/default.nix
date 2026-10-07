@@ -1,4 +1,10 @@
-{ lib, buildPythonPackage, fetchPypi, pythonOlder, python, pythonAtLeast }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  python,
+  pythonAtLeast,
+}:
 
 buildPythonPackage rec {
   pname = "asynctest";
@@ -19,17 +25,14 @@ buildPythonPackage rec {
       --replace "test_events_watched_outside_test_are_ignored" "xtest_events_watched_outside_test_are_ignored"
   '';
 
-  # https://github.com/Martiusweb/asynctest/issues/132
-  doCheck = pythonOlder "3.7";
-
   checkPhase = ''
     ${python.interpreter} -m unittest test
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Enhance the standard unittest package with features for testing asyncio libraries";
     homepage = "https://github.com/Martiusweb/asynctest";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ dotlambda ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ dotlambda ];
   };
 }

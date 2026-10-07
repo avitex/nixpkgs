@@ -1,73 +1,75 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, poetry-core
-, aiohttp
-, async-timeout
-, bleak
-, dbus-fast
-, mac-vendor-lookup
-, myst-parser
-, pytestCheckHook
-, sphinxHook
-, sphinx-rtd-theme
-, usb-devices
+{
+  lib,
+  aiohttp,
+  aiooui,
+  async-timeout,
+  bleak,
+  buildPythonPackage,
+  dbus-fast,
+  fetchFromGitHub,
+  mac-vendor-lookup,
+  myst-parser,
+  poetry-core,
+  pytest-asyncio,
+  pytest-cov-stub,
+  pytestCheckHook,
+  sphinx-rtd-theme,
+  sphinxHook,
+  uart-devices,
+  usb-devices,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "bluetooth-adapters";
-  version = "0.17.0";
+  version = "2.4.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
     owner = "Bluetooth-Devices";
     repo = "bluetooth-adapters";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-7j55+bCScoqtYJ/1lmqsPk3j+dbs+VfPTzTiwdVg0Pw=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-d1vHb1WvsumlvilwuV6yfTwMXViLqeosSSM3LijIGYY=";
   };
-
-  postPatch = ''
-    # Drop pytest arguments (coverage, ...)
-    sed -i '/addopts/d' pyproject.toml
-  '';
 
   outputs = [
     "out"
     "doc"
   ];
 
+  build-system = [
+    poetry-core
+  ];
+
   nativeBuildInputs = [
     myst-parser
-    poetry-core
     sphinx-rtd-theme
     sphinxHook
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
+    aiooui
     async-timeout
     bleak
     dbus-fast
     mac-vendor-lookup
+    uart-devices
     usb-devices
   ];
 
-  pythonImportsCheck = [
-    "bluetooth_adapters"
-  ];
-
   nativeCheckInputs = [
+    pytest-asyncio
+    pytest-cov-stub
     pytestCheckHook
   ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "bluetooth_adapters" ];
+
+  meta = {
     description = "Tools to enumerate and find Bluetooth Adapters";
-    homepage = "https://bluetooth-adapters.readthedocs.io/";
-    changelog = "https://github.com/bluetooth-devices/bluetooth-adapters/blob/v${version}/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = teams.home-assistant.members;
+    homepage = "https://github.com/Bluetooth-Devices/bluetooth-adapters";
+    changelog = "https://github.com/Bluetooth-Devices/bluetooth-adapters/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    teams = [ lib.teams.home-assistant ];
   };
-}
+})

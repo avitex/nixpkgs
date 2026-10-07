@@ -1,7 +1,17 @@
-{ runCommand, purescript, nodejs }:
+{
+  lib,
+  runCommand,
+  purescript,
+  nodejs,
+}:
 
-runCommand "purescript-test-minimal-module" {} ''
-  ${purescript}/bin/purs compile -o ./output ${./.}/Main.purs
+runCommand "purescript-test-minimal-module" { } ''
+  ${purescript}/bin/purs compile -o ./output ${
+    lib.sources.sourceByGlobs ./. [
+      "*.purs"
+      "*.js"
+    ]
+  }/Main.purs
 
   echo 'import {main} from "./output/Main/index.js"; main()' > node.mjs
 

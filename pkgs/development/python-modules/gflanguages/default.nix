@@ -1,55 +1,65 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, protobuf
-, pytestCheckHook
-, pythonOlder
-, pythonRelaxDepsHook
-, setuptools-scm
-, uharfbuzz
-, youseedee
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  protobuf,
+  pytestCheckHook,
+  regex,
+  setuptools,
+  setuptools-scm,
+  uharfbuzz,
+  youseedee,
+  gfmetadata,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "gflanguages";
-  version = "0.5.13";
-  format = "setuptools";
+  version = "0.7.11";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-LoppJHzX0dOpHnwMCyS1ACdIO4cqwb370ksvsXDFHzQ=";
+  src = fetchFromGitHub {
+    owner = "googlefonts";
+    repo = "lang";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-skybvMeSP+F3Bz3PJEB7ZIEVhLdwBc8+VemDcC+1FZc=";
   };
 
   # Relax the dependency on protobuf 3. Other packages in the Google Fonts
   # ecosystem have begun upgrading from protobuf 3 to protobuf 4,
   # so we need to use protobuf 4 here as well to avoid a conflict
   # in the closure of fontbakery. It seems to be compatible enough.
-  pythonRelaxDeps = [
-    "protobuf"
-  ];
+  pythonRelaxDeps = [ "protobuf" ];
 
-  nativeBuildInputs = [
+  env.PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION = "python";
+
+  build-system = [
+    setuptools
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     protobuf
+    regex
+    gfmetadata
   ];
 
   nativeCheckInputs = [
-    pythonRelaxDepsHook
     pytestCheckHook
+    regex
     uharfbuzz
     youseedee
   ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "gflanguages" ];
+
+  meta = {
     description = "Python library for Google Fonts language metadata";
     homepage = "https://github.com/googlefonts/lang";
-    changelog = "https://github.com/googlefonts/lang/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ danc86 ];
+    changelog = "https://github.com/googlefonts/lang/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [
+      danc86
+      jopejoe1
+    ];
   };
-}
+})

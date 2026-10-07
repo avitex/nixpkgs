@@ -1,6 +1,7 @@
-{ lib
-, fetchFromGitHub
-, python3
+{
+  lib,
+  fetchFromGitHub,
+  python3,
 }:
 
 let
@@ -10,12 +11,12 @@ in
 python3.pkgs.buildPythonApplication rec {
   pname = "prospector";
   version = "1.9.0";
-  format = "pyproject";
+  pyproject = true;
 
   src = fetchFromGitHub {
-    owner = "PyCQA";
-    repo = pname;
-    rev = "refs/tags/v${version}";
+    owner = "prospector-dev";
+    repo = "prospector";
+    tag = "v${version}";
     hash = "sha256-94JGKX91d2kul+KMYohga9KCOj6RN/YKpD8e4nWSOOM=";
   };
 
@@ -27,7 +28,6 @@ python3.pkgs.buildPythonApplication rec {
 
   nativeBuildInputs = with python3.pkgs; [
     poetry-core
-    pythonRelaxDepsHook
   ];
 
   propagatedBuildInputs = with python3.pkgs; [
@@ -68,12 +68,11 @@ python3.pkgs.buildPythonApplication rec {
     "tests/tools/pyroma/test_pyroma_tool.py"
   ];
 
-
-  meta = with lib; {
+  meta = {
     description = "Tool to analyse Python code and output information about errors, potential problems, convention violations and complexity";
-    homepage = "https://github.com/PyCQA/prospector";
-    changelog = "https://github.com/PyCQA/prospector/blob/v${version}/CHANGELOG.rst";
-    license = licenses.gpl2Plus;
-    maintainers = with maintainers; [ kamadorueda ];
+    homepage = "https://github.com/prospector-dev/prospector";
+    changelog = "https://github.com/prospector-dev/prospector/blob/v${version}/CHANGELOG.rst";
+    license = lib.licenses.gpl2Plus;
+    maintainers = with lib.maintainers; [ kamadorueda ];
   };
 }

@@ -1,6 +1,7 @@
-{ system ? builtins.currentSystem,
-  config ? {},
-  pkgs ? import ../.. { inherit system config; }
+{
+  system ? builtins.currentSystem,
+  config ? { },
+  pkgs ? import ../.. { inherit system config; },
 }:
 
 with import ../lib/testing-python.nix { inherit system pkgs; };
@@ -23,8 +24,6 @@ let
     environment.systemPackages = [ pkgs.efibootmgr ];
   };
   standard = {
-    boot.bootspec.enable = true;
-
     imports = [
       baseline
       systemd-boot
@@ -52,8 +51,6 @@ in
     meta.maintainers = with pkgs.lib.maintainers; [ raitobezarius ];
 
     nodes.machine = {
-      boot.bootspec.enable = true;
-
       imports = [
         baseline
         grub
@@ -74,8 +71,6 @@ in
     meta.maintainers = with pkgs.lib.maintainers; [ raitobezarius ];
 
     nodes.machine = {
-      boot.bootspec.enable = true;
-
       imports = [
         baseline
         grub
@@ -144,7 +139,6 @@ in
     '';
   };
 
-
   # Check that specialisations create corresponding entries in bootspec.
   specialisation = makeTest {
     name = "bootspec-with-specialisation";
@@ -153,7 +147,7 @@ in
     nodes.machine = {
       imports = [ standard ];
       environment.systemPackages = [ pkgs.jq ];
-      specialisation.something.configuration = {};
+      specialisation.something.configuration = { };
     };
 
     testScript = ''
@@ -177,15 +171,17 @@ in
     name = "bootspec-with-extensions";
     meta.maintainers = with pkgs.lib.maintainers; [ raitobezarius ];
 
-    nodes.machine = { config, ... }: {
-      imports = [ standard ];
-      environment.systemPackages = [ pkgs.jq ];
-      boot.bootspec.extensions = {
-        "org.nix-tests.product" = {
-          osRelease = config.environment.etc."os-release".source;
+    nodes.machine =
+      { config, ... }:
+      {
+        imports = [ standard ];
+        environment.systemPackages = [ pkgs.jq ];
+        boot.bootspec.extensions = {
+          "org.nix-tests.product" = {
+            osRelease = config.environment.etc."os-release".source;
+          };
         };
       };
-    };
 
     testScript = ''
       machine.start()

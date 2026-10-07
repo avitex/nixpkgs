@@ -1,16 +1,17 @@
-{ buildPythonPackage
-, setuptools-scm
-, pytestCheckHook
-, git
-, mercurial
-, pip
-, virtualenv
+{
+  buildPythonPackage,
+  setuptools-scm,
+  pytestCheckHook,
+  git,
+  mercurial,
+  pip,
+  virtualenv,
 }:
 
 buildPythonPackage {
   pname = "setuptools-scm-tests";
   inherit (setuptools-scm) version src;
-  format = "other";
+  pyproject = false;
 
   dontBuild = true;
   dontInstall = true;

@@ -1,59 +1,83 @@
-{ stdenv
-, lib
-, buildPythonPackage
-, fetchPypi
+{
+  stdenv,
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  fetchpatch,
 
-# build-system
-, cython
-, gfortran
-, numpy
-, oldest-supported-numpy
-, scipy
-, setuptools
+  # build-system
+  cython,
+  gfortran,
+  meson-python,
+  numpy,
+  scipy,
 
-# native dependencies
-, glibcLocales
-, llvmPackages
-, pytestCheckHook
-, pytest-xdist
-, pillow
-, joblib
-, threadpoolctl
-, pythonOlder
+  # native dependencies
+  glibcLocales,
+  llvmPackages,
+  pytestCheckHook,
+  pytest-xdist,
+  joblib,
+  narwhals,
+  pillow,
+  threadpoolctl,
 }:
 
 buildPythonPackage rec {
+  __structuredAttrs = true;
+
   pname = "scikit-learn";
-  version = "1.4.0";
+  version = "1.9.0";
   pyproject = true;
 
-  disabled = pythonOlder "3.6";
-
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-1Dc8mE66IOOTIW7dUaPj7t5Wy+k9QkdRbSBWQ8O5MSE=";
+    pname = "scikit_learn";
+    inherit version;
+    hash = "sha256-iDMmaYnTpREBeKn64weDZ1Rgck0OHvsTsUkB0sZgxVc=";
   };
 
+  patches = [
+    # Fix HTML display performance when user has many features
+    # https://github.com/scikit-learn/scikit-learn/pull/34362
+    # TODO: remove when updating to the next release.
+    (fetchpatch {
+      url = "https://github.com/scikit-learn/scikit-learn/commit/aeadb51af96556dd0f884c0037c9dc9993449538.patch";
+      hash = "sha256-J7igLpK8pdcbgMwxFqaAGDEwm87VrLHb+ckg/pEh6IY=";
+    })
+  ];
+
+  postPatch = ''
+    substituteInPlace meson.build --replace-fail \
+      "run_command('sklearn/_build_utils/version.py', check: true).stdout().strip()," \
+      "'${version}',"
+    substituteInPlace pyproject.toml \
+      --replace-fail "meson-python>=0.17.1,<0.20.0" meson-python \
+      --replace-fail "numpy>=2,<2.5.0" numpy \
+      --replace-fail "scipy>=1.10.0,<1.18.0" scipy
+  '';
+
   buildInputs = [
+    numpy.blas
     pillow
     glibcLocales
-  ] ++ lib.optionals stdenv.cc.isClang [
-    llvmPackages.openmp
-  ];
+  ]
+  ++ lib.optionals stdenv.cc.isClang [ llvmPackages.openmp ];
 
   nativeBuildInputs = [
-    cython
     gfortran
-    numpy
-    oldest-supported-numpy
-    scipy
-    setuptools
   ];
 
-  propagatedBuildInputs = [
-    joblib
+  build-system = [
+    cython
+    meson-python
     numpy
-    numpy.blas
+    scipy
+  ];
+
+  dependencies = [
+    joblib
+    narwhals
+    numpy
     scipy
     threadpoolctl
   ];
@@ -63,57 +87,58 @@ buildPythonPackage rec {
     pytest-xdist
   ];
 
-  env.LC_ALL="en_US.UTF-8";
+  env.LC_ALL = "en_US.UTF-8";
 
-  preBuild = ''
-    export SKLEARN_BUILD_PARALLEL=$NIX_BUILD_CORES
-  '';
-
-  doCheck = !stdenv.isAarch64;
+  # PermissionError: [Errno 1] Operation not permitted: '/nix/nix-installer'
+  doCheck = !stdenv.hostPlatform.isDarwin;
 
   disabledTests = [
     # Skip test_feature_importance_regression - does web fetch
     "test_feature_importance_regression"
 
-    # failing on macos
-    "check_regressors_train"
-    "check_classifiers_train"
-    "xfail_ignored_in_check_estimator"
-  ] ++ lib.optionals (stdenv.isDarwin) [
-    "test_graphical_lasso"
-  ];
-
-  pytestFlagsArray = [
-    # verbose build outputs needed to debug hard-to-reproduce hydra failures
-    "-v"
-    "--pyargs" "sklearn"
+    # Fail due to new deprecation warnings in scipy
+    # FIXME: reenable when fixed upstream
+    "test_logistic_regression_path_convergence_fail"
+    "test_linalg_warning_with_newton_solver"
+    "test_newton_cholesky_fallback_to_lbfgs"
 
     # NuSVC memmap tests causes segmentation faults in certain environments
     # (e.g. Hydra Darwin machines) related to a long-standing joblib issue
     # (https://github.com/joblib/joblib/issues/563). See also:
     # https://github.com/scikit-learn/scikit-learn/issues/17582
-    # Since we are overriding '-k' we need to include the 'disabledTests' from above manually.
-    "-k" "'not (NuSVC and memmap) ${toString (lib.forEach disabledTests (t: "and not ${t}"))}'"
+    "NuSVC and memmap"
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isAarch64 [
+    # doesn't seem to produce correct results?
+    # possibly relevant: https://github.com/scikit-learn/scikit-learn/issues/25838#issuecomment-2308650816
+    "test_sparse_input"
+  ];
+
+  pytestFlags = [
+    # verbose build outputs needed to debug hard-to-reproduce hydra failures
+    "-v"
+    "--pyargs"
+    "sklearn"
   ];
 
   preCheck = ''
     cd $TMPDIR
     export HOME=$TMPDIR
-    export OMP_NUM_THREADS=1
   '';
 
   pythonImportsCheck = [ "sklearn" ];
 
-  meta = with lib; {
-    description = "A set of python modules for machine learning and data mining";
-    changelog = let
-      major = versions.major version;
-      minor = versions.minor version;
-      dashVer = replaceStrings ["."] ["-"] version;
-    in
+  meta = {
+    description = "Set of python modules for machine learning and data mining";
+    changelog =
+      let
+        major = lib.versions.major version;
+        minor = lib.versions.minor version;
+        dashVer = lib.replaceStrings [ "." ] [ "-" ] version;
+      in
       "https://scikit-learn.org/stable/whats_new/v${major}.${minor}.html#version-${dashVer}";
     homepage = "https://scikit-learn.org";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ davhau ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ davhau ];
   };
 }

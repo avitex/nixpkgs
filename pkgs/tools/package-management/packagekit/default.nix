@@ -1,42 +1,50 @@
-{ stdenv
-, fetchFromGitHub
-, lib
-, gettext
-, glib
-, pkg-config
-, polkit
-, python3
-, sqlite
-, gobject-introspection
-, vala
-, gtk-doc
-, boost
-, meson
-, ninja
-, libxslt
-, docbook-xsl-nons
-, docbook_xml_dtd_42
-, libxml2
-, gst_all_1
-, gtk3
-, enableCommandNotFound ? false
-, enableBashCompletion ? false
-, bash-completion ? null
-, enableSystemd ? lib.meta.availableOn stdenv.hostPlatform systemd
-, systemd
+{
+  stdenv,
+  fetchFromGitHub,
+  lib,
+  gettext,
+  glib,
+  pkg-config,
+  polkit,
+  python3,
+  sqlite,
+  gobject-introspection,
+  vala,
+  jansson,
+  docbook_xsl_ns,
+  gtk-doc,
+  boost,
+  meson,
+  ninja,
+  libxslt,
+  docbook-xsl-nons,
+  docbook_xml_dtd_42,
+  libxml2,
+  gst_all_1,
+  gtk3,
+  enableCommandNotFound ? false,
+  enableBashCompletion ? false,
+  bash-completion ? null,
+  enableSystemd ? lib.meta.availableOn stdenv.hostPlatform systemdLibs,
+  systemdLibs,
+  nixosTests,
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "packagekit";
-  version = "1.2.5.1pre";
+  version = "1.4.0";
 
-  outputs = [ "out" "dev" "devdoc" ];
+  outputs = [
+    "out"
+    "dev"
+    "devdoc"
+  ];
 
   src = fetchFromGitHub {
     owner = "PackageKit";
     repo = "PackageKit";
-    rev = "30bb82da8d4161330a6d7a20c9989149303421a1";
-    sha256 = "k2osc2v0OuGrNjwxdqn785RsbHEJP3p79PG9YqnVE3U=";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-okmbeM/Iv4DKKl21gDCRvMtYG/xcQ1N/rayH9YH0gN0=";
   };
 
   buildInputs = [
@@ -46,9 +54,11 @@ stdenv.mkDerivation rec {
     gst_all_1.gstreamer
     gst_all_1.gst-plugins-base
     gtk3
+    jansson
     sqlite
     boost
-  ] ++ lib.optional enableSystemd systemd
+  ]
+  ++ lib.optional enableSystemd systemdLibs
   ++ lib.optional enableBashCompletion bash-completion;
   nativeBuildInputs = [
     gobject-introspection
@@ -66,7 +76,7 @@ stdenv.mkDerivation rec {
   ];
 
   mesonFlags = [
-    (if enableSystemd then "-Dsystemd=true" else "-Dsystem=false")
+    (lib.mesonBool "systemd" enableSystemd)
     # often fails to build with nix updates
     # and remounts /nix/store as rw
     # https://github.com/NixOS/nixpkgs/issues/177946
@@ -86,13 +96,22 @@ stdenv.mkDerivation rec {
     # HACK: we want packagekit to look in /etc for configs but install
     # those files in $out/etc ; we just override the runtime paths here
     # same for /var & $out/var
-    substituteInPlace etc/meson.build \
-      --replace "install_dir: join_paths(get_option('sysconfdir'), 'PackageKit')" "install_dir: join_paths('$out', 'etc', 'PackageKit')"
+    substituteInPlace data/config/meson.build \
+      --replace-fail "install_dir: join_paths(get_option('sysconfdir'), 'PackageKit')" "install_dir: join_paths('$out', 'etc', 'PackageKit')"
     substituteInPlace data/meson.build \
-      --replace "install_dir: join_paths(get_option('localstatedir'), 'lib', 'PackageKit')," "install_dir: join_paths('$out', 'var', 'lib', 'PackageKit'),"
+      --replace-fail "install_dir: join_paths(get_option('localstatedir'), 'lib', 'PackageKit')," "install_dir: join_paths('$out', 'var', 'lib', 'PackageKit'),"
+    substituteInPlace client/meson.build \
+      --replace-fail http://docbook.sourceforge.net/release/xsl-ns/current ${docbook_xsl_ns}/share/xml/docbook-xsl-ns
+
+    # Fix /usr/bin/env python3 not being available.
+    patchShebangs tests/runner/setup-test-root.py
   '';
 
-  meta = with lib; {
+  passthru.tests = {
+    nixos-test = nixosTests.packagekit;
+  };
+
+  meta = {
     description = "System to facilitate installing and updating packages";
     longDescription = ''
       PackageKit is a system designed to make installing and updating software
@@ -105,8 +124,8 @@ stdenv.mkDerivation rec {
       mode package managers.
     '';
     homepage = "https://github.com/PackageKit/PackageKit";
-    license = licenses.gpl2Plus;
-    platforms = platforms.unix;
-    maintainers = with maintainers; [ matthewbauer ];
+    license = lib.licenses.gpl2Plus;
+    platforms = lib.platforms.unix;
+    maintainers = [ ];
   };
-}
+})

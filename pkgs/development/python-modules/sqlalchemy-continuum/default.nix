@@ -1,69 +1,63 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, flask
-, flask-login
-, flask-sqlalchemy
-, psycopg2
-, pymysql
-, pytestCheckHook
-, pythonOlder
-, sqlalchemy
-, sqlalchemy-i18n
-, sqlalchemy-utils
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  flask,
+  flask-login,
+  flask-sqlalchemy,
+  packaging,
+  psycopg2,
+  pymysql,
+  pytestCheckHook,
+  sqlalchemy,
 }:
 
 buildPythonPackage rec {
   pname = "sqlalchemy-continuum";
-  version = "1.4.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "1.8.0";
+  pyproject = true;
 
   src = fetchPypi {
-    pname = "SQLAlchemy-Continuum";
+    pname = "sqlalchemy_continuum";
     inherit version;
-    hash = "sha256-Rk+aWxBjUrXuRPE5MSyzWMWS0l7qrjU3wOrHLC+vteU=";
+    hash = "sha256-+O0k2+YI352j//YwcKtk4heWmBhujHparqkQWqer9a4=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     sqlalchemy
-    sqlalchemy-utils
   ];
 
-  passthru.optional-dependencies = {
-    flask = [
-      flask
-    ];
-    flask-login = [
-      flask-login
-    ];
-    flask-sqlalchemy = [
-      flask-sqlalchemy
-    ];
-    i18n = [
-      sqlalchemy-i18n
-    ];
+  optional-dependencies = {
+    flask = [ flask ];
+    flask-login = [ flask-login ];
+    flask-sqlalchemy = [ flask-sqlalchemy ];
   };
 
   nativeCheckInputs = [
+    packaging
     psycopg2
     pymysql
     pytestCheckHook
-  ] ++ lib.flatten (builtins.attrValues passthru.optional-dependencies);
+  ]
+  ++ optional-dependencies.flask
+  ++ optional-dependencies.flask-login
+  ++ optional-dependencies.flask-sqlalchemy;
 
-  # Indicate tests that we don't have a database server at hand
-  env.DB = "sqlite";
+  preCheck = ''
+    # Indicate tests that we don't have a database server at hand
+    export DB=sqlite
+  '';
 
-  pythonImportsCheck = [
-    "sqlalchemy_continuum"
-  ];
+  pythonImportsCheck = [ "sqlalchemy_continuum" ];
 
-  meta = with lib; {
+  meta = {
     description = "Versioning and auditing extension for SQLAlchemy";
     homepage = "https://github.com/kvesteri/sqlalchemy-continuum/";
     changelog = "https://github.com/kvesteri/sqlalchemy-continuum/blob/${version}/CHANGES.rst";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
 }

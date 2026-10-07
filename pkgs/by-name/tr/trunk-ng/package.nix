@@ -1,31 +1,43 @@
-{ lib, stdenv, rustPlatform, fetchFromGitHub, pkg-config
-, openssl, libiconv, CoreServices, Security }:
+{
+  lib,
+  stdenv,
+  rustPlatform,
+  fetchFromGitHub,
+  pkg-config,
+  openssl,
+  libiconv,
+}:
 
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "trunk-ng";
-  version = "0.17.11";
+  version = "0.17.16";
 
   src = fetchFromGitHub {
     owner = "ctron";
     repo = "trunk";
-    rev = "v${version}";
-    hash = "sha256-ZaSWfuz0w9bkilpDv4EAt6gn6ZdKOLTYJlJMQqtZAwY=";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-SnE0z9Wa4gtX/ts0vG9pYnnxumILHTSV9/tVYkCHFck=";
   };
 
   nativeBuildInputs = [ pkg-config ];
-  buildInputs = if stdenv.isDarwin
-    then [ libiconv CoreServices Security ]
-    else [ openssl ];
+  buildInputs =
+    if stdenv.hostPlatform.isDarwin then
+      [
+        libiconv
+      ]
+    else
+      [ openssl ];
 
   # requires network
   checkFlags = [ "--skip=tools::tests::download_and_install_binaries" ];
 
-  cargoHash = "sha256-O3e8v0r76VeMYODah2RYTmwr9WNAX+HPhYVmDuP2gfg=";
+  cargoHash = "sha256-jDewjDm7Nh09CkRdPG0/ELn4odz/aaRNg8GegDxK6f8=";
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/ctron/trunk";
     description = "Build, bundle & ship your Rust WASM application to the web";
-    maintainers = with maintainers; [ ctron ];
-    license = with licenses; [ asl20 ];
+    mainProgram = "trunk-ng";
+    maintainers = with lib.maintainers; [ ctron ];
+    license = lib.licenses.asl20;
   };
-}
+})

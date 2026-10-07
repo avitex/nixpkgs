@@ -1,34 +1,28 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, numpy
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "traits";
-  version = "6.4.3";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.6";
+  version = "7.1.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-qbv9ngwIt94H6G72TmnLlqKcIQWkO/gyzYsWL6HiL0Q=";
+    hash = "sha256-r0d1dH4R4F/+E9O6Rj2S9n8fPRqeT0a6M6ROoisMlkQ=";
   };
 
-  # Circular dependency
-  doCheck = false;
+  build-system = [ setuptools ];
 
-  pythonImportsCheck = [
-    "traits"
-  ];
+  pythonImportsCheck = [ "traits" ];
 
-  meta = with lib; {
+  meta = {
     description = "Explicitly typed attributes for Python";
-    homepage = "https://pypi.python.org/pypi/traits";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ ];
+    homepage = "https://pypi.org/project/traits/";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ bot-wxt1221 ];
   };
 }

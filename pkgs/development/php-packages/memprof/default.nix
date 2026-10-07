@@ -1,12 +1,14 @@
-{ buildPecl
-, lib
-, fetchFromGitHub
-, judy
+{
+  buildPecl,
+  lib,
+  fetchFromGitHub,
+  judy,
 }:
 
 let
-  version = "3.0.2";
-in buildPecl {
+  version = "3.1.0";
+in
+buildPecl {
   inherit version;
   pname = "memprof";
 
@@ -14,11 +16,14 @@ in buildPecl {
     owner = "arnaud-lb";
     repo = "php-memory-profiler";
     rev = version;
-    hash = "sha256-K8YcvCobErBkaWFTkVGLXXguQPOLIgQuRGWJF+HAIRA=";
+    hash = "sha256-gq+txAU2Fw+Zm1aIu0lwPUHRqtccNcHFpp0fm3f7BnQ=";
   };
 
+  buildInputs = [
+    judy
+  ];
   configureFlags = [
-    "--with-judy-dir=${judy}"
+    "--with-judy-dir=${lib.getDev judy}"
   ];
 
   doCheck = true;
@@ -28,6 +33,6 @@ in buildPecl {
     description = "Memory profiler for PHP. Helps finding memory leaks in PHP scripts";
     homepage = "https://github.com/arnaud-lb/php-memory-profiler";
     license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ gaelreyrol ];
+    maintainers = [ ];
   };
 }

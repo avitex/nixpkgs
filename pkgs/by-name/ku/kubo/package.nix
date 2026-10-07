@@ -1,21 +1,24 @@
-{ lib
-, buildGoModule
-, fetchurl
-, nixosTests
-, callPackage
+{
+  lib,
+  buildGoModule,
+  fetchurl,
+  nixosTests,
+  stdenv,
+  callPackage,
+  installShellFiles,
 }:
 
 buildGoModule rec {
   pname = "kubo";
-  version = "0.26.0"; # When updating, also check if the repo version changed and adjust repoVersion below
+  version = "0.43.1"; # When updating, also check if the repo version changed and adjust repoVersion below
   rev = "v${version}";
 
-  passthru.repoVersion = "15"; # Also update kubo-migrator when changing the repo version
+  passthru.repoVersion = "18";
 
   # Kubo makes changes to its source tarball that don't match the git source.
   src = fetchurl {
     url = "https://github.com/ipfs/kubo/releases/download/${rev}/kubo-source.tar.gz";
-    hash = "sha256-qvn5VqEPLkehFWamtPGRuDLJ06bd5bn1qZRp05jP2AY=";
+    hash = "sha256-Rw+Q1VHzT/ZbUzKZ6PVe09Ly0GL9FcmY6lPQlbrD7SY=";
   };
 
   # tarball contains multiple files/directories
@@ -31,19 +34,25 @@ buildGoModule rec {
   subPackages = [ "cmd/ipfs" ];
 
   passthru.tests = {
-    inherit (nixosTests) kubo;
-    repoVersion = callPackage ./test-repoVersion.nix {};
+    inherit (nixosTests) kubo ipget;
+    repoVersion = callPackage ./test-repoVersion.nix { };
   };
 
   vendorHash = null;
 
-  outputs = [ "out" "systemd_unit" "systemd_unit_hardened" ];
+  outputs = [
+    "out"
+    "systemd_unit"
+    "systemd_unit_hardened"
+  ];
+
+  nativeBuildInputs = [ installShellFiles ];
 
   postPatch = ''
     substituteInPlace 'misc/systemd/ipfs.service' \
-      --replace '/usr/local/bin/ipfs' "$out/bin/ipfs"
+      --replace-fail '/usr/local/bin/ipfs' "$out/bin/ipfs"
     substituteInPlace 'misc/systemd/ipfs-hardened.service' \
-      --replace '/usr/local/bin/ipfs' "$out/bin/ipfs"
+      --replace-fail '/usr/local/bin/ipfs' "$out/bin/ipfs"
   '';
 
   postInstall = ''
@@ -54,14 +63,23 @@ buildGoModule rec {
     install --mode=444 -D 'misc/systemd/ipfs-api.socket' "$systemd_unit_hardened/etc/systemd/system/ipfs-api.socket"
     install --mode=444 -D 'misc/systemd/ipfs-gateway.socket' "$systemd_unit_hardened/etc/systemd/system/ipfs-gateway.socket"
     install --mode=444 -D 'misc/systemd/ipfs-hardened.service' "$systemd_unit_hardened/etc/systemd/system/ipfs.service"
+  ''
+  + lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
+    installShellCompletion --cmd ipfs \
+      --bash <($out/bin/ipfs commands completion bash) \
+      --fish <($out/bin/ipfs commands completion fish) \
+      --zsh <($out/bin/ipfs commands completion zsh)
   '';
 
-  meta = with lib; {
-    description = "An IPFS implementation in Go";
+  meta = {
+    description = "IPFS implementation in Go";
     homepage = "https://ipfs.io/";
-    license = licenses.mit;
-    platforms = platforms.unix;
+    changelog = "https://github.com/ipfs/kubo/releases/tag/${rev}";
+    license = lib.licenses.mit;
+    platforms = lib.platforms.unix;
     mainProgram = "ipfs";
-    maintainers = with maintainers; [ Luflosi fpletz ];
+    maintainers = with lib.maintainers; [
+      Luflosi
+    ];
   };
 }

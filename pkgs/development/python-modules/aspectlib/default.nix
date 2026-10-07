@@ -1,20 +1,18 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchPypi
-, fetchpatch
-, setuptools
-, fields
-, process-tests
-, pytestCheckHook
-, tornado
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  fetchpatch,
+  setuptools,
+  fields,
+  process-tests,
+  pytestCheckHook,
+  tornado,
 }:
 
 buildPythonPackage rec {
   pname = "aspectlib";
   version = "2.0.0";
-
-  disabled = pythonOlder "3.7";
 
   pyproject = true;
 
@@ -30,15 +28,17 @@ buildPythonPackage rec {
       url = "https://github.com/ionelmc/python-aspectlib/commit/ef2c12304f08723dc8e79d1c59bc32c946d758dc.patch";
       hash = "sha256-gtPFtwDsGIMkHTyuoiLk+SAGgB2Wyx/Si9HIdoIsvI8=";
     })
+    (fetchpatch {
+      name = "pluggy-compat.patch";
+      url = "https://github.com/ionelmc/python-aspectlib/commit/b85abdb0565d1598ce56bd49d49dc709d4e16081.patch";
+      hash = "sha256-hW9xF50RjlrKXyABc69dkiV7YUeee95MnF0J/xQDWd4=";
+      includes = [ "tests/conftest.py" ];
+    })
   ];
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
-  propagatedBuildInputs = [
-    fields
-  ];
+  propagatedBuildInputs = [ fields ];
 
   pythonImportsCheck = [
     "aspectlib"
@@ -53,9 +53,7 @@ buildPythonPackage rec {
     tornado
   ];
 
-  pytestFlagsArray = [
-    "-W ignore::DeprecationWarning"
-  ];
+  pytestFlags = [ "-Wignore::DeprecationWarning" ];
 
   __darwinAllowLocalNetworking = true;
 

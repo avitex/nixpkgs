@@ -1,43 +1,41 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, certifi
-, cryptography
-, ecdsa
-, pyaes
-, pyopenssl
-, pyscard
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  certifi,
+  cryptography,
+  pyaes,
+  pyopenssl,
+  pyscard,
 }:
 
 buildPythonPackage rec {
   pname = "pysatochip";
-  version = "0.14.2";
+  version = "0.18.0";
   format = "setuptools";
-  disabled = pythonOlder "3.6";
 
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-+Z3D6ITZouhLbEotvJ9MDfg6QOhjGVKrLi1QL1kOdkE=";
+  src = fetchFromGitHub {
+    owner = "toporin";
+    repo = "pysatochip";
+    tag = "v${version}";
+    hash = "sha256-Axtxd/Jmdqo6JayCbDNk5wOToXT7/GlEKxWMC12mXyc=";
   };
 
-  postPatch = ''
-    substituteInPlace requirements.txt \
-      --replace "cryptography==3.3.2" "cryptography" \
-      --replace "ecdsa==0.15" "ecdsa" \
-      --replace "pyopenssl==20.0.0" "pyopenssl"
-  '';
-
-  propagatedBuildInputs = [ cryptography ecdsa pyaes pyopenssl pyscard ];
+  propagatedBuildInputs = [
+    cryptography
+    pyaes
+    pyopenssl
+    pyscard
+  ];
 
   nativeCheckInputs = [ certifi ];
 
   pythonImportsCheck = [ "pysatochip" ];
 
-  meta = with lib; {
+  meta = {
     description = "Simple python library to communicate with a Satochip hardware wallet";
     homepage = "https://github.com/Toporin/pysatochip";
-    license = licenses.lgpl3Only;
-    maintainers = with maintainers; [ oxalica ];
+    license = lib.licenses.lgpl3Only;
+    maintainers = with lib.maintainers; [ oxalica ];
   };
 }

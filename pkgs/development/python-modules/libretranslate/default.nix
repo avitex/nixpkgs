@@ -1,43 +1,69 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, argostranslate
-, flask
-, flask-swagger
-, flask-swagger-ui
-, flask-limiter
-, flask-babel
-, flask-session
-, waitress
-, expiringdict
-, ltpycld2
-, morfessor
-, appdirs
-, apscheduler
-, translatehtml
-, argos-translate-files
-, requests
-, redis
-, prometheus-client
-, polib
-, python
+{
+  lib,
+  stdenv,
+  pkgs,
+  buildPythonPackage,
+  fetchFromGitHub,
+  writableTmpDirAsHomeHook,
+  runCommand,
+  hatchling,
+  argostranslate,
+  flask,
+  flask-swagger,
+  flask-swagger-ui,
+  flask-limiter,
+  flask-babel,
+  flask-session,
+  waitress,
+  expiringdict,
+  langdetect,
+  lexilang,
+  libretranslate,
+  ltpycld2,
+  morfessor,
+  appdirs,
+  apscheduler,
+  translatehtml,
+  argos-translate-files,
+  requests,
+  redis,
+  prometheus-client,
+  polib,
+  python,
+  lndir,
 }:
 
-buildPythonPackage rec {
+let
+  inherit (stdenv.hostPlatform) isLinux isAarch64;
+  isAarch64Linux = isLinux && isAarch64;
+in
+buildPythonPackage (finalAttrs: {
   pname = "libretranslate";
-  version = "1.5.2";
-
-  format = "setuptools";
+  version = "1.9.6";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "LibreTranslate";
     repo = "LibreTranslate";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-8bbVpC53wH9GvwwHHlPEYQd/zqMXIqrwixwn4HY6FMg=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-AIjbwx2WoynN/ExGNQ2fhHxjEM/2LIvgydaA7ylU0D8=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [
+    hatchling
+  ];
+
+  pythonRelaxDeps = true;
+
+  # LibreTranslate has forked argos-translate [1] to fix some bugs and make stanza optional, but it's
+  # unclear what the future of this fork is.
+  #
+  # We'll stay on upstream argostranslate for now.
+  #
+  # [1]: https://github.com/Libretranslate/argos-translate/
+  pythonRemoveDeps = [ "argos-translate-lt" ];
+
+  dependencies = [
     argostranslate
     flask
     flask-swagger
@@ -47,6 +73,8 @@ buildPythonPackage rec {
     flask-session
     waitress
     expiringdict
+    langdetect
+    lexilang
     ltpycld2
     morfessor
     appdirs
@@ -59,36 +87,45 @@ buildPythonPackage rec {
     polib
   ];
 
-  postPatch = ''
-    substituteInPlace requirements.txt  \
-      --replace "==" ">="
-
-    substituteInPlace setup.py  \
-      --replace "'pytest-runner'" ""
-  '';
-
   postInstall = ''
     # expose static files to be able to serve them via web-server
     mkdir -p $out/share/libretranslate
     ln -s $out/${python.sitePackages}/libretranslate/static $out/share/libretranslate/static
   '';
 
-  doCheck = false; # needs network access
+  # needed to import the argostranslate module
+  nativeCheckInputs = [ writableTmpDirAsHomeHook ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  # aarch64-linux fails cpuinfo test, because /sys/devices/system/cpu/ does not exist in the sandbox:
+  # terminate called after throwing an instance of 'onnxruntime::OnnxRuntimeException'
+  pythonImportsCheck = lib.optional (!isAarch64Linux) "libretranslate";
+  doCheck = !isAarch64Linux;
 
-  # required for import check to work (argostranslate)
-  env.HOME = "/tmp";
+  passthru = {
+    static-compressed =
+      runCommand "libretranslate-data-compressed"
+        {
+          nativeBuildInputs = [
+            pkgs.brotli
+            lndir
+          ];
+        }
+        ''
+          mkdir -p $out/share/libretranslate/static
+          lndir ${libretranslate}/share/libretranslate/static $out/share/libretranslate/static
 
-  pythonImportsCheck = [ "libretranslate" ];
+          # Create static gzip and brotli files
+          find -L $out -type f -regextype posix-extended -iregex '.*\.(css|ico|js|svg|ttf)' \
+            -exec gzip --best --keep --force {} ';' \
+            -exec brotli --best --keep --no-copy-stat {} ';'
+        '';
+  };
 
-  meta = with lib; {
+  meta = {
     description = "Free and Open Source Machine Translation API. Self-hosted, no limits, no ties to proprietary services";
     homepage = "https://libretranslate.com";
-    changelog = "https://github.com/LibreTranslate/LibreTranslate/releases/tag/v${version}";
-    license = licenses.agpl3Only;
-    maintainers = with maintainers; [ misuzu ];
+    changelog = "https://github.com/LibreTranslate/LibreTranslate/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.agpl3Only;
+    maintainers = with lib.maintainers; [ misuzu ];
   };
-}
+})

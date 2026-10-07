@@ -1,34 +1,36 @@
-{ lib
-, buildPythonPackage
-, cwl-upgrader
-, cwlformat
-, fetchFromGitHub
-, packaging
-, pytest-mock
-, pytest-xdist
-, pytestCheckHook
-, pythonOlder
-, rdflib
-, requests
-, ruamel-yaml
-, schema-salad
+{
+  lib,
+  buildPythonPackage,
+  cwl-upgrader,
+  cwlformat,
+  fetchFromGitHub,
+  hatchling,
+  jsonschema,
+  packaging,
+  pytest-mock,
+  pytest-xdist,
+  pytestCheckHook,
+  rdflib,
+  requests,
+  ruamel-yaml,
+  schema-salad,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "cwl-utils";
-  version = "0.32";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.8";
+  version = "0.45";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "common-workflow-language";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-CM2UlJ86FcjsOm0msBNpY2li8bhm5T/aMD1q292HpLM=";
+    repo = "cwl-utils";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-TyPRF47G4FrMY59dXzVPfZ25qsAv24T5M2ByQjEGJp8=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ hatchling ];
+
+  dependencies = [
     cwl-upgrader
     packaging
     rdflib
@@ -39,14 +41,13 @@ buildPythonPackage rec {
 
   nativeCheckInputs = [
     cwlformat
+    jsonschema
     pytest-mock
     pytest-xdist
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "cwl_utils"
-  ];
+  pythonImportsCheck = [ "cwl_utils" ];
 
   disabledTests = [
     # Don't run tests which require Node.js
@@ -58,13 +59,14 @@ buildPythonPackage rec {
     # Don't run tests which require network access
     "test_remote_packing"
     "test_remote_packing_github_soft_links"
+    "test_cwl_inputs_to_jsonschema"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Utilities for CWL";
     homepage = "https://github.com/common-workflow-language/cwl-utils";
-    changelog = "https://github.com/common-workflow-language/cwl-utils/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/common-workflow-language/cwl-utils/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

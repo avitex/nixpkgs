@@ -1,38 +1,34 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, fetchpatch
-, python-dateutil
-, celery
-, redis
-, tenacity
-, pytestCheckHook
-, pytz
-, fakeredis
-, mock
+{
+  lib,
+  buildPythonPackage,
+  celery,
+  fakeredis,
+  fetchFromGitHub,
+  pytestCheckHook,
+  python-dateutil,
+  pbr,
+  redis,
+  pytz,
+  tenacity,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "celery-redbeat";
-  version = "2.1.0";
-  format = "setuptools";
+  version = "2.4.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "sibson";
     repo = "redbeat";
-    rev = "v${version}";
-    hash = "sha256-WW/OYa7TWEKkata1eULir29wHaCnavBJebn4GrBzmWY=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-dva4th7CAvVKA8UeIQdFsDd5xOFxsluVYDzvn5Y5Pi4=";
   };
 
-  patches = [
-    (fetchpatch {
-      # celery 5.3.0 support
-      url = "https://github.com/sibson/redbeat/commit/4240e17172a4d9d2744d5c4da3cfca0e0a024e2e.patch";
-      hash = "sha256-quEfSFhv0sIpsKHX1CpFhbMC8LYXA8NASWYU8MMYPSk=";
-    })
-  ];
+  build-system = [ pbr ];
 
-  propagatedBuildInputs = [
+  env.PBR_VERSION = finalAttrs.version;
+
+  dependencies = [
     celery
     python-dateutil
     redis
@@ -41,17 +37,17 @@ buildPythonPackage rec {
 
   nativeCheckInputs = [
     fakeredis
-    mock
     pytestCheckHook
     pytz
   ];
 
   pythonImportsCheck = [ "redbeat" ];
 
-  meta = with lib; {
+  meta = {
     description = "Database-backed Periodic Tasks";
-    homepage = "https://github.com/celery/django-celery-beat";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ onny ];
+    homepage = "https://github.com/sibson/redbeat";
+    changelog = "https://github.com/sibson/redbeat/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ onny ];
   };
-}
+})

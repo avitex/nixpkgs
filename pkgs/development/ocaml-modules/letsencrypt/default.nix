@@ -1,35 +1,25 @@
-{ buildDunePackage
-, lib
-, fetchurl
-, asn1-combinators
-, uri
-, base64
-, logs
-, fmt
-, lwt
-, mirage-crypto
-, mirage-crypto-ec
-, mirage-crypto-pk
-, mirage-crypto-rng
-, x509
-, yojson
-, ounit
-, ptime
-, domain-name
-, cstruct
+{
+  buildDunePackage,
+  lib,
+  fetchurl,
+  jws,
+  lun,
+  logs,
+  fmt,
+  x509,
+  ounit2,
+  ptime,
+  domain-name,
 }:
 
-buildDunePackage rec {
+buildDunePackage (finalAttrs: {
   pname = "letsencrypt";
-  version = "0.5.0";
+  version = "2.1.1";
 
   src = fetchurl {
-    url = "https://github.com/mmaker/ocaml-letsencrypt/releases/download/v${version}/letsencrypt-${version}.tbz";
-    hash = "sha256-XGroZiNyP0ItOMrXK07nrVqT4Yz9RKXYvZuRkDp089M=";
+    url = "https://github.com/mmaker/ocaml-letsencrypt/releases/download/v${finalAttrs.version}/letsencrypt-${finalAttrs.version}.tbz";
+    hash = "sha256-jv/CxJFhqb4ouC7CvYMXHhVRmgpdlMPIwPYPAMt7Bts=";
   };
-
-  minimalOCamlVersion = "4.08";
-  duneVersion = "3";
 
   buildInputs = [
     fmt
@@ -38,21 +28,14 @@ buildDunePackage rec {
   ];
 
   propagatedBuildInputs = [
+    jws
     logs
-    yojson
-    lwt
-    base64
-    mirage-crypto
-    mirage-crypto-ec
-    mirage-crypto-pk
-    asn1-combinators
+    lun
     x509
-    uri
-    cstruct
   ];
 
   doCheck = true;
-  checkInputs = [ ounit ];
+  checkInputs = [ ounit2 ];
 
   meta = {
     description = "ACME implementation in OCaml";
@@ -60,4 +43,4 @@ buildDunePackage rec {
     maintainers = [ lib.maintainers.sternenseemann ];
     homepage = "https://github.com/mmaker/ocaml-letsencrypt";
   };
-}
+})

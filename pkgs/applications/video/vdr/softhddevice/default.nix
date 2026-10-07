@@ -1,37 +1,39 @@
-{ lib
-, stdenv
-, vdr
-, alsa-lib
-, fetchFromGitHub
-, xcbutilwm
-, xorgserver
-, ffmpeg
-, libva
-, libvdpau
-, xorg
-, libGL
-, libGLU
+{
+  lib,
+  stdenv,
+  vdr,
+  alsa-lib,
+  fetchFromGitHub,
+  libxcb-wm,
+  xorg-server,
+  ffmpeg,
+  libva,
+  libvdpau,
+  libx11,
+  libxcb,
+  libGL,
+  libGLU,
 }:
 stdenv.mkDerivation rec {
   pname = "vdr-softhddevice";
-  version = "2.0.9";
+  version = "2.5.0";
 
   src = fetchFromGitHub {
     owner = "ua0lnj";
     repo = "vdr-plugin-softhddevice";
-    sha256 = "sha256-FyjKMCKPZVtQhb7wBx4Xr6I/kb2QMH/TEE21bw5gcwc=";
+    sha256 = "sha256-vicHneEZZHTraffUek77QDZdv/xZGzN102nbr1Bkfzo=";
     rev = "v${version}";
   };
 
   buildInputs = [
     vdr
-    xcbutilwm
+    libxcb-wm
     ffmpeg
     alsa-lib
     libva
     libvdpau
-    xorg.libxcb
-    xorg.libX11
+    libxcb
+    libx11
     libGL
     libGLU
   ];
@@ -40,14 +42,14 @@ stdenv.mkDerivation rec {
 
   postPatch = ''
     substituteInPlace softhddev.c \
-      --replace "LOCALBASE \"/bin/X\"" "\"${xorgserver}/bin/X\""
+      --replace "LOCALBASE \"/bin/X\"" "\"${xorg-server}/bin/X\""
   '';
 
-  meta = with lib; {
+  meta = {
     inherit (src.meta) homepage;
     description = "VDR SoftHDDevice Plug-in";
-    maintainers = [ maintainers.ck3d ];
-    license = licenses.gpl2;
+    maintainers = [ lib.maintainers.ck3d ];
+    license = lib.licenses.gpl2;
     inherit (vdr.meta) platforms;
   };
 

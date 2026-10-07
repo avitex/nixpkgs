@@ -1,24 +1,23 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, hatchling
-, pytestCheckHook
-, bracex
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  hatchling,
+  pytestCheckHook,
+  bracex,
 }:
 
 buildPythonPackage rec {
   pname = "wcmatch";
-  version = "8.5";
-  format = "pyproject";
+  version = "10.1";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-hsF1ctD3XL87yxoY878vnnKzmpwIybSnTpkeGIKo77M=";
+    hash = "sha256-8R+UIIyMhIShb09IY4qF13HZUT9Ks/N1lZeIAcuUZa8=";
   };
 
-  nativeBuildInputs = [
-    hatchling
-  ];
+  nativeBuildInputs = [ hatchling ];
 
   propagatedBuildInputs = [ bracex ];
 
@@ -28,16 +27,14 @@ buildPythonPackage rec {
     export HOME=$(mktemp -d)
   '';
 
-  disabledTests = [
-    "TestTilde"
-  ];
+  disabledTests = [ "TestTilde" ];
 
   pythonImportsCheck = [ "wcmatch" ];
 
-  meta = with lib; {
-    description = "Wilcard File Name matching library";
+  meta = {
+    description = "Wildcard File Name matching library";
     homepage = "https://github.com/facelessuser/wcmatch";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

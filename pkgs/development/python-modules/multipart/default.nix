@@ -1,39 +1,34 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, fetchpatch
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  flit-core,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "multipart";
-  version = "0.2.4";
+  version = "2.0.0";
+  pyproject = true;
 
-  format = "setuptools";
-
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "06ba205360bc7096fefe618e4f1e9b2cdb890b4f2157053a81f386912a2522cb";
+  src = fetchFromGitHub {
+    owner = "defnull";
+    repo = "multipart";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-1/G8qUnY7i5OvxkTSebC2pae9lzzfvnozJSVVylqB7w=";
   };
 
-  patches = [
-    (fetchpatch {
-      name = "dont-test-semicolon-separators-in-urlencoded-data.patch";
-      url = "https://github.com/defnull/multipart/commit/4d4ac6b79c453918ebf40c690e8d57d982ee840b.patch";
-      hash = "sha256-rMeMhQEhonWAHzy5M8Im5mL6km5a9O0CGVOV+T3UNqo=";
-    })
-  ];
+  build-system = [ flit-core ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   pythonImportsCheck = [ "multipart" ];
 
   meta = {
+    changelog = "https://github.com/defnull/multipart/blob/${finalAttrs.src.tag}/CHANGELOG.rst";
     description = "Parser for multipart/form-data";
     homepage = "https://github.com/defnull/multipart";
     license = lib.licenses.mit;
     maintainers = with lib.maintainers; [ dotlambda ];
   };
-}
+})

@@ -1,34 +1,34 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools
-, setuptools-scm
-, jaraco-classes
-, jaraco-text
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  setuptools-scm,
+  jaraco-classes,
+  jaraco-text,
 }:
 
 buildPythonPackage rec {
   pname = "jaraco-collections";
-  version = "4.3.0";
-  format = "pyproject";
+  version = "5.2.1";
+  pyproject = true;
 
   src = fetchPypi {
-    pname = "jaraco.collections";
+    pname = "jaraco_collections";
     inherit version;
-    hash = "sha256-dP/CP8z+5N4KLr9VajNnW2o8AD1jNZR9MSKgvIgiyOQ=";
+    hash = "sha256-2rgZcLrW8KtTsgdF8bAdo3km5MD81CUEaqReDY76GO0=";
   };
 
   postPatch = ''
-    # break dependency cycle
-    sed -i "/'jaraco.text',/d" setup.cfg
+    sed -i "/coherent\.licensed/d" pyproject.toml
   '';
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     jaraco-classes
     jaraco-text
   ];
@@ -39,11 +39,11 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "jaraco.collections" ];
 
-  meta = with lib; {
+  meta = {
     description = "Models and classes to supplement the stdlib 'collections' module";
     homepage = "https://github.com/jaraco/jaraco.collections";
     changelog = "https://github.com/jaraco/jaraco.collections/blob/v${version}/NEWS.rst";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

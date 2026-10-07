@@ -1,7 +1,8 @@
-{ lib
-, octave
-, makeSetupHook
-, makeWrapper
+{
+  lib,
+  octave,
+  makeSetupHook,
+  makeWrapper,
 }:
 
 # Defined in trivial-builders
@@ -13,4 +14,5 @@ makeSetupHook {
   propagatedBuildInputs = [ makeWrapper ];
   substitutions.executable = octave.interpreter;
   substitutions.octave = octave;
+  meta.license = lib.licenses.mit;
 } ./wrap.sh

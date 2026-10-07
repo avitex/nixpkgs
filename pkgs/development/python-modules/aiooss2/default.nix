@@ -1,30 +1,27 @@
-{ lib
-, aiohttp
-, buildPythonPackage
-, fetchFromGitHub
-, oss2
-, pytest-asyncio
-, pytest-mock
-, pytestCheckHook
-, pythonOlder
-, pythonRelaxDepsHook
-, requests
-, setuptools
-, setuptools-scm
+{
+  lib,
+  aiohttp,
+  buildPythonPackage,
+  fetchFromGitHub,
+  oss2,
+  pytest-asyncio,
+  pytest-mock,
+  pytestCheckHook,
+  requests,
+  setuptools,
+  setuptools-scm,
 }:
 
 buildPythonPackage rec {
   pname = "aiooss2";
-  version = "0.2.8";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "0.2.11";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "karajan1001";
     repo = "aiooss2";
-    rev = "refs/tags/${version}";
-    hash = "sha256-PwgbUZAuk2woEmLYDdWF5hTs19DASxxUv3Ga844ai7g=";
+    tag = version;
+    hash = "sha256-6tkJG6Jjvo2OaN9cRbs/7ApcrKiZ5tGSPUfugAx7iJU=";
   };
 
   pythonRelaxDeps = [
@@ -32,13 +29,12 @@ buildPythonPackage rec {
     "oss2"
   ];
 
-  nativeBuildInputs = [
-    pythonRelaxDepsHook
+  build-system = [
     setuptools
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
     oss2
   ];
@@ -50,9 +46,7 @@ buildPythonPackage rec {
     requests
   ];
 
-  pythonImportsCheck = [
-    "aiooss2"
-  ];
+  pythonImportsCheck = [ "aiooss2" ];
 
   disabledTestPaths = [
     # Tests require network access
@@ -62,11 +56,11 @@ buildPythonPackage rec {
     "tests/unit/test_adapter.py"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Library for aliyun OSS (Object Storage Service)";
     homepage = "https://github.com/karajan1001/aiooss2";
     changelog = "https://github.com/karajan1001/aiooss2/blob/${version}/CHANGES.txt";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

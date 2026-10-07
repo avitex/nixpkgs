@@ -1,48 +1,42 @@
-{ lib
-, fetchFromGitHub
-, buildPythonPackage
-, pythonOlder
-, beancount-parser
-, click
-, poetry-core
-, pytestCheckHook
+{
+  lib,
+  fetchFromGitHub,
+  buildPythonPackage,
+  beancount-parser,
+  click,
+  poetry-core,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "beancount-black";
-  version = "0.2.1";
+  version = "1.0.5";
 
-  disabled = pythonOlder "3.9";
-  format = "pyproject";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "LaunchPlatform";
     repo = "beancount-black";
-    rev = version;
-    hash = "sha256-wvAQnwnyHn5Koc/UN4zpJ3JDmFbDoUrpCTmJCpSP7Mg=";
+    tag = finalAttrs.version;
+    hash = "sha256-vo11mlgDhyc8YFnULJ4AFrANWmGpAMNX5jJ6QaUNqk0=";
   };
 
-  buildInputs = [
-    poetry-core
-  ];
+  buildInputs = [ poetry-core ];
 
   propagatedBuildInputs = [
     beancount-parser
     click
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "beancount_black"
-  ];
+  pythonImportsCheck = [ "beancount_black" ];
 
-  meta = with lib; {
+  meta = {
     description = "Opinioned code formatter for Beancount";
+    mainProgram = "bean-black";
     homepage = "https://github.com/LaunchPlatform/beancount-black/";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ ambroisie ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ ambroisie ];
   };
-}
+})

@@ -1,35 +1,36 @@
-{ lib
-, aiohttp
-, aresponses
-, buildPythonPackage
-, ciso8601
-, fetchFromGitHub
-, orjson
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  aiohttp,
+  aresponses,
+  buildPythonPackage,
+  ciso8601,
+  fetchFromGitHub,
+  orjson,
+  pytest-asyncio,
+  pytestCheckHook,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "aiopyarr";
   version = "23.4.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.9";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "tkdrob";
-    repo = pname;
-    rev = "refs/tags/${version}";
+    repo = "aiopyarr";
+    tag = finalAttrs.version;
     hash = "sha256-CzNB6ymvDTktiOGdcdCvWLVQ3mKmbdMpc/vezSXCpG4=";
   };
 
+  build-system = [ setuptools ];
+
   postPatch = ''
     substituteInPlace setup.py \
-      --replace 'version="master"' 'version="${version}"'
+      --replace-fail 'version="master"' 'version="${finalAttrs.version}"'
   '';
 
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
     ciso8601
     orjson
@@ -41,15 +42,13 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "aiopyarr"
-  ];
+  pythonImportsCheck = [ "aiopyarr" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python API client for Lidarr/Radarr/Readarr/Sonarr";
     homepage = "https://github.com/tkdrob/aiopyarr";
-    changelog = "https://github.com/tkdrob/aiopyarr/releases/tag/${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/tkdrob/aiopyarr/releases/tag/${finalAttrs.version}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

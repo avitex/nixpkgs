@@ -1,4 +1,9 @@
-{ lib, buildPythonPackage, fetchPypi, pytest }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pytest,
+}:
 
 buildPythonPackage rec {
   pname = "text-unidecode";
@@ -16,9 +21,9 @@ buildPythonPackage rec {
     py.test
   '';
 
-  meta = with lib; {
-    description = "The most basic Text::Unidecode port";
+  meta = {
+    description = "Most basic Text::Unidecode port";
     homepage = "https://github.com/kmike/text-unidecode";
-    license = licenses.artistic1;
+    license = lib.licenses.artistic1;
   };
 }

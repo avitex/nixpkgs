@@ -1,32 +1,34 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, alacritty
-, cage
-, cairo
-, libxkbcommon
-, makeWrapper
-, mesa
-, meson
-, ninja
-, pkg-config
-, udev
-, unstableGitUpdater
-, wayland
-, wayland-protocols
-, wlroots
-, xwayland
+{
+  lib,
+  stdenv,
+  fetchFromGitLab,
+  alacritty,
+  cage,
+  cairo,
+  libxkbcommon,
+  makeWrapper,
+  libgbm,
+  meson,
+  ninja,
+  pkg-config,
+  wayland-scanner,
+  udev,
+  unstableGitUpdater,
+  wayland,
+  wayland-protocols,
+  wlroots_0_19,
+  xwayland,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "wio";
-  version = "unstable-2023-11-23";
+  version = "0.19.0";
 
-  src = fetchFromGitHub {
-    owner = "Rubo3";
+  src = fetchFromGitLab {
+    owner = "Rubo";
     repo = "wio";
-    rev = "77c33b555589068350078d634a256a8fbb7ffe6b";
-    hash = "sha256-Wff8RPHfmgPYJ3cO0h5onHtWIvOYDqLjvF1O4uODuCY=";
+    rev = finalAttrs.version;
+    hash = "sha256-Ol9/dMYg1L+3jGFMpKsAPUAA7hkxu/v88JrI3v+ozAM=";
   };
 
   nativeBuildInputs = [
@@ -34,26 +36,33 @@ stdenv.mkDerivation (finalAttrs: {
     meson
     ninja
     pkg-config
+    wayland-scanner
   ];
 
   buildInputs = [
     cairo
     libxkbcommon
-    mesa
+    libgbm
     udev
     wayland
     wayland-protocols
-    wlroots
+    wlroots_0_19
     xwayland
   ];
 
-  strictDeps = false; # why is it so hard?
+  strictDeps = true;
+  __structuredAttrs = true;
 
   env.NIX_CFLAGS_COMPILE = "-Wno-error=maybe-uninitialized";
 
   postInstall = ''
     wrapProgram $out/bin/wio \
-      --prefix PATH ":" "${lib.makeBinPath [ alacritty cage ]}"
+      --prefix PATH ":" "${
+        lib.makeBinPath [
+          alacritty
+          cage
+        ]
+      }"
   '';
 
   passthru = {
@@ -68,9 +77,9 @@ stdenv.mkDerivation (finalAttrs: {
       Wio is a Wayland compositor for Linux and FreeBSD which has a similar look
       and feel to plan9's rio.
     '';
-    license = with lib.licenses; [ bsd3 ];
+    license = lib.licenses.bsd3;
     mainProgram = "wio";
-    maintainers = with lib.maintainers; [ AndersonTorres ];
+    maintainers = [ ];
     inherit (wayland.meta) platforms;
   };
 })

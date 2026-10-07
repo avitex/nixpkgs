@@ -1,17 +1,21 @@
-{ lib, mkDiscoursePlugin, fetchFromGitHub }:
+{
+  lib,
+  mkDiscoursePlugin,
+  fetchFromGitHub,
+}:
 
 mkDiscoursePlugin {
   name = "discourse-bbcode-color";
   src = fetchFromGitHub {
     owner = "discourse";
     repo = "discourse-bbcode-color";
-    rev = "79ed22b3a3352adbd20f7e2222b9dbdb9fbaf7fe";
-    sha256 = "sha256-AHgny9BW/ssmv0U2lwzVWgYKPsvWHD6kgU3mBMFX4Aw=";
+    rev = "b68e1c3bfbfe2468f70af47045276e4463568fe3";
+    sha256 = "sha256-AM3AMZFaTTf9Q6ulr9qoTZafykPFBTkXvtkmU+TAPew=";
   };
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/discourse/discourse-bbcode-color";
-    maintainers = with maintainers; [ ryantm ];
-    license = licenses.mit;
-    description = "Support BBCode color tags.";
+    maintainers = with lib.maintainers; [ ryantm ];
+    license = lib.licenses.mit;
+    description = "Support BBCode color tags";
   };
 }

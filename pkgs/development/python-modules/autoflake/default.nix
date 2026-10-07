@@ -1,48 +1,39 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, hatchling
-, pyflakes
-, pytestCheckHook
-, pythonOlder
-, tomli
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  hatchling,
+  pyflakes,
+  pytestCheckHook,
 }:
 buildPythonPackage rec {
   pname = "autoflake";
-  version = "2.2.1";
-  format = "pyproject";
+  version = "2.3.2";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-Yre2RJppLDybDJFpGbvCFkjacoHoUGvPjT+CgOQx68E=";
+    hash = "sha256-c9OyK62JA0h596SHHCecjRibPywLnZ4nS45bRowX+aA=";
   };
 
-  nativeBuildInputs = [
-    hatchling
-  ];
+  nativeBuildInputs = [ hatchling ];
 
-  propagatedBuildInputs = [
-    pyflakes
-  ]
-  ++ lib.optional (pythonOlder "3.11") tomli;
+  propagatedBuildInputs = [ pyflakes ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "autoflake"
-  ];
+  pythonImportsCheck = [ "autoflake" ];
 
   disabledTests = [
     # AssertionError: True is not false
     "test_is_literal_or_name"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Tool to remove unused imports and unused variables";
+    mainProgram = "autoflake";
     homepage = "https://github.com/myint/autoflake";
-    license = licenses.mit;
-    maintainers = with maintainers; [ yuriaisaka ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ yuriaisaka ];
   };
 }

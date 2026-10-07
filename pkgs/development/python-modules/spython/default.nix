@@ -1,41 +1,33 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "spython";
-  version = "0.3.12";
+  version = "0.3.15";
   pyproject = true;
-
-  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
     owner = "singularityhub";
     repo = "singularity-cli";
-    rev = "refs/tags/${version}";
-    hash = "sha256-fRtqOpDgVMYlVDwbPkrnpd7PT4fV+2WS6RmpJoxaKdQ=";
+    tag = finalAttrs.version;
+    hash = "sha256-XYiudDXXiX0izFZZpQb71DBg/wRKjeupvKHixGFVuKM=";
   };
 
   postPatch = ''
     substituteInPlace setup.py \
-      --replace '"pytest-runner"' ""
+      --replace-fail '"pytest-runner"' ""
   '';
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "spython"
-  ];
+  pythonImportsCheck = [ "spython" ];
 
   disabledTests = [
     # Assertion errors
@@ -49,11 +41,12 @@ buildPythonPackage rec {
     "spython/tests/test_client.py"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Streamlined singularity python client (spython) for singularity";
     homepage = "https://github.com/singularityhub/singularity-cli";
-    changelog = "https://github.com/singularityhub/singularity-cli/blob/${version}/CHANGELOG.md";
-    license = licenses.mpl20;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/singularityhub/singularity-cli/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.mpl20;
+    maintainers = with lib.maintainers; [ fab ];
+    mainProgram = "spython";
   };
-}
+})

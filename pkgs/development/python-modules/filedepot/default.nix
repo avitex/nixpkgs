@@ -1,44 +1,38 @@
-{ lib
-, anyascii
-, buildPythonPackage
-, fetchFromGitHub
-, fetchpatch
-, flaky
-, google-cloud-storage
-, mock
-, pillow
-, pymongo
-, pytestCheckHook
-, pythonOlder
-, requests
-, sqlalchemy
+{
+  lib,
+  anyascii,
+  buildPythonPackage,
+  fetchFromGitHub,
+  flaky,
+  google-cloud-storage,
+  legacy-cgi,
+  mock,
+  pillow,
+  pymongo,
+  pytestCheckHook,
+  pythonAtLeast,
+  requests,
+  setuptools,
+  sqlalchemy,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "filedepot";
-  version = "0.10.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.12.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "amol-";
     repo = "depot";
-    rev = "refs/tags/${version}";
-    hash = "sha256-vPceky5cvmy3MooWz7dRdy68VoAHN7i3a7egBs4dPE8=";
+    tag = finalAttrs.version;
+    hash = "sha256-oDnGA2prxYUkC90ewryeJXTXED59vcZGHU9D0QiopFM=";
   };
 
-  patches = [
-    # Add support for Pillow 10, https://github.com/amol-/depot/pull/84
-    (fetchpatch {
-      name = "support-pillow-10.patch";
-      url = "https://github.com/amol-/depot/commit/bdb73d1b3898279068b421bc061ecc18c5108fa4.patch";
-      hash = "sha256-7+VGrdJstkiy0bYAqA9FjF1NftZiurgyPd8Wlz6GUy8=";
-    })
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     anyascii
+    legacy-cgi
     google-cloud-storage
   ];
 
@@ -62,15 +56,15 @@ buildPythonPackage rec {
     "tests/test_wsgi_middleware.py"
   ];
 
-  pythonImportsCheck = [
-    "depot"
-  ];
+  disabledTests = lib.optionals (pythonAtLeast "3.13") [ "test_notexisting" ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "depot" ];
+
+  meta = {
     description = "Toolkit for storing files and attachments in web applications";
     homepage = "https://github.com/amol-/depot";
-    changelog = "https://github.com/amol-/depot/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/amol-/depot/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

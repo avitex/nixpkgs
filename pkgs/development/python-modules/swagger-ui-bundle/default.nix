@@ -1,16 +1,15 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
 
-# build-system
-, poetry-core
+  # build-system
+  poetry-core,
 
-# dependencies
-, importlib-resources
-, jinja2
+  # dependencies
+  jinja2,
 
- }:
+}:
 
 buildPythonPackage rec {
   pname = "swagger-ui-bundle";
@@ -23,23 +22,16 @@ buildPythonPackage rec {
     hash = "sha256-IGc8NDHIcz1dFhXs952azzDP91ICrK8hp9nH9IlxRSk=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  nativeBuildInputs = [ poetry-core ];
 
-  propagatedBuildInputs = [
-    jinja2
-  ] ++ lib.optionals (pythonOlder "3.9") [
-    importlib-resources
-  ];
+  propagatedBuildInputs = [ jinja2 ];
 
   # package contains no tests
   doCheck = false;
 
-  meta = with lib; {
-    description = "bundled swagger-ui pip package";
+  meta = {
+    description = "Bundled swagger-ui pip package";
     homepage = "https://github.com/dtkav/swagger_ui_bundle";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ elohmeier ];
+    license = lib.licenses.asl20;
   };
 }

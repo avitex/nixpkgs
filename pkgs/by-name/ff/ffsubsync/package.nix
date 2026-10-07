@@ -1,30 +1,34 @@
-{ lib
-, python3Packages
-, fetchFromGitHub
+{
+  lib,
+  python3,
+  fetchFromGitHub,
+  ffmpeg,
 }:
 
-python3Packages.buildPythonApplication rec {
+python3.pkgs.buildPythonApplication (finalAttrs: {
   pname = "ffsubsync";
-  version = "0.4.25";
-  format = "pyproject";
+  version = "0.5.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "smacke";
     repo = "ffsubsync";
-    rev = version;
-    hash = "sha256-ZdKZeKfAUe/FXLOur9Btb5RgXewmy3EHunQphqlxpIc=";
+    tag = finalAttrs.version;
+    hash = "sha256-n9bYQgbBHGRJl79EiK7pTMDCcbI4ALudZUNc2SU0Wgg=";
   };
 
-  propagatedBuildInputs = with python3Packages; [
+  build-system = with python3.pkgs; [ setuptools ];
+
+  dependencies = with python3.pkgs; [
     auditok
     charset-normalizer
     faust-cchardet
     ffmpeg-python
-    future
     numpy
     pysubs2
     chardet
     rich
+    setuptools
     six
     srt
     tqdm
@@ -32,15 +36,27 @@ python3Packages.buildPythonApplication rec {
     webrtcvad
   ];
 
-  nativeCheckInputs = with python3Packages; [ pytestCheckHook ];
+  # webrtcvad provides the same import as upstream's wheel-only dependency.
+  pythonRemoveDeps = [ "webrtcvad-wheels" ];
+
+  nativeCheckInputs = with python3.pkgs; [ pytestCheckHook ];
 
   pythonImportsCheck = [ "ffsubsync" ];
 
-  meta = with lib; {
+  makeWrapperArgs = [
+    "--prefix"
+    "PATH"
+    ":"
+    "${ffmpeg}/bin"
+  ];
+
+  meta = {
     homepage = "https://github.com/smacke/ffsubsync";
     description = "Automagically synchronize subtitles with video";
-    license = licenses.mit;
-    maintainers = with maintainers; [ Benjamin-L ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [
+      davinci42
+    ];
     mainProgram = "ffsubsync";
   };
-}
+})

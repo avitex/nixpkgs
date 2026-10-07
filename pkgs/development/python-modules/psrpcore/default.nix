@@ -1,44 +1,45 @@
-{ lib
-, buildPythonPackage
-, cryptography
-, fetchFromGitHub
-, pytestCheckHook
-, pythonOlder
-, xmldiff
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  cryptography,
+  fetchFromGitHub,
+  powershell,
+  pytestCheckHook,
+  setuptools,
+  xmldiff,
 }:
 
 buildPythonPackage rec {
   pname = "psrpcore";
-  version = "0.2.2";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "0.3.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "jborean93";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-6d5HQJEH/x+V0rpmQkprMlH1n151KyUF6d4tM9W5TFs=";
+    repo = "psrpcore";
+    tag = "v${version}";
+    hash = "sha256-svfqTOKKFKMphIPnvXfAbPZrp1GTV2D+33I0Rajfv1Y=";
   };
 
-  propagatedBuildInputs = [
-    cryptography
-  ];
+  build-system = [ setuptools ];
+
+  dependencies = [ cryptography ];
 
   nativeCheckInputs = [
+    powershell
     pytestCheckHook
     xmldiff
   ];
 
-  pythonImportsCheck = [
-    "psrpcore"
-  ];
+  pythonImportsCheck = [ "psrpcore" ];
 
-  meta = with lib; {
+  meta = {
     description = "Library for the PowerShell Remoting Protocol (PSRP)";
     homepage = "https://github.com/jborean93/psrpcore";
     changelog = "https://github.com/jborean93/psrpcore/blob/v${version}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
+    broken = stdenv.hostPlatform.isDarwin;
   };
 }

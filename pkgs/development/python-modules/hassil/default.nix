@@ -1,45 +1,49 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# propagates
-, pyyaml
-, unicode-rbnf
+  # build-system
+  setuptools,
 
-# tests
-, pytestCheckHook
+  # dependencies
+  pyyaml,
+  unicode-rbnf,
+
+  # tests
+  pytestCheckHook,
 }:
 
 let
   pname = "hassil";
-  version = "1.5.1";
+  version = "3.12.1";
 in
-buildPythonPackage {
+buildPythonPackage rec {
   inherit pname version;
-  format = "setuptools";
+  pyproject = true;
 
-  disabled = pythonOlder "3.9";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-GLvDT8BUBvEzgiqKaXokF912g3fOH+KsXnmeOXIwe9U=";
+  src = fetchFromGitHub {
+    owner = "OHF-Voice";
+    repo = "hassil";
+    tag = "v${version}";
+    hash = "sha256-jbodtdsEBDL4nB8kBkPjxFsMOMvsGPDpfMokMRF4xIA=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     pyyaml
     unicode-rbnf
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  meta = with lib; {
-    changelog  = "https://github.com/home-assistant/hassil/blob/v${version}/CHANGELOG.md";
+  meta = {
+    changelog = "https://github.com/OHF-Voice/hassil/blob/${src.tag}/CHANGELOG.md";
     description = "Intent parsing for Home Assistant";
-    homepage = "https://github.com/home-assistant/hassil";
-    license = licenses.asl20;
-    maintainers = teams.home-assistant.members;
+    mainProgram = "hassil";
+    homepage = "https://github.com/OHF-Voice/hassil";
+    license = lib.licenses.asl20;
+    teams = [ lib.teams.home-assistant ];
   };
 }

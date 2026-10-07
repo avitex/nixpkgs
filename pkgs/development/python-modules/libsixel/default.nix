@@ -1,7 +1,8 @@
-{ buildPythonPackage
-, lib
-, stdenv
-, libsixel
+{
+  buildPythonPackage,
+  lib,
+  stdenv,
+  libsixel,
 }:
 
 buildPythonPackage rec {
@@ -23,10 +24,10 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "libsixel" ];
 
-  meta = with lib; {
+  meta = {
     description = "SIXEL graphics encoder/decoder implementation";
     homepage = "https://github.com/libsixel/libsixel";
-    license = licenses.mit;
-    maintainers = with maintainers; [ rmcgibbo ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ rmcgibbo ];
   };
 }

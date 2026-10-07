@@ -1,40 +1,37 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, pythonOlder
-, requests
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  requests,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "oasatelematics";
-  version = "0.3";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.4";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "panosmz";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-3O7XbNVj1S3ZwheklEhm0ivw16Tj7drML/xYC9383Kg=";
+    repo = "oasatelematics";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-pqjzvLeVGW5rC3lK/9WnYdCLyF1fM7GGwzEG5h2lKPA=";
   };
 
-  propagatedBuildInputs = [
-    requests
-  ];
+  build-system = [ setuptools ];
 
-  # Module has no tests
-  doCheck = false;
+  dependencies = [ requests ];
 
-  pythonImportsCheck = [
-    "oasatelematics"
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "oasatelematics" ];
+
+  meta = {
     description = "Python wrapper for the OASA Telematics API";
     homepage = "https://github.com/panosmz/oasatelematics";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/panosmz/oasatelematics/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.gpl3Only;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

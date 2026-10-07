@@ -1,39 +1,39 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# build-system
-, poetry-core
+  # build-system
+  hatchling,
 
-# dependencies
-, wcwidth
+  # dependencies
+  wcwidth,
 
-# tests
-, pytestCheckHook
+  # tests
+  pytestCheckHook,
+  versionCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "ftfy";
-  version = "6.1.3";
+  version = "6.3.1";
   pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-aTJ0rq2BHP8kweh4QWWqdVzS9uRCpexTXH1pf2QipCI=";
+  src = fetchFromGitHub {
+    owner = "rspeer";
+    repo = "python-ftfy";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-TmwDJeUDcF+uOB2X5tMmnf9liCI9rP6dYJVmJoaqszo=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
-    wcwidth
-  ];
+  dependencies = [ wcwidth ];
+
+  pythonImportsCheck = [ "ftfy" ];
 
   nativeCheckInputs = [
+    versionCheckHook
     pytestCheckHook
   ];
 
@@ -41,16 +41,17 @@ buildPythonPackage rec {
     export PATH=$out/bin:$PATH
   '';
 
-  disabledTestPaths = [
-    # Calls poetry and fails to match output exactly
-    "tests/test_cli.py"
+  disabledTests = [
+    # https://github.com/rspeer/python-ftfy/issues/226
+    "ftfy.formatting.monospaced_width"
   ];
 
-
-  meta = with lib; {
+  meta = {
+    changelog = "https://github.com/rspeer/python-ftfy/blob/${finalAttrs.src.rev}/CHANGELOG.md";
     description = "Given Unicode text, make its representation consistent and possibly less broken";
+    mainProgram = "ftfy";
     homepage = "https://github.com/LuminosoInsight/python-ftfy";
-    license = licenses.mit;
-    maintainers = with maintainers; [ aborsu ];
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
-}
+})

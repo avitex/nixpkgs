@@ -1,42 +1,34 @@
-{ lib
-, buildPythonPackage
-, django
-, django-tables2
-, django-tastypie
-, factory-boy
-, fetchFromGitHub
-, poetry-core
-, pylint-plugin-utils
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  django,
+  django-tables2,
+  django-tastypie,
+  factory-boy,
+  fetchFromGitHub,
+  poetry-core,
+  pylint-plugin-utils,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pylint-django";
-  version = "2.5.4";
+  version = "2.8.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "PyCQA";
     repo = "pylint-django";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-MNgu3LvFoohXA+JzUiHIaYFw0ssEe+H5T8Ea56LcGuI=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-W3BPCK6fj4poZ1EaBUGyVyfRo/0sZa+2ktk96Ic6+q0=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
-    pylint-plugin-utils
-  ];
+  dependencies = [ pylint-plugin-utils ];
 
-  passthru.optional-dependencies = {
-    with_django = [
-      django
-    ];
+  optional-dependencies = {
+    with_django = [ django ];
   };
 
   nativeCheckInputs = [
@@ -46,22 +38,13 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  disabledTests = [
-    # AttributeError: module 'pylint.interfaces' has no attribute 'IAstroidChecker'
-    "test_migrations_plugin"
-    "func_noerror_model_unicode_lambda"
-    "test_linter_should_be_pickleable_with_pylint_django_plugin_installed"
-  ];
+  pythonImportsCheck = [ "pylint_django" ];
 
-  pythonImportsCheck = [
-    "pylint_django"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Pylint plugin to analyze Django applications";
     homepage = "https://github.com/PyCQA/pylint-django";
-    changelog = "https://github.com/pylint-dev/pylint-django/releases/tag/v${version}";
-    license = licenses.gpl2Plus;
-    maintainers = with maintainers; [ kamadorueda ];
+    changelog = "https://github.com/pylint-dev/pylint-django/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.gpl2Plus;
+    maintainers = with lib.maintainers; [ kamadorueda ];
   };
-}
+})

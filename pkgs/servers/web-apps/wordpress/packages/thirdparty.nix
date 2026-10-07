@@ -1,14 +1,42 @@
-{fetchzip}: {
-  plugins.civicrm = fetchzip rec {
-    name = "civicrm";
-    version = "5.56.0";
-    url = "https://storage.googleapis.com/${name}/${name}-stable/${version}/${name}-${version}-wordpress.zip";
-    hash = "sha256-XsNFxVL0LF+OHlsqjjTV41x9ERLwMDq9BnKKP3Px2aI=";
+{
+  fetchzip,
+  stdenv,
+  lib,
+}:
+{
+  plugins.civicrm = stdenv.mkDerivation rec {
+    pname = "civicrm";
+    version = "6.2.0";
+    src = fetchzip {
+      inherit version;
+      name = pname;
+      url = "https://download.civicrm.org/${pname}-${version}-wordpress.zip";
+      hash = "sha256-Bx1rixRbqJsiMrIIkzTGeqLIc5raiNoUVTsoxZ6q9uU=";
+    };
+    installPhase = ''
+      runHook preInstall
+      cp -r ./ -T $out
+      runHook postInstall
+    '';
+    meta.license = lib.licenses.agpl3Only;
   };
-  themes.geist = fetchzip rec {
-    name = "geist";
-    version = "2.0.3";
-    url = "https://github.com/christophery/geist/archive/refs/tags/${version}.zip";
-    hash = "sha256-c85oRhqu5E5IJlpgqKJRQITur1W7x40obOvHZbPevzU=";
+  themes = {
+    proton = stdenv.mkDerivation rec {
+      pname = "proton";
+      version = "1.0.1";
+      src = fetchzip {
+        inherit version;
+        name = pname;
+        url = "https://github.com/christophery/proton/archive/refs/tags/${version}.zip";
+        hash = "sha256-JgKyLJ3dRqh1uwlsNuffCOM7LPBigGkLVFqftjFAiP4=";
+      };
+      installPhase = ''
+        runHook preInstall
+        mkdir -p $out
+        cp -r ./* $out/
+        runHook postInstall
+      '';
+      meta.license = lib.licenses.mit;
+    };
   };
 }

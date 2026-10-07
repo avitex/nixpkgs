@@ -1,44 +1,52 @@
-{ pkgs, lib, ... }: {
+{ pkgs, lib, ... }:
+{
   name = "aesmd";
   meta = {
-    maintainers = with lib.maintainers; [ trundle veehaitch ];
+    maintainers = with lib.maintainers; [
+      veehaitch
+    ];
   };
 
-  nodes.machine = { lib, ... }: {
-    services.aesmd = {
-      enable = true;
-      settings = {
-        defaultQuotingType = "ecdsa_256";
-        proxyType = "direct";
-        whitelistUrl = "http://nixos.org";
-      };
-    };
-
-    # Should have access to the AESM socket
-    users.users."sgxtest" = {
-      isNormalUser = true;
-      extraGroups = [ "sgx" ];
-    };
-
-    # Should NOT have access to the AESM socket
-    users.users."nosgxtest".isNormalUser = true;
-
-    # We don't have a real SGX machine in NixOS tests
-    systemd.services.aesmd.unitConfig.AssertPathExists = lib.mkForce [ ];
-
-    specialisation = {
-      withQuoteProvider.configuration = { ... }: {
-        services.aesmd = {
-          quoteProviderLibrary = pkgs.sgx-azure-dcap-client;
-          environment = {
-            AZDCAP_DEBUG_LOG_LEVEL = "INFO";
-          };
+  nodes.machine =
+    { lib, ... }:
+    {
+      services.aesmd = {
+        enable = true;
+        settings = {
+          defaultQuotingType = "ecdsa_256";
+          qplLogLevel = "info";
+          proxyType = "direct";
         };
       };
-    };
-  };
 
-  testScript = { nodes, ... }:
+      # Should have access to the AESM socket
+      users.users."sgxtest" = {
+        isNormalUser = true;
+        extraGroups = [ "sgx" ];
+      };
+
+      # Should NOT have access to the AESM socket
+      users.users."nosgxtest".isNormalUser = true;
+
+      # We don't have a real SGX machine in NixOS tests
+      systemd.services.aesmd.unitConfig.AssertPathExists = lib.mkForce [ ];
+
+      specialisation = {
+        withQuoteProvider.configuration =
+          { ... }:
+          {
+            services.aesmd = {
+              quoteProviderLibrary = pkgs.sgx-azure-dcap-client;
+              environment = {
+                AZDCAP_DEBUG_LOG_LEVEL = "INFO";
+              };
+            };
+          };
+      };
+    };
+
+  testScript =
+    { nodes, ... }:
     let
       specialisations = "${nodes.machine.system.build.toplevel}/specialisation";
     in
@@ -66,17 +74,17 @@
           machine.succeed(f"sudo -u sgxtest test {op} {socket_path}")
           machine.fail(f"sudo -u nosgxtest test {op} {socket_path}")
 
-      with subtest("Copies white_list_cert_to_be_verify.bin"):
-        whitelist_path = "/var/opt/aesmd/data/white_list_cert_to_be_verify.bin"
-        whitelist_perms = machine.succeed(
-          f"nsenter -m -t {main_pid} ${pkgs.coreutils}/bin/stat -c '%a' {whitelist_path}"
+      with subtest("Creates aesmd data directory"):
+        data_dir = "/var/opt/aesmd/data"
+        data_dir_perms = machine.succeed(
+          f"nsenter -m -t {main_pid} ${pkgs.coreutils}/bin/stat -c '%a' {data_dir}"
         ).strip()
-        assert "644" == whitelist_perms, f"white_list_cert_to_be_verify.bin has permissions {whitelist_perms}"
+        assert data_dir_perms == "755", f"{data_dir} has permissions {data_dir_perms}"
 
       with subtest("Writes and binds aesm.conf in service namespace"):
         aesmd_config = machine.succeed(f"nsenter -m -t {main_pid} ${pkgs.coreutils}/bin/cat /etc/aesmd.conf")
-
-        assert aesmd_config == "whitelist url = http://nixos.org\nproxy type = direct\ndefault quoting type = ecdsa_256\n", "aesmd.conf differs"
+        expected = "default quoting type = ecdsa_256\nqpl log level = info\nproxy type = direct\n"
+        assert aesmd_config == expected, f"aesmd.conf\n\nactual:\n{aesmd_config}\n---\n\nexpected:\n{expected}"
 
       with subtest("aesmd.service without quote provider library has correct LD_LIBRARY_PATH"):
         status, environment = machine.systemctl("show --property Environment --value aesmd.service")

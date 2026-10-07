@@ -1,65 +1,67 @@
-{ lib
-, fetchFromGitHub
-, buildPythonPackage
-, pythonOlder
-, pythonAtLeast
-, pytimeparse
-, pyyaml
-, pytestCheckHook
-, pytest-mock
-, typing-extensions
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytest-mock,
+  pytestCheckHook,
+  python-dotenv,
+  pythonAtLeast,
+  pytimeparse,
+  pyyaml,
+  setuptools,
+  typing-extensions,
+  tomli-w,
 }:
 
 buildPythonPackage rec {
   pname = "dataclass-wizard";
-  version = "0.22.2";
-  format = "setuptools";
+  version = "0.39.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "rnag";
     repo = "dataclass-wizard";
-    rev = "v${version}";
-    hash = "sha256-Ufi4lZc+UkM6NZr4bS2OibpOmMjyiBEoVKxmrqauW50=";
+    tag = "v${version}";
+    hash = "sha256-X4/qe1nv/NwUvQGvVqbqIgi9Ej43jwJjzXyMaKAtN2A=";
   };
 
-  propagatedBuildInputs = [
-  ] ++ lib.optionals (pythonOlder "3.9") [
-    typing-extensions
-  ];
+  build-system = [ setuptools ];
 
-  passthru.optional-dependencies = {
-    timedelta = [
-      pytimeparse
-    ];
-    yaml = [
-      pyyaml
-    ];
+  dependencies = [ typing-extensions ];
+
+  optional-dependencies = {
+    dotenv = [ python-dotenv ];
+    timedelta = [ pytimeparse ];
+    toml = [ tomli-w ];
+    yaml = [ pyyaml ];
   };
 
   nativeCheckInputs = [
     pytestCheckHook
     pytest-mock
-  ] ++ passthru.optional-dependencies.timedelta
-  ++ passthru.optional-dependencies.yaml;
+  ]
+  ++ lib.concatAttrValues optional-dependencies;
 
-  disabledTests = [
-  ] ++ lib.optionals (pythonAtLeast "3.11") [
-    # Any/None internal changes, tests need adjusting upstream
-    "without_type_hinting"
-    "default_dict"
-    "test_frozenset"
-    "test_set"
-    "date_times_with_custom_pattern"
-    "from_dict_handles_identical_cased_json_keys"
-  ];
+  disabledTests =
+    [ ]
+    ++ lib.optionals (pythonAtLeast "3.11") [
+      # Any/None internal changes, tests need adjusting upstream
+      "without_type_hinting"
+      "default_dict"
+      "test_frozenset"
+      "test_set"
+      "date_times_with_custom_pattern"
+      "from_dict_handles_identical_cased_json_keys"
+    ];
 
   pythonImportsCheck = [ "dataclass_wizard" ];
 
-  meta = with lib; {
-    description = "A set of simple, yet elegant wizarding tools for interacting with the Python dataclasses module";
+  meta = {
+    description = "Wizarding tools for interacting with the Python dataclasses module";
     homepage = "https://github.com/rnag/dataclass-wizard";
-    changelog = "https://github.com/rnag/dataclass-wizard/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ codifryed ];
+    changelog = "https://github.com/rnag/dataclass-wizard/releases/tag/${src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ codifryed ];
+    mainProgram = "wiz";
   };
 }

@@ -1,12 +1,12 @@
 # pkgs.dockerTools {#sec-pkgs-dockerTools}
 
-`pkgs.dockerTools` is a set of functions for creating and manipulating Docker images according to the [Docker Image Specification v1.3.0](https://github.com/moby/moby/blob/46f7ab808b9504d735d600e259ca0723f76fb164/image/spec/spec.md#image-json-field-descriptions).
+`pkgs.dockerTools` is a set of functions for creating and manipulating Docker images according to the [Docker Image Specification v1.3.1](https://github.com/moby/docker-image-spec/blob/v1.3.1/spec.md).
 Docker itself is not used to perform any of the operations done by these functions.
 
 ## buildImage {#ssec-pkgs-dockerTools-buildImage}
 
 This function builds a Docker-compatible repository tarball containing a single image.
-As such, the result is suitable for being loaded in Docker with `docker load` (see [](#ex-dockerTools-buildImage) for how to do this).
+As such, the result is suitable for being loaded in Docker with `docker image load` (see [](#ex-dockerTools-buildImage) for how to do this).
 
 This function will create a single layer for all files (and dependencies) that are specified in its argument.
 Only new dependencies that are not already in the existing layers will be copied.
@@ -43,12 +43,16 @@ Similarly, if you encounter errors similar to `Error_Protocol ("certificate has 
 `fromImage` (Path or Null; _optional_)
 
 : The repository tarball of an image to be used as the base for the generated image.
-  It must be a valid Docker image, such as one exported by `docker save`, or another image built with the `dockerTools` utility functions.
+  It must be a valid Docker image, such as one exported by `docker image save`, or another image built with the `dockerTools` utility functions.
   This can be seen as an equivalent of `FROM fromImage` in a `Dockerfile`.
   A value of `null` can be seen as an equivalent of `FROM scratch`.
 
-  If specified, the layer created by `buildImage` will be appended to the layers defined in the base image, resulting in an image with at least two layers (one or more layers from the base image, and the layer created by `buildImage`).
-  Otherwise, the resulting image with contain the single layer created by `buildImage`.
+  If specified, the layer created by `buildImage` will be appended to the layers defined in the base image, resulting in an image with at least two layers (one or more layers from the base image and the layer created by `buildImage`).
+  Otherwise, the resulting image will contain the single layer created by `buildImage`.
+
+  :::{.note}
+  Only **Env** configuration is inherited from the base image.
+  :::
 
   _Default value:_ `null`.
 
@@ -69,7 +73,7 @@ Similarly, if you encounter errors similar to `Error_Protocol ("certificate has 
   A value of `null` means that `buildImage` will use the first image available in the repository.
 
   :::{.note}
-  This must be used with `fromImageName`. Using only `fromImageTag` without `fromImageName` will make `buildImage` use the first image available in the repository
+  This must be used with `fromImageName`. Using only `fromImageTag` without `fromImageName` will make `buildImage` use the first image available in the repository.
   :::
 
   _Default value:_ `null`.
@@ -123,10 +127,10 @@ Similarly, if you encounter errors similar to `Error_Protocol ("certificate has 
 
   _Default value:_ `""`.
 
-`config` (Attribute Set; _optional_)
+`config` (Attribute Set or Null; _optional_)
 
 : Used to specify the configuration of the containers that will be started off the generated image.
-  Must be an attribute set, with each attribute as listed in the [Docker Image Specification v1.3.0](https://github.com/moby/moby/blob/46f7ab808b9504d735d600e259ca0723f76fb164/image/spec/spec.md#image-json-field-descriptions).
+  Must be an attribute set, with each attribute as listed in the [Docker Image Specification v1.3.1](https://github.com/moby/docker-image-spec/blob/v1.3.1/spec.md#image-json-field-descriptions).
 
   _Default value:_ `null`.
 
@@ -134,21 +138,21 @@ Similarly, if you encounter errors similar to `Error_Protocol ("certificate has 
 
 : Used to specify the image architecture.
   This is useful for multi-architecture builds that don't need cross compiling.
-  If specified, its value should follow the [OCI Image Configuration Specification](https://github.com/opencontainers/image-spec/blob/main/config.md#properties), which should still be compatible with Docker.
+  If specified, its value should follow the [OCI Image Configuration Specification](https://github.com/opencontainers/image-spec/blob/v1.1.1/config.md#properties), which should still be compatible with Docker.
   According to the linked specification, all possible values for `$GOARCH` in [the Go docs](https://go.dev/doc/install/source#environment) should be valid, but will commonly be one of `386`, `amd64`, `arm`, or `arm64`.
 
   _Default value:_ the same value from `pkgs.go.GOARCH`.
 
 `diskSize` (Number; _optional_)
 
-: Controls the disk size (in megabytes) of the VM used to run the script specified in `runAsRoot`.
+: Controls the disk size in MiB (1024x1024 bytes) of the VM used to run the script specified in `runAsRoot`.
   This attribute is ignored if `runAsRoot` is `null`.
 
   _Default value:_ 1024.
 
 `buildVMMemorySize` (Number; _optional_)
 
-: Controls the amount of memory (in megabytes) provisioned for the VM used to run the script specified in `runAsRoot`.
+: Controls the amount of memory in MiB (1024x1024 bytes) provisioned for the VM used to run the script specified in `runAsRoot`.
   This attribute is ignored if `runAsRoot` is `null`.
 
   _Default value:_ 512.
@@ -178,18 +182,42 @@ Similarly, if you encounter errors similar to `Error_Protocol ("certificate has 
 
   _Default value:_ 0.
 
+`compressor` (String; _optional_)
+
+: Selects the algorithm used to compress the image.
+
+  _Default value:_ `"gz"`.\
+  _Possible values:_ `"none"`, `"gz"`, `"zstd"`.
+
+`includeNixDB` (Boolean; _optional_)
+
+: Populate the nix database in the image with the dependencies of `copyToRoot`.
+  The main purpose is to be able to use nix commands in the container.
+
+  :::{.caution}
+  Be careful since this doesn't work well in combination with `fromImage`. In particular, in a multi-layered image, only the Nix paths from the lower image will be in the database.
+
+  This also neglects to register the store paths that are pulled into the image as a dependency of one of the other values, but aren't a dependency of `copyToRoot`.
+  :::
+
+  _Default value:_ `false`.
+
+`meta` (Attribute Set)
+
+: The `meta` attribute of the resulting derivation, as in `stdenv.mkDerivation`. Accepts `description`, `maintainers` and any other `meta` attributes.
+
 `contents` **DEPRECATED**
 
 : This attribute is deprecated, and users are encouraged to use `copyToRoot` instead.
 
 ### Passthru outputs {#ssec-pkgs-dockerTools-buildImage-passthru-outputs}
 
-`buildImage` defines a few [`passthru`](#var-stdenv-passthru) attributes:
+`buildImage` defines a few [`passthru`](#chap-passthru) attributes:
 
 `buildArgs` (Attribute Set)
 
 : The argument passed to `buildImage` itself.
-  This allows you to inspect all attributes specified in the argument, as described above.
+  This exposes all attributes specified in the argument, as described above.
 
 `layer` (Attribute Set)
 
@@ -200,7 +228,7 @@ Similarly, if you encounter errors similar to `Error_Protocol ("certificate has 
 
 : The tag of the generated image.
   This is useful if no tag was specified in the attributes of the argument to `buildImage`, because an automatic tag will be used instead.
-  `imageTag` allows you to retrieve the value of the tag used in this case.
+  `imageTag` contains the value of the tag used in this case.
 
 ### Examples {#ssec-pkgs-dockerTools-buildImage-examples}
 
@@ -211,7 +239,11 @@ The following package builds a Docker image that runs the `redis-server` executa
 The Docker image will have name `redis` and tag `latest`.
 
 ```nix
-{ dockerTools, buildEnv, redis }:
+{
+  dockerTools,
+  buildEnv,
+  redis,
+}:
 dockerTools.buildImage {
   name = "redis";
   tag = "latest";
@@ -229,7 +261,9 @@ dockerTools.buildImage {
   config = {
     Cmd = [ "/bin/redis-server" ];
     WorkingDir = "/data";
-    Volumes = { "/data" = { }; };
+    Volumes = {
+      "/data" = { };
+    };
   };
 }
 ```
@@ -247,7 +281,7 @@ Cooking the image...
 Finished.
 /nix/store/p4dsg62inh9d2ksy3c7bv58xa851dasr-docker-image-redis.tar.gz
 
-$ docker load -i /nix/store/p4dsg62inh9d2ksy3c7bv58xa851dasr-docker-image-redis.tar.gz
+$ docker image load -i /nix/store/p4dsg62inh9d2ksy3c7bv58xa851dasr-docker-image-redis.tar.gz
 (some output removed for clarity)
 Loaded image: redis:latest
 ```
@@ -262,7 +296,11 @@ It uses `runAsRoot` to create a directory and a file inside the image.
 This works the same as [](#ex-dockerTools-buildImage-extraCommands), but uses `runAsRoot` instead of `extraCommands`.
 
 ```nix
-{ dockerTools, buildEnv, hello }:
+{
+  dockerTools,
+  buildEnv,
+  hello,
+}:
 dockerTools.buildImage {
   name = "hello";
   tag = "latest";
@@ -296,7 +334,11 @@ This works the same as [](#ex-dockerTools-buildImage-runAsRoot), but uses `extra
 Note that with `extraCommands`, we can't directly reference `/` and must create files and directories as if we were already on `/`.
 
 ```nix
-{ dockerTools, buildEnv, hello }:
+{
+  dockerTools,
+  buildEnv,
+  hello,
+}:
 dockerTools.buildImage {
   name = "hello";
   tag = "latest";
@@ -326,7 +368,11 @@ dockerTools.buildImage {
 Note that using a value of `"now"` in the `created` attribute will break reproducibility.
 
 ```nix
-{ dockerTools, buildEnv, hello }:
+{
+  dockerTools,
+  buildEnv,
+  hello,
+}:
 dockerTools.buildImage {
   name = "hello";
   tag = "latest";
@@ -345,8 +391,8 @@ dockerTools.buildImage {
 
 After importing the generated repository tarball with Docker, its CLI will display a reasonable date and sort the images as expected:
 
-```ShellSession
-$ docker images
+```shell
+$ docker image ls
 REPOSITORY   TAG      IMAGE ID       CREATED              SIZE
 hello        latest   de2bf4786de6   About a minute ago   25.2MB
 ```
@@ -364,7 +410,7 @@ Despite the similar name, [`buildImage`](#ssec-pkgs-dockerTools-buildImage) work
 Even though some of the arguments may seem related, they cannot be interchanged.
 :::
 
-You can use this function to load an image in Docker with `docker load`.
+You can load the result of this function in Docker with `docker image load`.
 See [](#ex-dockerTools-buildLayeredImage-hello) to see how to do that.
 
 ### Examples {#ssec-pkgs-dockerTools-buildLayeredImage-examples}
@@ -404,7 +450,7 @@ Adding manifests...
 Done.
 /nix/store/hxcz7snvw7f8rzhbh6mv8jq39d992905-hello.tar.gz
 
-$ docker load -i /nix/store/hxcz7snvw7f8rzhbh6mv8jq39d992905-hello.tar.gz
+$ docker image load -i /nix/store/hxcz7snvw7f8rzhbh6mv8jq39d992905-hello.tar.gz
 (some output removed for clarity)
 Loaded image: hello:latest
 ```
@@ -415,7 +461,7 @@ Loaded image: hello:latest
 `streamLayeredImage` builds a **script** which, when run, will stream to stdout a Docker-compatible repository tarball containing a single image, using multiple layers to improve sharing between images.
 This means that `streamLayeredImage` does not output an image into the Nix store, but only a script that builds the image, saving on IO and disk/cache space, particularly with large images.
 
-You can use this function to load an image in Docker with `docker load`.
+You can load the result of this function in Docker with `docker image load`.
 See [](#ex-dockerTools-streamLayeredImage-hello) to see how to do that.
 
 For this function, you specify a [store path](https://nixos.org/manual/nix/stable/store/store-path) or a list of store paths to be added to the image, and the functions will automatically include any dependencies of those paths in the image.
@@ -429,7 +475,7 @@ See [](#ex-dockerTools-streamLayeredImage-exploringlayers) to understand how the
 `streamLayeredImage` allows scripts to be run when creating the additional layer with symlinks, allowing custom behaviour to affect the final results of the image (see the documentation of the `extraCommands` and `fakeRootCommands` attributes).
 
 The resulting repository tarball will list a single image as specified by the `name` and `tag` attributes.
-By default, that image will use a static creation date (see documentation for the `created` attribute).
+By default, that image will use a static creation date (see documentation for the `created` and `mtime` attributes).
 This allows the function to produce reproducible images.
 
 ### Inputs {#ssec-pkgs-dockerTools-streamLayeredImage-inputs}
@@ -440,7 +486,7 @@ This allows the function to produce reproducible images.
 
 : The name of the generated image.
 
-`tag` (String; _optional_)
+`tag` (String or Null; _optional_)
 
 : Tag of the generated image.
   If `null`, the hash of the nix derivation will be used as the tag.
@@ -450,7 +496,7 @@ This allows the function to produce reproducible images.
 `fromImage`(Path or Null; _optional_)
 
 : The repository tarball of an image to be used as the base for the generated image.
-  It must be a valid Docker image, such as one exported by `docker save`, or another image built with the `dockerTools` utility functions.
+  It must be a valid Docker image, such as one exported by `docker image save`, or another image built with the `dockerTools` utility functions.
   This can be seen as an equivalent of `FROM fromImage` in a `Dockerfile`.
   A value of `null` can be seen as an equivalent of `FROM scratch`.
 
@@ -465,12 +511,12 @@ This allows the function to produce reproducible images.
   This can be seen as an equivalent of `ADD contents/ /` in a `Dockerfile`.
 
   All the contents specified by `contents` will be added as a final layer in the generated image.
-  They will be added as links to the actual files (e.g. links to the store paths).
+  They will be added as links to the actual files (e.g., links to the store paths).
   The actual files will be added in previous layers.
 
   _Default value:_ `[]`
 
-`config` (Attribute Set; _optional_) []{#dockerTools-buildLayeredImage-arg-config}
+`config` (Attribute Set or Null; _optional_) []{#dockerTools-buildLayeredImage-arg-config}
 
 : Used to specify the configuration of the containers that will be started off the generated image.
   Must be an attribute set, with each attribute as listed in the [Docker Image Specification v1.3.0](https://github.com/moby/moby/blob/46f7ab808b9504d735d600e259ca0723f76fb164/image/spec/spec.md#image-json-field-descriptions).
@@ -492,6 +538,7 @@ This allows the function to produce reproducible images.
 `created` (String; _optional_)
 
 : Specifies the time of creation of the generated image.
+  This date will be used for the image metadata.
   This should be either a date and time formatted according to [ISO-8601](https://en.wikipedia.org/wiki/ISO_8601) or `"now"`, in which case the current date will be used.
 
   :::{.caution}
@@ -499,6 +546,28 @@ This allows the function to produce reproducible images.
   :::
 
   _Default value:_ `"1970-01-01T00:00:01Z"`.
+
+`mtime` (String; _optional_)
+
+: Specifies the time used for the modification timestamp of files within the layers of the generated image.
+  This should be either a date and time formatted according to [ISO-8601](https://en.wikipedia.org/wiki/ISO_8601) or `"now"`, in which case the current date will be used.
+
+  :::{.caution}
+  Using a non-constant date will cause built layers to have a different hash each time, preventing deduplication.
+  Using `"now"` also means that the generated image will not be reproducible anymore (because the date will always change whenever it's built).
+  :::
+
+  _Default value:_ `"1970-01-01T00:00:01Z"`.
+
+`uid` (Number; _optional_) []{#dockerTools-buildLayeredImage-arg-uid}
+`gid` (Number; _optional_) []{#dockerTools-buildLayeredImage-arg-gid}
+`uname` (String; _optional_) []{#dockerTools-buildLayeredImage-arg-uname}
+`gname` (String; _optional_) []{#dockerTools-buildLayeredImage-arg-gname}
+
+: Credentials for Nix store ownership.
+  Can be overridden to, e.g., `1000` / `1000` / `"user"` / `"user"` to enable building a container where Nix can be used as an unprivileged user in single-user mode.
+
+  _Default value:_ `0` / `0` / `"root"` / `"root"`
 
 `maxLayers` (Number; _optional_) []{#dockerTools-buildLayeredImage-arg-maxLayers}
 
@@ -557,21 +626,38 @@ This allows the function to produce reproducible images.
 
   _Default value:_ `true`
 
+`includeNixDB` (Boolean; _optional_)
+
+: Populate the nix database in the image with the dependencies of `copyToRoot`.
+  The main purpose is to be able to use nix commands in the container.
+
+  :::{.caution}
+  Be careful since this doesn't work well in combination with `fromImage`. In particular, in a multi-layered image, only the Nix paths from the lower image will be in the database.
+
+  This also neglects to register the store paths that are pulled into the image as a dependency of one of the other values, but aren't a dependency of `copyToRoot`.
+  :::
+
+  _Default value:_ `false`.
+
+`meta` (Attribute Set)
+
+: The `meta` attribute of the resulting derivation, as in `stdenv.mkDerivation`. Accepts `description`, `maintainers` and any other `meta` attributes.
+
 `passthru` (Attribute Set; _optional_)
 
-: Use this to pass any attributes as [passthru](#var-stdenv-passthru) for the resulting derivation.
+: Use this to pass any attributes as [`passthru`](#chap-passthru) for the resulting derivation.
 
   _Default value:_ `{}`
 
 ### Passthru outputs {#ssec-pkgs-dockerTools-streamLayeredImage-passthru-outputs}
 
-`streamLayeredImage` also defines its own [`passthru`](#var-stdenv-passthru) attributes:
+`streamLayeredImage` also defines its own [`passthru`](#chap-passthru) attributes:
 
 `imageTag` (String)
 
 : The tag of the generated image.
   This is useful if no tag was specified in the attributes of the argument to the function, because an automatic tag will be used instead.
-  `imageTag` allows you to retrieve the value of the tag used in this case.
+  `imageTag` contains the value of the tag used in this case.
 
 ### Examples {#ssec-pkgs-dockerTools-streamLayeredImage-examples}
 
@@ -594,7 +680,7 @@ dockerTools.streamLayeredImage {
 ```
 
 The result of building this package is a script.
-Running this script and piping it into `docker load` gives you the same image that was built in [](#ex-dockerTools-buildLayeredImage-hello).
+Running this script and piping it into `docker image load` gives you the same image that was built in [](#ex-dockerTools-buildLayeredImage-hello).
 Note that in this case, the image is never added to the Nix store, but instead streamed directly into Docker.
 
 ```shell
@@ -602,7 +688,7 @@ $ nix-build
 (output removed for clarity)
 /nix/store/wsz2xl8ckxnlb769irvq6jv1280dfvxd-stream-hello
 
-$ /nix/store/wsz2xl8ckxnlb769irvq6jv1280dfvxd-stream-hello | docker load
+$ /nix/store/wsz2xl8ckxnlb769irvq6jv1280dfvxd-stream-hello | docker image load
 No 'fromImage' provided
 Creating layer 1 from paths: ['/nix/store/i93s7xxblavsacpy82zdbn4kplsyq48l-libunistring-1.1']
 Creating layer 2 from paths: ['/nix/store/ji01n9vinnj22nbrb86nx8a1ssgpilx8-libidn2-2.3.4']
@@ -706,7 +792,11 @@ The closure of `config` is automatically included in the generated image.
 The following package shows a more compact way to create the same output generated in [](#ex-dockerTools-streamLayeredImage-hello).
 
 ```nix
-{ dockerTools, hello, lib }:
+{
+  dockerTools,
+  hello,
+  lib,
+}:
 dockerTools.streamLayeredImage {
   name = "hello";
   tag = "latest";
@@ -718,7 +808,7 @@ dockerTools.streamLayeredImage {
 []{#ssec-pkgs-dockerTools-fetchFromRegistry}
 ## pullImage {#ssec-pkgs-dockerTools-pullImage}
 
-This function is similar to the `docker pull` command, which means it can be used to pull a Docker image from a registry that implements the [Docker Registry HTTP API V2](https://distribution.github.io/distribution/spec/api/).
+This function is similar to the `docker image pull` command, which means it can be used to pull a Docker image from a registry that implements the [Docker Registry HTTP API V2](https://distribution.github.io/distribution/spec/api/).
 By default, the `docker.io` registry is used.
 
 The image will be downloaded as an uncompressed Docker-compatible repository tarball, which is suitable for use with other `dockerTools` functions such as [`buildImage`](#ssec-pkgs-dockerTools-buildImage), [`buildLayeredImage`](#ssec-pkgs-dockerTools-buildLayeredImage), and [`streamLayeredImage`](#ssec-pkgs-dockerTools-streamLayeredImage).
@@ -821,7 +911,7 @@ dockerTools.pullImage {
   imageDigest = "sha256:b8ea88f763f33dfda2317b55eeda3b1a4006692ee29e60ee54ccf6d07348c598";
   finalImageName = "nix";
   finalImageTag = "2.19.3";
-  sha256 = "zRwlQs1FiKrvHPaf8vWOR/Tlp1C5eLn1d9pE4BZg3oA=";
+  hash = "sha256-zRwlQs1FiKrvHPaf8vWOR/Tlp1C5eLn1d9pE4BZg3oA=";
 }
 ```
 :::
@@ -838,7 +928,7 @@ dockerTools.pullImage {
   imageDigest = "sha256:24a23053f29266fb2731ebea27f915bb0fb2ae1ea87d42d890fe4e44f2e27c5d";
   finalImageName = "etcd";
   finalImageTag = "v3.5.11";
-  sha256 = "Myw+85f2/EVRyMB3axECdmQ5eh9p1q77FWYKy8YpRWU=";
+  hash = "sha256-Myw+85f2/EVRyMB3axECdmQ5eh9p1q77FWYKy8YpRWU=";
 }
 ```
 :::
@@ -862,7 +952,7 @@ Writing manifest to image destination
 {
   imageName = "nixos/nix";
   imageDigest = "sha256:498fa2d7f2b5cb3891a4edf20f3a8f8496e70865099ba72540494cd3e2942634";
-  sha256 = "1q6cf2pdrasa34zz0jw7pbs6lvv52rq2aibgxccbwcagwkg2qj1q";
+  hash = "sha256-OEgs3uRPMb4Y629FJXAWZW9q9LqHS/A/GUqr3K5wzOA=";
   finalImageName = "nixos/nix";
   finalImageTag = "latest";
 }
@@ -880,260 +970,693 @@ $ nix run nixpkgs#nix-prefetch-docker -- --help
 
 ## exportImage {#ssec-pkgs-dockerTools-exportImage}
 
-This function is analogous to the `docker export` command, in that it can be used to flatten a Docker image that contains multiple layers. It is in fact the result of the merge of all the layers of the image. As such, the result is suitable for being imported in Docker with `docker import`.
+This function is similar to the `docker container export` command, which means it can be used to export an image's filesystem as an uncompressed tarball archive.
+The difference is that `docker container export` is applied to containers, but `dockerTools.exportImage` applies to Docker images.
+The resulting archive will not contain any image metadata (such as command to run with `docker container run`), only the filesystem contents.
 
-> **_NOTE:_** Using this function requires the `kvm` device to be available.
+You can use this function to import an archive in Docker with `docker image import`.
+See [](#ex-dockerTools-exportImage-importingDocker) to understand how to do that.
 
-The parameters of `exportImage` are the following:
+:::{.caution}
+`exportImage` works by unpacking the given image inside a VM.
+Because of this, using this function requires the `kvm` device to be available, see [`system-features`](https://nixos.org/manual/nix/stable/command-ref/conf-file.html#conf-system-features).
+:::
 
-```nix
-exportImage {
-  fromImage = someLayeredImage;
-  fromImageName = null;
-  fromImageTag = null;
+### Inputs {#ssec-pkgs-dockerTools-exportImage-inputs}
 
-  name = someLayeredImage.name;
-}
-```
+`exportImage` expects an argument with the following attributes:
 
-The parameters relative to the base image have the same synopsis as described in [buildImage](#ssec-pkgs-dockerTools-buildImage), except that `fromImage` is the only required argument in this case.
+`fromImage` (Attribute Set or String)
 
-The `name` argument is the name of the derivation output, which defaults to `fromImage.name`.
+: The repository tarball of the image whose filesystem will be exported.
+  It must be a valid Docker image, such as one exported by `docker image save`, or another image built with the `dockerTools` utility functions.
 
-## Environment Helpers {#ssec-pkgs-dockerTools-helpers}
+  If `name` is not specified, `fromImage` must be an Attribute Set corresponding to a derivation, i.e. it can't be a path to a tarball.
+  If `name` is specified, `fromImage` can be either an Attribute Set corresponding to a derivation or simply a path to a tarball.
 
-Some packages expect certain files to be available globally.
-When building an image from scratch (i.e. without `fromImage`), these files are missing.
-`pkgs.dockerTools` provides some helpers to set up an environment with the necessary files.
-You can include them in `copyToRoot` like this:
+  See [](#ex-dockerTools-exportImage-naming) and [](#ex-dockerTools-exportImage-fromImagePath) to understand the connection between `fromImage`, `name`, and the name used for the output of `exportImage`.
 
-```nix
-buildImage {
-  name = "environment-example";
-  copyToRoot = with pkgs.dockerTools; [
-    usrBinEnv
-    binSh
-    caCertificates
-    fakeNss
-  ];
-}
-```
+`fromImageName` (String or Null; _optional_)
 
-### usrBinEnv {#sssec-pkgs-dockerTools-helpers-usrBinEnv}
+: Used to specify the image within the repository tarball in case it contains multiple images.
+  A value of `null` means that `exportImage` will use the first image available in the repository.
 
-This provides the `env` utility at `/usr/bin/env`.
+  :::{.note}
+  This must be used with `fromImageTag`. Using only `fromImageName` without `fromImageTag` will make `exportImage` use the first image available in the repository.
+  :::
 
-### binSh {#sssec-pkgs-dockerTools-helpers-binSh}
+  _Default value:_ `null`.
 
-This provides `bashInteractive` at `/bin/sh`.
+`fromImageTag` (String or Null; _optional_)
 
-### caCertificates {#sssec-pkgs-dockerTools-helpers-caCertificates}
+: Used to specify the image within the repository tarball in case it contains multiple images.
+  A value of `null` means that `exportImage` will use the first image available in the repository.
 
-This sets up `/etc/ssl/certs/ca-certificates.crt`.
+  :::{.note}
+  This must be used with `fromImageName`. Using only `fromImageTag` without `fromImageName` will make `exportImage` use the first image available in the repository.
+  :::
 
-### fakeNss {#sssec-pkgs-dockerTools-helpers-fakeNss}
+  _Default value:_ `null`.
 
-Provides `/etc/passwd` and `/etc/group` that contain root and nobody.
-Useful when packaging binaries that insist on using nss to look up
-username/groups (like nginx).
+`diskSize` (Number; _optional_)
 
-### shadowSetup {#ssec-pkgs-dockerTools-shadowSetup}
+: Controls the disk size (in megabytes) of the VM used to unpack the image.
 
-This constant string is a helper for setting up the base files for managing users and groups, only if such files don't exist already. It is suitable for being used in a [`buildImage` `runAsRoot`](#ex-dockerTools-buildImage-runAsRoot) script for cases like in the example below:
+  _Default value:_ 1024.
 
-```nix
-buildImage {
-  name = "shadow-basic";
+`name` (String; _optional_)
 
-  runAsRoot = ''
-    #!${pkgs.runtimeShell}
-    ${pkgs.dockerTools.shadowSetup}
-    groupadd -r redis
-    useradd -r -g redis redis
-    mkdir /data
-    chown redis:redis /data
-  '';
-}
-```
+: The name used for the output in the Nix store path.
 
-Creating base files like `/etc/passwd` or `/etc/login.defs` is necessary for shadow-utils to manipulate users and groups.
+  _Default value:_ the value of `fromImage.name`.
 
-When using `buildLayeredImage`, you can put this in `fakeRootCommands` if you `enableFakechroot`:
-```nix
-buildLayeredImage {
-  name = "shadow-layered";
+### Examples {#ssec-pkgs-dockerTools-exportImage-examples}
 
-  fakeRootCommands = ''
-    ${pkgs.dockerTools.shadowSetup}
-  '';
-  enableFakechroot = true;
-}
-```
+:::{.example #ex-dockerTools-exportImage-hello}
+# Exporting a Docker image with `dockerTools.exportImage`
 
-## fakeNss {#ssec-pkgs-dockerTools-fakeNss}
-
-If your primary goal is providing a basic skeleton for user lookups to work,
-and/or a lesser privileged user, adding `pkgs.fakeNss` to
-the container image root might be the better choice than a custom script
-running `useradd` and friends.
-
-It provides a `/etc/passwd` and `/etc/group`, containing `root` and `nobody`
-users and groups.
-
-It also provides a `/etc/nsswitch.conf`, configuring NSS host resolution to
-first check `/etc/hosts`, before checking DNS, as the default in the absence of
-a config file (`dns [!UNAVAIL=return] files`) is quite unexpected.
-
-You can pair it with `binSh`, which provides `bin/sh` as a symlink
-to `bashInteractive` (as `/bin/sh` is configured as a shell).
+This example first builds a layered image with [`dockerTools.buildLayeredImage`](#ssec-pkgs-dockerTools-buildLayeredImage), and then exports its filesystem with `dockerTools.exportImage`.
 
 ```nix
-buildImage {
-  name = "shadow-basic";
-
-  copyToRoot = pkgs.buildEnv {
-    name = "image-root";
-    paths = [ binSh pkgs.fakeNss ];
-    pathsToLink = [ "/bin" "/etc" "/var" ];
+{ dockerTools, hello }:
+dockerTools.exportImage {
+  name = "hello";
+  fromImage = dockerTools.buildLayeredImage {
+    name = "hello";
+    contents = [ hello ];
   };
 }
 ```
 
-## buildNixShellImage {#ssec-pkgs-dockerTools-buildNixShellImage}
+When building the package above, we can see the layers of the Docker image being unpacked to produce the final output:
 
-Create a Docker image that sets up an environment similar to that of running `nix-shell` on a derivation.
-When run in Docker, this environment somewhat resembles the Nix sandbox typically used by `nix-build`, with a major difference being that access to the internet is allowed.
-It additionally also behaves like an interactive `nix-shell`, running things like `shellHook` and setting an interactive prompt.
-If the derivation is fully buildable (i.e. `nix-build` can be used on it), running `buildDerivation` inside such a Docker image will build the derivation, with all its outputs being available in the correct `/nix/store` paths, pointed to by the respective environment variables like `$out`, etc.
+```shell
+$ nix-build
+(some output removed for clarity)
+Unpacking base image...
+From-image name or tag wasn't set. Reading the first ID.
+Unpacking layer 5731199219418f175d1580dbca05677e69144425b2d9ecb60f416cd57ca3ca42/layer.tar
+tar: Removing leading `/' from member names
+Unpacking layer e2897bf34bb78c4a65736510204282d9f7ca258ba048c183d665bd0f3d24c5ec/layer.tar
+tar: Removing leading `/' from member names
+Unpacking layer 420aa5876dca4128cd5256da7dea0948e30ef5971712f82601718cdb0a6b4cda/layer.tar
+tar: Removing leading `/' from member names
+Unpacking layer ea5f4e620e7906c8ecbc506b5e6f46420e68d4b842c3303260d5eb621b5942e5/layer.tar
+tar: Removing leading `/' from member names
+Unpacking layer 65807b9abe8ab753fa97da8fb74a21fcd4725cc51e1b679c7973c97acd47ebcf/layer.tar
+tar: Removing leading `/' from member names
+Unpacking layer b7da2076b60ebc0ea6824ef641978332b8ac908d47b2d07ff31b9cc362245605/layer.tar
+Executing post-mount steps...
+Packing raw image...
+[    1.660036] reboot: Power down
+/nix/store/x6a5m7c6zdpqz1d8j7cnzpx9glzzvd2h-hello
+```
 
-::: {.warning}
-The behavior doesn't match `nix-shell` or `nix-build` exactly and this function is known not to work correctly for e.g. fixed-output derivations, content-addressed derivations, impure derivations and other special types of derivations.
+The following command lists some of the contents of the output to verify that the structure of the archive is as expected:
+
+```shell
+$ tar --exclude '*/share/*' --exclude 'nix/store/*/*' -tvf /nix/store/x6a5m7c6zdpqz1d8j7cnzpx9glzzvd2h-hello
+drwxr-xr-x root/0            0 1979-12-31 16:00 ./
+drwxr-xr-x root/0            0 1979-12-31 16:00 ./bin/
+lrwxrwxrwx root/0            0 1979-12-31 16:00 ./bin/hello -> /nix/store/h92a9jd0lhhniv2q417hpwszd4jhys7q-hello-2.12.1/bin/hello
+dr-xr-xr-x root/0            0 1979-12-31 16:00 ./nix/
+dr-xr-xr-x root/0            0 1979-12-31 16:00 ./nix/store/
+dr-xr-xr-x root/0            0 1979-12-31 16:00 ./nix/store/05zbwhz8a7i2v79r9j21pl6m6cj0xi8k-libunistring-1.1/
+dr-xr-xr-x root/0            0 1979-12-31 16:00 ./nix/store/ayg5rhjhi9ic73hqw33mjqjxwv59ndym-xgcc-13.2.0-libgcc/
+dr-xr-xr-x root/0            0 1979-12-31 16:00 ./nix/store/h92a9jd0lhhniv2q417hpwszd4jhys7q-hello-2.12.1/
+dr-xr-xr-x root/0            0 1979-12-31 16:00 ./nix/store/m59xdgkgnjbk8kk6k6vbxmqnf82mk9s0-libidn2-2.3.4/
+dr-xr-xr-x root/0            0 1979-12-31 16:00 ./nix/store/p3jshbwxiwifm1py0yq544fmdyy98j8a-glibc-2.38-27/
+drwxr-xr-x root/0            0 1979-12-31 16:00 ./share/
+```
 :::
 
-### Arguments {#ssec-pkgs-dockerTools-buildNixShellImage-arguments}
+:::{.example #ex-dockerTools-exportImage-importingDocker}
+# Importing an archive built with `dockerTools.exportImage` in Docker
 
-`drv`
-
-: The derivation on which to base the Docker image.
-
-    Adding packages to the Docker image is possible by e.g. extending the list of `nativeBuildInputs` of this derivation like
-
-    ```nix
-    buildNixShellImage {
-      drv = someDrv.overrideAttrs (old: {
-        nativeBuildInputs = old.nativeBuildInputs or [] ++ [
-          somethingExtra
-        ];
-      });
-      # ...
-    }
-    ```
-
-    Similarly, you can extend the image initialization script by extending `shellHook`
-
-`name` _optional_
-
-: The name of the resulting image.
-
-    *Default:* `drv.name + "-env"`
-
-`tag` _optional_
-
-: Tag of the generated image.
-
-    *Default:* the resulting image derivation output path's hash
-
-`uid`/`gid` _optional_
-
-: The user/group ID to run the container as. This is like a `nixbld` build user.
-
-    *Default:* 1000/1000
-
-`homeDirectory` _optional_
-
-: The home directory of the user the container is running as
-
-    *Default:* `/build`
-
-`shell` _optional_
-
-: The path to the `bash` binary to use as the shell. This shell is started when running the image.
-
-    *Default:* `pkgs.bashInteractive + "/bin/bash"`
-
-`command` _optional_
-
-: Run this command in the environment of the derivation, in an interactive shell. See the `--command` option in the [`nix-shell` documentation](https://nixos.org/manual/nix/stable/command-ref/nix-shell.html?highlight=nix-shell#options).
-
-    *Default:* (none)
-
-`run` _optional_
-
-: Same as `command`, but runs the command in a non-interactive shell instead. See the `--run` option in the [`nix-shell` documentation](https://nixos.org/manual/nix/stable/command-ref/nix-shell.html?highlight=nix-shell#options).
-
-    *Default:* (none)
-
-### Example {#ssec-pkgs-dockerTools-buildNixShellImage-example}
-
-The following shows how to build the `pkgs.hello` package inside a Docker container built with `buildNixShellImage`.
+We will use the same package from [](#ex-dockerTools-exportImage-hello) and import it into Docker.
 
 ```nix
-with import <nixpkgs> {};
-dockerTools.buildNixShellImage {
-  drv = hello;
+{ dockerTools, hello }:
+dockerTools.exportImage {
+  name = "hello";
+  fromImage = dockerTools.buildLayeredImage {
+    name = "hello";
+    contents = [ hello ];
+  };
 }
 ```
 
-Build the derivation:
+Building and importing it into Docker:
 
-```console
-nix-build hello.nix
+```shell
+$ nix-build
+(output removed for clarity)
+/nix/store/x6a5m7c6zdpqz1d8j7cnzpx9glzzvd2h-hello
+$ docker image import /nix/store/x6a5m7c6zdpqz1d8j7cnzpx9glzzvd2h-hello
+sha256:1d42dba415e9b298ea0decf6497fbce954de9b4fcb2984f91e307c8fedc1f52f
+$ docker image ls
+REPOSITORY                              TAG                IMAGE ID       CREATED         SIZE
+<none>                                  <none>             1d42dba415e9   4 seconds ago   32.6MB
+```
+:::
+
+:::{.example #ex-dockerTools-exportImage-naming}
+# Exploring output naming with `dockerTools.exportImage`
+
+`exportImage` does not require a `name` attribute if `fromImage` is a derivation, which means that the following works:
+
+```nix
+{ dockerTools, hello }:
+dockerTools.exportImage {
+  fromImage = dockerTools.buildLayeredImage {
+    name = "hello";
+    contents = [ hello ];
+  };
+}
 ```
 
-    these 8 derivations will be built:
-      /nix/store/xmw3a5ln29rdalavcxk1w3m4zb2n7kk6-nix-shell-rc.drv
-    ...
-    Creating layer 56 from paths: ['/nix/store/crpnj8ssz0va2q0p5ibv9i6k6n52gcya-stdenv-linux']
-    Creating layer 57 with customisation...
-    Adding manifests...
-    Done.
-    /nix/store/cpyn1lc897ghx0rhr2xy49jvyn52bazv-hello-2.12-env.tar.gz
+However, since [`dockerTools.buildLayeredImage`](#ssec-pkgs-dockerTools-buildLayeredImage)'s output ends with `.tar.gz`, the output of `exportImage` will also end with `.tar.gz`, even though the archive created with `exportImage` is uncompressed:
 
-Load the image:
-
-```console
-docker load -i result
+```shell
+$ nix-build
+(output removed for clarity)
+/nix/store/by3f40xvc4l6bkis74l0fj4zsy0djgkn-hello.tar.gz
+$ file /nix/store/by3f40xvc4l6bkis74l0fj4zsy0djgkn-hello.tar.gz
+/nix/store/by3f40xvc4l6bkis74l0fj4zsy0djgkn-hello.tar.gz: POSIX tar archive (GNU)
 ```
 
-    0d9f4c4cd109: Loading layer [==================================================>]   2.56MB/2.56MB
-    ...
-    ab1d897c0697: Loading layer [==================================================>]  10.24kB/10.24kB
-    Loaded image: hello-2.12-env:pgj9h98nal555415faa43vsydg161bdz
+If the archive was actually compressed, the output of `file` would've mentioned that fact.
+Because of this, it may be important to set a proper `name` attribute when using `exportImage` with other functions from `dockerTools`.
+:::
 
-Run the container:
+:::{.example #ex-dockerTools-exportImage-fromImagePath}
+# Using `dockerTools.exportImage` with a path as `fromImage`
 
-```console
-docker run -it hello-2.12-env:pgj9h98nal555415faa43vsydg161bdz
+It is possible to use a path as the value of the `fromImage` attribute when calling `dockerTools.exportImage`.
+However, when doing so, a `name` attribute **MUST** be specified, or you'll encounter an error when evaluating the Nix code.
+
+For this example, we'll assume a Docker tarball image named `image.tar.gz` exists in the same directory where our package is defined:
+
+```nix
+{ dockerTools }:
+dockerTools.exportImage {
+  name = "filesystem.tar";
+  fromImage = ./image.tar.gz;
+}
 ```
 
-    [nix-shell:/build]$
+Building this will give us the expected output:
 
-In the running container, run the build:
-
-```console
-buildDerivation
+```shell
+$ nix-build
+(output removed for clarity)
+/nix/store/w13l8h3nlkg0zv56k7rj0ai0l2zlf7ss-filesystem.tar
 ```
 
-    unpacking sources
-    unpacking source archive /nix/store/8nqv6kshb3vs5q5bs2k600xpj5bkavkc-hello-2.12.tar.gz
-    ...
-    patching script interpreter paths in /nix/store/z5wwy5nagzy15gag42vv61c2agdpz2f2-hello-2.12
-    checking for references to /build/ in /nix/store/z5wwy5nagzy15gag42vv61c2agdpz2f2-hello-2.12...
+If you don't specify a `name` attribute, you'll encounter an evaluation error and the package won't build.
+:::
 
-Check the build result:
+## Environment Helpers {#ssec-pkgs-dockerTools-helpers}
 
-```console
-$out/bin/hello
+When building Docker images with Nix, you might also want to add certain files that are expected to be available globally by the software you're packaging.
+Simple examples are the `env` utility in `/usr/bin/env`, or trusted root TLS/SSL certificates.
+Such files will most likely not be included if you're building a Docker image from scratch with Nix, and they might also not be included if you're starting from a Docker image that doesn't include them.
+The helpers in this section are packages that provide some of these commonly-needed global files.
+
+Most of these helpers are packages, which means you have to add them to the list of contents to be included in the image (this changes depending on the function you're using to build the image).
+[](#ex-dockerTools-helpers-buildImage) and [](#ex-dockerTools-helpers-buildLayeredImage) show how to include these packages on `dockerTools` functions that build an image.
+For more details on how that works, see the documentation for the function you're using.
+
+### usrBinEnv {#sssec-pkgs-dockerTools-helpers-usrBinEnv}
+
+This provides the `env` utility at `/usr/bin/env`.
+This is currently implemented by linking to the `env` binary from the `coreutils` package, but is considered an implementation detail that could change in the future.
+
+### binSh {#sssec-pkgs-dockerTools-helpers-binSh}
+
+This provides a `/bin/sh` link to the `bash` binary from the `bash` package.
+Because of this, it supports cases such as running a command interactively in a container (for example by running `docker container run -it <image_name>`).
+
+### caCertificates {#sssec-pkgs-dockerTools-helpers-caCertificates}
+
+This adds trusted root TLS/SSL certificates from the `cacert` package in multiple locations in an attempt to be compatible with binaries built for multiple Linux distributions.
+The locations currently used are:
+
+- `/etc/ssl/certs/ca-bundle.crt`
+- `/etc/ssl/certs/ca-certificates.crt`
+- `/etc/pki/tls/certs/ca-bundle.crt`
+
+[]{#ssec-pkgs-dockerTools-fakeNss}
+### fakeNss {#sssec-pkgs-dockerTools-helpers-fakeNss}
+
+This is a re-export of the `fakeNss` package from Nixpkgs.
+See [](#sec-fakeNss).
+
+### shadowSetup {#ssec-pkgs-dockerTools-shadowSetup}
+
+This is a string containing a script that sets up files needed for [`shadow`](https://github.com/shadow-maint/shadow) to work (using the `shadow` package from Nixpkgs), and alters `PATH` to make all its utilities available in the same script.
+It is intended to be used with other dockerTools functions in attributes that expect scripts.
+After the script in `shadowSetup` runs, you'll then be able to add more commands that make use of the utilities in `shadow`, such as adding any extra users and/or groups.
+See [](#ex-dockerTools-shadowSetup-buildImage) and [](#ex-dockerTools-shadowSetup-buildLayeredImage) to better understand how to use it.
+
+`shadowSetup` achieves a result similar to [`fakeNss`](#sssec-pkgs-dockerTools-helpers-fakeNss), but only sets up a `root` user with different values for the home directory and the shell to use, in addition to setting up files for [PAM](https://en.wikipedia.org/wiki/Linux_PAM) and a {manpage}`login.defs(5)` file.
+
+:::{.caution}
+Using both `fakeNss` and `shadowSetup` at the same time will either cause your build to break or produce unexpected results.
+Use either `fakeNss` or `shadowSetup` depending on your use case, but avoid using both.
+:::
+
+:::{.note}
+When used with [`buildLayeredImage`](#ssec-pkgs-dockerTools-buildLayeredImage) or [`streamLayeredImage`](#ssec-pkgs-dockerTools-streamLayeredImage), you will have to set the `enableFakechroot` attribute to `true`, or else the script in `shadowSetup` won't run properly.
+See [](#ex-dockerTools-shadowSetup-buildLayeredImage).
+:::
+
+### Examples {#ssec-pkgs-dockerTools-helpers-examples}
+
+:::{.example #ex-dockerTools-helpers-buildImage}
+# Using `dockerTools`'s environment helpers with `buildImage`
+
+This example adds the [`binSh`](#sssec-pkgs-dockerTools-helpers-binSh) helper to a basic Docker image built with [`dockerTools.buildImage`](#ssec-pkgs-dockerTools-buildImage).
+This helper makes it possible to enter a shell inside the container.
+This is the `buildImage` equivalent of [](#ex-dockerTools-helpers-buildLayeredImage).
+
+```nix
+{ dockerTools, hello }:
+dockerTools.buildImage {
+  name = "env-helpers";
+  tag = "latest";
+
+  copyToRoot = [
+    hello
+    dockerTools.binSh
+  ];
+}
 ```
 
-    Hello, world!
+After building the image and loading it in Docker, we can create a container based on it and enter a shell inside the container.
+This is made possible by `binSh`.
+
+```shell
+$ nix-build
+(some output removed for clarity)
+/nix/store/2p0i3i04cgjlk71hsn7ll4kxaxxiv4qg-docker-image-env-helpers.tar.gz
+$ docker image load -i /nix/store/2p0i3i04cgjlk71hsn7ll4kxaxxiv4qg-docker-image-env-helpers.tar.gz
+(output removed for clarity)
+$ docker container run --rm -it env-helpers:latest /bin/sh
+sh-5.2# help
+GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)
+(rest of output removed for clarity)
+```
+:::
+
+:::{.example #ex-dockerTools-helpers-buildLayeredImage}
+# Using `dockerTools`'s environment helpers with `buildLayeredImage`
+
+This example adds the [`binSh`](#sssec-pkgs-dockerTools-helpers-binSh) helper to a basic Docker image built with [`dockerTools.buildLayeredImage`](#ssec-pkgs-dockerTools-buildLayeredImage).
+This helper makes it possible to enter a shell inside the container.
+This is the `buildLayeredImage` equivalent of [](#ex-dockerTools-helpers-buildImage).
+
+```nix
+{ dockerTools, hello }:
+dockerTools.buildLayeredImage {
+  name = "env-helpers";
+  tag = "latest";
+
+  contents = [
+    hello
+    dockerTools.binSh
+  ];
+
+  config = {
+    Cmd = [ "/bin/hello" ];
+  };
+}
+```
+
+After building the image and loading it in Docker, we can create a container based on it and enter a shell inside the container.
+This is made possible by `binSh`.
+
+```shell
+$ nix-build
+(some output removed for clarity)
+/nix/store/rpf47f4z5b9qr4db4ach9yr4b85hjhxq-env-helpers.tar.gz
+$ docker image load -i /nix/store/rpf47f4z5b9qr4db4ach9yr4b85hjhxq-env-helpers.tar.gz
+(output removed for clarity)
+$ docker container run --rm -it env-helpers:latest /bin/sh
+sh-5.2# help
+GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)
+(rest of output removed for clarity)
+```
+:::
+
+:::{.example #ex-dockerTools-shadowSetup-buildImage}
+# Using `dockerTools.shadowSetup` with `dockerTools.buildImage`
+
+This is an example that shows how to use `shadowSetup` with `dockerTools.buildImage`.
+Note that the extra script in `runAsRoot` uses `groupadd` and `useradd`, which are binaries provided by the `shadow` package.
+These binaries are added to the `PATH` by the `shadowSetup` script, but only for the duration of `runAsRoot`.
+
+```nix
+{ dockerTools, hello }:
+dockerTools.buildImage {
+  name = "shadow-basic";
+  tag = "latest";
+
+  copyToRoot = [ hello ];
+
+  runAsRoot = ''
+    ${dockerTools.shadowSetup}
+    groupadd -r hello
+    useradd -r -g hello hello
+    mkdir /data
+    chown hello:hello /data
+  '';
+
+  config = {
+    Cmd = [ "/bin/hello" ];
+    WorkingDir = "/data";
+  };
+}
+```
+:::
+
+:::{.example #ex-dockerTools-shadowSetup-buildLayeredImage}
+# Using `dockerTools.shadowSetup` with `dockerTools.buildLayeredImage`
+
+It accomplishes the same thing as [](#ex-dockerTools-shadowSetup-buildImage), but using `buildLayeredImage` instead.
+
+Note that the extra script in `fakeRootCommands` uses `groupadd` and `useradd`, which are binaries provided by the `shadow` package.
+These binaries are added to the `PATH` by the `shadowSetup` script, but only for the duration of `fakeRootCommands`.
+
+```nix
+{ dockerTools, hello }:
+dockerTools.buildLayeredImage {
+  name = "shadow-basic";
+  tag = "latest";
+
+  contents = [ hello ];
+
+  fakeRootCommands = ''
+    ${dockerTools.shadowSetup}
+    groupadd -r hello
+    useradd -r -g hello hello
+    mkdir /data
+    chown hello:hello /data
+  '';
+  enableFakechroot = true;
+
+  config = {
+    Cmd = [ "/bin/hello" ];
+    WorkingDir = "/data";
+  };
+}
+```
+:::
+
+[]{#ssec-pkgs-dockerTools-buildNixShellImage-arguments}
+## buildNixShellImage {#ssec-pkgs-dockerTools-buildNixShellImage}
+
+`buildNixShellImage` uses [`streamNixShellImage`](#ssec-pkgs-dockerTools-streamNixShellImage) underneath to build a compressed Docker-compatible repository tarball of an image that sets up an environment similar to that of running `nix-shell` on a derivation.
+Basically, `buildNixShellImage` runs the script created by `streamNixShellImage` to save the compressed image in the Nix store.
+
+`buildNixShellImage` supports the same options as `streamNixShellImage`, see [`streamNixShellImage`](#ssec-pkgs-dockerTools-streamNixShellImage) for details.
+
+[]{#ssec-pkgs-dockerTools-buildNixShellImage-example}
+### Examples {#ssec-pkgs-dockerTools-buildNixShellImage-examples}
+
+:::{.example #ex-dockerTools-buildNixShellImage-hello}
+# Building a Docker image with `buildNixShellImage` with the build environment for the `hello` package
+
+This example shows how to build the `hello` package inside a Docker container built with `buildNixShellImage`.
+The Docker image generated will have a name like `hello-<version>-env` and tag `latest`.
+This example is the `buildNixShellImage` equivalent of [](#ex-dockerTools-streamNixShellImage-hello).
+
+```nix
+{ dockerTools, hello }:
+dockerTools.buildNixShellImage {
+  drv = hello;
+  tag = "latest";
+}
+```
+
+The result of building this package is a `.tar.gz` file that can be loaded into Docker:
+
+```shell
+$ nix-build
+(some output removed for clarity)
+/nix/store/pkj1sgzaz31wl0pbvbg3yp5b3kxndqms-hello-2.12.1-env.tar.gz
+
+$ docker image load -i /nix/store/pkj1sgzaz31wl0pbvbg3yp5b3kxndqms-hello-2.12.1-env.tar.gz
+(some output removed for clarity)
+Loaded image: hello-2.12.1-env:latest
+```
+
+After starting an interactive container, the derivation can be built by running `buildDerivation`, and the output can be executed as expected:
+
+```shell
+$ docker container run -it hello-2.12.1-env:latest
+[nix-shell:~]$ buildDerivation
+Running phase: unpackPhase
+unpacking source archive /nix/store/pa10z4ngm0g83kx9mssrqzz30s84vq7k-hello-2.12.1.tar.gz
+source root is hello-2.12.1
+(some output removed for clarity)
+Running phase: fixupPhase
+shrinking RPATHs of ELF executables and libraries in /nix/store/f2vs29jibd7lwxyj35r9h87h6brgdysz-hello-2.12.1
+shrinking /nix/store/f2vs29jibd7lwxyj35r9h87h6brgdysz-hello-2.12.1/bin/hello
+checking for references to /build/ in /nix/store/f2vs29jibd7lwxyj35r9h87h6brgdysz-hello-2.12.1...
+gzipping man pages under /nix/store/f2vs29jibd7lwxyj35r9h87h6brgdysz-hello-2.12.1/share/man/
+patching script interpreter paths in /nix/store/f2vs29jibd7lwxyj35r9h87h6brgdysz-hello-2.12.1
+stripping (with command strip and flags -S -p) in  /nix/store/f2vs29jibd7lwxyj35r9h87h6brgdysz-hello-2.12.1/bin
+
+[nix-shell:~]$ $out/bin/hello
+Hello, world!
+```
+:::
+
+## streamNixShellImage {#ssec-pkgs-dockerTools-streamNixShellImage}
+
+`streamNixShellImage` builds a **script** which, when run, will stream to stdout a Docker-compatible repository tarball of an image that sets up an environment similar to that of running `nix-shell` on a derivation.
+This means that `streamNixShellImage` does not output an image into the Nix store, but only a script that builds the image, saving on IO and disk/cache space, particularly with large images.
+See [](#ex-dockerTools-streamNixShellImage-hello) to understand how to load in Docker the image generated by this script.
+
+The environment set up by `streamNixShellImage` somewhat resembles the Nix sandbox typically used by `nix-build`, with a major difference being that access to the internet is allowed.
+It also behaves like an interactive `nix-shell`, running things like `shellHook` (see [](#ex-dockerTools-streamNixShellImage-addingShellHook)) and setting an interactive prompt.
+If the derivation is buildable (i.e. `nix-build` can be used on it), running `buildDerivation` in the container will build the derivation, with all its outputs being available in the correct `/nix/store` paths, pointed to by the respective environment variables (e.g. `$out`).
+
+::: {.caution}
+The environment in the image doesn't match `nix-shell` or `nix-build` exactly, and this function is known not to work correctly for fixed-output derivations, content-addressed derivations, impure derivations and other special types of derivations.
+:::
+
+### Inputs {#ssec-pkgs-dockerTools-streamNixShellImage-inputs}
+
+`streamNixShellImage` expects one argument with the following attributes:
+
+`drv` (Attribute Set)
+
+: The derivation for which the environment in the image will be set up.
+  Adding packages to the Docker image is possible by extending the list of `nativeBuildInputs` of this derivation.
+  See [](#ex-dockerTools-streamNixShellImage-extendingBuildInputs) for how to do that.
+  Similarly, you can extend the image initialization script by extending `shellHook`.
+  [](#ex-dockerTools-streamNixShellImage-addingShellHook) shows how to do that.
+
+`name` (String; _optional_)
+
+: The name of the generated image.
+
+  _Default value:_ the value of `drv.name + "-env"`.
+
+`tag` (String or Null; _optional_)
+
+: Tag of the generated image.
+  If `null`, the hash of the nix derivation that builds the Docker image will be used as the tag.
+
+  _Default value:_ `null`.
+
+`uid` (Number; _optional_)
+
+: The user ID to run the container as.
+  This can be seen as a `nixbld` build user.
+
+  _Default value:_ 1000.
+
+`gid` (Number; _optional_)
+
+: The group ID to run the container as.
+  This can be seen as a `nixbld` build group.
+
+  _Default value:_ 1000.
+
+`homeDirectory` (String; _optional_)
+
+: The home directory of the user the container is running as.
+
+  _Default value:_ `/build`.
+
+`shell` (String; _optional_)
+
+: The path to the `bash` binary to use as the shell.
+  This shell is started when running the image.
+  This can be seen as an equivalent of the `NIX_BUILD_SHELL` [environment variable](https://nixos.org/manual/nix/stable/command-ref/nix-shell.html#environment-variables) for {manpage}`nix-shell(1)`.
+
+  _Default value:_ the `bash` binary from the `bash` package.
+
+`command` (String or Null; _optional_)
+
+: If specified, this command will be run in the environment of the derivation in an interactive shell.
+  A call to `exit` will be added after the command if it is specified, so the shell will exit after it's finished running.
+  This can be seen as an equivalent of the `--command` option in {manpage}`nix-shell(1)`.
+
+  _Default value:_ `null`.
+
+`run` (String or Null; _optional_)
+
+: Similar to the `command` attribute, but runs the command in a non-interactive shell instead.
+  A call to `exit` will be added after the command if it is specified, so the shell will exit after it's finished running.
+  This can be seen as an equivalent of the `--run` option in {manpage}`nix-shell(1)`.
+
+  _Default value:_ `null`.
+
+### Examples {#ssec-pkgs-dockerTools-streamNixShellImage-examples}
+
+:::{.example #ex-dockerTools-streamNixShellImage-hello}
+# Building a Docker image with `streamNixShellImage` with the build environment for the `hello` package
+
+This example shows how to build the `hello` package inside a Docker container built with `streamNixShellImage`.
+The Docker image generated will have a name like `hello-<version>-env` and tag `latest`.
+This example is the `streamNixShellImage` equivalent of [](#ex-dockerTools-buildNixShellImage-hello).
+
+```nix
+{ dockerTools, hello }:
+dockerTools.streamNixShellImage {
+  drv = hello;
+  tag = "latest";
+}
+```
+
+The result of building this package is a script.
+Running this script and piping it into `docker image load` gives you the same image that was built in [](#ex-dockerTools-buildNixShellImage-hello).
+
+```shell
+$ nix-build
+(some output removed for clarity)
+/nix/store/8vhznpz2frqazxnd8pgdvf38jscdypax-stream-hello-2.12.1-env
+
+$ /nix/store/8vhznpz2frqazxnd8pgdvf38jscdypax-stream-hello-2.12.1-env | docker image load
+(some output removed for clarity)
+Loaded image: hello-2.12.1-env:latest
+```
+
+After starting an interactive container, the derivation can be built by running `buildDerivation`, and the output can be executed as expected:
+
+```shell
+$ docker container run -it hello-2.12.1-env:latest
+[nix-shell:~]$ buildDerivation
+Running phase: unpackPhase
+unpacking source archive /nix/store/pa10z4ngm0g83kx9mssrqzz30s84vq7k-hello-2.12.1.tar.gz
+source root is hello-2.12.1
+(some output removed for clarity)
+Running phase: fixupPhase
+shrinking RPATHs of ELF executables and libraries in /nix/store/f2vs29jibd7lwxyj35r9h87h6brgdysz-hello-2.12.1
+shrinking /nix/store/f2vs29jibd7lwxyj35r9h87h6brgdysz-hello-2.12.1/bin/hello
+checking for references to /build/ in /nix/store/f2vs29jibd7lwxyj35r9h87h6brgdysz-hello-2.12.1...
+gzipping man pages under /nix/store/f2vs29jibd7lwxyj35r9h87h6brgdysz-hello-2.12.1/share/man/
+patching script interpreter paths in /nix/store/f2vs29jibd7lwxyj35r9h87h6brgdysz-hello-2.12.1
+stripping (with command strip and flags -S -p) in  /nix/store/f2vs29jibd7lwxyj35r9h87h6brgdysz-hello-2.12.1/bin
+
+[nix-shell:~]$ $out/bin/hello
+Hello, world!
+```
+:::
+
+:::{.example #ex-dockerTools-streamNixShellImage-extendingBuildInputs}
+# Adding extra packages to a Docker image built with `streamNixShellImage`
+
+This example shows how to add extra packages to an image built with `streamNixShellImage`.
+In this case, we'll add the `cowsay` package.
+The Docker image generated will have a name like `hello-<version>-env` and tag `latest`.
+This example uses [](#ex-dockerTools-streamNixShellImage-hello) as a starting point.
+
+```nix
+{
+  dockerTools,
+  cowsay,
+  hello,
+}:
+dockerTools.streamNixShellImage {
+  tag = "latest";
+  drv = hello.overrideAttrs (old: {
+    nativeBuildInputs = old.nativeBuildInputs or [ ] ++ [ cowsay ];
+  });
+}
+```
+
+The result of building this package is a script which can be run and piped into `docker image load` to load the generated image.
+
+```shell
+$ nix-build
+(some output removed for clarity)
+/nix/store/h5abh0vljgzg381lna922gqknx6yc0v7-stream-hello-2.12.1-env
+
+$ /nix/store/h5abh0vljgzg381lna922gqknx6yc0v7-stream-hello-2.12.1-env | docker image load
+(some output removed for clarity)
+Loaded image: hello-2.12.1-env:latest
+```
+
+After starting an interactive container, we can verify the extra package is available by running `cowsay`:
+
+```shell
+$ docker container run -it hello-2.12.1-env:latest
+[nix-shell:~]$ cowsay "Hello, world!"
+ _______________
+< Hello, world! >
+ ---------------
+        \   ^__^
+         \  (oo)\_______
+            (__)\       )\/\
+                ||----w |
+                ||     ||
+```
+:::
+
+:::{.example #ex-dockerTools-streamNixShellImage-addingShellHook}
+# Adding a `shellHook` to a Docker image built with `streamNixShellImage`
+
+This example shows how to add a `shellHook` command to an image built with `streamNixShellImage`.
+In this case, we'll simply output the string `Hello, world!`.
+The Docker image generated will have a name like `hello-<version>-env` and tag `latest`.
+This example uses [](#ex-dockerTools-streamNixShellImage-hello) as a starting point.
+
+```nix
+{ dockerTools, hello }:
+dockerTools.streamNixShellImage {
+  tag = "latest";
+  drv = hello.overrideAttrs (old: {
+    shellHook = ''
+      ${old.shellHook or ""}
+      echo "Hello, world!"
+    '';
+  });
+}
+```
+
+The result of building this package is a script which can be run and piped into `docker image load` to load the generated image.
+
+```shell
+$ nix-build
+(some output removed for clarity)
+/nix/store/iz4dhdvgzazl5vrgyz719iwjzjy6xlx1-stream-hello-2.12.1-env
+
+$ /nix/store/iz4dhdvgzazl5vrgyz719iwjzjy6xlx1-stream-hello-2.12.1-env | docker image load
+(some output removed for clarity)
+Loaded image: hello-2.12.1-env:latest
+```
+
+After starting an interactive container, we can see the result of the `shellHook`:
+
+```shell
+$ docker container run -it hello-2.12.1-env:latest
+Hello, world!
+
+[nix-shell:~]$
+```
+:::

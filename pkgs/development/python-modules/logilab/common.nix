@@ -1,37 +1,33 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, setuptools
-, importlib-metadata
-, mypy-extensions
-, typing-extensions
-, pytestCheckHook
-, pytz
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitLab,
+  mypy-extensions,
+  pytestCheckHook,
+  pytz,
+  setuptools,
+  typing-extensions,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "logilab-common";
-  version = "2.0.0";
-  format = "pyproject";
+  version = "2.1.0";
+  pyproject = true;
 
-  disabled = pythonOlder "3.6";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-ojvR2k3Wpj5Ej0OS57I4aFX/cGFVeL/PmT7riCTelws=";
+  src = fetchFromGitLab {
+    domain = "forge.extranet.logilab.fr";
+    owner = "open-source";
+    repo = "logilab-common";
+    tag = finalAttrs.version;
+    hash = "sha256-cKodCj9m3n4P54CZ2X+BXN62ewd9nHSZBMENlo8S1iY=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     setuptools
     mypy-extensions
     typing-extensions
-  ] ++ lib.optionals (pythonOlder "3.8") [
-    importlib-metadata
   ];
 
   nativeCheckInputs = [
@@ -43,10 +39,12 @@ buildPythonPackage rec {
     export COLLECT_DEPRECATION_WARNINGS_PACKAGE_NAME=true
   '';
 
-  meta = with lib; {
-    description = "Python packages and modules used by Logilab ";
+  meta = {
+    description = "Python packages and modules used by Logilab";
     homepage = "https://logilab-common.readthedocs.io/";
-    changelog = "https://forge.extranet.logilab.fr/open-source/logilab-common/-/blob/branch/default/CHANGELOG.md";
-    license = licenses.lgpl21Plus;
+    changelog = "https://forge.extranet.logilab.fr/open-source/logilab-common/-/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.lgpl21Plus;
+    maintainers = [ ];
+    mainProgram = "logilab-pytest";
   };
-}
+})

@@ -1,16 +1,31 @@
-{ lib, stdenv, fetchurl, autoreconfHook, perl, readline, rsh, ssh, slurm, slurmSupport ? false }:
+{
+  lib,
+  stdenv,
+  fetchurl,
+  autoreconfHook,
+  perl,
+  readline,
+  rsh,
+  ssh,
+  slurm,
+  slurmSupport ? false,
+}:
 
 stdenv.mkDerivation rec {
   pname = "pdsh";
-  version = "2.35";
+  version = "2.36";
 
   src = fetchurl {
     url = "https://github.com/chaos/pdsh/releases/download/pdsh-${version}/pdsh-${version}.tar.gz";
-    sha256 = "sha256-de8VNHhI//Q/jW/5xEJP4Fx90s26ApE5kB+GGgUJPP4=";
+    sha256 = "sha256-pmEJXOUd1fsF45jPXQ4dYxVxI5WEQfbTUSvPGn0lxRc=";
   };
 
-  buildInputs = [ perl readline ssh ]
-    ++ (lib.optional slurmSupport slurm);
+  buildInputs = [
+    perl
+    readline
+    ssh
+  ]
+  ++ (lib.optional slurmSupport slurm);
 
   nativeBuildInputs = [ autoreconfHook ];
 
@@ -38,7 +53,7 @@ stdenv.mkDerivation rec {
   meta = {
     homepage = "https://github.com/chaos/pdsh";
     description = "High-performance, parallel remote shell utility";
-    license = lib.licenses.gpl2;
+    license = lib.licenses.gpl2Plus;
 
     longDescription = ''
       Pdsh is a high-performance, parallel remote shell utility. It has

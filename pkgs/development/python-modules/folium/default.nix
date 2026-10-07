@@ -1,44 +1,52 @@
-{ lib
-, branca
-, buildPythonPackage
-, fetchFromGitHub
-, geopandas
-, jinja2
-, nbconvert
-, numpy
-, pandas
-, pillow
-, pytestCheckHook
-, pythonOlder
-, requests
-, selenium
-, setuptools
-, setuptools-scm
-, wheel
-, xyzservices
+{
+  lib,
+  buildPythonPackage,
+  branca,
+  fetchFromGitHub,
+  fetchpatch2,
+  geodatasets,
+  geopandas,
+  jinja2,
+  nbconvert,
+  numpy,
+  pandas,
+  pillow,
+  pixelmatch,
+  pytestCheckHook,
+  requests,
+  selenium,
+  setuptools,
+  setuptools-scm,
+  xyzservices,
 }:
 
 buildPythonPackage rec {
   pname = "folium";
-  version = "0.15.1";
+  version = "0.20.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "python-visualization";
     repo = "folium";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-CHPHxp8xEZhEEMLvhs/xAiOr2Hw6B+5svFNY+QvQa+U=";
+    tag = "v${version}";
+    hash = "sha256-yLF4TdrMVEtWvGXZGbwa3OxCkdXMsN4m45rPrGDHlCU=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-    setuptools-scm
-    wheel
+  patches = [
+    # https://github.com/python-visualization/folium/pull/2223
+    (fetchpatch2 {
+      name = "folium-fix-tests-proj-9.8.1";
+      url = "https://github.com/python-visualization/folium/commit/b4ea8aa12d0808536c4f50b63eddd006e68680cb.patch?full_index=1";
+      hash = "sha256-e6PFvK/qAfVTPs8LF2XgojwFJ/s2PDrIuwEkxRUzSkE=";
+    })
   ];
 
-  propagatedBuildInputs = [
+  build-system = [
+    setuptools
+    setuptools-scm
+  ];
+
+  dependencies = [
     branca
     jinja2
     numpy
@@ -47,34 +55,40 @@ buildPythonPackage rec {
   ];
 
   nativeCheckInputs = [
+    geodatasets
     geopandas
     nbconvert
     pandas
     pillow
+    pixelmatch
     pytestCheckHook
     selenium
   ];
 
   disabledTests = [
     # Tests require internet connection
-    "test__repr_png_is_bytes"
-    "test_geojson"
-    "test_heat_map_with_weights"
     "test_json_request"
-    "test_notebook"
+    # no selenium driver
+    "test__repr_png_is_bytes"
     "test_valid_png_size"
     "test_valid_png"
+    # pooch tries to write somewhere it can, and geodatasets does not give us an env var to customize this.
+    "test_timedynamic_geo_json"
   ];
 
-  pythonImportsCheck = [
-    "folium"
+  disabledTestPaths = [
+    # Selenium cannot find chrome driver, even with chromedriver package
+    "tests/snapshots/test_snapshots.py"
+    "tests/selenium"
   ];
+
+  pythonImportsCheck = [ "folium" ];
 
   meta = {
     description = "Make beautiful maps with Leaflet.js & Python";
     homepage = "https://github.com/python-visualization/folium";
-    changelog = "https://github.com/python-visualization/folium/blob/v${version}/CHANGES.txt";
-    license = with lib.licenses; [ mit ];
-    maintainers = with lib.maintainers; [ fridh ];
+    changelog = "https://github.com/python-visualization/folium/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    teams = [ lib.teams.geospatial ];
   };
 }

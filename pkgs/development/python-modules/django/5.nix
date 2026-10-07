@@ -1,69 +1,69 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, substituteAll
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  replaceVars,
 
-# build
-, setuptools
+  # build-system
+  setuptools,
 
-# patched in
-, geos
-, gdal
-, withGdal ? false
+  # patched in
+  geos,
+  gdal,
+  withGdal ? false,
 
-# propagates
-, asgiref
-, sqlparse
+  # dependencies
+  asgiref,
+  sqlparse,
 
-# extras
-, argon2-cffi
-, bcrypt
+  # optional-dependencies
+  argon2-cffi,
+  bcrypt,
 
-# tests
-, aiosmtpd
-, docutils
-, geoip2
-, jinja2
-, numpy
-, pillow
-, pylibmc
-, pymemcache
-, python
-, pywatchman
-, pyyaml
-, pytz
-, redis
-, selenium
-, tblib
-, tzdata
+  # tests
+  aiosmtpd,
+  docutils,
+  geoip2,
+  jinja2,
+  numpy,
+  pillow,
+  pylibmc,
+  pymemcache,
+  python,
+  pyyaml,
+  pytz,
+  redis,
+  selenium,
+  tblib,
+  tzdata,
 }:
 
-buildPythonPackage rec {
-  pname = "Django";
-  version = "5.0.1";
+buildPythonPackage (finalAttrs: {
+  pname = "django";
+  version = "5.2.17";
   pyproject = true;
 
-  disabled = pythonOlder "3.10";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-jIZZZlvG46RP7+GrCikeWj+zl5+agjC+Kd6XXlfo+FQ=";
+  src = fetchFromGitHub {
+    owner = "django";
+    repo = "django";
+    tag = finalAttrs.version;
+    hash = "sha256-7it3opzsiN/hHhpipZz4ogmRKGz7E9/LmTF03/UYIB0=";
   };
 
   patches = [
-    (substituteAll {
-      src = ./django_5_set_zoneinfo_dir.patch;
+    (replaceVars ./5.2/zoneinfo.patch {
       zoneinfo = tzdata + "/share/zoneinfo";
     })
     # prevent tests from messing with our pythonpath
-    ./django_5_tests_pythonpath.patch
-    # disable test that excpects timezone issues
-    ./django_5_disable_failing_tests.patch
-  ] ++ lib.optionals withGdal [
-    (substituteAll {
-      src = ./django_5_set_geos_gdal_lib.patch;
+    ./5.2/pythonpath.patch
+    # disable test that expects timezone issues
+    ./5.2/disable-failing-test.patch
+    # skip flaky performnace test
+    ./6.0/skip-flaky-tests.patch
+  ]
+  ++ lib.optionals withGdal [
+    (replaceVars ./5.2/gdal.patch {
       geos = geos;
       gdal = gdal;
       extension = stdenv.hostPlatform.extensions.sharedLibrary;
@@ -72,25 +72,19 @@ buildPythonPackage rec {
 
   postPatch = ''
     substituteInPlace tests/utils_tests/test_autoreload.py \
-      --replace "/usr/bin/python" "${python.interpreter}"
+      --replace-fail "/usr/bin/python" "${python.interpreter}"
   '';
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     asgiref
     sqlparse
   ];
 
-  passthru.optional-dependencies = {
-    argon2 = [
-      argon2-cffi
-    ];
-    bcrypt = [
-      bcrypt
-    ];
+  optional-dependencies = {
+    argon2 = [ argon2-cffi ];
+    bcrypt = [ bcrypt ];
   };
 
   nativeCheckInputs = [
@@ -103,30 +97,34 @@ buildPythonPackage rec {
     pillow
     pylibmc
     pymemcache
-    pywatchman
     pyyaml
     pytz
     redis
     selenium
     tblib
     tzdata
-  ] ++ lib.flatten (lib.attrValues passthru.optional-dependencies);
-
-  doCheck = !stdenv.isDarwin;
+  ]
+  ++ lib.concatAttrValues finalAttrs.passthru.optional-dependencies;
 
   preCheck = ''
     # make sure the installed library gets imported
     rm -rf django
 
+    # fails to import github_links from docs/_ext/github_links.py
+    rm tests/sphinx/test_github_links.py
+
     # provide timezone data, works only on linux
     export TZDIR=${tzdata}/${python.sitePackages}/tzdata/zoneinfo
+
+    export PYTHONPATH=$PWD/docs/_ext:$PYTHONPATH
   '';
 
   checkPhase = ''
     runHook preCheck
 
     pushd tests
-    ${python.interpreter} runtests.py --settings=test_sqlite
+    # without --parallel=1, tests fail with an "unexpected error due to a database lock" on Darwin
+    ${python.interpreter} runtests.py --settings=test_sqlite ${lib.optionalString stdenv.hostPlatform.isDarwin "--parallel=1"}
     popd
 
     runHook postCheck
@@ -134,11 +132,23 @@ buildPythonPackage rec {
 
   __darwinAllowLocalNetworking = true;
 
-  meta = with lib; {
-    changelog = "https://docs.djangoproject.com/en/${lib.versions.majorMinor version}/releases/${version}/";
-    description = "A high-level Python Web framework that encourages rapid development and clean, pragmatic design.";
+  meta = {
+    changelog = "https://docs.djangoproject.com/en/${lib.versions.majorMinor finalAttrs.version}/releases/${finalAttrs.version}/";
+    description = "High-level Python Web framework that encourages rapid development and clean, pragmatic design";
     homepage = "https://www.djangoproject.com";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ hexa ];
+    identifiers = {
+      cpeParts = {
+        inherit (finalAttrs) version;
+        product = "django";
+        update = "*";
+        vendor = "djangoproject";
+      };
+      purlParts = {
+        type = "pypi";
+        spec = "django@${finalAttrs.version}";
+      };
+    };
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ hexa ];
   };
-}
+})

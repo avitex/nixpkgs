@@ -32,7 +32,7 @@ Each "solution" (k=v pair) in this attrset describes one resholve invocation.
 >   solutions to resolve the scripts separately, but produce a single package.
 
 `resholve.writeScript` and `resholve.writeScriptBin` support a _single_
-`solution` attrset. This is basically the same as any single solution in `resholve.mkDerivation`, except that it doesn't need a `scripts` attr (it is automatically added). `resholve.phraseSolution` also only accepts a single solution--but it _does_ still require the `scripts` attr.
+`solution` attrset. This is basically the same as any single solution in `resholve.mkDerivation`, except that it doesn't need a `scripts` attr (it is automatically added). `resholve.phraseSolution` also only accepts a single solution, but it _does_ still require the `scripts` attr.
 
 ## Basic `resholve.mkDerivation` Example
 
@@ -41,25 +41,20 @@ Here's a simple example of how `resholve.mkDerivation` is already used in nixpkg
 <!-- TODO: figure out how to pull this externally? -->
 
 ```nix
-{ lib
-, fetchFromGitHub
-, resholve
-, bash
-, coreutils
-, goss
-, which
+{
+  bash,
+  coreutils,
+  gnused,
+  goss,
+  lib,
+  resholve,
+  which,
 }:
 
 resholve.mkDerivation rec {
   pname = "dgoss";
-  version = "0.4.1";
-
-  src = fetchFromGitHub {
-    owner = "goss-org";
-    repo = "goss";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-dpMTUBMEG5tDi7E6ZRg1KHqIj5qDlvwfwJEgq/5z7RE=";
-  };
+  version = goss.version;
+  src = goss.src;
 
   dontConfigure = true;
   dontBuild = true;
@@ -73,20 +68,28 @@ resholve.mkDerivation rec {
     default = {
       scripts = [ "bin/dgoss" ];
       interpreter = "${bash}/bin/bash";
-      inputs = [ coreutils which ];
+      inputs = [
+        coreutils
+        gnused
+        which
+      ];
       keep = {
         "$CONTAINER_RUNTIME" = true;
       };
     };
   };
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/goss-org/goss/blob/v${version}/extras/dgoss/README.md";
     changelog = "https://github.com/goss-org/goss/releases/tag/v${version}";
     description = "Convenience wrapper around goss that aims to bring the simplicity of goss to docker containers";
-    license = licenses.asl20;
-    platforms = platforms.linux;
-    maintainers = with maintainers; [ hyzual anthonyroussel ];
+    license = lib.licenses.asl20;
+    platforms = lib.platforms.linux;
+    maintainers = with lib.maintainers; [
+      hyzual
+      anthonyroussel
+    ];
+    mainProgram = "dgoss";
   };
 }
 ```
@@ -99,20 +102,28 @@ trivial, so I'll also link to some real-world examples:
 - [shell.nix from abathur/tdverpy](https://github.com/abathur/tdverpy/blob/e1f956df3ed1c7097a5164e0c85b178772e277f5/shell.nix#L6-L13)
 
 ```nix
-resholvedScript = resholve.writeScript "name" {
-    inputs = [ file ];
-    interpreter = "${bash}/bin/bash";
-  } ''
-    echo "Hello"
-    file .
-  '';
-resholvedScriptBin = resholve.writeScriptBin "name" {
-    inputs = [ file ];
-    interpreter = "${bash}/bin/bash";
-  } ''
-    echo "Hello"
-    file .
-  '';
+{
+  resholvedScript =
+    resholve.writeScript "name"
+      {
+        inputs = [ file ];
+        interpreter = "${bash}/bin/bash";
+      }
+      ''
+        echo "Hello"
+        file .
+      '';
+  resholvedScriptBin =
+    resholve.writeScriptBin "name"
+      {
+        inputs = [ file ];
+        interpreter = "${bash}/bin/bash";
+      }
+      ''
+        echo "Hello"
+        file .
+      '';
+}
 ```
 
 
@@ -122,7 +133,11 @@ This function has a similar API to `writeScript` and `writeScriptBin`, except it
 trivial for now. If you have a real usage that you find helpful, please PR it.
 
 ```nix
-{ stdenv, resholve, module1 }:
+{
+  stdenv,
+  resholve,
+  module1,
+}:
 
 stdenv.mkDerivation {
   # pname = "testmod3";
@@ -137,7 +152,10 @@ stdenv.mkDerivation {
       interpreter = "${bash}/bin/bash";
       inputs = [ module1 ];
       fake = {
-        external = [ "jq" "openssl" ];
+        external = [
+          "jq"
+          "openssl"
+        ];
       };
     }}
   '';
@@ -192,7 +210,7 @@ handle any potential problems it encounters with directives. There are currently
    - dynamic (variable) arguments to commands known to accept/run other commands
 
 > NOTE: resholve has a (growing) number of directives detailed in `man resholve`
-> via `nixpkgs.resholve` (though protections against run-time use of python2 in nixpkgs mean you'll have to set `NIXPKGS_ALLOW_INSECURE=1` to pull resholve into nix-shell).
+> via `nixpkgs.resholve` (though protections against run-time use of Python 2 in Nixpkgs mean you'll have to set `NIXPKGS_ALLOW_INSECURE=1` to pull resholve into `nix-shell`).
 
 Each of these 3 types is represented by its own attrset, where you can think
 of the key as a scope. The value should be:
@@ -212,29 +230,34 @@ This will hopefully make more sense when you see it. Here are CLI examples
 from the manpage, and the Nix equivalents:
 
 ```nix
-# --fake 'f:setUp;tearDown builtin:setopt source:/etc/bashrc'
-fake = {
-  # fake accepts the initial of valid identifier types as a CLI convenience.
-  # Use full names in the Nix API.
-  function = [ "setUp" "tearDown" ];
-  builtin = [ "setopt" ];
-  source = [ "/etc/bashrc" ];
-};
+{
+  # --fake 'f:setUp;tearDown builtin:setopt source:/etc/bashrc'
+  fake = {
+    # fake accepts the initial of valid identifier types as a CLI convenience.
+    # Use full names in the Nix API.
+    function = [
+      "setUp"
+      "tearDown"
+    ];
+    builtin = [ "setopt" ];
+    source = [ "/etc/bashrc" ];
+  };
 
-# --fix 'aliases $GIT:gix /bin/bash'
-fix = {
-  # all single-word directives use `true` as value
-  aliases = true;
-  "$GIT" = [ "gix" ];
-  "/bin/bash";
-};
+  # --fix 'aliases $GIT:gix /bin/bash'
+  fix = {
+    # all single-word directives use `true` as value
+    aliases = true;
+    "$GIT" = [ "gix" ];
+    "/bin/bash" = true;
+  };
 
-# --keep 'source:$HOME /etc/bashrc ~/.bashrc'
-keep = {
-  source = [ "$HOME" ];
-  "/etc/bashrc" = true;
-  "~/.bashrc" = true;
-};
+  # --keep 'source:$HOME /etc/bashrc ~/.bashrc'
+  keep = {
+    source = [ "$HOME" ];
+    "/etc/bashrc" = true;
+    "~/.bashrc" = true;
+  };
+}
 ```
 
 
@@ -283,27 +306,29 @@ the main lever is the ability to substitute your own lore. This is how you'd
 do it piecemeal:
 
 ```nix
-# --execer 'cannot:${openssl.bin}/bin/openssl can:${openssl.bin}/bin/c_rehash'
-execer = [
-  /*
-    This is the same verdict binlore will
-    come up with. It's a no-op just to demo
-    how to fiddle lore via the Nix API.
-  */
-  "cannot:${openssl.bin}/bin/openssl"
-  # different verdict, but not used
-  "can:${openssl.bin}/bin/c_rehash"
-];
+{
+  # --execer 'cannot:${openssl.bin}/bin/openssl can:${openssl.bin}/bin/c_rehash'
+  execer = [
+    /*
+      This is the same verdict binlore will
+      come up with. It's a no-op just to demo
+      how to fiddle lore via the Nix API.
+    */
+    "cannot:${openssl.bin}/bin/openssl"
+    # different verdict, but not used
+    "can:${openssl.bin}/bin/c_rehash"
+  ];
 
-# --wrapper '${gnugrep}/bin/egrep:${gnugrep}/bin/grep'
-wrapper = [
-  /*
-    This is the same verdict binlore will
-    come up with. It's a no-op just to demo
-    how to fiddle lore via the Nix API.
-  */
-  "${gnugrep}/bin/egrep:${gnugrep}/bin/grep"
-];
+  # --wrapper '${gnugrep}/bin/egrep:${gnugrep}/bin/grep'
+  wrapper = [
+    /*
+      This is the same verdict binlore will
+      come up with. It's a no-op just to demo
+      how to fiddle lore via the Nix API.
+    */
+    "${gnugrep}/bin/egrep:${gnugrep}/bin/grep"
+  ];
+}
 ```
 
 

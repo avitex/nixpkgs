@@ -1,11 +1,11 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, cython
-, openems
-, csxcad
-, numpy
-, matplotlib
+{
+  lib,
+  buildPythonPackage,
+  cython,
+  openems,
+  csxcad,
+  numpy,
+  matplotlib,
 }:
 
 buildPythonPackage rec {
@@ -17,9 +17,7 @@ buildPythonPackage rec {
 
   sourceRoot = "${src.name}/python";
 
-  nativeBuildInputs = [
-    cython
-  ];
+  nativeBuildInputs = [ cython ];
 
   propagatedBuildInputs = [
     openems
@@ -28,13 +26,17 @@ buildPythonPackage rec {
     matplotlib
   ];
 
-  setupPyBuildFlags = [ "-I${openems}/include" "-L${openems}/lib" "-R${openems}/lib" ];
+  setupPyBuildFlags = [
+    "-I${openems}/include"
+    "-L${openems}/lib"
+    "-R${openems}/lib"
+  ];
 
-  meta = with lib; {
+  meta = {
     description = "Python interface to CSXCAD";
     homepage = "http://openems.de/index.php/Main_Page.html";
-    license = licenses.gpl3;
-    maintainers = with maintainers; [ matthuszagh ];
-    platforms = platforms.linux;
+    license = lib.licenses.gpl3;
+    maintainers = with lib.maintainers; [ matthuszagh ];
+    platforms = lib.platforms.linux;
   };
 }

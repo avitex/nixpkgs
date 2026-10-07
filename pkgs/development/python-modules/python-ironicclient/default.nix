@@ -1,36 +1,50 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pbr
-, appdirs
-, cliff
-, dogpile-cache
-, jsonschema
-, keystoneauth1
-, openstacksdk
-, osc-lib
-, oslo-utils
-, pyyaml
-, requests
-, stevedore
-, stestr
-, requests-mock
-, oslotest
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  cliff,
+  dogpile-cache,
+  jsonschema,
+  keystoneauth1,
+  openstackdocstheme,
+  openstacksdk,
+  osc-lib,
+  oslo-utils,
+  oslotest,
+  pbr,
+  platformdirs,
+  pyyaml,
+  requests,
+  requests-mock,
+  setuptools,
+  sphinxcontrib-apidoc,
+  sphinxHook,
+  stestr,
+  stevedore,
 }:
 
 buildPythonPackage rec {
   pname = "python-ironicclient";
-  version = "5.4.0";
-  format = "setuptools";
+  version = "6.0.0";
+  pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-Q9yGuYf9TS7RCo9aV1hnNSrHoll7AOUiSpzRYxi+JXU=";
+  src = fetchFromGitHub {
+    owner = "openstack";
+    repo = "python-ironicclient";
+    tag = version;
+    hash = "sha256-AbxzRpyfplR4Mk9CcaRXi+CNo08tlRIxAFxsJjrkxvY=";
   };
 
-  propagatedBuildInputs = [
-    pbr
-    appdirs
+  build-system = [
+    openstackdocstheme
+    setuptools
+    sphinxcontrib-apidoc
+    sphinxHook
+  ];
+
+  sphinxBuilders = [ "man" ];
+
+  dependencies = [
     cliff
     dogpile-cache
     jsonschema
@@ -38,6 +52,8 @@ buildPythonPackage rec {
     openstacksdk
     osc-lib
     oslo-utils
+    pbr
+    platformdirs
     pyyaml
     requests
     stevedore
@@ -49,16 +65,21 @@ buildPythonPackage rec {
     oslotest
   ];
 
+  env.PBR_VERSION = version;
+
   checkPhase = ''
+    runHook preCheck
     stestr run
+    runHook postCheck
   '';
 
   pythonImportsCheck = [ "ironicclient" ];
 
-  meta = with lib; {
-    description = "A client for OpenStack bare metal provisioning API, includes a Python module (ironicclient) and CLI (baremetal).";
+  meta = {
+    description = "Client for OpenStack bare metal provisioning API, includes a Python module (ironicclient) and CLI (baremetal)";
+    mainProgram = "baremetal";
     homepage = "https://github.com/openstack/python-ironicclient";
-    license = licenses.asl20;
-    maintainers = teams.openstack.members;
+    license = lib.licenses.asl20;
+    teams = [ lib.teams.openstack ];
   };
 }

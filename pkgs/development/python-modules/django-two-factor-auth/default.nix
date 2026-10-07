@@ -1,44 +1,39 @@
-{ lib
-, buildPythonPackage
-, django
-, django-formtools
-, django-otp
-, django-phonenumber-field
-, fetchFromGitHub
-, phonenumbers
-, pydantic
-, pythonOlder
-, pythonRelaxDepsHook
-, qrcode
-, setuptools-scm
-, twilio
-, webauthn
+{
+  lib,
+  buildPythonPackage,
+  django,
+  django-formtools,
+  django-otp,
+  django-phonenumber-field,
+  fetchFromGitHub,
+  phonenumbers,
+  pydantic,
+  qrcode,
+  setuptools-scm,
+  twilio,
+  webauthn,
 }:
 
 buildPythonPackage rec {
   pname = "django-two-factor-auth";
-  version = "1.15.5";
+  version = "1.18.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "jazzband";
     repo = "django-two-factor-auth";
-    rev = "refs/tags/${version}";
-    hash = "sha256-Sr7L3ioeofyADHb1NSgs0GmVbzX7rro7yhhG9Gq6GJE=";
+    tag = version;
+    hash = "sha256-rhcEVmh5Am1TKO+01rb9VBKJdFVa8uRdTimEKq2pA7w=";
   };
 
-  nativeBuildInputs = [
-    pythonRelaxDepsHook
-    setuptools-scm
-  ];
+  build-system = [ setuptools-scm ];
 
   pythonRelaxDeps = [
     "django-phonenumber-field"
+    "qrcode"
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     django
     django-formtools
     django-otp
@@ -46,13 +41,9 @@ buildPythonPackage rec {
     qrcode
   ];
 
-  passthru.optional-dependencies = {
-    call = [
-      twilio
-    ];
-    sms = [
-      twilio
-    ];
+  optional-dependencies = {
+    call = [ twilio ];
+    sms = [ twilio ];
     webauthn = [
       pydantic
       webauthn
@@ -60,9 +51,7 @@ buildPythonPackage rec {
     # yubikey = [
     #   django-otp-yubikey
     # ];
-    phonenumbers = [
-      phonenumbers
-    ];
+    phonenumbers = [ phonenumbers ];
     # phonenumberslite = [
     #   phonenumberslite
     # ];
@@ -71,15 +60,13 @@ buildPythonPackage rec {
   # Tests require internet connection
   doCheck = false;
 
-  pythonImportsCheck = [
-    "two_factor"
-  ];
+  pythonImportsCheck = [ "two_factor" ];
 
-  meta = with lib; {
+  meta = {
     description = "Complete Two-Factor Authentication for Django";
     homepage = "https://github.com/jazzband/django-two-factor-auth";
-    changelog = "https://github.com/jazzband/django-two-factor-auth/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ derdennisop ];
+    changelog = "https://github.com/jazzband/django-two-factor-auth/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ derdennisop ];
   };
 }

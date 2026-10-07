@@ -1,6 +1,7 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
 }:
 
 buildPythonPackage rec {
@@ -13,10 +14,10 @@ buildPythonPackage rec {
     inherit pname version;
   };
 
-  meta = with lib; {
-    description = "A pure Python implementation of systemd's service notification protocol";
+  meta = {
+    description = "Pure Python implementation of systemd's service notification protocol";
     homepage = "https://github.com/bb4242/sdnotify";
-    license = licenses.mit;
-    maintainers = with maintainers; [ pmiddend ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ pmiddend ];
   };
 }

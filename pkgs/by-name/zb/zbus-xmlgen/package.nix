@@ -1,28 +1,35 @@
-{ lib, rustPlatform, fetchCrate, makeBinaryWrapper, rustfmt }:
+{
+  lib,
+  rustPlatform,
+  fetchCrate,
+  makeBinaryWrapper,
+  rustfmt,
+}:
 
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "zbus_xmlgen";
-  version = "3.1.1";
+  version = "5.4.1";
 
   src = fetchCrate {
-    inherit pname version;
-    hash = "sha256-vaefyfasOLFFYWPjSJFgjIFkvnRiJVe/GLYUQxUYlt0=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-jfK+p5+DoxeGzzti984OZx527xiETtKuWQfLBnXrIAk=";
   };
 
-  cargoHash = "sha256-WXJ49X4B2aNy1zPbTllIzRhZJvF+RwfQ0Hhm/D+LQfk=";
+  cargoHash = "sha256-fnUlEPf/0rd4unjoLRg+HTHwDkC0CkIL+UnRy8/56w0=";
 
   nativeBuildInputs = [ makeBinaryWrapper ];
+  nativeCheckInputs = [ rustfmt ];
 
   postInstall = ''
     wrapProgram $out/bin/zbus-xmlgen \
         --prefix PATH : ${lib.makeBinPath [ rustfmt ]}
   '';
 
-  meta = with lib; {
+  meta = {
     homepage = "https://crates.io/crates/zbus_xmlgen";
     description = "D-Bus XML interface Rust code generator";
     mainProgram = "zbus-xmlgen";
-    maintainers = with maintainers; [ qyliss ];
-    license = licenses.mit;
+    maintainers = with lib.maintainers; [ qyliss ];
+    license = lib.licenses.mit;
   };
-}
+})

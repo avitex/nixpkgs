@@ -1,4 +1,10 @@
-{ lib, buildPythonPackage, fetchPypi, pycurl, six }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pycurl,
+  six,
+}:
 
 buildPythonPackage rec {
   pname = "urlgrabber";
@@ -10,12 +16,16 @@ buildPythonPackage rec {
     sha256 = "075af8afabae6362482d254e5ac3ffa595d1766117b684e53d9c25c2e937e139";
   };
 
-  propagatedBuildInputs = [ pycurl six ];
+  propagatedBuildInputs = [
+    pycurl
+    six
+  ];
 
-  meta = with lib; {
+  meta = {
     homepage = "http://urlgrabber.baseurl.org";
-    license = licenses.lgpl2Plus;
+    license = lib.licenses.lgpl2Plus;
     description = "Python module for downloading files";
-    maintainers = with maintainers; [ qknight ];
+    mainProgram = "urlgrabber";
+    maintainers = with lib.maintainers; [ qknight ];
   };
 }

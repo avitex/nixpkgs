@@ -1,31 +1,35 @@
-{ stdenv
-, lib
-, fetchurl
-, meson
-, ninja
-, pkg-config
-, python3
-, gstreamer
-, gst-plugins-base
-, gettext
-, libav
-# Checks meson.is_cross_build(), so even canExecute isn't enough.
-, enableDocumentation ? stdenv.hostPlatform == stdenv.buildPlatform, hotdoc
+{
+  stdenv,
+  lib,
+  fetchurl,
+  meson,
+  ninja,
+  pkg-config,
+  python3,
+  gstreamer,
+  gst-plugins-base,
+  gettext,
+  ffmpeg-headless,
+  # Checks meson.is_cross_build(), so even canExecute isn't enough.
+  enableDocumentation ? stdenv.hostPlatform == stdenv.buildPlatform,
+  hotdoc,
+  directoryListingUpdater,
+  apple-sdk_gstreamer,
 }:
 
-# Note that since gst-libav-1.6, libav is actually ffmpeg. See
-# https://gstreamer.freedesktop.org/releases/1.6/ for more info.
-
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "gst-libav";
-  version = "1.22.8";
+  version = "1.28.7";
 
   src = fetchurl {
-    url = "https://gstreamer.freedesktop.org/src/${pname}/${pname}-${version}.tar.xz";
-    hash = "sha256-vjk0m8B6tM29ml/W6phIxgHHVguloFd61SALg71CSYE=";
+    url = "https://gstreamer.freedesktop.org/src/gst-libav/gst-libav-${finalAttrs.version}.tar.xz";
+    hash = "sha256-WNpR3Tns8c9vqt40zGQSABvi4uFFvKiuD0Uzb2CjarI=";
   };
 
-  outputs = [ "out" "dev" ];
+  separateDebugInfo = true;
+
+  __structuredAttrs = true;
+  strictDeps = true;
 
   nativeBuildInputs = [
     meson
@@ -33,30 +37,44 @@ stdenv.mkDerivation rec {
     gettext
     pkg-config
     python3
-  ] ++ lib.optionals enableDocumentation [
+  ]
+  ++ lib.optionals enableDocumentation [
     hotdoc
   ];
 
   buildInputs = [
     gstreamer
     gst-plugins-base
-    libav
+    ffmpeg-headless
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
+    apple-sdk_gstreamer
   ];
 
-  mesonFlags = [
-    (lib.mesonEnable "doc" enableDocumentation)
-  ];
+  mesonFlags = lib.mapAttrsToList lib.mesonEnable {
+    doc = enableDocumentation;
+    tests = finalAttrs.finalPackage.doCheck;
+  };
 
   postPatch = ''
     patchShebangs \
       scripts/extract-release-date-from-doap-file.py
   '';
 
-  meta = with lib; {
-    description = "FFmpeg/libav plugin for GStreamer";
-    homepage = "https://gstreamer.freedesktop.org";
-    license = licenses.lgpl2Plus;
-    platforms = platforms.unix;
-    maintainers = with maintainers; [ lilyinstarlight ];
+  preFixup = ''
+    moveToOutput "lib/gstreamer-1.0/pkgconfig" "$dev"
+  '';
+
+  passthru = {
+    updateScript = directoryListingUpdater { odd-unstable = true; };
   };
-}
+
+  meta = {
+    description = "FFmpeg plugin for GStreamer";
+    homepage = "https://gstreamer.freedesktop.org";
+    license = lib.licenses.lgpl2Plus;
+    platforms = lib.platforms.unix;
+    maintainers = with lib.maintainers; [ tmarkus ];
+    identifiers.cpeParts = gstreamer.passthru.gstreamerCpeParts finalAttrs.version;
+  };
+})

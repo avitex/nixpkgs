@@ -1,44 +1,52 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, absl-py
-, cloudpickle
-, dm-tree
-, jax
-, jaxlib
-, numpy
-, pytestCheckHook
-, toolz
-, typing-extensions
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  flit-core,
+
+  # dependencies
+  absl-py,
+  jax,
+  jaxlib,
+  numpy,
+  toolz,
+  typing-extensions,
+
+  # tests
+  cloudpickle,
+  dm-tree,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "chex";
-  version = "0.1.85";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.9";
+  version = "0.1.92";
+  pyproject = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
-    owner = "deepmind";
+    owner = "google-deepmind";
     repo = "chex";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-7k/+2dNNbPBXtbabuOEVpAI7T1SuM4JDf074dmTg/vs=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-PM76Q72Bgyms7dROJkmlpPuDvtqjHLPTDkUYqo08T74=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [
+    flit-core
+  ];
+
+  dependencies = [
     absl-py
-    jaxlib
     jax
+    jaxlib
     numpy
     toolz
     typing-extensions
   ];
 
-  pythonImportsCheck = [
-    "chex"
-  ];
+  pythonImportsCheck = [ "chex" ];
 
   nativeCheckInputs = [
     cloudpickle
@@ -46,11 +54,11 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  meta = with lib; {
-    description = "Chex is a library of utilities for helping to write reliable JAX code.";
-    homepage = "https://github.com/deepmind/chex";
-    changelog = "https://github.com/google-deepmind/chex/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ndl ];
+  meta = {
+    description = "Library of utilities for helping to write reliable JAX code";
+    homepage = "https://github.com/google-deepmind/chex";
+    changelog = "https://github.com/google-deepmind/chex/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ ndl ];
   };
-}
+})

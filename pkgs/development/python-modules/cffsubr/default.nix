@@ -1,53 +1,58 @@
-{ stdenv
-, lib
-, buildPythonPackage
-, fetchpatch
-, fetchPypi
-, fonttools
-, pytestCheckHook
-, setuptools-scm
-, wheel
+{
+  lib,
+  afdko,
+  buildPythonPackage,
+  cmake,
+  distutils_80,
+  fetchPypi,
+  fonttools,
+  ninja,
+  pytestCheckHook,
+  scikit-build,
+  setuptools_80,
+  setuptools-scm,
 }:
 
 buildPythonPackage rec {
   pname = "cffsubr";
-  version = "0.2.9.post1";
-  format = "pyproject";
+  version = "0.4.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-azFBLc9JyPqEZkvahn4u3cVbb+b6aW/yU8TxOp/y/Fw=";
+    hash = "sha256-LDIbaAe9lYVtkh7Z3OhQZJXPSfx6iaY8uULovs4Trd0=";
   };
 
-  patches = [
-    # https://github.com/adobe-type-tools/cffsubr/pull/23
-    (fetchpatch {
-      name = "remove-setuptools-git-ls-files.patch";
-      url = "https://github.com/adobe-type-tools/cffsubr/commit/887a6a03b1e944b82fcb99b797fbc2f3a64298f0.patch";
-      hash = "sha256-LuyqBtDrKWwCeckr+YafZ5nfVw1XnELwFI6X8bGomhs=";
-    })
-  ];
+  postPatch = ''
+    substituteInPlace setup.py \
+      --replace-fail 'afdko_output_dir = os.path.join(afdko_root_dir, "build", "bin")' \
+                     'afdko_output_dir = "${lib.getBin afdko}/bin"' \
+      --replace-fail 'build_cmd=build_release_cmd' 'build_cmd="true"'
+  '';
 
-  nativeBuildInputs = [
+  build-system = [
+    distutils_80
+    setuptools_80
+    cmake
+    ninja
+    scikit-build
     setuptools-scm
-    wheel
   ];
 
-  propagatedBuildInputs = [
-    fonttools
-  ];
+  dontUseCmakeConfigure = true;
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  dependencies = [ fonttools ];
+
+  nativeCheckInputs = [ pytestCheckHook ];
 
   pythonImportsCheck = [ "cffsubr" ];
 
-  meta = with lib; {
-    broken = stdenv.isDarwin;
+  meta = {
+    changelog = "https://github.com/adobe-type-tools/cffsubr/releases/tag/v${version}";
     description = "Standalone CFF subroutinizer based on AFDKO tx";
+    mainProgram = "cffsubr";
     homepage = "https://github.com/adobe-type-tools/cffsubr";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
 }

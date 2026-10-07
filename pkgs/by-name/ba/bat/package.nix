@@ -1,30 +1,43 @@
-{ lib
-, stdenv
-, rustPlatform
-, fetchFromGitHub
-, pkg-config
-, less
-, libiconv
-, installShellFiles
-, makeWrapper
-, darwin
+{
+  lib,
+  rustPlatform,
+  fetchFromGitHub,
+  pkg-config,
+  less,
+  installShellFiles,
+  makeWrapper,
+  libgit2,
+  zlib,
+  versionCheckHook,
 }:
 
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "bat";
-  version = "0.24.0";
+  version = "0.26.1";
+
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "sharkdp";
     repo = "bat";
-    rev = "v${version}";
-    hash = "sha256-1RjlJEmY/jMf0IYQbrWrT1CHFyiqgarOl72u9xjjQiQ=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-IbTvFT37BFo0tKOiApDL9sT+/nMD33MO3TXuho+lF2c=";
   };
-  cargoHash = "sha256-b7wNWdKQ4QLeCf7bNZRfzT9hD/D/oDglU7Xyb65IrGY=";
 
-  nativeBuildInputs = [ pkg-config installShellFiles makeWrapper ];
+  cargoHash = "sha256-WRLCs1hrwFT3tya9CzKUuh5g+6fYqKDtv3yvDx8Wws8=";
 
-  buildInputs = lib.optionals stdenv.isDarwin [ libiconv darwin.apple_sdk.frameworks.Security ];
+  env.LIBGIT2_NO_VENDOR = 1;
+
+  nativeBuildInputs = [
+    pkg-config
+    installShellFiles
+    makeWrapper
+  ];
+
+  buildInputs = [
+    libgit2
+    zlib
+  ];
 
   postInstall = ''
     installManPage $releaseDir/build/bat-*/out/assets/manual/bat.1
@@ -52,8 +65,13 @@ rustPlatform.buildRustPackage rec {
     "--skip=pager_more"
     "--skip=pager_most"
     "--skip=pager_overwrite"
+    # Fails if the filesystem performs UTF-8 validation (such as ZFS with utf8only=on)
+    "--skip=file_with_invalid_utf8_filename"
   ];
 
+  nativeInstallCheckInputs = [
+    versionCheckHook
+  ];
   doInstallCheck = true;
   installCheckPhase = ''
     runHook preInstallCheck
@@ -67,12 +85,20 @@ rustPlatform.buildRustPackage rec {
     runHook postInstallCheck
   '';
 
-  meta = with lib; {
-    description = "A cat(1) clone with syntax highlighting and Git integration";
+  meta = {
+    description = "Cat(1) clone with syntax highlighting and Git integration";
     homepage = "https://github.com/sharkdp/bat";
-    changelog = "https://github.com/sharkdp/bat/raw/v${version}/CHANGELOG.md";
-    license = with licenses; [ asl20 /* or */ mit ];
+    changelog = "https://github.com/sharkdp/bat/raw/v${finalAttrs.version}/CHANGELOG.md";
+    license = with lib.licenses; [
+      asl20 # or
+      mit
+    ];
     mainProgram = "bat";
-    maintainers = with maintainers; [ dywedir lilyball zowoq SuperSandro2000 ];
+    maintainers = with lib.maintainers; [
+      dywedir
+      zowoq
+      SuperSandro2000
+      sigmasquadron
+    ];
   };
-}
+})

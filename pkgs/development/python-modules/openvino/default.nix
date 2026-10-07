@@ -1,40 +1,40 @@
-{ lib
-, buildPythonPackage
-, openvino-native
-, numpy
-, python
+{
+  lib,
+  buildPythonPackage,
+  openvino-native,
+  numpy,
+  packaging,
 }:
 
 buildPythonPackage {
   pname = "openvino";
   inherit (openvino-native) version;
-  format = "other";
+  pyproject = false;
 
   src = openvino-native.python;
 
-  propagatedBuildInputs = [
+  dependencies = [
     numpy
+    packaging
   ];
 
   installPhase = ''
     runHook preInstall
 
-    mkdir -p $out/${python.sitePackages}
-    cp -Rv * $out/${python.sitePackages}/
+    mkdir -p $out
+    cp -Rv * $out/
 
     runHook postInstall
   '';
 
   pythonImportsCheck = [
-    "ngraph"
     "openvino"
-    "openvino.runtime"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "OpenVINO(TM) Runtime";
     homepage = "https://github.com/openvinotoolkit/openvino";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ hexa ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ hexa ];
   };
 }

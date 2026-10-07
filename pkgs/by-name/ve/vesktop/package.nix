@@ -1,176 +1,206 @@
-{ lib
-, stdenv
-, stdenvNoCC
-, gcc13Stdenv
-, fetchFromGitHub
-, substituteAll
-, makeWrapper
-, makeDesktopItem
-, copyDesktopItems
-, vencord
-, electron
-, pipewire
-, libpulseaudio
-, libicns
-, libnotify
-, jq
-, moreutils
-, cacert
-, nodePackages
-, speechd
-, withTTS ? true
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  replaceVars,
+  makeBinaryWrapper,
+  makeWrapper,
+  makeDesktopItem,
+  copyDesktopItems,
+  vencord,
+  electron_43,
+  libicns,
+  pipewire,
+  libpulseaudio,
+  autoPatchelfHook,
+  pnpm_11,
+  fetchPnpmDeps,
+  pnpmConfigHook,
+  nodejs,
+  jq,
+  nix-update-script,
+  withTTS ? true,
+  withMiddleClickScroll ? false,
   # Enables the use of vencord from nixpkgs instead of
   # letting vesktop manage it's own version
-, withSystemVencord ? true
+  withSystemVencord ? false,
 }:
+let
+  electron = electron_43;
+in
 stdenv.mkDerivation (finalAttrs: {
   pname = "vesktop";
-  version = "1.5.0";
+  version = "1.6.7";
 
   src = fetchFromGitHub {
     owner = "Vencord";
     repo = "Vesktop";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-27998q9wbaNP1xYY+KHTBeJRfR6Q/K0LNdbRb3YHC6c=";
+    hash = "sha256-Y74FIqcY26Dizz+DoY+r8caOfX+4/VmiEbmhcOpMHqE=";
   };
 
-  # NOTE: This requires pnpm 8.10.0 or newer
-  # https://github.com/pnpm/pnpm/pull/7214
-  pnpmDeps =
-    assert lib.versionAtLeast nodePackages.pnpm.version "8.10.0";
-    stdenvNoCC.mkDerivation {
-      pname = "${finalAttrs.pname}-pnpm-deps";
-      inherit (finalAttrs) src version patches ELECTRON_SKIP_BINARY_DOWNLOAD;
-
-      nativeBuildInputs = [
-        jq
-        moreutils
-        nodePackages.pnpm
-        cacert
-      ];
-
-      pnpmPatch = builtins.toJSON {
-        pnpm.supportedArchitectures = {
-          os = [ "linux" ];
-          cpu = [ "x64" "arm64" ];
-        };
-      };
-
-      postPatch = ''
-        mv package.json package.json.orig
-        jq --raw-output ". * $pnpmPatch" package.json.orig > package.json
-      '';
-
-      # https://github.com/NixOS/nixpkgs/blob/763e59ffedb5c25774387bf99bc725df5df82d10/pkgs/applications/misc/pot/default.nix#L56
-      installPhase = ''
-        export HOME=$(mktemp -d)
-
-        pnpm config set store-dir $out
-        pnpm install --frozen-lockfile --ignore-script
-
-        rm -rf $out/v3/tmp
-        for f in $(find $out -name "*.json"); do
-          sed -i -E -e 's/"checkedAt":[0-9]+,//g' $f
-          jq --sort-keys . $f | sponge $f
-        done
-      '';
-
-      dontBuild = true;
-      dontFixup = true;
-      outputHashMode = "recursive";
-      outputHash = "sha256-cnk+KFdvsgG1wGDib7zgIS6/RkrR5EYAHtHcrFSU0Es=";
-    };
+  pnpmDeps = fetchPnpmDeps {
+    inherit (finalAttrs)
+      pname
+      version
+      src
+      patches
+      ;
+    pnpm = pnpm_11;
+    fetcherVersion = 4;
+    hash = "sha256-AK+ZbylpG7iKWKsIA0nfFfZYP7HaTCTSeDbNUFx/iY4=";
+  };
 
   nativeBuildInputs = [
+    nodejs
+    pnpmConfigHook
+    pnpm_11
+    jq
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isLinux [
+    # vesktop uses venmic, which is a shipped as a prebuilt node module
+    # and needs to be patched
+    autoPatchelfHook
     copyDesktopItems
-    nodePackages.pnpm
-    nodePackages.nodejs
+    # we use a script wrapper here for environment variable expansion at runtime
+    # https://github.com/NixOS/nixpkgs/issues/172583
     makeWrapper
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
+    # on macos we don't need to expand variables, so we can use the faster binary wrapper
+    makeBinaryWrapper
   ];
 
-  patches = [
-    ./disable_update_checking.patch
-  ] ++ lib.optional withSystemVencord (substituteAll { inherit vencord; src = ./use_system_vencord.patch; });
+  buildInputs = lib.optionals stdenv.hostPlatform.isLinux [
+    libpulseaudio
+    pipewire
+    (lib.getLib stdenv.cc.cc)
+  ];
 
-  ELECTRON_SKIP_BINARY_DOWNLOAD = 1;
+  patches = lib.optional withSystemVencord (
+    replaceVars ./use_system_vencord.patch {
+      inherit vencord;
+    }
+  );
+
+  env = {
+    ELECTRON_SKIP_BINARY_DOWNLOAD = 1;
+  };
 
   preBuild = ''
-    export HOME=$(mktemp -d)
-    export STORE_PATH=$(mktemp -d)
+    # Validate electron version matches upstream package.json
+    expectedMajor="$(jq -r '.devDependencies.electron | ltrimstr("^") | split(".") | .[0]' < package.json)"
+    actualMajor="${lib.versions.major electron.version}"
+    if [ "$actualMajor" != "$expectedMajor" ] 2>/dev/null; then
+      echo "ERROR: electron version mismatch between package.json (major $expectedMajor) and nixpkgs (major $actualMajor)"
+      exit 1
+    fi
 
-    cp -Tr "$pnpmDeps" "$STORE_PATH"
-    chmod -R +w "$STORE_PATH"
-
-    pnpm config set store-dir "$STORE_PATH"
-    pnpm install --offline --frozen-lockfile --ignore-script
-    patchShebangs node_modules/{*,.*}
+    # electron builds must be writable
+    cp -r ${electron.dist} electron-dist
+    chmod -R u+w electron-dist
   '';
 
-  postBuild = ''
+  buildPhase = ''
+    runHook preBuild
+
     pnpm build
-    # using `pnpm exec` here apparently makes it ignore ELECTRON_SKIP_BINARY_DOWNLOAD
-    ./node_modules/.bin/electron-builder \
+    pnpm exec electron-builder \
       --dir \
-      -c.electronDist=${electron}/libexec/electron \
-      -c.electronVersion=${electron.version}
+      -c.asarUnpack="**/*.node" \
+      -c.electronDist=electron-dist \
+      -c.electronVersion=${electron.version} \
+      ${lib.optionalString stdenv.hostPlatform.isDarwin "-c.mac.identity=null"} # disable code signing on macos, https://github.com/electron-userland/electron-builder/blob/77f977435c99247d5db395895618b150f5006e8f/docs/code-signing.md#how-to-disable-code-signing-during-the-build-process-on-macos
+
+    runHook postBuild
   '';
 
-  # this is consistent with other nixpkgs electron packages and upstream, as far as I am aware
-  installPhase =
-    let
-      # this is mainly required for venmic
-      libPath = lib.makeLibraryPath ([
-        libpulseaudio
-        libnotify
-        pipewire
-        gcc13Stdenv.cc.cc.lib
-      ] ++ lib.optional withTTS speechd);
-    in
-    ''
-      runHook preInstall
+  postBuild = lib.optionalString stdenv.hostPlatform.isLinux ''
+    pushd build
+    ${libicns}/bin/icns2png -x icon.icns
+    popd
+  '';
 
-      mkdir -p $out/opt/Vesktop/resources
-      cp dist/linux-*unpacked/resources/app.asar $out/opt/Vesktop/resources
+  installPhase = ''
+    runHook preInstall
+  ''
+  + lib.optionalString stdenv.hostPlatform.isLinux ''
+    mkdir -p $out/opt/Vesktop
+    cp -r dist/*unpacked/resources $out/opt/Vesktop/
 
-      pushd build
-      ${libicns}/bin/icns2png -x icon.icns
-      for file in icon_*x32.png; do
-        file_suffix=''${file//icon_}
-        install -Dm0644 $file $out/share/icons/hicolor/''${file_suffix//x32.png}/apps/vesktop.png
-      done
+    for file in build/icon_*x32.png; do
+      file_suffix=''${file//build\/icon_}
+      install -Dm0644 $file $out/share/icons/hicolor/''${file_suffix//x32.png}/apps/vesktop.png
+    done
+  ''
+  + lib.optionalString stdenv.hostPlatform.isDarwin ''
+    mkdir -p $out/{Applications,bin}
+    mv dist/mac*/Vesktop.app $out/Applications/Vesktop.app
+  ''
+  + ''
+    runHook postInstall
+  '';
 
+  postFixup =
+    lib.optionalString stdenv.hostPlatform.isLinux ''
       makeWrapper ${electron}/bin/electron $out/bin/vesktop \
-        --prefix LD_LIBRARY_PATH : ${libPath} \
         --add-flags $out/opt/Vesktop/resources/app.asar \
-        ${lib.optionalString withTTS "--add-flags \"--enable-speech-dispatcher\""} \
-        --add-flags "\''${NIXOS_OZONE_WL:+\''${WAYLAND_DISPLAY:+--ozone-platform-hint=auto --enable-features=WaylandWindowDecorations}}"
-
-      runHook postInstall
+        ${lib.strings.optionalString withTTS ''
+          --run 'if [[ "''${NIXOS_SPEECH:-default}" != "False" ]]; then NIXOS_SPEECH=True; else unset NIXOS_SPEECH; fi' \
+          --add-flags "\''${NIXOS_SPEECH:+--enable-speech-dispatcher}" \
+        ''} \
+        ${lib.optionalString withMiddleClickScroll "--add-flags \"--enable-blink-features=MiddleClickAutoscroll\""} \
+        --add-flags "\''${NIXOS_OZONE_WL:+\''${WAYLAND_DISPLAY:+--ozone-platform-hint=auto --enable-features=WaylandWindowDecorations --enable-wayland-ime=true}}"
+    ''
+    + lib.optionalString stdenv.hostPlatform.isDarwin ''
+      makeWrapper $out/Applications/Vesktop.app/Contents/MacOS/Vesktop $out/bin/vesktop
     '';
 
-  desktopItems = [
-    (makeDesktopItem {
-      name = "vesktop";
-      desktopName = "Vesktop";
-      exec = "vesktop %U";
-      icon = "vesktop";
-      startupWMClass = "Vesktop";
-      genericName = "Internet Messenger";
-      keywords = [ "discord" "vencord" "electron" "chat" ];
-      categories = [ "Network" "InstantMessaging" "Chat" ];
-    })
-  ];
+  desktopItems = lib.optional stdenv.hostPlatform.isLinux (makeDesktopItem {
+    name = "vesktop";
+    desktopName = "Vesktop";
+    exec = "vesktop %U";
+    icon = "vesktop";
+    startupWMClass = "Vesktop";
+    genericName = "Internet Messenger";
+    comment = "Alternative Discord client with Vencord built-in";
+    keywords = [
+      "discord"
+      "vencord"
+      "electron"
+      "chat"
+    ];
+    categories = [
+      "Network"
+      "InstantMessaging"
+      "Chat"
+    ];
+    mimeTypes = [
+      "x-scheme-handler/discord"
+    ];
+  });
 
   passthru = {
     inherit (finalAttrs) pnpmDeps;
+    updateScript = nix-update-script { };
   };
 
-  meta = with lib; {
-    description = "An alternate client for Discord with Vencord built-in";
+  meta = {
+    description = "Alternative Discord client with Vencord built-in";
     homepage = "https://github.com/Vencord/Vesktop";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ getchoo Scrumplex vgskye pluiedev ];
-    platforms = [ "x86_64-linux" "aarch64-linux" ];
+    changelog = "https://github.com/Vencord/Vesktop/releases/tag/${finalAttrs.src.rev}";
+    license = lib.licenses.gpl3Only;
+    maintainers = with lib.maintainers; [
+      getchoo
+      Scrumplex
+      vgskye
+      pluiedev
+    ];
     mainProgram = "vesktop";
+    platforms = [
+      "x86_64-linux"
+      "aarch64-linux"
+      "aarch64-darwin"
+    ];
   };
 })

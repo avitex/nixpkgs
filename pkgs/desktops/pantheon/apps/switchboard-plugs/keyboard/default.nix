@@ -1,49 +1,56 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, nix-update-script
-, substituteAll
-, meson
-, ninja
-, pkg-config
-, vala
-, libgee
-, gnome-settings-daemon
-, granite
-, gsettings-desktop-schemas
-, gtk3
-, libhandy
-, libxml2
-, libgnomekbd
-, libxklavier
-, ibus
-, onboard
-, switchboard
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  nix-update-script,
+  replaceVars,
+  meson,
+  ninja,
+  pkg-config,
+  vala,
+  elementary-settings-daemon,
+  libadwaita,
+  libgee,
+  gettext,
+  gnome-settings-daemon,
+  granite7,
+  gsettings-desktop-schemas,
+  gtk4,
+  libxml2,
+  libgnomekbd,
+  libxklavier,
+  ibus,
+  switchboard,
 }:
 
 stdenv.mkDerivation rec {
   pname = "switchboard-plug-keyboard";
-  version = "3.2.1";
+  version = "8.1.1";
 
   src = fetchFromGitHub {
     owner = "elementary";
-    repo = pname;
+    repo = "settings-keyboard";
     rev = version;
-    sha256 = "sha256-4LfS2F8pLbZw+HhnEVmZqbEaNCM96q+lqnf4sUBDVJI=";
+    sha256 = "sha256-JuFx0PkbB6ctXhqtORlgtSq9oigaLL2N4IKX7NQgHcU=";
   };
 
   patches = [
     # This will try to install packages with apt.
-    # https://github.com/elementary/switchboard-plug-keyboard/issues/324
+    # https://github.com/elementary/settings-keyboard/issues/324
     ./hide-install-unlisted-engines-button.patch
 
-    (substituteAll {
-      src = ./fix-paths.patch;
-      inherit ibus onboard libgnomekbd;
+    # We no longer ship Pantheon X11 session in NixOS.
+    # https://github.com/elementary/session-settings/issues/91
+    # https://github.com/elementary/session-settings/issues/82
+    ./hide-onscreen-keyboard-settings.patch
+
+    (replaceVars ./fix-paths.patch {
+      inherit libgnomekbd;
     })
   ];
 
   nativeBuildInputs = [
+    gettext # msgfmt
     libxml2
     meson
     ninja
@@ -52,13 +59,14 @@ stdenv.mkDerivation rec {
   ];
 
   buildInputs = [
+    elementary-settings-daemon # io.elementary.settings-daemon.applications
     gnome-settings-daemon # media-keys
-    granite
+    granite7
     gsettings-desktop-schemas
-    gtk3
+    gtk4
     ibus
+    libadwaita
     libgee
-    libhandy
     libxklavier
     switchboard
   ];
@@ -67,11 +75,11 @@ stdenv.mkDerivation rec {
     updateScript = nix-update-script { };
   };
 
-  meta = with lib; {
+  meta = {
     description = "Switchboard Keyboard Plug";
-    homepage = "https://github.com/elementary/switchboard-plug-keyboard";
-    license = licenses.gpl2Plus;
-    platforms = platforms.linux;
-    maintainers = teams.pantheon.members;
+    homepage = "https://github.com/elementary/settings-keyboard";
+    license = lib.licenses.gpl2Plus;
+    platforms = lib.platforms.linux;
+    teams = [ lib.teams.pantheon ];
   };
 }

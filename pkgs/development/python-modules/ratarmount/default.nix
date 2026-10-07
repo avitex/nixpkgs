@@ -1,24 +1,42 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, fusepy
-, ratarmountcore
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  indexed-gzip,
+  indexed-zstd,
+  libarchive-c,
+  mfusepy,
+  python-xz,
+  rapidgzip,
+  rarfile,
+  ratarmountcore,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "ratarmount";
-  version = "0.14.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.6";
+  version = "1.2.2";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-P+p0h+KuOsunPsXbRwxzAhr1XcEqMjQxHeHmA29+pDQ=";
+    hash = "sha256-TwZ11KxFYqQTrk04GCk2igLI9bUYqFJU8f8I2vvnq38=";
   };
 
-  propagatedBuildInputs = [ ratarmountcore fusepy ];
+  pythonRelaxDeps = [ "python-xz" ];
+
+  build-system = [ setuptools ];
+
+  dependencies = [
+    indexed-gzip
+    indexed-zstd
+    libarchive-c
+    mfusepy
+    python-xz
+    rapidgzip
+    rarfile
+    ratarmountcore
+  ];
 
   checkPhase = ''
     runHook preCheck
@@ -28,11 +46,12 @@ buildPythonPackage rec {
     runHook postCheck
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Mounts archives as read-only file systems by way of indexing";
     homepage = "https://github.com/mxmlnkn/ratarmount";
-    license = licenses.mit;
+    changelog = "https://github.com/mxmlnkn/ratarmount/blob/v${version}/CHANGELOG.md";
+    license = lib.licenses.mit;
     maintainers = with lib.maintainers; [ mxmlnkn ];
-    platforms = platforms.all;
+    mainProgram = "ratarmount";
   };
 }

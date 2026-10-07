@@ -1,25 +1,26 @@
-{ lib, stdenvNoCC, fetchzip }:
+{
+  lib,
+  stdenvNoCC,
+  fetchzip,
+  installFonts,
+}:
 
-stdenvNoCC.mkDerivation rec {
+stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "udev-gothic-nf";
-  version = "1.3.1";
+  version = "2.2.0";
 
   src = fetchzip {
-    url = "https://github.com/yuru7/udev-gothic/releases/download/v${version}/UDEVGothic_NF_v${version}.zip";
-    hash = "sha256-4392vZX5CWg+tEpti1N+WQSx4ES5ZXoSiow6ufxqmsY=";
+    url = "https://github.com/yuru7/udev-gothic/releases/download/v${finalAttrs.version}/UDEVGothic_NF_v${finalAttrs.version}.zip";
+    hash = "sha256-pX62FnoHTB6LmwI1wDHvjWsko82b8jOet3MzQrn/CXI=";
   };
 
-  installPhase = ''
-    runHook preInstall
-    install -Dm644 *.ttf -t $out/share/fonts/${pname}
-    runHook postInstall
-  '';
+  nativeBuildInputs = [ installFonts ];
 
-  meta = with lib; {
-    description = "A programming font that combines BIZ UD Gothic, JetBrains Mono and nerd-fonts";
+  meta = {
+    description = "Programming font that combines BIZ UD Gothic, JetBrains Mono and nerd-fonts";
     homepage = "https://github.com/yuru7/udev-gothic";
-    license = licenses.ofl;
-    maintainers = with maintainers; [ haruki7049 ];
-    platforms = platforms.all;
+    license = lib.licenses.ofl;
+    maintainers = with lib.maintainers; [ haruki7049 ];
+    platforms = lib.platforms.all;
   };
-}
+})

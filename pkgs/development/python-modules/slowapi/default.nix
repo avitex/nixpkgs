@@ -1,48 +1,38 @@
-{ lib
-, buildPythonPackage
-, fastapi
-, fetchFromGitHub
-, limits
-, mock
-, hiro
-, poetry-core
-, pytestCheckHook
-, pythonAtLeast
-, pythonOlder
-, pythonRelaxDepsHook
-, redis
-, starlette
+{
+  lib,
+  buildPythonPackage,
+  fastapi,
+  fetchFromGitHub,
+  limits,
+  mock,
+  hiro,
+  httpx,
+  poetry-core,
+  pytestCheckHook,
+  redis,
+  starlette,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "slowapi";
-  version = "0.1.8";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "0.1.10";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "laurentS";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-xgHz8b95SXf/GwzKPfQ/RHbUNJfCx6+7a2HB8+6hjsw=";
+    repo = "slowapi";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-YNL/xfs8fmkAGagMhqJX3tXoltjHznZjUrF/a2RWCDs=";
   };
 
-  pythonRelaxDeps = [
-    "limits"
+  patches = [
+    # https://github.com/laurentS/slowapi/pull/279
+    ./starlette-1.0-compat.patch
   ];
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace '["redis^3.4.1"]' '["redis"]'
-  '';
+  build-system = [ poetry-core ];
 
-  nativeBuildInputs = [
-    poetry-core
-    pythonRelaxDepsHook
-  ];
-
-  propagatedBuildInputs = [
+  dependencies = [
     limits
     redis
   ];
@@ -50,28 +40,29 @@ buildPythonPackage rec {
   nativeCheckInputs = [
     fastapi
     hiro
+    httpx
     mock
     pytestCheckHook
     starlette
   ];
 
   disabledTests = [
-    # AssertionError: Regex pattern 'parameter `request` must be an instance of starlette.requests.Request' does not match 'This portal is not running'.
-    "test_endpoint_request_param_invalid"
-    "test_endpoint_response_param_invalid"
-  ] ++ lib.optionals (pythonAtLeast "3.10") [
-    "test_multiple_decorators"
+    # AssertionError: assert '1740326049.9886339' == '1740326049'
+    "test_headers_no_breach"
+    "test_headers_breach"
+    # tests use @app.route() removed in Starlette 1.0
+    # https://github.com/laurentS/slowapi/issues/271
+    "test_retry_after"
+    "test_exempt_decorator"
   ];
 
-  pythonImportsCheck = [
-    "slowapi"
-  ];
+  pythonImportsCheck = [ "slowapi" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python library for API rate limiting";
     homepage = "https://github.com/laurentS/slowapi";
-    changelog = "https://github.com/laurentS/slowapi/blob/v${version}/CHANGELOG.md";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/laurentS/slowapi/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

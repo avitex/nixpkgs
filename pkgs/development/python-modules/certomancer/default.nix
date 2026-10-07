@@ -1,75 +1,68 @@
-{ lib
-, asn1crypto
-, buildPythonPackage
-, click
-, cryptography
-, fetchFromGitHub
-, freezegun
-, jinja2
-, oscrypto
-, pyhanko-certvalidator
-, pytest-aiohttp
-, pytestCheckHook
-, python-dateutil
-, python-pkcs11
-, pythonOlder
-, pytz
-, pyyaml
-, requests
-, requests-mock
-, setuptools
-, tzlocal
-, werkzeug
-, wheel
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+  setuptools-scm,
+
+  # dependencies
+  asn1crypto,
+  click,
+  cryptography,
+  python-dateutil,
+  pyyaml,
+  tzlocal,
+
+  # optional-dependencies
+  requests-mock,
+  jinja2,
+  werkzeug,
+  python-pkcs11,
+
+  # nativeCheckInputs
+  freezegun,
+  pyhanko-certvalidator,
+  pytest-aiohttp,
+  pytestCheckHook,
+  pytz,
+  requests,
 }:
 
 buildPythonPackage rec {
   pname = "certomancer";
-  version = "0.11.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "0.14.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "MatthiasValvekens";
     repo = "certomancer";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-UQV0Tk4C5b5iBZ34Je59gK2dLTaJusnpxdyNicIh2Q8=";
+    tag = "v${version}";
+    hash = "sha256-rsugn1g8iYESrC+IUSbxCAbwnKXWG+ubbUj9QdZB+Ow=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace ' "pytest-runner",' "" \
-  '';
-
-  nativeBuildInputs = [
+  build-system = [
     setuptools
-    wheel
+    setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     asn1crypto
     click
-    oscrypto
+    cryptography
     python-dateutil
     pyyaml
     tzlocal
   ];
 
-  passthru.optional-dependencies = {
-    requests-mocker = [
-      requests-mock
-    ];
+  optional-dependencies = {
+    requests-mocker = [ requests-mock ];
     web-api = [
       jinja2
       werkzeug
     ];
-    pkcs12 = [
-      cryptography
-    ];
-    pkcs11 = [
-      python-pkcs11
-    ];
+    pkcs11 = [ python-pkcs11 ];
   };
 
   nativeCheckInputs = [
@@ -79,21 +72,16 @@ buildPythonPackage rec {
     pytestCheckHook
     pytz
     requests
-  ] ++ lib.flatten (builtins.attrValues passthru.optional-dependencies);
+  ]
+  ++ lib.concatAttrValues optional-dependencies;
 
-  disabledTests = [
-    # pyhanko_certvalidator.errors.DisallowedAlgorithmError
-    "test_validate"
-  ];
+  pythonImportsCheck = [ "certomancer" ];
 
-  pythonImportsCheck = [
-    "certomancer"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Quickly construct, mock & deploy PKI test configurations using simple declarative configuration";
+    mainProgram = "certomancer";
     homepage = "https://github.com/MatthiasValvekens/certomancer";
-    license = licenses.mit;
-    maintainers = with maintainers; [ wolfangaukang ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

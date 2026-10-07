@@ -1,26 +1,29 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, packaging
-, torch
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  packaging,
+  setuptools,
+  torch,
+  kornia-rs,
 }:
 
 buildPythonPackage rec {
   pname = "kornia";
-  version = "0.7.1";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "0.8.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
-    owner = pname;
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-gHMrA4Uzazpw4TdswrXdoZG4+ek5g+wtLXNmhH3SlOM=";
+    owner = "kornia";
+    repo = "kornia";
+    tag = "v${version}";
+    hash = "sha256-jNwqWgmILbSrISepuGZZSUnB9GlgwU5J0zqYwN54ul0=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
+    kornia-rs
     packaging
     torch
   ];
@@ -39,17 +42,16 @@ buildPythonPackage rec {
     "kornia.metrics"
     "kornia.morphology"
     "kornia.tracking"
-    "kornia.testing"
     "kornia.utils"
   ];
 
-  doCheck = false;  # tests hang with no single test clearly responsible
+  doCheck = false; # tests hang with no single test clearly responsible
 
-  meta = with lib; {
-    homepage = "https://kornia.github.io/kornia";
-    changelog = "https://github.com/kornia/kornia/releases/tag/v${version}";
+  meta = {
+    homepage = "https://kornia.readthedocs.io";
+    changelog = "https://github.com/kornia/kornia/releases/tag/${src.tag}";
     description = "Differentiable computer vision library";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ bcdarwin ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ bcdarwin ];
   };
 }

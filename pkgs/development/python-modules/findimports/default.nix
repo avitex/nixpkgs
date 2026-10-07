@@ -1,42 +1,35 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, python
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "findimports";
-  version = "2.3.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.6";
+  version = "3.0.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "mgedmin";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-yA1foeGhgOXZArc/nZfS1tbGyONXJZ9lW+Zcx7hCedM=";
+    repo = "findimports";
+    tag = version;
+    hash = "sha256-3MYHl35FfStmyhBNvedIHIZQYTyBuRyg5OI3d3Mi57I=";
   };
 
-  pythonImportsCheck = [
-    "findimports"
-  ];
+  build-system = [ setuptools ];
 
-  checkPhase = ''
-    # Tests fails
-    rm tests/cmdline.txt
+  nativeCheckInputs = [ pytestCheckHook ];
 
-    runHook preCheck
-    ${python.interpreter} testsuite.py
-    runHook postCheck
-  '';
+  pythonImportsCheck = [ "findimports" ];
 
-  meta = with lib; {
+  meta = {
     description = "Module for the analysis of Python import statements";
     homepage = "https://github.com/mgedmin/findimports";
-    changelog = "https://github.com/mgedmin/findimports/blob/${version}/CHANGES.rst";
-    license = with licenses; [ gpl2Only /* or */ gpl3Only ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/mgedmin/findimports/blob/${src.tag}/CHANGES.rst";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
+    mainProgram = "findimports";
   };
 }

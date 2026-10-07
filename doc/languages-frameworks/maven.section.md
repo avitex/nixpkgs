@@ -1,6 +1,6 @@
 # Maven {#maven}
 
-Maven is a well-known build tool for the Java ecosystem however it has some challenges when integrating into the Nix build system.
+Maven is a well-known build tool for the Java ecosystem; however, it has some challenges when integrating into the Nix build system.
 
 The following provides a list of common patterns with how to package a Maven project (or any JVM language that can export to Maven) as a Nix package.
 
@@ -9,16 +9,22 @@ The following provides a list of common patterns with how to package a Maven pro
 Consider the following package:
 
 ```nix
-{ lib, fetchFromGitHub, jre, makeWrapper, maven }:
+{
+  lib,
+  fetchFromGitHub,
+  jre,
+  makeWrapper,
+  maven,
+}:
 
-maven.buildMavenPackage rec {
+maven.buildMavenPackage (finalAttrs: {
   pname = "jd-cli";
   version = "1.2.1";
 
   src = fetchFromGitHub {
     owner = "intoolswetrust";
-    repo = pname;
-    rev = "${pname}-${version}";
+    repo = "jd-cli";
+    tag = "jd-cli-${finalAttrs.version}";
     hash = "sha256-rRttA5H0A0c44loBzbKH7Waoted3IsOgxGCD2VM0U/Q=";
   };
 
@@ -27,26 +33,114 @@ maven.buildMavenPackage rec {
   nativeBuildInputs = [ makeWrapper ];
 
   installPhase = ''
+    runHook preInstall
+
     mkdir -p $out/bin $out/share/jd-cli
     install -Dm644 jd-cli/target/jd-cli.jar $out/share/jd-cli
 
     makeWrapper ${jre}/bin/java $out/bin/jd-cli \
       --add-flags "-jar $out/share/jd-cli/jd-cli.jar"
+
+    runHook postInstall
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Simple command line wrapper around JD Core Java Decompiler project";
     homepage = "https://github.com/intoolswetrust/jd-cli";
-    license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ majiir ];
+    license = lib.licenses.gpl3Plus;
+    maintainers = with lib.maintainers; [ majiir ];
   };
-}:
+})
 ```
 
 This package calls `maven.buildMavenPackage` to do its work. The primary difference from `stdenv.mkDerivation` is the `mvnHash` variable, which is a hash of all of the Maven dependencies.
 
 ::: {.tip}
 After setting `maven.buildMavenPackage`, we then do standard Java `.jar` installation by saving the `.jar` to `$out/share/java` and then making a wrapper which allows executing that file; see [](#sec-language-java) for additional generic information about packaging Java applications.
+:::
+
+### Overriding Maven package attributes {#maven-overriding-package-attributes}
+
+```
+overrideMavenAttrs :: (AttrSet -> Derivation) | ((AttrSet -> Attrset) -> Derivation) -> Derivation
+```
+
+The output of `buildMavenPackage` has an `overrideMavenAttrs` attribute, which is a function that takes either
+- any subset of the attributes that can be passed to `buildMavenPackage`
+
+  or
+- a function that takes the argument passed to the previous invocation of `buildMavenPackage` (conventionally called `old`) and returns an attribute set that can be passed to `buildMavenPackage`
+
+and returns a derivation that builds a Maven package based on the old and new arguments merged.
+
+This is similar to [](#sec-pkg-overrideAttrs), but notably does not allow accessing the final value of the argument to `buildMavenPackage`.
+
+:::{.example}
+### `overrideMavenAttrs` Example
+
+Use `overrideMavenAttrs` to build `jd-cli` version 1.2.0 and disable some flaky test:
+
+```nix
+jd-cli.overrideMavenAttrs (old: rec {
+  version = "1.2.0";
+  src = fetchFromGitHub {
+    owner = old.src.owner;
+    repo = old.src.repo;
+    tag = "${old.pname}-${version}";
+    # old source hash of 1.2.0 version
+    hash = "sha256-US7j6tQ6mh1libeHnQdFxPGoxHzbZHqehWSgCYynKx8=";
+  };
+
+  # tests can be disabled by prefixing it with `!`
+  # see Maven documentation for more details:
+  # https://maven.apache.org/surefire/maven-surefire-plugin/examples/single-test.html#Multiple_Formats_in_One
+  mvnParameters = lib.escapeShellArgs [
+    "-Dsurefire.failIfNoSpecifiedTests=false"
+    "-Dtest=!JavaDecompilerTest#basicTest,!JavaDecompilerTest#patternMatchingTest"
+  ];
+
+  # old mvnHash of 1.2.0 maven dependencies
+  mvnHash = "sha256-N9XC1pg6Y4sUiBWIQUf16QSXCuiAPpXEHGlgApviF4I=";
+})
+```
+:::
+
+### Offline build {#maven-offline-build}
+
+By default, `buildMavenPackage` does the following:
+
+1. Run `mvn package -Dmaven.repo.local=$out/.m2 ${mvnParameters}` in the
+   `fetchedMavenDeps` [fixed-output derivation](https://nixos.org/manual/nix/stable/glossary.html#gloss-fixed-output-derivation).
+2. Run `mvn package -o -nsu "-Dmaven.repo.local=$mvnDeps/.m2"
+   ${mvnParameters}` again in the main derivation.
+
+As a result, tests are run twice.
+This also means that a failing test will trigger a new attempt to realise the fixed-output derivation, which in turn downloads all dependencies again.
+For bigger Maven projects, this might lead to a long feedback cycle.
+
+Use `buildOffline = true` to change the behaviour of `buildMavenPackage to the following:
+1. Run `mvn de.qaware.maven:go-offline-maven-plugin:1.2.8:resolve-dependencies
+   -Dmaven.repo.local=$out/.m2 ${mvnDepsParameters}` in the fixed-output derivation.
+2. Run `mvn package -o -nsu "-Dmaven.repo.local=$mvnDeps/.m2"
+   ${mvnParameters}` in the main derivation.
+
+As a result, all dependencies are downloaded in step 1 and the tests are executed in step 2.
+A failing test only triggers a rebuild of step 2 as it can reuse the dependencies of step 1 because they have not changed.
+
+::: {.warning}
+Test dependencies are not downloaded in step 1 and are therefore missing in
+step 2 which will most probably fail the build. The `go-offline` plugin cannot
+handle these so-called [dynamic dependencies](https://github.com/qaware/go-offline-maven-plugin?tab=readme-ov-file#dynamic-dependencies).
+In that case you must add these dynamic dependencies manually with:
+```nix
+maven.buildMavenPackage {
+  manualMvnArtifacts = [
+    # add dynamic test dependencies here
+    "org.apache.maven.surefire:surefire-junit-platform:3.1.2"
+    "org.junit.platform:junit-platform-launcher:1.10.0"
+  ];
+}
+```
 :::
 
 ### Stable Maven plugins {#stable-maven-plugins}
@@ -79,6 +173,59 @@ To make sure that your package does not add extra manual effort when upgrading M
   </executions>
 </plugin>
 ```
+
+## Maven 4 {#maven-4}
+
+Alongside the default `maven` package (the latest Maven 3 release), nixpkgs ships `maven_4`, which packages the [Maven 4](https://maven.apache.org/whatsnewinmaven4.html) release line.
+
+`maven_4` is a standalone derivation and can be used as a drop-in replacement wherever `maven` is used, for example to build a project with the latest Maven 4:
+
+```nix
+{
+  lib,
+  fetchFromGitHub,
+  jre,
+  makeWrapper,
+  maven_4,
+}:
+
+maven_4.buildMavenPackage (finalAttrs: {
+  pname = "jd-cli";
+  version = "1.2.1";
+
+  src = fetchFromGitHub {
+    owner = "intoolswetrust";
+    repo = "jd-cli";
+    tag = "jd-cli-${finalAttrs.version}";
+    hash = "sha256-rRttA5H0A0c44loBzbKH7Waoted3IsOgxGCD2VM0U/Q=";
+  };
+
+  mvnHash = "";
+
+  nativeBuildInputs = [ makeWrapper ];
+
+  installPhase = ''
+    runHook preInstall
+
+    mkdir -p $out/bin $out/share/jd-cli
+    install -Dm644 jd-cli/target/jd-cli.jar $out/share/jd-cli
+
+    makeWrapper ${jre}/bin/java $out/bin/jd-cli \
+      --add-flags "-jar $out/share/jd-cli/jd-cli.jar"
+
+    runHook postInstall
+  '';
+
+  meta = {
+    description = "Simple command line wrapper around JD Core Java Decompiler project";
+    homepage = "https://github.com/intoolswetrust/jd-cli";
+    license = lib.licenses.gpl3Plus;
+    maintainers = with lib.maintainers; [ majiir ];
+  };
+})
+```
+
+`maven_4` exposes the same `buildMavenPackage` helper as `maven` (see [](#maven-buildmavenpackage)), so all of the patterns documented above apply equally. Note that the Maven dependencies resolved by Maven 4 differ from those resolved by Maven 3, so `mvnHash` must be recomputed when switching between the two.
 
 ## Manually using `mvn2nix` {#maven-mvn2nix}
 ::: {.warning}
@@ -162,7 +309,9 @@ This file is then given to the `buildMaven` function, and it returns 2 attribute
 Here is an [example](https://github.com/fzakaria/nixos-maven-example/blob/main/build-maven-repository.nix) of building the Maven repository
 
 ```nix
-{ pkgs ? import <nixpkgs> { } }:
+{
+  pkgs ? import <nixpkgs> { },
+}:
 with pkgs;
 (buildMaven ./project-info.json).repo
 ```
@@ -192,37 +341,49 @@ The double invocation is a _simple_ way to get around the problem that `nix-buil
 
 It treats the entire Maven repository as a single source to be downloaded, relying on Maven's dependency resolution to satisfy the output hash. This is similar to fetchers like `fetchgit`, except it has to run a Maven build to determine what to download.
 
-The first step will be to build the Maven project as a fixed-output derivation in order to collect the Maven repository -- below is an [example](https://github.com/fzakaria/nixos-maven-example/blob/main/double-invocation-repository.nix).
+The first step will be to build the Maven project as a fixed-output derivation to collect the Maven repository -- below is an [example](https://github.com/fzakaria/nixos-maven-example/blob/main/double-invocation-repository.nix).
 
 ::: {.note}
 Traditionally the Maven repository is at `~/.m2/repository`. We will override this to be the `$out` directory.
 :::
 
 ```nix
-{ lib, stdenv, maven }:
+{
+  lib,
+  stdenv,
+  maven,
+}:
 stdenv.mkDerivation {
   name = "maven-repository";
   buildInputs = [ maven ];
   src = ./.; # or fetchFromGitHub, cleanSourceWith, etc
   buildPhase = ''
+    runHook preBuild
+
     mvn package -Dmaven.repo.local=$out
+
+    runHook postBuild
   '';
 
   # keep only *.{pom,jar,sha1,nbm} and delete all ephemeral files with lastModified timestamps inside
   installPhase = ''
+    runHook preInstall
+
     find $out -type f \
       -name \*.lastUpdated -or \
       -name resolver-status.properties -or \
       -name _remote.repositories \
       -delete
+
+    runHook postInstall
   '';
 
   # don't do any fixup
   dontFixup = true;
-  outputHashAlgo = "sha256";
+  outputHashAlgo = null;
   outputHashMode = "recursive";
   # replace this with the correct SHA256
-  outputHash = lib.fakeSha256;
+  outputHash = lib.fakeHash;
 }
 ```
 
@@ -246,32 +407,46 @@ Some additional files are deleted that would cause the output hash to change pot
 │       │   ├── classworlds-1.1.jar
 ```
 
-If your package uses _SNAPSHOT_ dependencies or _version ranges_; there is a strong likelihood that over-time your output hash will change since the resolved dependencies may change. Hence this method is less recommended then using `buildMaven`.
+If your package uses _SNAPSHOT_ dependencies or _version ranges_; there is a strong likelihood that over time, your output hash will change since the resolved dependencies may change. Hence this method is less recommended than using `buildMaven`.
 
 ### Building a JAR {#building-a-jar}
 
 Regardless of which strategy is chosen above, the step to build the derivation is the same.
 
 ```nix
-{ stdenv, maven, callPackage }:
-# pick a repository derivation, here we will use buildMaven
-let repository = callPackage ./build-maven-repository.nix { };
-in stdenv.mkDerivation rec {
+{
+  stdenv,
+  maven,
+  callPackage,
+}:
+let
+  # pick a repository derivation, here we will use buildMaven
+  repository = callPackage ./build-maven-repository.nix { };
+in
+stdenv.mkDerivation (finalAttrs: {
   pname = "maven-demo";
   version = "1.0";
 
-  src = builtins.fetchTarball "https://github.com/fzakaria/nixos-maven-example/archive/main.tar.gz";
+  src = fetchTarball "https://github.com/fzakaria/nixos-maven-example/archive/main.tar.gz";
   buildInputs = [ maven ];
 
   buildPhase = ''
+    runHook preBuild
+
     echo "Using repository ${repository}"
     mvn --offline -Dmaven.repo.local=${repository} package;
+
+    runHook postBuild
   '';
 
   installPhase = ''
-    install -Dm644 target/${pname}-${version}.jar $out/share/java
+    runHook preInstall
+
+    install -Dm644 target/${finalAttrs.pname}-${finalAttrs.version}.jar $out/share/java
+
+    runHook postInstall
   '';
-}
+})
 ```
 
 ::: {.tip}
@@ -294,7 +469,7 @@ The previous example builds a `jar` file but that's not a file one can run.
 
 You need to use it with `java -jar $out/share/java/output.jar` and make sure to provide the required dependencies on the classpath.
 
-The following explains how to use `makeWrapper` in order to make the derivation produce an executable that will run the JAR file you created.
+The following explains how to use `makeWrapper` to make the derivation produce an executable that will run the JAR file you created.
 
 We will use the same repository we built above (either _double invocation_ or _buildMaven_) to setup a CLASSPATH for our JAR.
 
@@ -309,35 +484,49 @@ We will read the Maven repository and flatten it to a single list. This list wil
 We make sure to provide this classpath to the `makeWrapper`.
 
 ```nix
-{ stdenv, maven, callPackage, makeWrapper, jre }:
+{
+  stdenv,
+  maven,
+  callPackage,
+  makeWrapper,
+  jre,
+}:
 let
   repository = callPackage ./build-maven-repository.nix { };
-in stdenv.mkDerivation rec {
+in
+stdenv.mkDerivation (finalAttrs: {
   pname = "maven-demo";
   version = "1.0";
 
-  src = builtins.fetchTarball
-    "https://github.com/fzakaria/nixos-maven-example/archive/main.tar.gz";
+  src = fetchTarball "https://github.com/fzakaria/nixos-maven-example/archive/main.tar.gz";
   nativeBuildInputs = [ makeWrapper ];
   buildInputs = [ maven ];
 
   buildPhase = ''
+    runHook preBuild
+
     echo "Using repository ${repository}"
     mvn --offline -Dmaven.repo.local=${repository} package;
+
+    runHook postBuild
   '';
 
   installPhase = ''
+    runHook preInstall
+
     mkdir -p $out/bin
 
     classpath=$(find ${repository} -name "*.jar" -printf ':%h/%f');
-    install -Dm644 target/${pname}-${version}.jar $out/share/java
+    install -Dm644 target/maven-demo-${finalAttrs.version}.jar $out/share/java
     # create a wrapper that will automatically set the classpath
     # this should be the paths from the dependency derivation
-    makeWrapper ${jre}/bin/java $out/bin/${pname} \
-          --add-flags "-classpath $out/share/java/${pname}-${version}.jar:''${classpath#:}" \
+    makeWrapper ${jre}/bin/java $out/bin/maven-demo \
+          --add-flags "-classpath $out/share/java/maven-demo-${finalAttrs.version}.jar:''${classpath#:}" \
           --add-flags "Main"
+
+    runHook postInstall
   '';
-}
+})
 ```
 
 #### MANIFEST file via Maven Plugin {#manifest-file-via-maven-plugin}
@@ -387,36 +576,51 @@ Main-Class: Main
 We will modify the derivation above to add a symlink to our repository so that it's accessible to our JAR during the `installPhase`.
 
 ```nix
-{ stdenv, maven, callPackage, makeWrapper, jre }:
-# pick a repository derivation, here we will use buildMaven
-let repository = callPackage ./build-maven-repository.nix { };
-in stdenv.mkDerivation rec {
+{
+  stdenv,
+  maven,
+  callPackage,
+  makeWrapper,
+  jre,
+}:
+let
+  # pick a repository derivation, here we will use buildMaven
+  repository = callPackage ./build-maven-repository.nix { };
+in
+stdenv.mkDerivation (finalAttrs: {
   pname = "maven-demo";
   version = "1.0";
 
-  src = builtins.fetchTarball
-    "https://github.com/fzakaria/nixos-maven-example/archive/main.tar.gz";
+  src = fetchTarball "https://github.com/fzakaria/nixos-maven-example/archive/main.tar.gz";
   nativeBuildInputs = [ makeWrapper ];
   buildInputs = [ maven ];
 
   buildPhase = ''
+    runHook preBuild
+
     echo "Using repository ${repository}"
     mvn --offline -Dmaven.repo.local=${repository} package;
+
+    runHook postBuild
   '';
 
   installPhase = ''
+    runHook preInstall
+
     mkdir -p $out/bin
 
     # create a symbolic link for the repository directory
     ln -s ${repository} $out/repository
 
-    install -Dm644 target/${pname}-${version}.jar $out/share/java
+    install -Dm644 target/maven-demo-${finalAttrs.version}.jar $out/share/java
     # create a wrapper that will automatically set the classpath
     # this should be the paths from the dependency derivation
-    makeWrapper ${jre}/bin/java $out/bin/${pname} \
-          --add-flags "-jar $out/share/java/${pname}-${version}.jar"
+    makeWrapper ${jre}/bin/java $out/bin/maven-demo \
+          --add-flags "-jar $out/share/java/maven-demo-${finalAttrs.version}.jar"
+
+    runHook postInstall
   '';
-}
+})
 ```
 ::: {.note}
 Our script produces a dependency on `jre` rather than `jdk` to restrict the runtime closure necessary to run the application.

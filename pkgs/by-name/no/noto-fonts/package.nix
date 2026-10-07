@@ -1,10 +1,13 @@
-{ lib
-, stdenvNoCC
-, fetchFromGitHub
-, gitUpdater
-, variants ? [ ]
-, suffix ? ""
-, longDescription ? ''
+{
+  lib,
+  stdenvNoCC,
+  fetchFromGitHub,
+  gitUpdater,
+  rename,
+  nixosTests,
+  variants ? [ ],
+  suffix ? "",
+  longDescription ? ''
     When text is rendered by a computer, sometimes characters are
     displayed as “tofu”. They are little boxes to indicate your device
     doesn’t have a font to display the text.
@@ -13,21 +16,30 @@
     Google’s answer to tofu. The name noto is to convey the idea that
     Google’s goal is to see “no more tofu”.  Noto has multiple styles and
     weights, and freely available to all.
-  ''
+  '',
 }:
-
-stdenvNoCC.mkDerivation rec {
+let
+  _variants = map (variant: builtins.replaceStrings [ " " ] [ "" ] variant) variants;
+in
+stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "noto-fonts${suffix}";
-  version = "24.1.1";
+  version = "2026.10.01";
 
   src = fetchFromGitHub {
     owner = "notofonts";
     repo = "notofonts.github.io";
-    rev = "noto-monthly-release-${version}";
-    hash = "sha256-0KghEIuIxEP6vbAuqwA5iiVTpTpZibysIgtjOkV1un0=";
+    tag = "noto-monthly-release-${finalAttrs.version}";
+    hash = "sha256-j/mjZB1OKnPrVkd3RJ1kFRBEneqvSI9qvNtYzKXANOo=";
   };
 
-  _variants = map (variant: builtins.replaceStrings [ " " ] [ "" ] variant) variants;
+  nativeBuildInputs = [
+    rename
+  ];
+
+  outputs = [
+    "out"
+    "megamerge" # Experimental fonts created by merging regular notofonts
+  ];
 
   installPhase = ''
     # We check availability in order of variable -> otf -> ttf
@@ -36,31 +48,44 @@ stdenvNoCC.mkDerivation rec {
     #
     # We have a mix of otf and ttf fonts
     local out_font=$out/share/fonts/noto
-  '' + (if _variants == [ ] then ''
-    for folder in $(ls -d fonts/*/); do
-      if [[ -d "$folder"unhinted/variable-ttf ]]; then
-        install -m444 -Dt $out_font "$folder"unhinted/variable-ttf/*.ttf
-      elif [[ -d "$folder"unhinted/otf ]]; then
-        install -m444 -Dt $out_font "$folder"unhinted/otf/*.otf
-      else
-        install -m444 -Dt $out_font "$folder"unhinted/ttf/*.ttf
-      fi
-    done
-  '' else ''
-    for variant in $_variants; do
-      if [[ -d fonts/"$variant"/unhinted/variable-ttf ]]; then
-        install -m444 -Dt $out_font fonts/"$variant"/unhinted/variable-ttf/*.ttf
-      elif [[ -d fonts/"$variant"/unhinted/otf ]]; then
-        install -m444 -Dt $out_font fonts/"$variant"/unhinted/otf/*.otf
-      else
-        install -m444 -Dt $out_font fonts/"$variant"/unhinted/ttf/*.ttf
-      fi
-    done
-  '');
+
+    install -m444 -Dt $megamerge/share/fonts/truetype/ megamerge/*.ttf
+  ''
+  + (
+    if _variants == [ ] then
+      ''
+        for folder in $(ls -d fonts/*/); do
+          if [[ -d "$folder"unhinted/variable-ttf ]]; then
+            install -m444 -Dt $out_font "$folder"unhinted/variable-ttf/*.ttf
+          elif [[ -d "$folder"unhinted/otf ]]; then
+            install -m444 -Dt $out_font "$folder"unhinted/otf/*.otf
+          else
+            install -m444 -Dt $out_font "$folder"unhinted/ttf/*.ttf
+          fi
+        done
+      ''
+    else
+      ''
+        for variant in ${lib.concatStringsSep " " _variants}; do
+          if [[ -d fonts/"$variant"/unhinted/variable-ttf ]]; then
+            install -m444 -Dt $out_font fonts/"$variant"/unhinted/variable-ttf/*.ttf
+          elif [[ -d fonts/"$variant"/unhinted/otf ]]; then
+            install -m444 -Dt $out_font fonts/"$variant"/unhinted/otf/*.otf
+          else
+            install -m444 -Dt $out_font fonts/"$variant"/unhinted/ttf/*.ttf
+          fi
+        done
+      ''
+  )
+  + ''
+    rename 's/\[.*\]//' $out/share/fonts/noto/*
+  '';
 
   passthru.updateScript = gitUpdater {
     rev-prefix = "noto-monthly-release-";
   };
+
+  passthru.tests = { inherit (nixosTests) noto-fonts; };
 
   meta = {
     description = "Beautiful and free fonts for many languages";
@@ -68,6 +93,10 @@ stdenvNoCC.mkDerivation rec {
     inherit longDescription;
     license = lib.licenses.ofl;
     platforms = lib.platforms.all;
-    maintainers = with lib.maintainers; [ mathnerd314 emily jopejoe1 ];
+    maintainers = with lib.maintainers; [
+      mathnerd314
+      emily
+      jopejoe1
+    ];
   };
-}
+})

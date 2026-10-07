@@ -1,17 +1,15 @@
-{ lib
-, buildPythonPackage
-, isPy27
-, fetchFromGitHub
-, poetry-core
-, requests
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  requests,
 }:
 
 buildPythonPackage rec {
   pname = "spiderpy";
   version = "1.7.2";
-  format = "pyproject";
-
-  disabled = isPy27;
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "peternijssen";
@@ -20,23 +18,19 @@ buildPythonPackage rec {
     hash = "sha256-Yujy8HSMbK2DQ/913r2c74hKPYDfcHFKq04ysqxG+go=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  nativeBuildInputs = [ poetry-core ];
 
-  propagatedBuildInputs = [
-    requests
-  ];
+  propagatedBuildInputs = [ requests ];
 
   # tests don't mock remote resources
   doCheck = false;
 
   pythonImportsCheck = [ "spiderpy.spiderapi" ];
 
-  meta = with lib; {
+  meta = {
     description = "Unofficial Python wrapper for the Spider API";
     homepage = "https://www.github.com/peternijssen/spiderpy";
-    license = licenses.mit;
-    maintainers = with maintainers; [ dotlambda ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ dotlambda ];
   };
 }

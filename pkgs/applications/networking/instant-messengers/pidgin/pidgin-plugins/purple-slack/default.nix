@@ -1,4 +1,10 @@
-{ lib, stdenv, fetchFromGitHub, pidgin, pkg-config }:
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  pidgin,
+  pkg-config,
+}:
 
 stdenv.mkDerivation {
   pname = "purple-slack-unstable";
@@ -14,15 +20,16 @@ stdenv.mkDerivation {
   nativeBuildInputs = [ pkg-config ];
   buildInputs = [ pidgin ];
 
-  PKG_CONFIG_PURPLE_PLUGINDIR = "${placeholder "out"}/lib/purple-2";
-  PKG_CONFIG_PURPLE_DATAROOTDIR = "${placeholder "out"}/share";
+  env = {
+    PKG_CONFIG_PURPLE_PLUGINDIR = "${placeholder "out"}/lib/purple-2";
+    PKG_CONFIG_PURPLE_DATAROOTDIR = "${placeholder "out"}/share";
+  };
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/dylex/slack-libpurple";
     description = "Slack plugin for Pidgin";
-    license = licenses.gpl2;
-    platforms = platforms.linux;
-    maintainers = with maintainers; [ eyjhb ];
+    license = lib.licenses.gpl2;
+    platforms = lib.platforms.linux;
+    maintainers = with lib.maintainers; [ eyjhb ];
   };
 }
-

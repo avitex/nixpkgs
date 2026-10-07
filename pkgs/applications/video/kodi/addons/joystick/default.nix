@@ -1,22 +1,33 @@
-{ lib, rel, buildKodiBinaryAddon, fetchFromGitHub, tinyxml, udev }:
+{
+  lib,
+  rel,
+  buildKodiBinaryAddon,
+  fetchFromGitHub,
+  tinyxml,
+  udev,
+}:
 buildKodiBinaryAddon rec {
   pname = namespace;
   namespace = "peripheral.joystick";
-  version = "20.1.9";
+  version = "21.1.23";
 
   src = fetchFromGitHub {
     owner = "xbmc";
     repo = namespace;
     rev = "${version}-${rel}";
-    sha256 = "sha256-xJh9Rj+PcxrgGomEsKnQcO/yZDQCnG6gNBwfK2JGuNA=";
+    sha256 = "sha256-ADkXvbTsx4xMUiu90hvHIMvpAF0FQ2HNkKDX/E/tRok=";
   };
 
-  extraBuildInputs = [ tinyxml udev ];
+  extraBuildInputs = [
+    tinyxml
+    udev
+  ];
 
-  meta = with lib; {
-    description = "Binary addon for raw joystick input.";
-    platforms = platforms.all;
-    license = licenses.gpl2Only;
-    maintainers = teams.kodi.members;
+  meta = {
+    description = "Binary addon for raw joystick input";
+    homepage = "https://github.com/xbmc/peripheral.joystick";
+    platforms = lib.platforms.all;
+    license = lib.licenses.gpl2Only;
+    teams = [ lib.teams.kodi ];
   };
 }

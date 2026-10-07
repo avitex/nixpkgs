@@ -1,77 +1,70 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# build
-, hassil
-, jinja2
-, pyyaml
-, regex
-, voluptuous
-, python
-, setuptools
-, wheel
+  # build-system
+  setuptools,
 
-# tests
-, pytest-xdist
-, pytestCheckHook
+  # codegen
+  hassil,
+  python,
+  pyyaml,
+  voluptuous,
+  regex,
+  jinja2,
+
+  # tests
+  pytest-xdist,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "home-assistant-intents";
-  version = "2024.1.2";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.9";
+  version = "2026.8.28";
+  pyproject = true;
 
   src = fetchFromGitHub {
-    owner = "home-assistant";
+    owner = "OHF-Voice";
     repo = "intents-package";
-    rev = "refs/tags/${version}";
-    hash = "sha256-uOrSvkzymG31nRmAgrn6z1IDJWahxqXHcPDflLPRVT4=";
+    tag = finalAttrs.version;
     fetchSubmodules = true;
+    hash = "sha256-9VVTpMhlbhHVhqZ5ujZZNI+qqkhjRM+B1W3Uruy/bn8=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml --replace 'requires = ["setuptools~=62.3", "wheel~=0.37.1"]' 'requires = ["setuptools", "wheel"]'
-  '';
-
-  nativeBuildInputs = [
-    hassil
-    jinja2
-    pyyaml
-    regex
+  build-system = [
     setuptools
-    wheel
+
+    # build-time codegen; https://github.com/home-assistant/intents/blob/main/requirements.txt#L1-L5
+    hassil
+    pyyaml
     voluptuous
+    regex
+    jinja2
   ];
 
   postInstall = ''
-    pushd intents
-    # https://github.com/home-assistant/intents/blob/main/script/package#L18
-    ${python.pythonOnBuildForHost.interpreter} -m script.intentfest merged_output $out/${python.sitePackages}/home_assistant_intents/data
-    popd
+    # https://github.com/OHF-Voice/intents-package/blob/main/script/package#L23-L24
+    PACKAGE_DIR=$out/${python.sitePackages}/home_assistant_intents
+    ${python.pythonOnBuildForHost.interpreter} script/merged_output.py $PACKAGE_DIR/data
+    ${python.pythonOnBuildForHost.interpreter} script/write_languages.py $PACKAGE_DIR/data > $PACKAGE_DIR/languages.py
   '';
 
-  checkInputs = [
+  nativeCheckInputs = [
     pytest-xdist
     pytestCheckHook
   ];
 
-  pytestFlagsArray = [
+  enabledTestPaths = [
     "intents/tests"
   ];
 
-  disabledTests = [
-    # AssertionError: Recognition failed for 'put apples on the list'
-    "test_shopping_list_HassShoppingListAddItem"
-  ];
-
-  meta = with lib; {
+  meta = {
+    changelog = "https://github.com/OHF-Voice/intents-package/releases/tag/${finalAttrs.src.tag}";
     description = "Intents to be used with Home Assistant";
-    homepage = "https://github.com/home-assistant/intents";
-    license = licenses.cc-by-40;
-    maintainers = teams.home-assistant.members;
+    homepage = "https://github.com/OHF-Voice/intents-package";
+    # https://github.com/OHF-Voice/intents-package/issues/12
+    license = lib.licenses.cc-by-40;
+    teams = [ lib.teams.home-assistant ];
   };
-}
+})

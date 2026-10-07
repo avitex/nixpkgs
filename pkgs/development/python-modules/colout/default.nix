@@ -1,46 +1,47 @@
-{ lib
-, babel
-, buildPythonPackage
-, fetchFromGitHub
-, pygments
-, pythonOlder
-, setuptools-scm
+{
+  lib,
+  babel,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  pygments,
+  setuptools-scm,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "colout";
   version = "1.1";
-  format = "setuptools";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "nojhan";
-    repo = pname;
-    rev = "refs/tags/v${version}";
+    repo = "colout";
+    tag = "v${finalAttrs.version}";
     hash = "sha256-7Dtf87erBElqVgqRx8BYHYOWv1uI84JJ0LHrcneczCI=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
+    setuptools
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     babel
     pygments
   ];
 
-  pythonImportsCheck = [
-    "colout"
-  ];
+  pythonImportsCheck = [ "colout" ];
 
   # This project does not have a unit test
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "Color Up Arbitrary Command Output";
+    mainProgram = "colout";
     homepage = "https://github.com/nojhan/colout";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ badele ];
+    license = lib.licenses.gpl3Only;
+    maintainers = with lib.maintainers; [ badele ];
   };
-}
+})

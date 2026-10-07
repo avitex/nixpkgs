@@ -1,41 +1,46 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, aml
-, cyrus_sasl
-, ffmpeg
-, gnutls
-, libGL
-, libdrm
-, libgcrypt
-, libjpeg
-, libpng
-, libxkbcommon
-, lzo
-, mesa
-, meson
-, ninja
-, openssl
-, pkg-config
-, pixman
-, wayland
-, zlib
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  aml,
+  cyrus_sasl,
+  ffmpeg,
+  gnutls,
+  libGL,
+  libdrm,
+  libgcrypt,
+  libjpeg,
+  libpng,
+  libxkbcommon,
+  lzo,
+  libgbm,
+  meson,
+  ninja,
+  openssl,
+  pkg-config,
+  pixman,
+  wayland,
+  wayland-scanner,
+  zlib,
+  nix-update-script,
 }:
+
 stdenv.mkDerivation {
   pname = "wlvncc";
-  version = "unstable-2023-01-05";
+  version = "0-unstable-2026-04-29";
 
   src = fetchFromGitHub {
     owner = "any1";
     repo = "wlvncc";
-    rev = "2b9a886edd38204ef36e9f9f65dd32aaa3784530";
-    hash = "sha256-0HbZEtDaLjr966RS+2GHc7N4nsivPIv57T/+AJliwUI=";
+    rev = "cc0abf87c37920540f2439a556e6a480c28f8f46";
+    hash = "sha256-VPZJd4/yerWZeLl+NVH1EDtSokeS/XMS6lQUXOn9a7Q=";
   };
 
   nativeBuildInputs = [
     meson
     ninja
     pkg-config
+    wayland-scanner
   ];
 
   buildInputs = [
@@ -50,19 +55,24 @@ stdenv.mkDerivation {
     libpng
     libxkbcommon
     lzo
-    mesa
+    libgbm
     openssl
     pixman
     wayland
     zlib
   ];
 
-  meta = with lib; {
-    description = "A Wayland Native VNC Client";
+  passthru.updateScript = nix-update-script { extraArgs = [ "--version=branch" ]; };
+
+  meta = {
+    description = "Wayland Native VNC Client";
     homepage = "https://github.com/any1/wlvncc";
-    license = licenses.gpl2Only;
-    maintainers = with maintainers; [ teutat3s ];
-    platforms = platforms.linux;
+    license = with lib.licenses; [
+      isc
+      gpl2Only
+    ];
+    maintainers = with lib.maintainers; [ teutat3s ];
+    platforms = lib.platforms.linux;
     mainProgram = "wlvncc";
   };
 }

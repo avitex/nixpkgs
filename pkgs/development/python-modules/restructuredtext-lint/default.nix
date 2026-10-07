@@ -1,39 +1,32 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools
-, docutils
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  docutils,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "restructuredtext-lint";
-  version = "1.4.0";
+  version = "2.0.2";
   pyproject = true;
 
   src = fetchPypi {
     pname = "restructuredtext_lint";
     inherit version;
-    hash = "sha256-GyNcDJIjQatsUwOQiS656S+QubdQRgY+BHys+w8FDEU=";
+    hash = "sha256-3SUgm54Lcmkp2DBjOfr3I3NKMTfbOCvPJylPoYprxSs=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
   propagatedBuildInputs = [ docutils ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pytestFlagsArray = [
-    "restructuredtext_lint/test/test.py"
-  ];
+  enabledTestPaths = [ "restructuredtext_lint/test/test.py" ];
 
-  pythonImportsCheck = [
-    "restructuredtext_lint"
-  ];
+  pythonImportsCheck = [ "restructuredtext_lint" ];
 
   meta = {
     description = "reStructuredText linter";

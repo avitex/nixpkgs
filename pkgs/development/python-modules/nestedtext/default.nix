@@ -1,38 +1,32 @@
-{ lib
-, buildPythonPackage
-, docopt
-, fetchFromGitHub
-, flit-core
-, hypothesis
-, inform
-, nestedtext
-, pytestCheckHook
-, pythonOlder
-, quantiphy
-, voluptuous
+{
+  lib,
+  buildPythonPackage,
+  docopt,
+  fetchFromGitHub,
+  flit-core,
+  hypothesis,
+  inform,
+  nestedtext,
+  pytestCheckHook,
+  quantiphy,
+  voluptuous,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "nestedtext";
-  version = "3.6";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "3.8";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "KenKundert";
     repo = "nestedtext";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-SHY/MTmYbNh3azkyvwEtuvT+V7YzfLi2B3FvBzv6Omo=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-eg5Q11dl9ikGpNYx2Sd47MBPC9S4W2M6PpehFpowzdk=";
   };
 
-  nativeBuildInputs = [
-    flit-core
-  ];
+  build-system = [ flit-core ];
 
-  propagatedBuildInputs = [
-    inform
-  ];
+  dependencies = [ inform ];
 
   nativeCheckInputs = [
     docopt
@@ -46,26 +40,23 @@ buildPythonPackage rec {
   # enabled when building passthru.tests.
   doCheck = false;
 
-  pytestFlagsArray = [
-    # Avoids an ImportMismatchError.
-    "--ignore=build"
-  ];
-
   disabledTestPaths = [
+    # Avoids an ImportMismatchError.
+    "build"
     # Examples are prefixed with test_
     "examples/"
   ];
 
   passthru.tests = {
-    runTests = nestedtext.overrideAttrs (_: { doCheck = true; });
+    runTests = nestedtext.overrideAttrs (_: {
+      doCheck = true;
+    });
   };
 
-  pythonImportsCheck = [
-    "nestedtext"
-  ];
+  pythonImportsCheck = [ "nestedtext" ];
 
-  meta = with lib; {
-    description = "A human friendly data format";
+  meta = {
+    description = "Human friendly data format";
     longDescription = ''
       NestedText is a file format for holding data that is to be entered,
       edited, or viewed by people. It allows data to be organized into a nested
@@ -78,8 +69,8 @@ buildPythonPackage rec {
       non-programmers.
     '';
     homepage = "https://nestedtext.org";
-    changelog = "https://github.com/KenKundert/nestedtext/blob/v${version}/doc/releases.rst";
-    license = licenses.mit;
-    maintainers = with maintainers; [ jeremyschlatter ];
+    changelog = "https://github.com/KenKundert/nestedtext/blob/${finalAttrs.src.tag}/doc/releases.rst";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ jeremyschlatter ];
   };
-}
+})

@@ -1,10 +1,12 @@
-{ lib, stdenv
-, fetchFromGitHub
-, zlib
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  zlib,
 }:
 
 let
-  version = "0.10.1";
+  version = "0.12.0";
   tag = "v${version}";
   rev = "b6754f574f8846eb842feba4ccbeeecb10bdfacc";
 in
@@ -18,7 +20,7 @@ stdenv.mkDerivation rec {
     owner = "thepowersgang";
     repo = "mrustc";
     rev = tag;
-    hash = "sha256-sYnx5dUTaQbK4ugnSzAJwIUwZKPUhThmNA+WlY+LEWc=";
+    hash = "sha256-wqHTTnk9c1khLsN6e0v703tUoTlpncMwZPXTKEVZ33s=";
   };
 
   postPatch = ''
@@ -39,16 +41,20 @@ stdenv.mkDerivation rec {
     runHook postInstall
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Mutabah's Rust Compiler";
+    mainProgram = "mrustc";
     longDescription = ''
       In-progress alternative rust compiler, written in C++.
       Capable of building a fully-working copy of rustc,
       but not yet suitable for everyday use.
     '';
     inherit (src.meta) homepage;
-    license = licenses.mit;
-    maintainers = with maintainers; [ progval r-burns ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [
+      progval
+      r-burns
+    ];
     platforms = [ "x86_64-linux" ];
   };
 }

@@ -1,4 +1,8 @@
-{ lib, buildPythonPackage, fetchPypi, pythonOlder }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+}:
 
 buildPythonPackage rec {
   pname = "future-fstrings";
@@ -14,11 +18,11 @@ buildPythonPackage rec {
   # No tests included in Pypi archive
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/asottile/future-fstrings";
-    description = "A backport of fstrings to python<3.6";
-    license = licenses.mit;
-    maintainers = with maintainers; [ nyanloutre ];
-    broken = pythonOlder "3.6"; # dependency tokenize-rt not packaged
+    description = "Backport of fstrings to python<3.6";
+    mainProgram = "future-fstrings-show";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ nyanloutre ];
   };
 }

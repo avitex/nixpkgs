@@ -1,51 +1,61 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, setuptools
-, urllib3
-, selenium
-, cssselect
-, django
-, flask
-, lxml
-, pytestCheckHook
-, zope-testbrowser
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  urllib3,
+  selenium,
+  cssselect,
+  django,
+  flask,
+  lxml,
+  pytestCheckHook,
+  zope-testbrowser,
 }:
 
 buildPythonPackage rec {
   pname = "splinter";
   version = "0.21.0";
-
-  disabled = pythonOlder "3.8";
-
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "cobrateam";
     repo = "splinter";
-    rev = "refs/tags/${version}";
+    tag = version;
     hash = "sha256-PGGql8yI1YosoUBAyDoI/8k7s4sVYnXEV7eow3GHH88=";
   };
 
-  nativeBuildInputs = [
-    setuptools
+  patches = [
+    ./lxml-6.patch
   ];
 
-  propagatedBuildInputs = [
-    urllib3
-  ];
+  build-system = [ setuptools ];
 
-  passthru.optional-dependencies = {
-    "zope.testbrowser" = [ zope-testbrowser lxml cssselect ];
-    django = [ django lxml cssselect ];
-    flask = [ flask lxml cssselect ];
+  dependencies = [ urllib3 ];
+
+  optional-dependencies = {
+    "zope.testbrowser" = [
+      zope-testbrowser
+      lxml
+      cssselect
+    ];
+    django = [
+      django
+      lxml
+      cssselect
+    ];
+    flask = [
+      flask
+      lxml
+      cssselect
+    ];
     selenium = [ selenium ];
   };
 
   nativeCheckInputs = [
     pytestCheckHook
-  ] ++ lib.flatten (lib.attrValues passthru.optional-dependencies);
+  ]
+  ++ lib.concatAttrValues optional-dependencies;
 
   disabledTests = [
     # driver is present and fails with a different error during loading
@@ -74,11 +84,11 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "splinter" ];
 
-  meta = with lib; {
+  meta = {
     changelog = "https://splinter.readthedocs.io/en/latest/news.html";
     description = "Browser abstraction for web acceptance testing";
     homepage = "https://github.com/cobrateam/splinter";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ dotlambda ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ dotlambda ];
   };
 }

@@ -1,61 +1,75 @@
-{ lib
-, rustPlatform
-, fetchFromGitHub
-, fetchNpmDeps
-, npmHooks
-, nodejs
-, pkg-config
-, sqlite
-, zstd
-, stdenv
-, darwin
-, open-policy-agent
+{
+  lib,
+  rustPlatform,
+  fetchFromGitHub,
+  fetchPnpmDeps,
+  pnpm_11,
+  pnpmConfigHook,
+  nodejs,
+  python3,
+  pkg-config,
+  sqlite,
+  zstd,
+  stdenv,
+  open-policy-agent,
+  cctools,
+  nix-update-script,
+  versionCheckHook,
+  buildPackages,
+  nixosTests,
 }:
-
-rustPlatform.buildRustPackage rec {
+let
+  pnpm = pnpm_11;
+in
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "matrix-authentication-service";
-  version = "0.7.0";
+  version = "1.26.0";
 
   src = fetchFromGitHub {
-    owner = "matrix-org";
+    owner = "element-hq";
     repo = "matrix-authentication-service";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-foipChunzRKIbeO+O+XYx0luzaA0G9LKrH59luQl9R0=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-Y70lr/6mb4qib/zX1petJscF+dpuFLaX/IZStksW9Pk=";
   };
 
-  cargoLock = {
-    lockFile = ./Cargo.lock;
-    outputHashes = {
-      "opa-wasm-0.1.0" = "sha256-GuOlUNGegdDieTvthk9SyfQSTeem7ArJTdiD1t7Ojd4=";
-    };
+  patches = [ ./remove-runtime.patch ];
+
+  cargoHash = "sha256-FtaDF3p4c7Ekhuid12A8s+RhFLCovhHjQyxOVz6oLjE=";
+
+  pnpmDeps = fetchPnpmDeps {
+    inherit (finalAttrs)
+      pname
+      version
+      src
+      patches
+      ;
+    inherit pnpm;
+    fetcherVersion = 4;
+    hash = "sha256-nF0e88a4SJtZOZAc62sGp192GjM/gJJ7r5NbrCgJ1es=";
   };
 
-  npmDeps = fetchNpmDeps {
-    name = "${pname}-${version}-npm-deps";
-    src = "${src}/${npmRoot}";
-    hash = "sha256-ymI+ZkPEGMTLMdTLfKv/v/cgW5iS/nd9PNXFvYaYNjo=";
-  };
-
-  npmRoot = "frontend";
+  pnpmRoot = "frontend";
 
   nativeBuildInputs = [
     pkg-config
     open-policy-agent
-    npmHooks.npmConfigHook
+    pnpmConfigHook
+    pnpm
     nodejs
-  ];
+    (python3.withPackages (ps: [ ps.setuptools ])) # Used by gyp
+  ]
+  ++ lib.optional stdenv.hostPlatform.isDarwin cctools; # libtool used by gyp;
 
   buildInputs = [
     sqlite
     zstd
-  ] ++ lib.optionals stdenv.isDarwin [
-    darwin.apple_sdk.frameworks.CoreFoundation
-    darwin.apple_sdk.frameworks.Security
-    darwin.apple_sdk.frameworks.SystemConfiguration
   ];
+
+  depsBuildBuild = [ buildPackages.stdenv.cc ];
 
   env = {
     ZSTD_SYS_USE_PKG_CONFIG = true;
+    VERGEN_GIT_DESCRIBE = finalAttrs.version;
   };
 
   buildNoDefaultFeatures = true;
@@ -64,34 +78,57 @@ rustPlatform.buildRustPackage rec {
 
   postPatch = ''
     substituteInPlace crates/config/src/sections/http.rs \
-      --replace ./frontend/dist/    "$out/share/$pname/assets/"
+      --replace-fail ./share/assets/    "$out/share/$pname/assets/"
     substituteInPlace crates/config/src/sections/templates.rs \
-      --replace ./share/templates/    "$out/share/$pname/templates/" \
-      --replace ./share/translations/    "$out/share/$pname/translations/" \
-      --replace ./share/manifest.json "$out/share/$pname/assets/manifest.json"
+      --replace-fail ./share/templates/    "$out/share/$pname/templates/" \
+      --replace-fail ./share/translations/    "$out/share/$pname/translations/" \
+      --replace-fail ./share/manifest.json "$out/share/$pname/assets/manifest.json"
     substituteInPlace crates/config/src/sections/policy.rs \
-      --replace ./share/policy.wasm "$out/share/$pname/policy.wasm"
+      --replace-fail ./share/policy.wasm "$out/share/$pname/policy.wasm"
   '';
 
-  preBuild = ''
-    make -C policies
-    (cd "$npmRoot" && npm run build)
-  '';
+  preBuild =
+    let
+      buildTarget = stdenv.buildPlatform.rust.rustcTarget;
+      buildTargetUnderscore = lib.replaceString "-" "_" buildTarget;
+    in
+    ''
+      make -C policies
+      (cd "$pnpmRoot" && npm run build)
 
-  # Adopted from https://github.com/matrix-org/matrix-authentication-service/blob/main/Dockerfile
+      # Fix aws-lc-sys cross-compilation
+      export CC_${buildTargetUnderscore}=$CC_FOR_BUILD
+      export CXX_${buildTargetUnderscore}=$CXX_FOR_BUILD
+    '';
+
+  # Adapted from https://github.com/element-hq/matrix-authentication-service/blob/v0.20.0/.github/workflows/build.yaml#L75-L84
   postInstall = ''
     install -Dm444 -t "$out/share/$pname"        "policies/policy.wasm"
-    install -Dm444 -t "$out/share/$pname/assets" "$npmRoot/dist/"*
+    install -Dm444 -t "$out/share/$pname"        "$pnpmRoot/dist/manifest.json"
+    install -Dm444 -t "$out/share/$pname/assets" "$pnpmRoot/dist/"*
     cp -r templates   "$out/share/$pname/templates"
     cp -r translations   "$out/share/$pname/translations"
   '';
 
-  meta = with lib; {
+  nativeInstallCheckInputs = [ versionCheckHook ];
+  doInstallCheck = true;
+  passthru = {
+    tests = { inherit (nixosTests) matrix-authentication-service; };
+    updateScript = nix-update-script {
+      extraArgs = [
+        # avoid unstable pre‐releases
+        "--version-regex"
+        "^v([0-9.]+)$"
+      ];
+    };
+  };
+
+  meta = {
     description = "OAuth2.0 + OpenID Provider for Matrix Homeservers";
-    homepage = "https://github.com/matrix-org/matrix-authentication-service";
-    changelog = "https://github.com/matrix-org/matrix-authentication-service/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ teutat3s ];
+    homepage = "https://github.com/element-hq/matrix-authentication-service";
+    changelog = "https://github.com/element-hq/matrix-authentication-service/releases/tag/v${finalAttrs.version}";
+    license = lib.licenses.agpl3Only;
+    teams = [ lib.teams.matrix ];
     mainProgram = "mas-cli";
   };
-}
+})

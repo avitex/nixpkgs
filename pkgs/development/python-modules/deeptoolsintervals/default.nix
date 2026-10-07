@@ -1,29 +1,39 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytest
-, zlib
-, xz
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  pytest,
+  zlib,
+  xz,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "deeptoolsintervals";
   version = "0.1.9";
-  format = "setuptools";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
-    sha256 = "1xnl80nblysj6dylj4683wgrfa425rkx4dp5k65hvwdns9pw753x";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-fZTDb9K28Q2LmeU20mcugiiXHx/IEEl9M1J7uixA1PY=";
   };
 
-  buildInputs = [ zlib xz ];
+  build-system = [ setuptools ];
+
+  buildInputs = [
+    zlib
+    xz
+  ];
 
   nativeCheckInputs = [ pytest ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "deeptoolsintervals" ];
+
+  meta = {
     homepage = "https://deeptools.readthedocs.io/en/develop";
     description = "Helper library for deeptools";
-    license = licenses.mit;
-    maintainers = with maintainers; [ scalavision ];
+    license = lib.licenses.mit;
   };
-}
+})

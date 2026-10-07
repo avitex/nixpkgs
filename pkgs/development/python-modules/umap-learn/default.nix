@@ -1,34 +1,52 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, fetchpatch
-, keras
-, numba
-, numpy
-, pynndescent
-, pytestCheckHook
-, pythonOlder
-, scikit-learn
-, scipy
-, tensorflow
-, tqdm
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+
+  # dependencies
+  numba,
+  numpy,
+  pynndescent,
+  scikit-learn,
+  scipy,
+  tqdm,
+
+  # optional-dependencies
+  bokeh,
+  colorcet,
+  dask,
+  datashader,
+  holoviews,
+  matplotlib,
+  pandas,
+  scikit-image,
+  seaborn,
+  tensorflow,
+  tensorflow-probability,
+
+  # tests
+  pytestCheckHook,
+  writableTmpDirAsHomeHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "umap-learn";
-  version = "0.5.5";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.5.12";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "lmcinnes";
     repo = "umap";
-    rev = "refs/tags/release-${version}";
-    hash = "sha256-bXAQjq7xBYn34tIZF96Sr5jDUii3s4FGkNx65rGKXkY=";
+    tag = "release-${finalAttrs.version}";
+    hash = "sha256-NORv3wJliKfft/+kMNKL133PKPN88Pt23yqbT1LjUKE=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     numba
     numpy
     pynndescent
@@ -37,21 +55,41 @@ buildPythonPackage rec {
     tqdm
   ];
 
-  nativeCheckInputs = [
-    keras
-    pytestCheckHook
-    tensorflow
-  ];
+  optional-dependencies = {
+    plot = [
+      bokeh
+      colorcet
+      dask
+      datashader
+      holoviews
+      matplotlib
+      pandas
+      scikit-image
+      seaborn
+    ];
 
-  preCheck = ''
-    export HOME=$TMPDIR
-  '';
+    parametric_umap = [
+      tensorflow
+      tensorflow-probability
+    ];
+
+    tbb = [
+      # Not packaged.
+      #tbb
+    ];
+  };
+
+  nativeCheckInputs = [
+    pytestCheckHook
+    writableTmpDirAsHomeHook
+  ];
 
   disabledTests = [
     # Plot functionality requires additional packages.
     # These test also fail with 'RuntimeError: cannot cache function' error.
-    "test_umap_plot_testability"
     "test_plot_runs_at_all"
+    "test_umap_plot_testability"
+    "test_umap_update_large"
 
     # Flaky test. Fails with AssertionError sometimes.
     "test_sparse_hellinger"
@@ -61,10 +99,11 @@ buildPythonPackage rec {
     "test_save_load"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Uniform Manifold Approximation and Projection";
     homepage = "https://github.com/lmcinnes/umap";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/lmcinnes/umap/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
-}
+})

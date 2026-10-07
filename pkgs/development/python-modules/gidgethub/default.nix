@@ -1,35 +1,31 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, flit
-, uritemplate
-, pyjwt
-, pytestCheckHook
-, aiohttp
-, httpx
-, importlib-resources
-, pytest-asyncio
-, pytest-tornasync
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  flit-core,
+  uritemplate,
+  pyjwt,
+  pytestCheckHook,
+  aiohttp,
+  httpx,
+  importlib-resources,
+  pytest-asyncio,
+  pytest-tornasync,
 }:
 
 buildPythonPackage rec {
   pname = "gidgethub";
-  version = "5.3.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.6";
+  version = "5.4.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-ns59N/vOuBm4BWDn7Vj5NuSKZdN+xfVtt5FFFWtCaiU=";
+    hash = "sha256-dHDXcj18F0NHGi1i55yHUvuhKxwJcuS61XJSM4pQHb0=";
   };
 
-  nativeBuildInputs = [
-    flit
-  ];
+  build-system = [ flit-core ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     uritemplate
     pyjwt
   ]
@@ -50,10 +46,10 @@ buildPythonPackage rec {
     "test_get"
   ];
 
-  meta = with lib; {
-    description = "An async GitHub API library";
+  meta = {
+    description = "Async GitHub API library";
     homepage = "https://github.com/brettcannon/gidgethub";
-    license = licenses.asl20;
+    license = lib.licenses.asl20;
     maintainers = [ ];
   };
 }

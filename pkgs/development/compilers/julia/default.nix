@@ -1,61 +1,163 @@
-{ callPackage }:
+{
+  stdenv,
+  lib,
+  callPackage,
+  fetchpatch2,
+  gcc14Stdenv,
+  gfortran14,
+}:
 
 let
   juliaWithPackages = callPackage ../../julia-modules { };
 
-  wrapJulia = julia: julia.overrideAttrs (oldAttrs: {
-    passthru = (oldAttrs.passthru or { }) // {
-      withPackages = juliaWithPackages.override { inherit julia; };
-    };
-  });
+  wrapJulia =
+    julia:
+    julia.overrideAttrs (oldAttrs: {
+      passthru = (oldAttrs.passthru or { }) // {
+        withPackages = juliaWithPackages.override { inherit julia; };
+      };
+    });
 
 in
 
 {
-  julia_16-bin = wrapJulia (callPackage ./1.6-bin.nix { });
-  julia_19-bin = wrapJulia (callPackage
-    (import ./generic-bin.nix {
-      version = "1.9.4";
+  julia_110-bin = wrapJulia (
+    callPackage (import ./generic-bin.nix {
+      version = "1.10.12";
       sha256 = {
-        x86_64-linux = "07d20c4c2518833e2265ca0acee15b355463361aa4efdab858dad826cf94325c";
-        aarch64-linux = "541d0c5a9378f8d2fc384bb8595fc6ffe20d61054629a6e314fb2f8dfe2f2ade";
-        x86_64-darwin = "67eec264f6afc9e9bf72c0f62c84d91c2ebdfaed6a0aa11606e3c983d278b441";
-        aarch64-darwin = "67542975e86102eec95bc4bb7c30c5d8c7ea9f9a0b388f0e10f546945363b01a";
+        x86_64-linux = "03dw4zykf09wnzc7mm8yv6k8hfb2pv0f090db34gyxlx6kz0vidh";
+        aarch64-linux = "18p5h0h00320rfc3yhjgp9z4f5xfgpzimphpzqmn8jbhjqhpn9fc";
+        aarch64-darwin = "0gvqmdnqgs2gv72zsnnppfhbsj7qynvimll9hm4nvm905bp2mcak";
       };
-      patches = [
-        # https://github.com/JuliaLang/julia/commit/f5eeba35d9bf20de251bb9160cc935c71e8b19ba
-        ./patches/1.9-bin/0001-allow-skipping-internet-required-tests.patch
-      ];
-    })
-    { });
-  julia_110-bin = wrapJulia (callPackage
-    (import ./generic-bin.nix {
-      version = "1.10.0";
+    }) { }
+  );
+  julia_111-bin = wrapJulia (
+    callPackage (import ./generic-bin.nix {
+      version = "1.11.9";
       sha256 = {
-        x86_64-linux = "a7298207f72f2b27b2ab1ce392a6ea37afbd1fbee0f1f8d190b054dcaba878fe";
-        aarch64-linux = "048d96b4398efd524e94be3f49e8829cf6b30c8f3f4b46c75751a4679635e45b";
-        x86_64-darwin = "eb1cdf2d373ee40412e8f5ee6b4681916f1ead6d794883903619c7bf147d4f46";
-        aarch64-darwin = "dc4ca01b1294c02d47b33ef26d489dc288ac68655a03774870c6872b82a9a7d6";
+        x86_64-linux = "0dfy4wlrz6jbs7kd9r0bjk9d6sqgf4fakrxrnzwfl1bsdlsn6qxk";
+        aarch64-linux = "0gk2zxkwz2yyg3im23jpgaxzixchyywm19nbh51szmniah31y1x2";
+        aarch64-darwin = "1mrvycjlxs225sspdvvq4qbay1riyyjzqjs1d0xgqdkh6c6kv47d";
       };
-    })
-    { });
-  julia_19 = wrapJulia (callPackage
-    (import ./generic.nix {
-      version = "1.9.4";
-      hash = "sha256-YYQ7lkf9BtOymU8yd6ZN4ctaWlKX2TC4yOO8DpN0ACQ=";
-      patches = [
-        ./patches/1.9/0002-skip-failing-and-flaky-tests.patch
-      ];
-    })
-    { });
-  julia_110 = wrapJulia (callPackage
-    (import ./generic.nix {
-      version = "1.10.0";
-      hash = "sha256-pfjAzgjPEyvdkZygtbOytmyJ4OX35/sqgf+n8iXj20w=";
-      patches = [
-        ./patches/1.10/0001-skip-building-docs-as-it-requires-network-access.patch
-        ./patches/1.10/0002-skip-failing-and-flaky-tests.patch
-      ];
-    })
-    { });
+    }) { }
+  );
+  julia_112-bin = wrapJulia (
+    callPackage (import ./generic-bin.nix {
+      version = "1.12.7";
+      sha256 = {
+        x86_64-linux = "1s39x8l6rgp6jw3b4bj3phaszm5h77g7rrhd4lslililcrvrwzjf";
+        aarch64-linux = "1whyfcdf7bncz2n1ixxzf3h30slildgfx8a06a401wy74jsw0hwj";
+        aarch64-darwin = "06b9r4a6zddqr1cg9cv206zmjbdaiz1rb5nr2f69qssvnbgwx3xg";
+      };
+    }) { }
+  );
+  julia_113-bin = wrapJulia (
+    callPackage (import ./generic-bin.nix {
+      version = "1.13.1";
+      sha256 = {
+        x86_64-linux = "0209grj6fn7yjs021rc99cwxza7p2abcv2fh263jq2m6vv41hbhg";
+        aarch64-linux = "1q2wxknfsh681qfsm9dbk4xc49r6qn1m2yd85wffld27w9i1hd3q";
+        aarch64-darwin = "0zqgkb294y2ih643z4fbil229hf6nvak98fbq9vbghkp8yfjbq53";
+      };
+    }) { }
+  );
+  julia_110 = wrapJulia (
+    callPackage
+      (import ./generic.nix {
+        version = "1.10.12";
+        hash = "sha256-KIFenIPyMWflO9SnnAhea5VHrigIrLI0FatcVYqFzuw=";
+        patches = [
+          # Revert https://github.com/JuliaLang/julia/pull/55354
+          # [build] Some improvements to the LLVM build system
+          # Related: https://github.com/JuliaLang/julia/issues/55617
+          (fetchpatch2 {
+            url = "https://github.com/JuliaLang/julia/commit/0be37db8c5b5a440bd9a11960ae9c998027b7337.patch";
+            revert = true;
+            hash = "sha256-gXC3LE3AuHMlSdA4dW+rbAhJpSB6ZMaz9X1qrHDPX7Y=";
+          })
+          # stackwalk: derive glibc longjmp pointer mangling
+          # https://github.com/JuliaLang/julia/pull/62775
+          # Probably not needed after the next release on this branch (1.10.13+)
+          (fetchpatch2 {
+            url = "https://github.com/JuliaLang/julia/commit/cf08907c8fc7ffc64dc664e2dd7469707824b601.patch?full_index=1";
+            hash = "sha256-1Dq5gEo+MiBoIZq8xBHNONwDrwLLQ3Yr6qQh6EJKCCQ=";
+          })
+        ];
+      })
+      {
+        stdenv = gcc14Stdenv;
+        gfortran = gfortran14;
+      }
+  );
+  julia_111 = wrapJulia (
+    callPackage
+      (import ./generic.nix {
+        version = "1.11.9";
+        hash = "sha256-SX5jIfJfxQQfP2P5sCGtglFn+GZlOIyHgnQ3qrr8GSI=";
+        patches = [
+          # stackwalk: derive glibc longjmp pointer mangling
+          # https://github.com/JuliaLang/julia/pull/62776
+          # Probably not needed after the next release on this branch (1.11.10+)
+          (fetchpatch2 {
+            url = "https://github.com/JuliaLang/julia/commit/6144379071697e734d374530c412e6ae3cd4715b.patch?full_index=1";
+            hash = "sha256-BUNCMrduKBQtcovTCvhGKV1+liFkR1V+eKBgYT8bHkE=";
+          })
+        ];
+      })
+      {
+        stdenv = gcc14Stdenv;
+        gfortran = gfortran14;
+      }
+  );
+  julia_112 = wrapJulia (
+    callPackage
+      (import ./generic.nix {
+        version = "1.12.7";
+        hash = "sha256-XH2Ft3HeMYXuyp+8LmFz2Lz2109oQYYiqenEOtdSr1E=";
+        patches = [
+          # stackwalk: derive glibc longjmp pointer mangling
+          # https://github.com/JuliaLang/julia/pull/62777
+          # Probably not needed after the next release on this branch (1.12.8+)
+          (fetchpatch2 {
+            url = "https://github.com/JuliaLang/julia/commit/3e2d8ff4d016f425a894113b7b77cc3b9dcb1cec.patch?full_index=1";
+            hash = "sha256-R5H8Y/jksfo0HF9AzxQaEHWBYX8N7zZjzd5wFsrv4D0=";
+          })
+        ]
+        ++ lib.optionals stdenv.hostPlatform.isDarwin [
+          ./patches/1.12/0001-zlib-rpath.patch
+          ./patches/1.12/0002-lbt-blas-detection.patch
+        ];
+      })
+      (
+        if stdenv.cc.isGNU then
+          {
+            stdenv = gcc14Stdenv;
+            gfortran = gfortran14;
+          }
+        else
+          { }
+      )
+  );
+  julia_113 = wrapJulia (
+    callPackage
+      (import ./generic.nix {
+        version = "1.13.1";
+        hash = "sha256-HCAGvO16H4tsklmO9lt7JPx0rqrcU1NaReTGGXABBXw=";
+        patches = [
+          # Upstream only sets CMAKE_BUILD_RPATH on Darwin (JuliaLang/julia#63103).
+          # On Linux in the Nix sandbox, intermediate build tools like llvm-min-tblgen
+          # need build_shlibdir in RPATH to find bundled libz/libzstd during LLVM compilation.
+          ./patches/1.13/0001-llvm-zlib-rpath.patch
+        ];
+      })
+      (
+        if stdenv.cc.isGNU then
+          {
+            stdenv = gcc14Stdenv;
+            gfortran = gfortran14;
+          }
+        else
+          { }
+      )
+  );
 }

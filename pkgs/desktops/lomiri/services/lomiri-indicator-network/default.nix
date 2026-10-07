@@ -1,104 +1,99 @@
-{ stdenv
-, lib
-, fetchFromGitLab
-, fetchpatch
-, gitUpdater
-, nixosTests
-, testers
-, cmake
-, cmake-extras
-, coreutils
-, dbus
-, doxygen
-, gettext
-, glib
-, gmenuharness
-, gtest
-, intltool
-, libsecret
-, libqofono
-, libqtdbusmock
-, libqtdbustest
-, lomiri-api
-, lomiri-url-dispatcher
-, networkmanager
-, ofono
-, pkg-config
-, python3
-, qtdeclarative
-, qtbase
+{
+  stdenv,
+  lib,
+  fetchFromGitLab,
+  gitUpdater,
+  nixosTests,
+  testers,
+  cmake,
+  cmake-extras,
+  coreutils,
+  dbus,
+  doxygen,
+  gettext,
+  glib,
+  gmenuharness ? null, # not ported to Qt6 yet
+  gtest,
+  intltool,
+  libsecret,
+  libqofono ? null, # not ported to Qt6 yet
+  libqtdbusmock,
+  libqtdbustest,
+  lomiri-api,
+  lomiri-url-dispatcher,
+  networkmanager,
+  ofono,
+  pkg-config,
+  python3,
+  qtbase,
+  qtdeclarative,
+  qttools,
+  validatePkgConfig,
 }:
 
+let
+  withQt6 = lib.strings.versionAtLeast qtbase.version "6";
+in
 stdenv.mkDerivation (finalAttrs: {
   pname = "lomiri-indicator-network";
-  version = "1.0.1";
+  version = "1.2.0";
 
   src = fetchFromGitLab {
     owner = "ubports";
     repo = "development/core/lomiri-indicator-network";
-    rev = finalAttrs.version;
-    hash = "sha256-rJKWhW082ndVPEQHjuSriKtl0zQw86adxiINkZQq1hY=";
+    tag = finalAttrs.version;
+    hash = "sha256-BbG48sWlpcaSC0HTDcY+zbzi1O983FzzJ7B1oSlJrGg=";
   };
 
   outputs = [
     "out"
     "dev"
+  ]
+  ++ lib.optionals (!withQt6) [
     "doc"
   ];
 
-  patches = [
-    # Remove when version > 1.0.1
-    (fetchpatch {
-      name = "0001-lomiri-indicator-network-Make-less-assumptions-about-where-files-will-end-up.patch";
-      url = "https://gitlab.com/ubports/development/core/lomiri-indicator-network/-/commit/065212b22ab9aa8d25a61b5482ad6511e4c8510b.patch";
-      hash = "sha256-WrDTBKusK1808W8LZRGWaTOExu7gKpYBvkQ8hzoHoHk=";
-    })
-
-    # Remove when version > 1.0.1
-    (fetchpatch {
-      name = "0002-lomiri-indicator-network-Honour-CMAKE_INSTALL_DOCDIR_fordocumentation-installation.patch";
-      url = "https://gitlab.com/ubports/development/core/lomiri-indicator-network/-/commit/79b9e12313f765ab6e95b4d4dfefbdbca50ef3c6.patch";
-      hash = "sha256-vRfdegEi892UlrC9c1+5Td7CHLh7u0foPggLNBfc8lw=";
-    })
-  ];
-
   postPatch = ''
-    # Queried via pkg-config, would need to override a prefix variable
-    # Needs CMake 3.28 or higher to do as part of the call, https://github.com/NixOS/nixpkgs/pull/275284
+    # Override original prefixes
     substituteInPlace data/CMakeLists.txt \
-      --replace 'pkg_get_variable(DBUS_SESSION_BUS_SERVICES_DIR dbus-1 session_bus_services_dir)' 'set(DBUS_SESSION_BUS_SERVICES_DIR "''${CMAKE_INSTALL_SYSCONFDIR}/dbus-1/services")' \
-      --replace 'pkg_get_variable(SYSTEMD_USER_DIR systemd systemduserunitdir)' 'set(SYSTEMD_USER_DIR "''${CMAKE_INSTALL_PREFIX}/lib/systemd/user")'
+      --replace-fail 'pkg_get_variable(DBUS_SESSION_BUS_SERVICES_DIR dbus-1 session_bus_services_dir)' 'pkg_get_variable(DBUS_SESSION_BUS_SERVICES_DIR dbus-1 session_bus_services_dir DEFINE_VARIABLES datadir=''${CMAKE_INSTALL_FULL_SYSCONFDIR})' \
+      --replace-fail 'pkg_get_variable(SYSTEMD_USER_DIR systemd systemduserunitdir)' 'pkg_get_variable(SYSTEMD_USER_DIR systemd systemduserunitdir DEFINE_VARIABLES prefix=''${CMAKE_INSTALL_PREFIX})'
   '';
 
   strictDeps = true;
 
   nativeBuildInputs = [
     cmake
-    doxygen
     gettext
-    intltool
     pkg-config
     qtdeclarative
+    validatePkgConfig
+  ]
+  ++ lib.optionals (!withQt6) [
+    doxygen
+    intltool
+    qttools # qdoc
   ];
 
   buildInputs = [
     cmake-extras
+    lomiri-api
+    qtbase
+  ]
+  ++ lib.optionals withQt6 [
+    qtdeclarative
+  ]
+  ++ lib.optionals (!withQt6) [
     dbus
     glib
     libqofono
     libsecret
-    lomiri-api
     lomiri-url-dispatcher
     networkmanager
     ofono
-    qtbase
   ];
 
-  nativeCheckInputs = [
-    (python3.withPackages (ps: with ps; [
-      python-dbusmock
-    ]))
-  ];
+  nativeCheckInputs = [ (python3.withPackages (ps: with ps; [ python-dbusmock ])) ];
 
   checkInputs = [
     gmenuharness
@@ -110,39 +105,56 @@ stdenv.mkDerivation (finalAttrs: {
   dontWrapQtApps = true;
 
   cmakeFlags = [
-    (lib.cmakeBool "GSETTINGS_LOCALINSTALL" true)
-    (lib.cmakeBool "GSETTINGS_COMPILE" true)
-    (lib.cmakeBool "ENABLE_TESTS" finalAttrs.doCheck)
-    (lib.cmakeBool "ENABLE_UBUNTU_COMPAT" true) # just in case something needs it
-    (lib.cmakeBool "BUILD_DOC" true) # lacks QML docs, needs qdoc: https://github.com/NixOS/nixpkgs/pull/245379
+    (lib.cmakeBool "BUILD_DOC" (!withQt6))
+    # Indicator is not ported to Qt6 yet
+    (lib.cmakeBool "BUILD_LIBCONNECTIVITY_ONLY" withQt6)
+    (lib.cmakeBool "ENABLE_COVERAGE" false)
+    (lib.cmakeBool "ENABLE_QT6" withQt6)
+    (lib.cmakeBool "ENABLE_TESTS" finalAttrs.finalPackage.doCheck)
+    (lib.cmakeBool "ENABLE_UBUNTU_COMPAT" (!withQt6))
+    (lib.cmakeBool "GSETTINGS_COMPILE" (!withQt6))
+    (lib.cmakeBool "GSETTINGS_LOCALINSTALL" (!withQt6))
+    (lib.cmakeBool "USE_SYSTEMD" (!withQt6))
   ];
 
-  doCheck = stdenv.buildPlatform.canExecute stdenv.hostPlatform;
+  doCheck =
+    stdenv.buildPlatform.canExecute stdenv.hostPlatform
+    # Indicator is not ported to Qt6 yet, tests only cover indicator
+    && !withQt6;
 
-  postInstall = ''
+  # Multiple tests spin up & speak to D-Bus, avoid cross-talk causing failures
+  enableParallelChecking = false;
+
+  postInstall = lib.optionalString (!withQt6) ''
     substituteInPlace $out/etc/dbus-1/services/com.lomiri.connectivity1.service \
-      --replace '/bin/false' '${lib.getExe' coreutils "false"}'
+      --replace-fail '/bin/false' '${lib.getExe' coreutils "false"}'
   '';
 
   passthru = {
-    ayatana-indicators = [
-      "lomiri-indicator-network"
-    ];
     tests = {
       pkg-config = testers.testMetaPkgConfig finalAttrs.finalPackage;
-      vm = nixosTests.ayatana-indicators;
+    }
+    // lib.optionalAttrs (!withQt6) {
+      startup = nixosTests.ayatana-indicators;
+      lomiri = nixosTests.lomiri.desktop-ayatana-indicator-network;
     };
     updateScript = gitUpdater { };
+  }
+  // lib.optionalAttrs (!withQt6) {
+    ayatana-indicators = {
+      lomiri-indicator-network = [ "lomiri" ];
+    };
   };
 
-  meta = with lib; {
+  meta = {
     description = "Ayatana indiator exporting the network settings menu through D-Bus";
     homepage = "https://gitlab.com/ubports/development/core/lomiri-indicator-network";
-    license = licenses.gpl3Only;
-    maintainers = teams.lomiri.members;
-    platforms = platforms.linux;
-    pkgConfigModules = [
-      "lomiri-connectivity-qt1"
-    ];
+    changelog = "https://gitlab.com/ubports/development/core/lomiri-indicator-network/-/blob/${
+      if (!isNull finalAttrs.src.tag) then finalAttrs.src.tag else finalAttrs.src.rev
+    }/ChangeLog";
+    license = lib.licenses.gpl3Only;
+    teams = [ lib.teams.lomiri ];
+    platforms = lib.platforms.linux;
+    pkgConfigModules = [ "lomiri-connectivity-qt${if withQt6 then "6" else "1"}" ];
   };
 })

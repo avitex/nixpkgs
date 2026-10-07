@@ -1,37 +1,40 @@
-{ lib
-, boto3
-, buildPythonPackage
-, envs
-, fetchFromGitHub
-, isPy27
-, freezegun
-, mock
-, moto
-, pytestCheckHook
-, python-jose
-, requests
-, requests-mock
+{
+  lib,
+  boto3,
+  buildPythonPackage,
+  envs,
+  fetchFromGitHub,
+  freezegun,
+  mock,
+  moto,
+  pyjwt,
+  pytestCheckHook,
+  requests,
+  requests-mock,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "pycognito";
-  version = "2023.5.0";
-  format = "setuptools";
-  disabled = isPy27;
+  version = "2024.5.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "pvizeli";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-2Aqid2bd5BAnWQ+Wtji0zXjLAmSpyJNGqJ0VroGi6lY=";
+    repo = "pycognito";
+    tag = version;
+    hash = "sha256-U23fFLru4j6GnWMcYtsCW9BVJkVcCoefPH6oMijYGew=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     boto3
     envs
-    python-jose
+    pyjwt
     requests
-  ];
+  ]
+  ++ pyjwt.optional-dependencies.crypto;
 
   nativeCheckInputs = [
     freezegun
@@ -39,26 +42,23 @@ buildPythonPackage rec {
     moto
     pytestCheckHook
     requests-mock
-  ];
+  ]
+  ++ moto.optional-dependencies.cognitoidp;
 
-  postPatch = ''
-    substituteInPlace setup.py \
-      --replace 'python-jose[cryptography]' 'python-jose'
-  '';
-
-  pytestFlagsArray = [ "tests.py" ];
+  enabledTestPaths = [ "tests.py" ];
 
   disabledTests = [
-    # requires network access
+    # Test requires network access
     "test_srp_requests_http_auth"
   ];
 
   pythonImportsCheck = [ "pycognito" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python class to integrate Boto3's Cognito client so it is easy to login users. With SRP support";
     homepage = "https://github.com/pvizeli/pycognito";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ mic92 ];
+    changelog = "https://github.com/NabuCasa/pycognito/releases/tag/${version}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ mic92 ];
   };
 }

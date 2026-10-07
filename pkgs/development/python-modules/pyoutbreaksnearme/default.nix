@@ -1,16 +1,16 @@
-{ lib
-, aiohttp
-, aresponses
-, buildPythonPackage
-, certifi
-, fetchFromGitHub
-, poetry-core
-, pytest-asyncio
-, pytest-aiohttp
-, pytestCheckHook
-, pythonOlder
-, ujson
-, yarl
+{
+  lib,
+  aiohttp,
+  aresponses,
+  buildPythonPackage,
+  certifi,
+  fetchFromGitHub,
+  poetry-core,
+  pytest-asyncio,
+  pytest-aiohttp,
+  pytestCheckHook,
+  ujson,
+  yarl,
 }:
 
 buildPythonPackage rec {
@@ -18,18 +18,14 @@ buildPythonPackage rec {
   version = "2023.12.0";
   pyproject = true;
 
-  disabled = pythonOlder "3.10";
-
   src = fetchFromGitHub {
     owner = "bachya";
     repo = "pyoutbreaksnearme";
-    rev = "refs/tags/${version}";
+    tag = version;
     hash = "sha256-oR/DApOxNSSczrBeH4sytd/vasbD4rA1poW4zNoeAnU=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  nativeBuildInputs = [ poetry-core ];
 
   propagatedBuildInputs = [
     aiohttp
@@ -52,15 +48,13 @@ buildPythonPackage rec {
     "examples/"
   ];
 
-  pythonImportsCheck = [
-    "pyoutbreaksnearme"
-  ];
+  pythonImportsCheck = [ "pyoutbreaksnearme" ];
 
-  meta = with lib; {
+  meta = {
     description = "Library for retrieving data from for Outbreaks Near Me";
     homepage = "https://github.com/bachya/pyoutbreaksnearme";
     changelog = "https://github.com/bachya/pyoutbreaksnearme/releases/tag/${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

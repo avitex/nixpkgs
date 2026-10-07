@@ -1,9 +1,17 @@
-{ lib, stdenv, fetchurl, fetchzip, perl, ncurses
+{
+  lib,
+  stdenv,
+  fetchurl,
+  fetchzip,
+  perl,
+  ncurses,
 
   # for tests
-, aspell, glibc, runCommand
+  aspell,
+  glibc,
+  runCommand,
 
-, searchNixProfiles ? true
+  searchNixProfiles ? true,
 }:
 
 let
@@ -20,11 +28,11 @@ in
 
 stdenv.mkDerivation rec {
   pname = "aspell";
-  version = "0.60.8.1";
+  version = "0.60.8.2";
 
   src = fetchurl {
     url = "mirror://gnu/aspell/aspell-${version}.tar.gz";
-    hash = "sha256-1toSs01C1Ff6YE5DWtSEp0su/80SD/QKzWuz+yiH0hs=";
+    hash = "sha256-V/5IY+rmBI9yJFqFdbRLcY+4XKFLn4wK/EGyVN/XaRk=";
   };
 
   patches = lib.optional searchNixProfiles ./data-dirs-from-nix-profiles.patch;
@@ -34,7 +42,10 @@ stdenv.mkDerivation rec {
   '';
 
   nativeBuildInputs = [ perl ];
-  buildInputs = [ ncurses perl ];
+  buildInputs = [
+    ncurses
+    perl
+  ];
 
   doCheck = true;
 
@@ -53,16 +64,19 @@ stdenv.mkDerivation rec {
   '';
 
   passthru.tests = {
-    uses-curses = runCommand "${pname}-curses" {
-      buildInputs = [ glibc ];
-    } ''
-      if ! ldd ${aspell}/bin/aspell | grep -q ${ncurses}
-      then
-        echo "Test failure: It does not look like aspell picked up the curses dependency."
-        exit 1
-      fi
-      touch $out
-    '';
+    uses-curses =
+      runCommand "aspell-curses"
+        {
+          buildInputs = [ glibc ];
+        }
+        ''
+          if ! ldd ${aspell}/bin/aspell | grep -q ${ncurses}
+          then
+            echo "Test failure: It does not look like aspell picked up the curses dependency."
+            exit 1
+          fi
+          touch $out
+        '';
   };
 
   meta = {

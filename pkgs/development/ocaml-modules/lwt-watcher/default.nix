@@ -1,20 +1,19 @@
-{ lib
-, fetchFromGitLab
-, buildDunePackage
-, lwt
+{
+  lib,
+  fetchFromGitLab,
+  buildDunePackage,
+  lwt,
 }:
 
-buildDunePackage rec {
+buildDunePackage (finalAttrs: {
   pname = "lwt-watcher";
   version = "0.2";
   src = fetchFromGitLab {
     owner = "nomadic-labs";
-    repo = pname;
-    rev = "v${version}";
-    sha256 = "sha256-35Z73bSzEEgTabNH2cD9lRdDczsyIMZR2ktyKx4aN9k=";
+    repo = "lwt-watcher";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-35Z73bSzEEgTabNH2cD9lRdDczsyIMZR2ktyKx4aN9k=";
   };
-
-  useDune2 = true;
 
   propagatedBuildInputs = [
     lwt
@@ -24,7 +23,8 @@ buildDunePackage rec {
 
   meta = {
     description = "One-to-many broadcast in Lwt";
+    homepage = "https://gitlab.com/nomadic-labs/lwt-watcher";
     license = lib.licenses.mit;
     maintainers = [ lib.maintainers.ulrikstrid ];
   };
-}
+})

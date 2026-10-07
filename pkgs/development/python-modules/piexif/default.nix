@@ -1,4 +1,10 @@
-{ lib, buildPythonPackage, fetchFromGitHub, fetchpatch, pillow }:
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fetchpatch,
+  pillow,
+}:
 
 buildPythonPackage rec {
   pname = "piexif";
@@ -24,10 +30,10 @@ buildPythonPackage rec {
   # Pillow needed for unit tests
   nativeCheckInputs = [ pillow ];
 
-  meta = with lib; {
+  meta = {
     description = "Simplify Exif manipulations with Python";
     homepage = "https://github.com/hMatoba/Piexif";
-    license = licenses.mit;
-    maintainers = with maintainers; [ jluttine ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ jluttine ];
   };
 }

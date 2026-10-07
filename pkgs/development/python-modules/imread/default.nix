@@ -1,36 +1,62 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, nose
-, pkg-config
-, libjpeg
-, libpng
-, libtiff
-, libwebp
-, numpy
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pytestCheckHook,
+  pkg-config,
+  setuptools,
+  libjpeg,
+  libpng,
+  libtiff,
+  libwebp,
+  numpy,
 }:
 
 buildPythonPackage rec {
-  pname = "python-imread";
-  version = "0.7.5";
+  pname = "imread";
+  version = "0.7.6";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit version;
-    pname = "imread";
-    sha256 = "sha256-GiWpA128GuLlbBW1CQQHHVVeoZfu9Yyh2RFzSdtHDbc=";
+    inherit pname version;
+    hash = "sha256-ULPXCJyGJQTCKyVu9R/kWFGzRhbbFMDr/FU2AByZYBU=";
   };
 
+  build-system = [ setuptools ];
 
   nativeBuildInputs = [ pkg-config ];
-  buildInputs = [ nose libjpeg libpng libtiff libwebp ];
-  propagatedBuildInputs = [ numpy ];
 
-  meta = with lib; {
+  buildInputs = [
+    libjpeg
+    libpng
+    libtiff
+    libwebp
+  ];
+
+  dependencies = [ numpy ];
+
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  pytestFlags = [
+    # verbose build outputs needed to debug hard-to-reproduce hydra failures
+    "-v"
+    "--pyargs"
+    "imread"
+  ];
+
+  pythonImportsCheck = [ "imread" ];
+
+  preCheck = ''
+    cd $TMPDIR
+    export HOME=$TMPDIR
+  '';
+
+  meta = {
     description = "Python package to load images as numpy arrays";
-    homepage = "https://imread.readthedocs.io/en/latest/";
-    maintainers = with maintainers; [ luispedro ];
-    license = licenses.mit;
-    platforms = platforms.unix;
+    homepage = "https://imread.readthedocs.io/";
+    changelog = "https://github.com/luispedro/imread/blob/v${version}/ChangeLog";
+    maintainers = with lib.maintainers; [ luispedro ];
+    license = lib.licenses.mit;
+    platforms = lib.platforms.unix;
   };
-
 }

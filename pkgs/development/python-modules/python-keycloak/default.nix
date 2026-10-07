@@ -1,56 +1,76 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, python-jose
-, pythonOlder
-, requests
-, requests-toolbelt
-, urllib3
+{
+  lib,
+  aiofiles,
+  buildPythonPackage,
+  deprecation,
+  fetchFromGitHub,
+  httpx,
+  jwcrypto,
+  poetry-core,
+  requests,
+  requests-toolbelt,
+  freezegun,
+  pytest-asyncio,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "python-keycloak";
-  version = "2.6.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "7.1.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "marcospereirampj";
     repo = "python-keycloak";
-    rev = "v${version}";
-    hash = "sha256-cuj0gJlZDkbJ2HRSMcQvO4nxpjw65CKGEpWCL5sucvg=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-3BrXSktN0OYQJRRZ234z06pGHicJOIBUzSdMd6y95L4=";
   };
 
   postPatch = ''
+    # Upstream doesn't set version
     substituteInPlace pyproject.toml \
-      --replace 'version = "0.0.0"' 'version = "${version}"' \
-      --replace 'requests-toolbelt = "^0.9.1"' 'requests-toolbelt = "*"'
+      --replace-fail 'version = "0.0.0"' 'version = "${finalAttrs.version}"'
   '';
 
-  buildInputs = [
-    poetry-core
-  ];
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
-    python-jose
-    urllib3
+  dependencies = [
+    aiofiles
+    deprecation
+    httpx
+    jwcrypto
     requests
     requests-toolbelt
   ];
 
-  # Test fixtures require a running keycloak instance
-  doCheck = false;
-
-  pythonImportsCheck = [
-    "keycloak"
+  nativeCheckInputs = [
+    freezegun
+    pytest-asyncio
+    pytestCheckHook
   ];
 
-  meta = with lib; {
+  # conftest.py requires these variables to be set,
+  # even if the respective tests are disabled
+  preCheck = ''
+    export KEYCLOAK_{HOST,PORT,ADMIN{,_PASSWORD}}=
+  '';
+
+  disabledTestPaths = [
+    # these tests require a running keycloak instance
+    "tests/test_keycloak_openid.py"
+    "tests/test_keycloak_admin.py"
+    "tests/test_keycloak_uma.py"
+    # requires docker
+    "tests/test_pkce_flow.py"
+  ];
+
+  pythonImportsCheck = [ "keycloak" ];
+
+  meta = {
     description = "Provides access to the Keycloak API";
     homepage = "https://github.com/marcospereirampj/python-keycloak";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/marcospereirampj/python-keycloak/blob/${finalAttrs.src.rev}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
-}
+})

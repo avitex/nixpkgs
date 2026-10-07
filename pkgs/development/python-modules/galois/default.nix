@@ -1,36 +1,35 @@
-{ lib
-, buildPythonPackage
-, setuptools-scm
-, pythonOlder
-, pythonRelaxDepsHook
-, fetchFromGitHub
-, pytestCheckHook
-, pytest-xdist
-, numpy
-, numba
-, typing-extensions
+{
+  lib,
+  buildPythonPackage,
+  setuptools-scm,
+  fetchFromGitHub,
+  pytestCheckHook,
+  pytest-xdist,
+  numpy,
+  numba,
+  typing-extensions,
 }:
 
 buildPythonPackage rec {
   pname = "galois";
-  version = "0.3.7";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "0.4.11";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "mhostetter";
     repo = "galois";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-dWYnD+Byh0orRg20/nhu8ILooFBeHysxQ403boDVqYk=";
+    tag = "v${version}";
+    hash = "sha256-iTxPsuWmaQ4L19ND0UeRLKrdM++M8UnT3I06z+E8jjc=";
   };
 
-  nativeBuildInputs = [
-    setuptools-scm
-    pythonRelaxDepsHook
+  pythonRelaxDeps = [
+    "numpy"
+    "numba"
   ];
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools-scm ];
+
+  dependencies = [
     numpy
     numba
     typing-extensions
@@ -41,16 +40,14 @@ buildPythonPackage rec {
     pytest-xdist
   ];
 
-  pythonRelaxDeps = [ "numpy" "numba" ];
-
   pythonImportsCheck = [ "galois" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python package that extends NumPy arrays to operate over finite fields";
     homepage = "https://github.com/mhostetter/galois";
-    changelog = "https://github.com/mhostetter/galois/releases/tag/v${version}";
+    changelog = "https://github.com/mhostetter/galois/releases/tag/${src.tag}";
     downloadPage = "https://github.com/mhostetter/galois/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ chrispattison ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ chrispattison ];
   };
 }

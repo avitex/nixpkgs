@@ -1,51 +1,50 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools
-, aiohttp
-, fastapi
-, httpx
-, markdown2
-, nh3
-, numpy
-, prompt-toolkit
-, pydantic
-, requests
-, rich
-, shortuuid
-, tiktoken
-, uvicorn
-, anthropic
-, openai
-, ray
-, wandb
-, einops
-, gradio
-, accelerate
-, peft
-, sentencepiece
-, torch
-, transformers
-, protobuf
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  aiohttp,
+  fastapi,
+  httpx,
+  markdown2,
+  nh3,
+  numpy,
+  prompt-toolkit,
+  pydantic,
+  requests,
+  rich,
+  shortuuid,
+  tiktoken,
+  uvicorn,
+  anthropic,
+  openai,
+  ray,
+  wandb,
+  einops,
+  gradio,
+  accelerate,
+  peft,
+  sentencepiece,
+  torch,
+  transformers,
+  protobuf,
 }:
 let
-  version = "0.2.34";
+  version = "0.2.36";
 in
 buildPythonPackage {
   pname = "fschat";
   inherit version;
-  format = "pyproject";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "lm-sys";
     repo = "FastChat";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-4dnKrLQYkd2uQh2K2yaQ7EgrkgX8bO4QXfjIOqpzCE8=";
+    tag = "v${version}";
+    hash = "sha256-tQuvQXzQbQjU16DfS1o55VHW6eklngEvIigzZGgrKB8=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
   propagatedBuildInputs = [
     aiohttp
@@ -61,10 +60,10 @@ buildPythonPackage {
     shortuuid
     tiktoken
     uvicorn
-  # ] ++ markdown2.optional-dependencies.all;
+    # ] ++ markdown2.optional-dependencies.all;
   ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     llm_judge = [
       anthropic
       openai
@@ -75,9 +74,7 @@ buildPythonPackage {
       wandb
       einops
     ];
-    webui = [
-      gradio
-    ];
+    webui = [ gradio ];
     model_worker = [
       accelerate
       peft
@@ -93,10 +90,10 @@ buildPythonPackage {
   # tests require networking
   doCheck = false;
 
-  meta = with lib; {
-    description = "An open platform for training, serving, and evaluating large language models. Release repo for Vicuna and Chatbot Arena";
+  meta = {
+    description = "Open platform for training, serving, and evaluating large language models. Release repo for Vicuna and Chatbot Arena";
     homepage = "https://github.com/lm-sys/FastChat";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ happysalada ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ happysalada ];
   };
 }

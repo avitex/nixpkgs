@@ -1,16 +1,25 @@
-{ lib, stdenv, fetchFromGitHub, faust2jaqt, faust2lv2 }:
-stdenv.mkDerivation rec {
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  faust2jaqt,
+  faust2lv2,
+}:
+stdenv.mkDerivation (finalAttrs: {
   pname = "RhythmDelay";
   version = "2.1";
 
   src = fetchFromGitHub {
     owner = "magnetophon";
     repo = "RhythmDelay";
-    rev = "V${version}";
+    rev = "V${finalAttrs.version}";
     sha256 = "1j0bjl9agz43dcrcrbiqd7fv7xsxgd65s4ahhv5pvcr729y0fxg4";
   };
 
-  buildInputs = [ faust2jaqt faust2lv2 ];
+  buildInputs = [
+    faust2jaqt
+    faust2lv2
+  ];
 
   dontWrapQtApps = true;
 
@@ -34,4 +43,4 @@ stdenv.mkDerivation rec {
     license = lib.licenses.gpl3;
     maintainers = [ lib.maintainers.magnetophon ];
   };
-}
+})

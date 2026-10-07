@@ -1,43 +1,39 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
   # build inputs
-, jsonref
-, jsonschema
-, python-dateutil
-, pyyaml
-, requests
-, simplejson
-, six
-, swagger-spec-validator
-, pytz
-, msgpack
+  jsonref,
+  jsonschema,
+  python-dateutil,
+  pyyaml,
+  requests,
+  simplejson,
+  six,
+  swagger-spec-validator,
+  pytz,
+  msgpack,
   # check inputs
-, pytestCheckHook
-, mock
+  pytestCheckHook,
+  mock,
 }:
 
 buildPythonPackage rec {
   pname = "bravado-core";
-  version = "6.6.1";
+  version = "6.4.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "Yelp";
-    repo = pname;
+    repo = "bravado-core";
     rev = "v${version}";
-    hash = "sha256-kyHmZNPl5lLKmm5i3TSi8Tfi96mQHqaiyBfceBJcOdw=";
+    hash = "sha256-P6R1Pmhddyy1iwQuem8YVDFFrQ4qxHzASZQbqpMZXeI=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     jsonref
     jsonschema # jsonschema[format-nongpl]
     python-dateutil
@@ -48,19 +44,15 @@ buildPythonPackage rec {
     swagger-spec-validator
     pytz
     msgpack
-  ] ++ jsonschema.optional-dependencies.format-nongpl;
+  ]
+  ++ jsonschema.optional-dependencies.format-nongpl;
 
   nativeCheckInputs = [
     pytestCheckHook
-  ];
-
-  checkInputs = [
     mock
   ];
 
-  pythonImportsCheck = [
-    "bravado_core"
-  ];
+  pythonImportsCheck = [ "bravado_core" ];
 
   disabledTestPaths = [
     # skip benchmarks
@@ -69,11 +61,14 @@ buildPythonPackage rec {
     "tests/spec/Spec"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Library for adding Swagger support to clients and servers";
     homepage = "https://github.com/Yelp/bravado-core";
     changelog = "https://github.com/Yelp/bravado-core/blob/v${version}/CHANGELOG.rst";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ vanschelven nickcao ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [
+      vanschelven
+      nickcao
+    ];
   };
 }

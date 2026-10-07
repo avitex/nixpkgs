@@ -1,4 +1,4 @@
-import ./make-test-python.nix ({ pkgs, ... }:
+{ pkgs, ... }:
 
 let
   echoAll = pkgs.writeScript "echo-all" ''
@@ -9,25 +9,54 @@ let
   '';
   # deliberately using a local empty file instead of pkgs.emptyFile to have
   # a non-store path in the test
-  args = [ "a%Nything" "lang=\${LANG}" ";" "/bin/sh -c date" ./empty-file 4.2 23 ];
+  args = [
+    "a%Nything"
+    "lang=\${LANG}"
+    ";"
+    "/bin/sh -c date"
+    ./empty-file
+    4.2
+    23
+  ];
 in
 {
   name = "systemd-escaping";
 
-  nodes.machine = { pkgs, lib, utils, ... }: {
-    systemd.services.echo =
-      assert !(builtins.tryEval (utils.escapeSystemdExecArgs [ [] ])).success;
-      assert !(builtins.tryEval (utils.escapeSystemdExecArgs [ {} ])).success;
-      assert !(builtins.tryEval (utils.escapeSystemdExecArgs [ null ])).success;
-      assert !(builtins.tryEval (utils.escapeSystemdExecArgs [ false ])).success;
-      assert !(builtins.tryEval (utils.escapeSystemdExecArgs [ (_:_) ])).success;
-      { description = "Echo to the journal";
-        serviceConfig.Type = "oneshot";
-        serviceConfig.ExecStart = ''
-          ${echoAll} ${utils.escapeSystemdExecArgs args}
-        '';
-      };
-  };
+  nodes.machine =
+    {
+      pkgs,
+      lib,
+      utils,
+      ...
+    }:
+    {
+      systemd.services.echo =
+        assert !(builtins.tryEval (utils.escapeSystemdExecArgs [ [ ] ])).success;
+        assert !(builtins.tryEval (utils.escapeSystemdExecArgs [ { } ])).success;
+        assert !(builtins.tryEval (utils.escapeSystemdExecArgs [ null ])).success;
+        assert !(builtins.tryEval (utils.escapeSystemdExecArgs [ false ])).success;
+        assert !(builtins.tryEval (utils.escapeSystemdExecArgs [ (_: _) ])).success;
+        # escapeSystemdPath simplifies the path like systemd-escape --path does:
+        # "." components are dropped and duplicate/leading/trailing slashes removed.
+        assert utils.escapeSystemdPath "/mnt/./foo" == "mnt-foo";
+        assert utils.escapeSystemdPath "/foo//bar/baz/" == "foo-bar-baz";
+        assert utils.escapeSystemdPath "/" == "-";
+        assert utils.escapeSystemdPath "" == "-";
+        assert utils.escapeSystemdPath "/.hidden/x" == "\\x2ehidden-x";
+        assert utils.escapeSystemdPath "/foo?bar" == "foo\\x3fbar";
+        # A leading ".." in an absolute path is the root's parent, i.e. the root.
+        assert utils.escapeSystemdPath "/../foo" == "foo";
+        # Non-normalized paths can't be escaped, matching systemd-escape.
+        assert !(builtins.tryEval (utils.escapeSystemdPath "/mnt/../foo")).success;
+        assert !(builtins.tryEval (utils.escapeSystemdPath ".")).success;
+        {
+          description = "Echo to the journal";
+          serviceConfig.Type = "oneshot";
+          serviceConfig.ExecStart = ''
+            ${echoAll} ${utils.escapeSystemdExecArgs args}
+          '';
+        };
+    };
 
   testScript = ''
     machine.wait_for_unit("multi-user.target")
@@ -42,4 +71,4 @@ in
     assert "4.2" in logs[5] # toString produces extra fractional digits!
     assert "23" == logs[6]
   '';
-})
+}

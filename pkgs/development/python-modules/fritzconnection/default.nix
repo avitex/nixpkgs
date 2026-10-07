@@ -1,58 +1,54 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, pytestCheckHook
-, requests
-, segno
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytest9_0CheckHook,
+  requests,
+  segno,
+  setuptools,
+  writableTmpDirAsHomeHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "fritzconnection";
-  version = "1.13.2";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "1.15.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "kbr";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-nWXtXhF2pUBxHdrivi4DA7+bFiZPyxb2nqsiN3j4HdI=";
+    repo = "fritzconnection";
+    tag = finalAttrs.version;
+    hash = "sha256-J07zAXZxQc3TCfsjYcBhQdxsYwHabE9vdj3eMkWua54=";
   };
 
-  propagatedBuildInputs = [
-    requests
-  ];
+  build-system = [ setuptools ];
 
-  passthru.optional-dependencies = {
-    qr = [
-      segno
-    ];
+  dependencies = [ requests ];
+
+  optional-dependencies = {
+    qr = [ segno ];
   };
 
   nativeCheckInputs = [
-    pytestCheckHook
+    pytest9_0CheckHook
+    writableTmpDirAsHomeHook
   ];
 
-  preCheck = ''
-    export HOME=$TEMP
-  '';
-
-  pythonImportsCheck = [
-    "fritzconnection"
-  ];
+  pythonImportsCheck = [ "fritzconnection" ];
 
   disabledTestPaths = [
     # Functional tests require network access
     "fritzconnection/tests/test_functional.py"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Python module to communicate with the AVM Fritz!Box";
     homepage = "https://github.com/kbr/fritzconnection";
-    changelog = "https://fritzconnection.readthedocs.io/en/${version}/sources/version_history.html";
-    license = licenses.mit;
-    maintainers = with maintainers; [ dotlambda valodim ];
+    changelog = "https://fritzconnection.readthedocs.io/en/${finalAttrs.src.tag}/sources/version_history.html";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [
+      dotlambda
+      valodim
+    ];
   };
-}
+})

@@ -1,24 +1,30 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, pytestCheckHook
-, flit-core
-, installer
-, mock
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  flit-core,
+  installer,
+  mock,
 }:
 
 buildPythonPackage rec {
   pname = "installer";
-  version = "0.7.0";
-  format = "pyproject";
+  version = "1.0.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "pypa";
-    repo = pname;
+    repo = "installer";
     rev = version;
-    hash = "sha256-thHghU+1Alpay5r9Dc3v7ATRFfYKV8l9qR0nbGOOX/A=";
+    hash = "sha256-GkHLZfzHfTcBL8wQmIGlNkVodEw9Pih4i1SS36mSfBo=";
   };
+
+  patches = [
+    # Add -m flag to installer to correctly support cross
+    # https://github.com/pypa/installer/pull/258
+    ./cross.patch
+  ];
 
   nativeBuildInputs = [ flit-core ];
 
@@ -30,7 +36,7 @@ buildPythonPackage rec {
     pytest = buildPythonPackage {
       pname = "${pname}-pytest";
       inherit version;
-      format = "other";
+      pyproject = false;
 
       dontBuild = true;
       dontInstall = true;
@@ -43,11 +49,12 @@ buildPythonPackage rec {
     };
   };
 
-  meta = with lib; {
-    description = "A low-level library for installing a Python package from a wheel distribution";
+  meta = {
+    description = "Low-level library for installing a Python package from a wheel distribution";
     homepage = "https://github.com/pypa/installer";
     changelog = "https://github.com/pypa/installer/blob/${src.rev}/docs/changelog.md";
-    license = licenses.mit;
-    maintainers = teams.python.members ++ [ maintainers.cpcloud ];
+    license = lib.licenses.mit;
+    maintainers = [ lib.maintainers.cpcloud ];
+    teams = [ lib.teams.python ];
   };
 }

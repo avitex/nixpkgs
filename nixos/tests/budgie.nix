@@ -1,68 +1,96 @@
-import ./make-test-python.nix ({ pkgs, lib, ... }: {
+{ pkgs, lib, ... }:
+{
   name = "budgie";
 
-  meta.maintainers = [ lib.maintainers.federicoschonborn ];
+  meta.maintainers = lib.teams.budgie.members;
 
-  nodes.machine = { ... }: {
-    imports = [
-      ./common/user-account.nix
-    ];
+  nodes.machine =
+    { ... }:
+    {
+      imports = [
+        ./common/user-account.nix
+      ];
 
-    services.xserver.enable = true;
+      services.xserver.enable = true;
+      services.xserver.displayManager.lightdm.enable = true;
 
-    services.xserver.displayManager = {
-      lightdm.enable = true;
-      autoLogin = {
+      services.displayManager.autoLogin = {
         enable = true;
         user = "alice";
       };
+
+      # We don't ship gnome-text-editor in Budgie module, we add this line mainly
+      # to catch eval issues related to this option.
+      environment.budgie.excludePackages = [ pkgs.gnome-text-editor ];
+
+      services.desktopManager.budgie = {
+        enable = true;
+        extraPlugins = [
+          pkgs.budgie-analogue-clock-applet
+        ];
+      };
+
+      environment.systemPackages = [ pkgs.wlrctl ];
     };
 
-    services.xserver.desktopManager.budgie = {
-      enable = true;
-      extraPlugins = [
-        pkgs.budgiePlugins.budgie-analogue-clock-applet
-      ];
-    };
-  };
+  enableOCR = true;
 
-  testScript = { nodes, ... }:
+  testScript =
+    { nodes, ... }:
     let
       user = nodes.machine.users.users.alice;
+      env = "XDG_RUNTIME_DIR=/run/user/${toString user.uid}";
     in
     ''
       with subtest("Wait for login"):
-          # wait_for_x() checks graphical-session.target, which is expected to be
-          # inactive on Budgie before #228946 (i.e. systemd managed gnome-session) is
-          # done on upstream.
-          # https://github.com/BuddiesOfBudgie/budgie-desktop/blob/v10.7.2/src/session/budgie-desktop.in#L16
-          #
-          # Previously this was unconditionally touched by xsessionWrapper but was
-          # changed in #233981 (we have Budgie:GNOME in XDG_CURRENT_DESKTOP).
-          # machine.wait_for_x()
-          machine.wait_until_succeeds('journalctl -t gnome-session-binary --grep "Entering running state"')
-          machine.wait_for_file("${user.home}/.Xauthority")
-          machine.succeed("xauth merge ${user.home}/.Xauthority")
+          machine.wait_for_unit("display-manager.service")
+          machine.wait_for_file("/run/user/${toString user.uid}/wayland-0")
+          machine.wait_until_succeeds('journalctl -t budgie-session-binary --grep "Entering running state"')
+          machine.wait_until_succeeds('journalctl --grep "Compositor is fully initialized"')
 
       with subtest("Check that logging in has given the user ownership of devices"):
-          machine.succeed("getfacl -p /dev/snd/timer | grep -q ${user.name}")
+          # Change back to /dev/snd/timer after systemd-258.1
+          machine.succeed("getfacl -p /dev/dri/card0 | grep -q ${user.name}")
 
       with subtest("Check if Budgie session components actually start"):
-          machine.wait_until_succeeds("pgrep budgie-daemon")
-          machine.wait_for_window("budgie-daemon")
-          machine.wait_until_succeeds("pgrep budgie-panel")
-          machine.wait_for_window("budgie-panel")
-          # We don't check xwininfo for this one.
-          # See https://github.com/NixOS/nixpkgs/pull/216737#discussion_r1155312754
-          machine.wait_until_succeeds("pgrep budgie-wm")
+          for i in ["budgie-daemon", "budgie-panel", "labwc", "budgie-session", "swaybg", "swayidle"]:
+              machine.wait_until_succeeds(f"pgrep {i}")
+          machine.wait_until_succeeds("pgrep -xf ${pkgs.gnome-settings-daemon}/libexec/gsd-sound")
+          machine.wait_until_succeeds("pgrep -xf ${pkgs.budgie-desktop-services}/bin/org.buddiesofbudgie.Services")
+          machine.wait_until_succeeds("pgrep -xf /run/current-system/sw/bin/org.buddiesofbudgie.budgie-desktop-view")
 
-      with subtest("Open MATE terminal"):
-          machine.succeed("su - ${user.name} -c 'DISPLAY=:0 mate-terminal >&2 &'")
-          machine.wait_for_window("Terminal")
+      with subtest("Check if various environment variables are set"):
+          cmd = "xargs --null --max-args=1 echo < /proc/$(pgrep -xf /run/current-system/sw/bin/budgie-panel)/environ"
+          machine.succeed(f"{cmd} | grep 'XDG_CURRENT_DESKTOP' | grep 'Budgie'")
+          machine.succeed(f"{cmd} | grep 'BUDGIE_PLUGIN_DATADIR' | grep '${pkgs.budgie-desktop-with-plugins.pname}'")
+          # From the nixos/budgie module
+          machine.succeed(f"{cmd} | grep 'SSH_AUTH_SOCK' | grep 'gcr'")
 
-      with subtest("Check if budgie-wm has ever coredumped"):
-          machine.fail("coredumpctl --json=short | grep budgie-wm")
-          machine.sleep(20)
+      with subtest("Open run dialog"):
+          machine.wait_for_console_text("Monitoring /home/${user.name}/.config/budgie-desktop/labwc/environment for keyboard layout changes")
+          machine.wait_for_console_text("Published CurrentLayout=us")
+          machine.sleep(2)
+          machine.send_key("alt-f2")
+          machine.wait_until_succeeds("pgrep -xf budgie-run-dialog")
+          machine.sleep(2)
+          machine.screenshot("run_dialog")
+          machine.send_key("esc")
+
+      with subtest("Open Budgie Control Center"):
+          machine.succeed("su - ${user.name} -c '${env} budgie-control-center >&2 &'")
+          machine.wait_until_succeeds("su - ${user.name} -c '${env} wlrctl toplevel list | grep org.buddiesofbudgie.ControlCenter'")
+          machine.wait_for_text(r"(Network|Introduction|Privacy)")
+
+      with subtest("Open GNOME terminal"):
+          machine.succeed("su - ${user.name} -c '${env} gnome-terminal >&2 &'")
+          machine.wait_until_succeeds("su - ${user.name} -c '${env} wlrctl toplevel list | grep ${user.name}@machine'")
+
+      with subtest("Check if labwc bridge is working"):
+          machine.wait_until_succeeds("cat /home/${user.name}/.config/budgie-desktop/labwc/rc.xml | grep Qogir")
+
+      with subtest("Check if Budgie has ever coredumped"):
+          machine.fail("coredumpctl --json=short | grep budgie")
+          machine.sleep(10)
           machine.screenshot("screen")
     '';
-})
+}

@@ -1,7 +1,8 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, requests
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  requests,
 }:
 
 buildPythonPackage rec {
@@ -11,7 +12,7 @@ buildPythonPackage rec {
 
   src = fetchFromGitHub {
     owner = "fancybits";
-    repo = pname;
+    repo = "pychannels";
     rev = version;
     hash = "sha256-E+VL4mJ2KxS5bJZc3Va+wvyVjT55LJz+1wHkxDRa85s=";
   };
@@ -22,10 +23,10 @@ buildPythonPackage rec {
   doCheck = false;
   pythonImportsCheck = [ "pychannels" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python library for interacting with the Channels app";
     homepage = "https://github.com/fancybits/pychannels";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

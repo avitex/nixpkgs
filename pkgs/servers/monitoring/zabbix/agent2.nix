@@ -1,23 +1,44 @@
-{ lib, buildGoModule, fetchurl, autoreconfHook, pkg-config, libiconv, openssl, pcre, zlib }:
+{
+  lib,
+  buildGoModule,
+  fetchurl,
+  autoreconfHook,
+  pkg-config,
+  libiconv,
+  openssl,
+  pcre2,
+  zlib,
+}:
 
-import ./versions.nix ({ version, sha256, vendorHash ? throw "unsupported version ${version} for zabbix-agent2", ... }:
+import ./versions.nix (
+  {
+    version,
+    hash,
+    ...
+  }:
   buildGoModule {
     pname = "zabbix-agent2";
     inherit version;
 
     src = fetchurl {
       url = "https://cdn.zabbix.com/zabbix/sources/stable/${lib.versions.majorMinor version}/zabbix-${version}.tar.gz";
-      inherit sha256;
+      inherit hash;
     };
 
     modRoot = "src/go";
 
-    inherit vendorHash;
+    vendorHash = null;
 
-    nativeBuildInputs = [ autoreconfHook pkg-config ];
-    buildInputs = [ libiconv openssl pcre zlib ];
-
-    inherit (buildGoModule.go) GOOS GOARCH;
+    nativeBuildInputs = [
+      autoreconfHook
+      pkg-config
+    ];
+    buildInputs = [
+      libiconv
+      openssl
+      pcre2
+      zlib
+    ];
 
     # need to provide GO* env variables & patch for reproducibility
     postPatch = ''
@@ -35,7 +56,7 @@ import ./versions.nix ({ version, sha256, vendorHash ? throw "unsupported versio
         --enable-agent2 \
         --enable-ipv6 \
         --with-iconv \
-        --with-libpcre \
+        --with-libpcre2 \
         --with-openssl=${openssl.dev}
     '';
 
@@ -56,11 +77,16 @@ import ./versions.nix ({ version, sha256, vendorHash ? throw "unsupported versio
       ln -s $out/bin/zabbix_agent2 $out/sbin/zabbix_agentd
     '';
 
-    meta = with lib; {
-      description = "An enterprise-class open source distributed monitoring solution (client-side agent)";
+    meta = {
+      description = "Enterprise-class open source distributed monitoring solution (client-side agent)";
       homepage = "https://www.zabbix.com/";
-      license = licenses.gpl2Plus;
-      maintainers = [ maintainers.aanderse ];
-      platforms = platforms.linux;
+      license =
+        if (lib.versions.major version >= "7") then lib.licenses.agpl3Only else lib.licenses.gpl2Plus;
+      maintainers = with lib.maintainers; [
+        aanderse
+        bstanderline
+      ];
+      platforms = lib.platforms.unix;
     };
-  })
+  }
+)

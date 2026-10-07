@@ -1,68 +1,60 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-
-# build-system
-, flit-core
-
-# dependencies
-, filetype
-, defusedxml
-
-# optional-dependencies
-, pillow-heif
-
-# tests
-, numpy
-, opencv4
-, pillow
-, pytestCheckHook
-, wand
+{
+  lib,
+  buildPythonPackage,
+  defusedxml,
+  fetchFromGitHub,
+  filetype,
+  flit-core,
+  opencv4,
+  pillow-heif,
+  pillow,
+  pytestCheckHook,
+  wand,
 }:
 
 buildPythonPackage rec {
   pname = "willow";
-  version = "1.8.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "2.7";
+  version = "1.12.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "wagtail";
     repo = "Willow";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-g9/v56mdo0sJe5Pl/to/R/kXayaKK3qaYbnnPXpFjXE=";
+    tag = "v${version}";
+    hash = "sha256-vboQwOEDRdbwmLT2EW1iF98ZuyzEzlrP2k2ZcvVKjFE=";
   };
 
-  nativeBuildInputs = [
-    flit-core
-  ];
+  build-system = [ flit-core ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     filetype
     defusedxml
   ];
 
-  passthru.optional-dependencies = {
-    heif = [
-      pillow-heif
-    ];
+  optional-dependencies = {
+    wand = [ wand ];
+    pillow = [ pillow ];
+    heif = [ pillow-heif ];
   };
 
   nativeCheckInputs = [
-    numpy
     opencv4
     pytestCheckHook
-    pillow
-    wand
-  ] ++ passthru.optional-dependencies.heif;
+  ]
+  ++ lib.concatAttrValues optional-dependencies;
 
-  meta = with lib; {
-    description = "A Python image library that sits on top of Pillow, Wand and OpenCV";
+  disabledTests = [
+    # Flaky: wand.exceptions.MissingDelegateError: no decode delegate for this image format
+    "test_gif"
+  ];
+
+  meta = {
+    description = "Python image library that sits on top of Pillow, Wand and OpenCV";
     homepage = "https://github.com/torchbox/Willow/";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ desiderius ];
+    changelog = "https://github.com/wagtail/Willow/releases/tag/v${version}";
+    license = lib.licenses.bsd2;
+    maintainers = with lib.maintainers; [
+      kuflierl
+    ];
   };
-
 }

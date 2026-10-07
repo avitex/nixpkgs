@@ -1,19 +1,17 @@
-{ lib
-, beautifulsoup4
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
-, pythonOlder
-, requests
-, requests-mock
+{
+  lib,
+  beautifulsoup4,
+  buildPythonPackage,
+  fetchPypi,
+  pytest7CheckHook,
+  requests,
+  requests-mock,
 }:
 
 buildPythonPackage rec {
   pname = "favicon";
   version = "0.7.0";
   format = "setuptools";
-
-  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
@@ -30,19 +28,16 @@ buildPythonPackage rec {
   ];
 
   nativeCheckInputs = [
-    pytestCheckHook
+    pytest7CheckHook
     requests-mock
   ];
 
-  pythonImportsCheck = [
-    "favicon"
-  ];
+  pythonImportsCheck = [ "favicon" ];
 
-  meta = with lib; {
+  meta = {
     description = "Find a website's favicon";
     homepage = "https://github.com/scottwernervt/favicon";
-    changelog = "https://github.com/scottwernervt/favicon/blob/${version}/CHANGELOG.rst";
-    license = licenses.mit;
-    maintainers = with maintainers; [ elohmeier ];
+    changelog = "https://github.com/scottwernervt/favicon/blob/v${version}/CHANGELOG.rst";
+    license = lib.licenses.mit;
   };
 }

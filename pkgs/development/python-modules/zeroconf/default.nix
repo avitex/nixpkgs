@@ -1,61 +1,52 @@
-{ lib
-, cython_3
-, async-timeout
-, buildPythonPackage
-, fetchFromGitHub
-, ifaddr
-, poetry-core
-, pytest-asyncio
-, pytest-timeout
-, pythonOlder
-, pytestCheckHook
-, setuptools
+{
+  lib,
+  cython,
+  buildPythonPackage,
+  fetchFromGitHub,
+  ifaddr,
+  poetry-core,
+  pytest-asyncio,
+  pytest-codspeed,
+  pytest-cov-stub,
+  pytest-timeout,
+  pytestCheckHook,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "zeroconf";
-  version = "0.131.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "0.151.3";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "jstasiak";
     repo = "python-zeroconf";
-    rev = "refs/tags/${version}";
-    hash = "sha256-l+uz+wj+tgptxEjEN8ZlmxH8I4Nhrg8qAY3yCcOgBfE=";
+    tag = finalAttrs.version;
+    hash = "sha256-iMWlTX+GnJ7A2roh5aryoEf+9+963W2i4HVjtb5I00Q=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace "Cython>=3.0.5" "Cython"
-  '';
-
-  nativeBuildInputs = [
-    cython_3
+  build-system = [
+    cython
     poetry-core
     setuptools
   ];
 
-  propagatedBuildInputs = [
-    ifaddr
-  ] ++ lib.optionals (pythonOlder "3.11") [
-    async-timeout
-  ];
+  dependencies = [ ifaddr ];
 
   nativeCheckInputs = [
     pytest-asyncio
+    pytest-codspeed
+    pytest-cov-stub
     pytest-timeout
     pytestCheckHook
   ];
 
-  preCheck = ''
-    sed -i '/addopts/d' pyproject.toml
-  '';
-
   disabledTests = [
     # OSError: [Errno 19] No such device
     "test_close_multiple_times"
+    "test_context_manager_marks_done"
+    "test_default_interface_warns_when_ipv6_requested"
+    "test_open_and_close_cleanly"
     "test_integration_with_listener_ipv6"
     "test_launch_and_close"
     "test_launch_and_close_context_manager"
@@ -69,11 +60,11 @@ buildPythonPackage rec {
     "zeroconf.asyncio"
   ];
 
-  meta = with lib; {
-    changelog = "https://github.com/python-zeroconf/python-zeroconf/releases/tag/${version}";
+  meta = {
     description = "Python implementation of multicast DNS service discovery";
     homepage = "https://github.com/python-zeroconf/python-zeroconf";
-    license = licenses.lgpl21Only;
-    maintainers = with maintainers; [ abbradar ];
+    changelog = "https://github.com/python-zeroconf/python-zeroconf/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.lgpl21Only;
+    maintainers = [ ];
   };
-}
+})

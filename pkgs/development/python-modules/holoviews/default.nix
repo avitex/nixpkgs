@@ -1,33 +1,51 @@
-{ lib
-, bokeh
-, buildPythonPackage
-, colorcet
-, fetchPypi
-, ipython
-, matplotlib
-, notebook
-, numpy
-, pandas
-, panel
-, param
-, pythonOlder
-, pyviz-comms
-, scipy
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  hatch-vcs,
+  hatchling,
+
+  # dependencies
+  colorcet,
+  numpy,
+  pandas,
+  panel,
+  param,
+  pyviz-comms,
+
+  # tests
+  flaky,
+  pytest-asyncio,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "holoviews";
-  version = "1.18.1";
-  format = "setuptools";
+  version = "1.23.1";
+  pyproject = true;
+  __structuredAttrs = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-gFxzU65S6XdT5/BmiwUaCGQQ4tLBPI/ilOu0zdArIyQ=";
+  src = fetchFromGitHub {
+    owner = "holoviz";
+    repo = "holoviews";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-+s7AzER7ipiqjiZL9vmno16MmhSK8Sz9LYLQ2cxNM6Y=";
   };
 
-  propagatedBuildInputs = [
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace '"ignore:No data was collected:coverage.exceptions.CoverageWarning",' ""
+  '';
+
+  build-system = [
+    hatch-vcs
+    hatchling
+  ];
+
+  dependencies = [
     colorcet
     numpy
     pandas
@@ -36,17 +54,40 @@ buildPythonPackage rec {
     pyviz-comms
   ];
 
-  # tests not fully included with pypi release
-  doCheck = false;
-
-  pythonImportsCheck = [
-    "holoviews"
+  nativeCheckInputs = [
+    flaky
+    pytest-asyncio
+    pytestCheckHook
   ];
 
-  meta = with lib; {
+  disabledTests = [
+    # All the below fail due to some change in flaky API
+    "test_periodic_param_fn_non_blocking"
+    "test_callback_cleanup"
+    "test_poly_edit_callback"
+    "test_launch_server_with_complex_plot"
+    "test_launch_server_with_stream"
+    "test_launch_simple_server"
+    "test_server_dynamicmap_with_dims"
+    "test_server_dynamicmap_with_stream"
+    "test_server_dynamicmap_with_stream_dims"
+
+    # ModuleNotFoundError: No module named 'param'
+    "test_no_blocklist_imports"
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
+    # Fails due to font rendering differences
+    "test_categorical_axis_fontsize_both"
+  ];
+
+  pythonImportsCheck = [ "holoviews" ];
+
+  meta = {
     description = "Python data analysis and visualization seamless and simple";
+    changelog = "https://github.com/holoviz/holoviews/releases/tag/${finalAttrs.src.tag}";
+    mainProgram = "holoviews";
     homepage = "https://www.holoviews.org/";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
-}
+})

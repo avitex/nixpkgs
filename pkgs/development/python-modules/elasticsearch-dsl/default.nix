@@ -1,28 +1,41 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, elasticsearch
-, python-dateutil
-, six
+{
+  lib,
+  buildPythonPackage,
+  elasticsearch,
+  fetchPypi,
+  python-dateutil,
+  setuptools,
+  typing-extensions,
 }:
 
 buildPythonPackage rec {
   pname = "elasticsearch-dsl";
-  version = "8.11.0";
-  format = "setuptools";
+  version = "8.18.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    sha256 = "sha256-RK9P1/YgCbsZGTtV4cIUO2kyUX5MDsMBB+f/TZaKEn4=";
+    pname = "elasticsearch_dsl";
+    inherit version;
+    hash = "sha256-djRl26nq4Wat0QVn6STGVzCqEigZsIv+mgd+kbE7MNE=";
   };
 
-  propagatedBuildInputs = [ elasticsearch python-dateutil six ];
+  build-system = [ setuptools ];
+
+  dependencies = [
+    elasticsearch
+    python-dateutil
+    typing-extensions
+  ];
+
+  optional-dependencies = {
+    async = [ elasticsearch ] ++ elasticsearch.optional-dependencies.async;
+  };
 
   # ImportError: No module named test_elasticsearch_dsl
   # Tests require a local instance of elasticsearch
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "High level Python client for Elasticsearch";
     longDescription = ''
       Elasticsearch DSL is a high-level library whose aim is to help with
@@ -30,7 +43,7 @@ buildPythonPackage rec {
       the official low-level client (elasticsearch-py).
     '';
     homepage = "https://github.com/elasticsearch/elasticsearch-dsl-py";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ desiderius ];
+    changelog = "https://github.com/elastic/elasticsearch-dsl-py/blob/v${version}/Changelog.rst";
+    license = lib.licenses.asl20;
   };
 }

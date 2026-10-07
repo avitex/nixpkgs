@@ -1,29 +1,30 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, paramiko
-, pytestCheckHook
-, pythonOlder
-, requests
-, requests-toolbelt
-, responses
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  paramiko,
+  pytestCheckHook,
+  requests,
+  requests-toolbelt,
+  responses,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "proxmoxer";
-  version = "2.0.1";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "2.3.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
-    owner = pname;
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-kwD6yJhVTaVAAUVA6k4r6HZy4w+MPDF7DfJBS8wGE/c=";
+    owner = "proxmoxer";
+    repo = "proxmoxer";
+    tag = finalAttrs.version;
+    hash = "sha256-v/QqNCzkcYk2pqr9tTeyvEEeXt4nzqooHAQEIiJitZ4=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     paramiko
     requests
   ];
@@ -39,15 +40,21 @@ buildPythonPackage rec {
     "tests/test_openssh.py"
   ];
 
-  pythonImportsCheck = [
-    "proxmoxer"
+  disabledTests = [
+    # Tests require openssh_wrapper which is outdated and not available
+    "test_repr_openssh"
+
+    # Test fails randomly
+    "test_timeout"
   ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "proxmoxer" ];
+
+  meta = {
     description = "Python wrapper for Proxmox API v2";
     homepage = "https://github.com/proxmoxer/proxmoxer";
-    changelog = "https://github.com/proxmoxer/proxmoxer/releases/tag/${version}";
-    license = with licenses; [ bsd3 ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/proxmoxer/proxmoxer/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

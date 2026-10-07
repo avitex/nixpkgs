@@ -1,42 +1,50 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, pythonOlder
-, pythonAtLeast
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pony";
-  version = "0.7.17";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.8" || pythonAtLeast "3.12";
+  version = "0.7.20";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "ponyorm";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-wBqw+YHKlxYplgsYL1pbkusHyPfCaVPcH/Yku6WDYbE=";
+    repo = "pony";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-/qSpgC3ka1dFxqh2ihVffEUTtAB9lxEvOcFDXLmBRf8=";
   };
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  build-system = [ setuptools ];
+
+  nativeCheckInputs = [ pytestCheckHook ];
 
   disabledTests = [
     # Tests are outdated
     "test_method"
+    # https://github.com/ponyorm/pony/issues/704
+    "test_composite_param"
+    "test_equal_json"
+    "test_equal_list"
+    "test_len"
+    "test_ne"
+    "test_nonzero"
+    "test_query"
   ];
 
-  pythonImportsCheck = [
-    "pony"
-  ];
+  pythonImportsCheck = [ "pony" ];
 
-  meta = with lib; {
+  meta = {
     description = "Library for advanced object-relational mapping";
     homepage = "https://ponyorm.org/";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ d-goldin xvapx ];
+    changelog = "https://github.com/ponyorm/pony/releases/tag/v${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [
+      d-goldin
+      xvapx
+    ];
   };
-}
+})

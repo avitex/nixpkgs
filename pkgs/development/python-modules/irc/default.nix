@@ -1,32 +1,35 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, jaraco-collections
-, jaraco-itertools
-, jaraco-logging
-, jaraco-stream
-, jaraco-text
-, pytestCheckHook
-, pythonOlder
-, pytz
-, setuptools-scm
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  jaraco-collections,
+  jaraco-itertools,
+  jaraco-logging,
+  jaraco-stream,
+  jaraco-text,
+  pytestCheckHook,
+  pythonOlder,
+  pytz,
+  setuptools-scm,
+  importlib-resources,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "irc";
-  version = "20.3.1";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "20.5.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-gGuDr4lNixIe0eFIZqkGQBKFiN5swElcTsssXsJyKAs=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-jdv9GfcSBM7Ount8cnJLFbP6h7q16B5Fp1vvc2oaPHY=";
   };
 
-  nativeBuildInputs = [
-    setuptools-scm
+  patches = [
+    # https://github.com/jaraco/irc/pull/236
+    ./python-3.14-event-loop.patch
   ];
+
+  nativeBuildInputs = [ setuptools-scm ];
 
   propagatedBuildInputs = [
     jaraco-collections
@@ -35,21 +38,20 @@ buildPythonPackage rec {
     jaraco-stream
     jaraco-text
     pytz
-  ];
+  ]
+  ++ lib.optionals (pythonOlder "3.12") [ importlib-resources ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "irc"
-  ];
+  __darwinAllowLocalNetworking = true;
 
-  meta = with lib; {
+  pythonImportsCheck = [ "irc" ];
+
+  meta = {
     description = "IRC (Internet Relay Chat) protocol library for Python";
     homepage = "https://github.com/jaraco/irc";
-    changelog = "https://github.com/jaraco/irc/blob/v${version}/NEWS.rst";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/jaraco/irc/blob/v${finalAttrs.version}/NEWS.rst";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
-}
+})

@@ -1,17 +1,22 @@
-import ./make-test-python.nix ({ pkgs, ... }: {
+{ pkgs, ... }:
+{
   name = "grocy";
   meta = with pkgs.lib.maintainers; {
-    maintainers = [ ma27 ];
+    maintainers = [
+      diogotcorreia
+    ];
   };
 
-  nodes.machine = { pkgs, ... }: {
-    services.grocy = {
-      enable = true;
-      hostName = "localhost";
-      nginx.enableSSL = false;
+  nodes.machine =
+    { pkgs, ... }:
+    {
+      services.grocy = {
+        enable = true;
+        hostName = "localhost";
+        nginx.enableSSL = false;
+      };
+      environment.systemPackages = [ pkgs.jq ];
     };
-    environment.systemPackages = [ pkgs.jq ];
-  };
 
   testScript = ''
     from base64 import b64encode
@@ -21,24 +26,23 @@ import ./make-test-python.nix ({ pkgs, ... }: {
     machine.wait_for_open_port(80)
     machine.wait_for_unit("multi-user.target")
 
+    # This establishes _something_
     machine.succeed("curl -sSf http://localhost")
+    # The second request creates the database, unsure why both are required
+    machine.succeed("curl -sSf http://localhost/")
 
     machine.succeed(
-        "curl -c cookies -sSf -X POST http://localhost/login -d 'username=admin&password=admin'"
-    )
-
-    cookie = machine.succeed(
-        "grep -v '^#' cookies | awk '{ print $7 }' | sed -e '/^$/d' | perl -pe 'chomp'"
+        "curl --cookie-jar cookies.txt -sSf -X POST http://localhost/login -d 'username=admin&password=admin'"
     )
 
     machine.succeed(
-        f"curl -sSf -X POST http://localhost/api/objects/tasks -b 'grocy_session={cookie}' "
+        "curl -sSf -X POST http://localhost/api/objects/tasks --cookie cookies.txt "
         + '-d \'{"assigned_to_user_id":1,"name":"Test Task","due_date":"1970-01-01"}\'''
         + " --header 'Content-Type: application/json'"
     )
 
     task_name = machine.succeed(
-        f"curl -sSf http://localhost/api/tasks -b 'grocy_session={cookie}' --header 'Accept: application/json' | jq '.[].name' | xargs echo | perl -pe 'chomp'"
+        "curl -sSf http://localhost/api/tasks --cookie cookies.txt --header 'Accept: application/json' | jq '.[].name' | xargs echo | perl -pe 'chomp'"
     )
 
     assert task_name == "Test Task"
@@ -54,7 +58,7 @@ import ./make-test-python.nix ({ pkgs, ... }: {
     )
 
     machine.succeed(
-        f"curl -sSf -X 'PUT' -b 'grocy_session={cookie}' "
+        "curl -sSf -X 'PUT' --cookie cookies.txt "
         + f" 'http://localhost/api/files/equipmentmanuals/{file_name_base64_urlencode}' "
         + "  --header 'Accept: */*' "
         + "  --header 'Content-Type: application/octet-stream' "
@@ -62,7 +66,7 @@ import ./make-test-python.nix ({ pkgs, ... }: {
     )
 
     machine.succeed(
-        f"curl -sSf -X 'GET' -b 'grocy_session={cookie}' "
+        "curl -sSf -X 'GET' --cookie cookies.txt "
         + f" 'http://localhost/api/files/equipmentmanuals/{file_name_base64_urlencode}' "
         + "  --header 'Accept: application/octet-stream' "
         + f" | cmp /tmp/{file_name}"
@@ -70,4 +74,4 @@ import ./make-test-python.nix ({ pkgs, ... }: {
 
     machine.shutdown()
   '';
-})
+}

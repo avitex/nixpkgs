@@ -1,70 +1,53 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, fetchpatch
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# build-system
-, setuptools
+  # build-system
+  setuptools,
 
-# runtime
-, audioread
-, decorator
-, joblib
-, lazy-loader
-, matplotlib
-, msgpack
-, numba
-, numpy
-, pooch
-, scikit-learn
-, scipy
-, soundfile
-, soxr
-, typing-extensions
+  # dependencies
+  decorator,
+  joblib,
+  lazy-loader,
+  matplotlib,
+  msgpack,
+  numba,
+  numpy,
+  pooch,
+  scikit-learn,
+  scipy,
+  soundfile,
+  soxr,
 
-# tests
-, ffmpeg-headless
-, packaging
-, pytest-mpl
-, pytestCheckHook
-, resampy
-, samplerate
+  # tests
+  packaging,
+  pytest-cov-stub,
+  pytest-mpl,
+  pytestCheckHook,
+  resampy,
+  samplerate,
+  writableTmpDirAsHomeHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "librosa";
-  version = "0.10.1";
-  format = "pyproject";
+  version = "1.0.0";
+  pyproject = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "librosa";
     repo = "librosa";
-    rev = "refs/tags/${version}";
+    tag = finalAttrs.version;
     fetchSubmodules = true; # for test data
-    hash = "sha256-zbmU87hI9A1CVcBZ/5FU8z0t6SS4jfJk9bj9kLe/EHI=";
+    hash = "sha256-+RjGbnAP0rYjRe/QVwKsCUIhRZM8DzY1JnmoJvDagwM=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  patches = [
-    (fetchpatch {
-      # https://github.com/librosa/librosa/issues/1754
-      # https://github.com/librosa/librosa/pull/1755
-      name = "matplotlib-3.8-compat.patch";
-      url = "https://github.com/librosa/librosa/commit/beef47885ce1255b43b65e48ea2054ddace37c6c.patch";
-      hash = "sha256-rrnlUHXHY2me4BWGs3wFq8WJmz75CbXTWKFp3VdJKzE=";
-    })
-  ];
-
-  postPatch = ''
-    substituteInPlace setup.cfg \
-      --replace "--cov-report term-missing --cov librosa --cov-report=xml " ""
-  '';
-
-  propagatedBuildInputs = [
-    audioread
+  dependencies = [
     decorator
     joblib
     lazy-loader
@@ -72,48 +55,66 @@ buildPythonPackage rec {
     numba
     numpy
     pooch
-    scipy
     scikit-learn
+    scipy
     soundfile
     soxr
-    typing-extensions
   ];
 
-  passthru.optional-dependencies.matplotlib = [
-    matplotlib
-  ];
+  optional-dependencies.display = [ matplotlib ];
 
   # check that import works, this allows to capture errors like https://github.com/librosa/librosa/issues/1160
-  pythonImportsCheck = [
-    "librosa"
-  ];
+  pythonImportsCheck = [ "librosa" ];
 
   nativeCheckInputs = [
-    ffmpeg-headless
     packaging
+    pytest-cov-stub
     pytest-mpl
     pytestCheckHook
     resampy
     samplerate
-  ] ++ passthru.optional-dependencies.matplotlib;
+    writableTmpDirAsHomeHook
+  ]
+  ++ finalAttrs.passthru.optional-dependencies.display;
 
-  preCheck = ''
-    export HOME=$TMPDIR
+  # Prevents 'Fatal Python error: Aborted' on darwin during checkPhase
+  preCheck = lib.optionalString stdenv.hostPlatform.isDarwin ''
+    export MPLBACKEND="Agg"
   '';
 
   disabledTests = [
     # requires network access
+    "test_cite_badversion"
+    "test_cite_released"
+    "test_cite_unreleased"
     "test_example"
     "test_example_info"
     "test_load_resample"
+    "test_loadx"
+  ]
+  ++ lib.optionals (stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isAarch64) [
+    # AssertionError (numerical comparison fails)
+    "test_beat_track_multi"
+    "test_beat_track_multi_bpm_vector"
+    "test_melspectrogram_multi"
+    "test_melspectrogram_multi_time"
+    "test_nnls_matrix"
+    "test_nnls_multiblock"
+    "test_onset_detect"
+  ]
+  ++ lib.optionals (stdenv.hostPlatform.isLinux && stdenv.hostPlatform.isAarch64) [
+    # Flaky (numerical comparison fails)
+    "test_istft_multi"
+    "test_pitch_shift_multi"
+    "test_time_stretch_multi"
+    "test_resample_multichannel"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Python library for audio and music analysis";
     homepage = "https://github.com/librosa/librosa";
-    changelog = "https://github.com/librosa/librosa/releases/tag/${version}";
-    license = licenses.isc;
-    maintainers = with maintainers; [ GuillaumeDesforges ];
+    changelog = "https://github.com/librosa/librosa/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.isc;
+    maintainers = with lib.maintainers; [ carlthome ];
   };
-
-}
+})

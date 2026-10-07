@@ -1,66 +1,62 @@
-{ lib
-, argparse-addons
-, bitstruct
-, buildPythonPackage
-, can
-, crccheck
-, diskcache
-, fetchPypi
-, matplotlib
-, parameterized
-, pytestCheckHook
-, pythonOlder
-, setuptools
-, setuptools-scm
-, textparser
+{
+  lib,
+  argparse-addons,
+  bitstruct,
+  buildPythonPackage,
+  python-can,
+  crccheck,
+  diskcache,
+  fetchPypi,
+  matplotlib,
+  parameterized,
+  pytest-freezegun,
+  pytestCheckHook,
+  setuptools,
+  setuptools-scm,
+  textparser,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "cantools";
-  version = "39.4.3";
+  version = "41.3.1";
   pyproject = true;
 
-  disabled = pythonOlder "3.8";
-
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-eqo9JGvFMouynGgfyBYtKAC+Be4JWz7blHD6FHj55QY=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-Y5ZbAorAKrG0yGeqIH7Zn5D1WziuEHq+KH19ZtVDXZ8=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace "setuptools_scm>=8" "setuptools_scm"
-  '';
-
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     argparse-addons
     bitstruct
-    can
+    python-can
     crccheck
     diskcache
-    matplotlib
     textparser
   ];
 
+  optional-dependencies.plot = [ matplotlib ];
+
   nativeCheckInputs = [
     parameterized
+    pytest-freezegun
     pytestCheckHook
-  ];
+  ]
+  ++ finalAttrs.passthru.optional-dependencies.plot;
 
-  pythonImportsCheck = [
-    "cantools"
-  ];
+  pythonImportsCheck = [ "cantools" ];
 
-  meta = with lib; {
+  meta = {
     description = "Tools to work with CAN bus";
     homepage = "https://github.com/cantools/cantools";
-    changelog = "https://github.com/cantools/cantools/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ gray-heron ];
+    changelog = "https://github.com/cantools/cantools/releases/tag/${finalAttrs.version}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ gray-heron ];
+    mainProgram = "cantools";
   };
-}
+})

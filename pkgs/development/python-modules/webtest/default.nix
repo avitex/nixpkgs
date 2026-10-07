@@ -1,41 +1,31 @@
-{ lib
-, beautifulsoup4
-, buildPythonPackage
-, fetchPypi
-, fetchpatch
-, pastedeploy
-, pyquery
-, pytestCheckHook
-, pythonOlder
-, six
-, waitress
-, webob
-, wsgiproxy2
+{
+  lib,
+  beautifulsoup4,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  pastedeploy,
+  pyquery,
+  pytestCheckHook,
+  six,
+  waitress,
+  webob,
+  wsgiproxy2,
 }:
 
 buildPythonPackage rec {
   pname = "webtest";
-  version = "3.0.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.6";
+  version = "3.0.7";
+  pyproject = true;
 
   src = fetchPypi {
-    pname = "WebTest";
-    inherit version;
-    hash = "sha256-VL2WlyWDjZhhqfon+Nlx950nXZSuJV9cUB9Tu22ZKes=";
+    inherit pname version;
+    hash = "sha256-euq1D5cNRsBo56Nt0WLLJCWR7fcqHQTv0hN0dyuTF0E=";
   };
 
-  patches = [
-    (fetchpatch {
-      # Replace deprecated unittest aliases for Python 3.12
-      name = "webtest-python312-compat.patch";
-      url = "https://github.com/Pylons/webtest/commit/d82ec5bd2cf3c7109a1d49ad9fa802ae1eae1763.patch";
-      hash = "sha256-hSwxAxAI3Eo28I8S+r2k/hFG8TlzrVYup3MuTsE+xXk=";
-    })
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     beautifulsoup4
     six
     waitress
@@ -51,14 +41,12 @@ buildPythonPackage rec {
 
   __darwinAllowLocalNetworking = true;
 
-  pythonImportsCheck = [
-    "webtest"
-  ];
+  pythonImportsCheck = [ "webtest" ];
 
-  meta = with lib; {
+  meta = {
     description = "Helper to test WSGI applications";
     homepage = "https://webtest.readthedocs.org/";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

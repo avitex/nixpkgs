@@ -1,69 +1,168 @@
-# pipewire service.
-{ config, lib, pkgs, ... }:
-
-with lib;
+# PipeWire service.
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
-  json = pkgs.formats.json {};
-  mapToFiles = location: config: concatMapAttrs (name: value: { "pipewire/${location}.conf.d/${name}.conf".source = json.generate "${name}" value;}) config;
+  inherit (builtins) attrNames concatMap length;
+  inherit (lib) maintainers teams;
+  inherit (lib.attrsets)
+    attrByPath
+    concatMapAttrs
+    filterAttrs
+    mapAttrs'
+    nameValuePair
+    ;
+  inherit (lib.lists)
+    elem
+    flatten
+    optional
+    optionals
+    ;
+  inherit (lib.modules) mkIf mkRemovedOptionModule;
+  inherit (lib.options)
+    literalExpression
+    mkEnableOption
+    mkOption
+    mkPackageOption
+    ;
+  inherit (lib.strings) hasPrefix optionalString;
+  inherit (lib.types)
+    attrsOf
+    bool
+    listOf
+    package
+    ;
+
+  json = pkgs.formats.json { };
   cfg = config.services.pipewire;
-  enable32BitAlsaPlugins = cfg.alsa.support32Bit
-                           && pkgs.stdenv.isx86_64
-                           && pkgs.pkgsi686Linux.pipewire != null;
+  enable32BitAlsaPlugins =
+    cfg.alsa.support32Bit && pkgs.stdenv.hostPlatform.isx86_64 && pkgs.pkgsi686Linux.pipewire != null;
+
+  inPipewireDirectory = hasPrefix "pipewire/";
 
   # The package doesn't output to $out/lib/pipewire directly so that the
   # overlays can use the outputs to replace the originals in FHS environments.
   #
   # This doesn't work in general because of missing development information.
-  jack-libs = pkgs.runCommand "jack-libs" {} ''
+  jack-libs = pkgs.runCommand "jack-libs" { } ''
     mkdir -p "$out/lib"
     ln -s "${cfg.package.jack}/lib" "$out/lib/pipewire"
   '';
-in {
-  meta.maintainers = teams.freedesktop.members ++ [ lib.maintainers.k900 ];
+
+  configPackages = cfg.configPackages;
+
+  extraConfigPkg = pkgs.linkFarm "pipewire-extra-config" (
+    concatMapAttrs
+      (
+        location: config:
+        mapAttrs' (
+          name: value:
+          nameValuePair "share/pipewire/${location}.conf.d/${name}.conf" (json.generate name value)
+        ) config
+      )
+      # cfg.extraConfig contains deprecated options, i.e. client-rt
+      {
+        inherit (cfg.extraConfig)
+          pipewire
+          client
+          jack
+          pipewire-pulse
+          ;
+      }
+  );
+
+  configs = pkgs.buildEnv {
+    name = "pipewire-configs";
+    paths =
+      configPackages
+      ++ [ extraConfigPkg ]
+      ++ optionals cfg.wireplumber.enable cfg.wireplumber.configPackages;
+    pathsToLink = [ "/share/pipewire" ];
+  };
+
+  requiredLv2Packages = flatten (
+    concatMap (p: attrByPath [ "passthru" "requiredLv2Packages" ] [ ] p) configPackages
+  );
+
+  lv2Plugins = pkgs.buildEnv {
+    name = "pipewire-lv2-plugins";
+    paths = cfg.extraLv2Packages ++ requiredLv2Packages;
+    pathsToLink = [ "/lib/lv2" ];
+  };
+
+  requiredLadspaPackages = flatten (
+    concatMap (p: attrByPath [ "passthru" "requiredLadspaPackages" ] [ ] p) configPackages
+  );
+
+  ladspaPlugins = pkgs.buildEnv {
+    name = "pipewire-ladspa-plugins";
+    paths = cfg.extraLadspaPackages ++ requiredLadspaPackages;
+    pathsToLink = [ "/lib/ladspa" ];
+  };
+
+  pluginsEnv = {
+    LV2_PATH = "${lv2Plugins}/lib/lv2";
+    LADSPA_PATH = "${ladspaPlugins}/lib/ladspa";
+  };
+in
+{
+  meta.teams = [ teams.freedesktop ];
+  meta.maintainers = [ maintainers.k900 ];
 
   ###### interface
   options = {
     services.pipewire = {
-      enable = mkEnableOption (lib.mdDoc "pipewire service");
+      enable = mkEnableOption "PipeWire service";
 
       package = mkPackageOption pkgs "pipewire" { };
 
       socketActivation = mkOption {
         default = true;
-        type = types.bool;
-        description = lib.mdDoc ''
-          Automatically run pipewire when connections are made to the pipewire socket.
+        type = bool;
+        description = ''
+          Automatically run PipeWire when connections are made to the PipeWire socket.
         '';
       };
 
       audio = {
-        enable = lib.mkOption {
-          type = lib.types.bool;
+        enable = mkOption {
+          type = bool;
           # this is for backwards compatibility
           default = cfg.alsa.enable || cfg.jack.enable || cfg.pulse.enable;
-          defaultText = lib.literalExpression "config.services.pipewire.alsa.enable || config.services.pipewire.jack.enable || config.services.pipewire.pulse.enable";
-          description = lib.mdDoc "Whether to use PipeWire as the primary sound server";
+          defaultText = literalExpression "config.services.pipewire.alsa.enable || config.services.pipewire.jack.enable || config.services.pipewire.pulse.enable";
+          description = "Whether to use PipeWire as the primary sound server";
         };
       };
 
       alsa = {
-        enable = mkEnableOption (lib.mdDoc "ALSA support");
-        support32Bit = mkEnableOption (lib.mdDoc "32-bit ALSA support on 64-bit systems");
+        enable = mkEnableOption "ALSA support";
+        support32Bit = mkEnableOption "32-bit ALSA support on 64-bit systems";
       };
 
       jack = {
-        enable = mkEnableOption (lib.mdDoc "JACK audio emulation");
+        enable = mkEnableOption "JACK audio emulation";
+      };
+
+      raopOpenFirewall = mkOption {
+        type = bool;
+        default = false;
+        description = ''
+          Opens UDP/6001-6002, required by RAOP/Airplay for timing and control data.
+        '';
       };
 
       pulse = {
-        enable = mkEnableOption (lib.mdDoc "PulseAudio server emulation");
+        enable = mkEnableOption "PulseAudio server emulation";
       };
 
-      systemWide = lib.mkOption {
-        type = lib.types.bool;
+      systemWide = mkOption {
+        type = bool;
         default = false;
-        description = lib.mdDoc ''
+        description = ''
           If true, a system-wide PipeWire service and socket is enabled
           allowing all users in the "pipewire" group to use it simultaneously.
           If false, then user units are used instead, restricting access to
@@ -71,14 +170,14 @@ in {
 
           Enabling system-wide PipeWire is however not recommended and disabled
           by default according to
-          https://github.com/PipeWire/pipewire/blob/master/NEWS
+          https://github.com/PipeWire/pipewire/blob/0.3.11/NEWS#L14-L16
         '';
       };
 
       extraConfig = {
         pipewire = mkOption {
-          type = lib.types.attrsOf json.type;
-          default = {};
+          type = attrsOf json.type;
+          default = { };
           example = {
             "10-clock-rate" = {
               "context.properties" = {
@@ -91,7 +190,7 @@ in {
               };
             };
           };
-          description = lib.mdDoc ''
+          description = ''
             Additional configuration for the PipeWire server.
 
             Every item in this attrset becomes a separate drop-in file in `/etc/pipewire/pipewire.conf.d`.
@@ -110,8 +209,8 @@ in {
           '';
         };
         client = mkOption {
-          type = lib.types.attrsOf json.type;
-          default = {};
+          type = attrsOf json.type;
+          default = { };
           example = {
             "10-no-resample" = {
               "stream.properties" = {
@@ -119,7 +218,7 @@ in {
               };
             };
           };
-          description = lib.mdDoc ''
+          description = ''
             Additional configuration for the PipeWire client library, used by most applications.
 
             Every item in this attrset becomes a separate drop-in file in `/etc/pipewire/client.conf.d`.
@@ -129,30 +228,9 @@ in {
             [wiki]: https://gitlab.freedesktop.org/pipewire/pipewire/-/wikis/Config-client
           '';
         };
-        client-rt = mkOption {
-          type = lib.types.attrsOf json.type;
-          default = {};
-          example = {
-            "10-alsa-linear-volume" = {
-              "alsa.properties" = {
-                "alsa.volume-method" = "linear";
-              };
-            };
-          };
-          description = lib.mdDoc ''
-            Additional configuration for the PipeWire client library, used by real-time applications and legacy ALSA clients.
-
-            Every item in this attrset becomes a separate drop-in file in `/etc/pipewire/client-rt.conf.d`.
-
-            See the [PipeWire wiki][wiki] for examples of general configuration, and [PipeWire wiki - ALSA][wiki-alsa] for ALSA clients.
-
-            [wiki]: https://gitlab.freedesktop.org/pipewire/pipewire/-/wikis/Config-client
-            [wiki-alsa]: https://gitlab.freedesktop.org/pipewire/pipewire/-/wikis/Config-ALSA
-          '';
-        };
         jack = mkOption {
-          type = lib.types.attrsOf json.type;
-          default = {};
+          type = attrsOf json.type;
+          default = { };
           example = {
             "20-hide-midi" = {
               "jack.properties" = {
@@ -160,7 +238,7 @@ in {
               };
             };
           };
-          description = lib.mdDoc ''
+          description = ''
             Additional configuration for the PipeWire JACK server and client library.
 
             Every item in this attrset becomes a separate drop-in file in `/etc/pipewire/jack.conf.d`.
@@ -171,21 +249,23 @@ in {
           '';
         };
         pipewire-pulse = mkOption {
-          type = lib.types.attrsOf json.type;
-          default = {};
+          type = attrsOf json.type;
+          default = { };
           example = {
             "15-force-s16-info" = {
-              "pulse.rules" = [{
-                matches = [
-                  { "application.process.binary" = "my-broken-app"; }
-                ];
-                actions = {
-                  quirks = [ "force-s16-info" ];
-                };
-              }];
+              "pulse.rules" = [
+                {
+                  matches = [
+                    { "application.process.binary" = "my-broken-app"; }
+                  ];
+                  actions = {
+                    quirks = [ "force-s16-info" ];
+                  };
+                }
+              ];
             };
           };
-          description = lib.mdDoc ''
+          description = ''
             Additional configuration for the PipeWire PulseAudio server.
 
             Every item in this attrset becomes a separate drop-in file in `/etc/pipewire/pipewire-pulse.conf.d`.
@@ -200,17 +280,89 @@ in {
           '';
         };
       };
+
+      configPackages = mkOption {
+        type = listOf package;
+        default = [ ];
+        example = literalExpression ''
+          [
+            (pkgs.writeTextDir "share/pipewire/pipewire.conf.d/10-loopback.conf" '''
+              context.modules = [
+              {   name = libpipewire-module-loopback
+                  args = {
+                    node.description = "Scarlett Focusrite Line 1"
+                    capture.props = {
+                        audio.position = [ FL ]
+                        stream.dont-remix = true
+                        node.target = "alsa_input.usb-Focusrite_Scarlett_Solo_USB_Y7ZD17C24495BC-00.analog-stereo"
+                        node.passive = true
+                    }
+                    playback.props = {
+                        node.name = "SF_mono_in_1"
+                        media.class = "Audio/Source"
+                        audio.position = [ MONO ]
+                    }
+                  }
+              }
+              ]
+            ''')
+          ]
+        '';
+        description = ''
+          List of packages that provide PipeWire configuration, in the form of
+          `share/pipewire/*/*.conf` files.
+
+          LV2/LADSPA dependencies will be picked up from config packages automatically
+          via `passthru.requiredLv2Packages`/`passthru.requiredLadspaPackages`.
+        '';
+      };
+
+      extraLv2Packages = mkOption {
+        type = listOf package;
+        default = [ ];
+        example = literalExpression "[ pkgs.lsp-plugins ]";
+        description = ''
+          List of packages that provide LV2 plugins in `lib/lv2` that should
+          be made available to PipeWire for [filter chains][wiki-filter-chain].
+
+          Config packages have their required LV2 plugins added automatically,
+          so they don't need to be specified here. Config packages need to set
+          `passthru.requiredLv2Packages` for this to work.
+
+          [wiki-filter-chain]: https://docs.pipewire.org/page_module_filter_chain.html
+        '';
+      };
+
+      extraLadspaPackages = mkOption {
+        type = listOf package;
+        default = [ ];
+        example = literalExpression "[ pkgs.noisetorch-ladspa ]";
+        description = ''
+          List of packages that provide LADSPA plugins in `lib/ladspa` that should
+          be made available to PipeWire for [filter chains][wiki-filter-chain].
+
+          Config packages have their required LADSPA plugins added automatically,
+          so they don't need to be specified here. Config packages need to set
+          `passthru.requiredLadspaPackages` for this to work.
+
+          [wiki-filter-chain]: https://docs.pipewire.org/page_module_filter_chain.html
+        '';
+      };
     };
   };
 
   imports = [
-    (lib.mkRemovedOptionModule ["services" "pipewire" "config"] ''
+    (mkRemovedOptionModule [ "services" "pipewire" "config" ] ''
       Overriding default PipeWire configuration through NixOS options never worked correctly and is no longer supported.
       Please create drop-in configuration files via `services.pipewire.extraConfig` instead.
     '')
-    (lib.mkRemovedOptionModule ["services" "pipewire" "media-session"] ''
+    (mkRemovedOptionModule [ "services" "pipewire" "media-session" ] ''
       pipewire-media-session is no longer supported upstream and has been removed.
       Please switch to `services.pipewire.wireplumber` instead.
+    '')
+    (mkRemovedOptionModule [ "services" "pipewire" "extraConfig" "client-rt" ] ''
+      `services.pipewire.extraConfig.client-rt` is no longer applicable, as `client-rt.conf` has been
+      removed upstream. Please move your customizations to `services.pipewire.extraConfig.client`.
     '')
   ];
 
@@ -218,8 +370,8 @@ in {
   config = mkIf cfg.enable {
     assertions = [
       {
-        assertion = cfg.audio.enable -> !config.hardware.pulseaudio.enable;
-        message = "Using PipeWire as the sound server conflicts with PulseAudio. This option requires `hardware.pulseaudio.enable` to be set to false";
+        assertion = cfg.audio.enable -> !config.services.pulseaudio.enable;
+        message = "Using PipeWire as the sound server conflicts with PulseAudio. This option requires `services.pulseaudio.enable` to be set to false";
       }
       {
         assertion = cfg.jack.enable -> !config.services.jack.jackd.enable;
@@ -228,12 +380,20 @@ in {
       {
         # JACK intentionally not checked, as PW-on-JACK setups are a thing that some people may want
         assertion = (cfg.alsa.enable || cfg.pulse.enable) -> cfg.audio.enable;
-        message = "Using PipeWire's ALSA/PulseAudio compatibility layers requires running PipeWire as the sound server. Set `services.pipewire.audio.enable` to true.";
+        message = "Using PipeWire's ALSA/PulseAudio compatibility layers requires running PipeWire as the sound server. Either set `services.pipewire.audio.enable` to true to enable audio support, or set both `services.pipewire.pulse.enable` and `services.pipewire.alsa.enable` to false to use pipewire exclusively for the compositor.";
+      }
+      {
+        assertion =
+          length (
+            attrNames (
+              filterAttrs (name: value: inPipewireDirectory name || name == "pipewire") config.environment.etc
+            )
+          ) == 1;
+        message = "Using `environment.etc.\"pipewire<...>\"` directly is no longer supported. Use `services.pipewire.extraConfig` or `services.pipewire.configPackages` instead.";
       }
     ];
 
-    environment.systemPackages = [ cfg.package ]
-                                 ++ lib.optional cfg.jack.enable jack-libs;
+    environment.systemPackages = [ cfg.package ] ++ optional cfg.jack.enable jack-libs;
 
     systemd.packages = [ cfg.package ];
 
@@ -242,20 +402,26 @@ in {
     systemd.services.pipewire.bindsTo = [ "dbus.service" ];
     systemd.user.services.pipewire.bindsTo = [ "dbus.service" ];
 
-    # Enable either system or user units.  Note that for pipewire-pulse there
-    # are only user units, which work in both cases.
+    # Enable either system or user units.
     systemd.sockets.pipewire.enable = cfg.systemWide;
     systemd.services.pipewire.enable = cfg.systemWide;
     systemd.user.sockets.pipewire.enable = !cfg.systemWide;
     systemd.user.services.pipewire.enable = !cfg.systemWide;
 
-    # Mask pw-pulse if it's not wanted
-    systemd.user.services.pipewire-pulse.enable = cfg.pulse.enable;
-    systemd.user.sockets.pipewire-pulse.enable = cfg.pulse.enable;
+    systemd.services.pipewire.environment = mkIf cfg.systemWide pluginsEnv;
+    systemd.user.services.pipewire.environment = mkIf (!cfg.systemWide) pluginsEnv;
+    systemd.user.services.filter-chain.environment = pluginsEnv;
 
-    systemd.sockets.pipewire.wantedBy = lib.mkIf cfg.socketActivation [ "sockets.target" ];
-    systemd.user.sockets.pipewire.wantedBy = lib.mkIf cfg.socketActivation [ "sockets.target" ];
-    systemd.user.sockets.pipewire-pulse.wantedBy = lib.mkIf cfg.socketActivation [ "sockets.target" ];
+    # Mask pw-pulse if it's not wanted
+    systemd.services.pipewire-pulse.enable = cfg.pulse.enable && cfg.systemWide;
+    systemd.sockets.pipewire-pulse.enable = cfg.pulse.enable && cfg.systemWide;
+    systemd.user.services.pipewire-pulse.enable = cfg.pulse.enable && !cfg.systemWide;
+    systemd.user.sockets.pipewire-pulse.enable = cfg.pulse.enable && !cfg.systemWide;
+
+    systemd.sockets.pipewire.wantedBy = mkIf cfg.socketActivation [ "sockets.target" ];
+    systemd.sockets.pipewire-pulse.wantedBy = mkIf cfg.socketActivation [ "sockets.target" ];
+    systemd.user.sockets.pipewire.wantedBy = mkIf cfg.socketActivation [ "sockets.target" ];
+    systemd.user.sockets.pipewire-pulse.wantedBy = mkIf cfg.socketActivation [ "sockets.target" ];
 
     services.udev.packages = [ cfg.package ];
 
@@ -265,13 +431,11 @@ in {
         text = ''
           pcm_type.pipewire {
             libs.native = ${cfg.package}/lib/alsa-lib/libasound_module_pcm_pipewire.so ;
-            ${optionalString enable32BitAlsaPlugins
-              "libs.32Bit = ${pkgs.pkgsi686Linux.pipewire}/lib/alsa-lib/libasound_module_pcm_pipewire.so ;"}
+            ${optionalString enable32BitAlsaPlugins "libs.32Bit = ${pkgs.pkgsi686Linux.pipewire}/lib/alsa-lib/libasound_module_pcm_pipewire.so ;"}
           }
           ctl_type.pipewire {
             libs.native = ${cfg.package}/lib/alsa-lib/libasound_module_ctl_pipewire.so ;
-            ${optionalString enable32BitAlsaPlugins
-              "libs.32Bit = ${pkgs.pkgsi686Linux.pipewire}/lib/alsa-lib/libasound_module_ctl_pipewire.so ;"}
+            ${optionalString enable32BitAlsaPlugins "libs.32Bit = ${pkgs.pkgsi686Linux.pipewire}/lib/alsa-lib/libasound_module_ctl_pipewire.so ;"}
           }
         '';
       };
@@ -283,25 +447,48 @@ in {
       "alsa/conf.d/99-pipewire-default.conf" = mkIf cfg.alsa.enable {
         source = "${cfg.package}/share/alsa/alsa.conf.d/99-pipewire-default.conf";
       };
-    }
-    // mapToFiles "pipewire" cfg.extraConfig.pipewire
-    // mapToFiles "client" cfg.extraConfig.client
-    // mapToFiles "client-rt" cfg.extraConfig.client-rt
-    // mapToFiles "jack" cfg.extraConfig.jack
-    // mapToFiles "pipewire-pulse" cfg.extraConfig.pipewire-pulse;
+      pipewire.source = "${configs}/share/pipewire";
+    };
 
-    environment.sessionVariables.LD_LIBRARY_PATH =
-      lib.mkIf cfg.jack.enable [ "${cfg.package.jack}/lib" ];
+    environment.sessionVariables.LD_LIBRARY_PATH = mkIf cfg.jack.enable [ "${cfg.package.jack}/lib" ];
 
-    users = lib.mkIf cfg.systemWide {
-      users.pipewire = {
+    networking.firewall.allowedUDPPorts = mkIf cfg.raopOpenFirewall [
+      6001
+      6002
+    ];
+
+    # See https://gitlab.freedesktop.org/pipewire/pipewire/-/blob/master/src/modules/module-rt/25-pw-rlimits.conf.in
+    security.pam.loginLimits = [
+      {
+        domain = "@pipewire";
+        item = "rtprio";
+        type = "-";
+        value = 95;
+      }
+      {
+        domain = "@pipewire";
+        item = "nice";
+        type = "-";
+        value = -19;
+      }
+      {
+        domain = "@pipewire";
+        item = "memlock";
+        type = "-";
+        value = 4194304;
+      }
+    ];
+
+    users = {
+      users.pipewire = mkIf cfg.systemWide {
         uid = config.ids.uids.pipewire;
         group = "pipewire";
         extraGroups = [
           "audio"
           "video"
-        ] ++ lib.optional config.security.rtkit.enable "rtkit";
-        description = "Pipewire system service user";
+        ]
+        ++ optional config.security.rtkit.enable "rtkit";
+        description = "PipeWire system service user";
         isSystemUser = true;
         home = "/var/lib/pipewire";
         createHome = true;

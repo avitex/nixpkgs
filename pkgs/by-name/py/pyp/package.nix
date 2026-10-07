@@ -1,51 +1,53 @@
-{ lib
-, fetchFromGitHub
-, python3
-, bc
-, jq
+{
+  lib,
+  python3Packages,
+  fetchFromGitHub,
+
+  # tests
+  addBinToPathHook,
+  bc,
+  jq,
+  versionCheckHook,
 }:
 
-let
-  version = "1.1.0";
-in python3.pkgs.buildPythonApplication {
+python3Packages.buildPythonApplication (finalAttrs: {
   pname = "pyp";
-  inherit version;
-  format = "pyproject";
+  version = "1.3.0";
+  pyproject = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "hauntsaninja";
     repo = "pyp";
-    rev = "v${version}";
-    hash = "sha256-A1Ip41kxH17BakHEWEuymfa24eBEl5FIHAWL+iZFM4I=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-u9yxjYNQrtYtFtUh5tTJ1mGmGB+Ry+FRupli8RzRu3c=";
   };
 
-  nativeBuildInputs = [
-    python3.pkgs.flit-core
+  build-system = with python3Packages; [
+    flit-core
   ];
 
-  nativeCheckInputs = [
-    python3.pkgs.pytestCheckHook
-    bc
-    jq
-  ];
+  nativeCheckInputs =
+    (with python3Packages; [
+      pytestCheckHook
+    ])
+    ++ [
+      addBinToPathHook
+      bc
+      jq
+      versionCheckHook
+    ];
 
-  # without this, the tests fail because they are unable to find the pyp tool
-  # itself...
-  preCheck = ''
-     _OLD_PATH_=$PATH
-     PATH=$out/bin:$PATH
-  '';
-
-  # And a cleanup
-  postCheck = ''
-    PATH=$_OLD_PATH_
-  '';
+  pythonImportsCheck = [ "pyp" ];
 
   meta = {
     homepage = "https://github.com/hauntsaninja/pyp";
     description = "Easily run Python at the shell";
-    changelog = "https://github.com/hauntsaninja/pyp/blob/${version}/CHANGELOG.md";
+    changelog = "https://github.com/hauntsaninja/pyp/blob/v${finalAttrs.version}/CHANGELOG.md";
     license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ AndersonTorres ];
+    mainProgram = "pyp";
+    maintainers = with lib.maintainers; [
+      rmcgibbo
+    ];
   };
-}
+})

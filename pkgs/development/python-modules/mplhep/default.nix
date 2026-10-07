@@ -1,63 +1,75 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, hist
-, matplotlib
-, mplhep-data
-, pytestCheckHook
-, pytest-mock
-, pytest-mpl
-, scipy
-, setuptools
-, setuptools-scm
-, uhi
-, uproot
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  hatch-vcs,
+  hatchling,
+
+  # dependencies
+  matplotlib,
+  mplhep-data,
+  numpy,
+  uhi,
+
+  # tests
+  hist,
+  pytest-benchmark,
+  pytest-mock,
+  pytest-mpl,
+  pytestCheckHook,
+  scipy,
+  uproot,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "mplhep";
-  version = "0.3.32";
-  format = "pyproject";
+  version = "1.3.3";
+  pyproject = true;
+  __structuredAttrs = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-xwlrMZLJKRW6iqMsDKS5BDqejADSk/qGOAnQDZ2fTPc=";
+  src = fetchFromGitHub {
+    owner = "scikit-hep";
+    repo = "mplhep";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-EiLhxkuHDxslz2HH/WIc20eYCJECXV414qnJdsUSVQY=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-    setuptools-scm
+  build-system = [
+    hatch-vcs
+    hatchling
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     matplotlib
-    uhi
     mplhep-data
+    numpy
+    uhi
   ];
 
   nativeCheckInputs = [
     hist
-    pytestCheckHook
+    pytest-benchmark
     pytest-mock
     pytest-mpl
+    pytestCheckHook
     scipy
     uproot
   ];
 
-  disabledTests = [
+  disabledTestPaths = [
     # requires uproot4
-    "test_inputs_uproot"
-    "test_uproot_versions"
+    "tests/test_inputs.py"
   ];
 
-  pythonImportsCheck = [
-    "mplhep"
-  ];
+  pythonImportsCheck = [ "mplhep" ];
 
-  meta = with lib; {
+  meta = {
     description = "Extended histogram plots on top of matplotlib and HEP compatible styling similar to current collaboration requirements (ROOT)";
     homepage = "https://github.com/scikit-hep/mplhep";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ veprbl ];
+    changelog = "https://github.com/scikit-hep/mplhep/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ veprbl ];
   };
-}
+})

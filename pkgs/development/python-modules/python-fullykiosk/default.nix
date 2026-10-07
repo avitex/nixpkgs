@@ -1,40 +1,37 @@
-{ lib
-, aiohttp
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
+{
+  lib,
+  aiohttp,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "python-fullykiosk";
-  version = "0.0.12";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.0.15";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "cgarwood";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-88PsJ1qAlOpxDtZyQe8pFC2Y3ygg3boiPxmYad58Fm8=";
+    repo = "python-fullykiosk";
+    tag = version;
+    hash = "sha256-t/o4yRIh/r6cocEJ7c9oOa/C7RE3ZltkpzsCKS/dJHY=";
   };
 
-  propagatedBuildInputs = [
-    aiohttp
-  ];
+  build-system = [ setuptools ];
+
+  dependencies = [ aiohttp ];
 
   # Module has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "fullykiosk"
-  ];
+  pythonImportsCheck = [ "fullykiosk" ];
 
-  meta = with lib; {
+  meta = {
     description = "Wrapper for Fully Kiosk Browser REST interface";
     homepage = "https://github.com/cgarwood/python-fullykiosk";
     changelog = "https://github.com/cgarwood/python-fullykiosk/releases/tag/${version}";
-    license = with licenses; [ asl20 ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

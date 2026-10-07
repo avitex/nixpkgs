@@ -1,46 +1,54 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, mock
-, pytestCheckHook
-, pyyaml
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  mock,
+  pytestCheckHook,
+  pyyaml,
+  pythonAtLeast,
+  setuptools,
+  setuptools-scm,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "configargparse";
-  version = "1.7";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "1.8.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "bw2";
     repo = "ConfigArgParse";
-    rev = "refs/tags/${version}";
-    hash = "sha256-m77MY0IZ1AJkd4/Y7ltApvdF9y17Lgn92WZPYTCU9tA=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-2r5tm2xdN8uGAle4Ee6w4mWsMxc25/kg+jhH+TONPoY=";
   };
 
-  passthru.optional-dependencies = {
-    yaml = [
-      pyyaml
-    ];
+  build-system = [
+    setuptools
+    setuptools-scm
+  ];
+
+  optional-dependencies = {
+    yaml = [ pyyaml ];
   };
 
   nativeCheckInputs = [
     pytestCheckHook
     mock
-  ] ++ lib.flatten (builtins.attrValues passthru.optional-dependencies);
+  ]
+  ++ lib.flatten (builtins.attrValues finalAttrs.passthru.optional-dependencies);
 
-  pythonImportsCheck = [
-    "configargparse"
+  disabledTests = lib.optionals (pythonAtLeast "3.13") [
+    # regex mismatch
+    "testMutuallyExclusiveArgs"
   ];
 
-  meta = with lib; {
-    description = "A drop-in replacement for argparse";
+  pythonImportsCheck = [ "configargparse" ];
+
+  meta = {
+    description = "Drop-in replacement for argparse";
     homepage = "https://github.com/bw2/ConfigArgParse";
-    changelog = "https://github.com/bw2/ConfigArgParse/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ willibutz ];
+    changelog = "https://github.com/bw2/ConfigArgParse/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
-}
+})

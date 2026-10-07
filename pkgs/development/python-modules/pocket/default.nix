@@ -1,7 +1,8 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, requests
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  requests,
 }:
 
 buildPythonPackage rec {
@@ -16,11 +17,10 @@ buildPythonPackage rec {
 
   buildInputs = [ requests ];
 
-  meta = with lib; {
+  meta = {
     description = "Wrapper for the pocket API";
-    homepage    = "https://github.com/tapanpandita/pocket";
-    license     = licenses.bsd3;
-    maintainers = with maintainers; [ ericsagnes ];
+    homepage = "https://github.com/tapanpandita/pocket";
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
-
 }

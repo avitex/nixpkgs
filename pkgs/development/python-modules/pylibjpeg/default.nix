@@ -1,51 +1,42 @@
-{ stdenv
-, lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, pytestCheckHook
-, setuptools
-, numpy
-, pydicom
-, pylibjpeg-libjpeg
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  flit-core,
+  numpy,
+  pydicom,
+  pylibjpeg-data,
+  pylibjpeg-libjpeg,
+  pylibjpeg-openjpeg,
+  pylibjpeg-rle,
 }:
-
-let
-  pylibjpeg-data = buildPythonPackage rec {
-    pname = "pylibjpeg-data";
-    version = "1.0.0dev0";
-    pyproject = true;
-
-    nativeBuildInputs = [ setuptools ];
-
-    src = fetchFromGitHub {
-      owner = "pydicom";
-      repo = "pylibjpeg-data";
-      rev = "2ab4b8a65b070656eca2582bd23197a3d01cdccd";
-      hash = "sha256-cFE1XjrqyGqwHCYGRucXK+q4k7ftUIbYwBw4WwIFtEc=";
-    };
-
-    doCheck = false;
-  };
-in
 
 buildPythonPackage rec {
   pname = "pylibjpeg";
-  version = "1.4.0";
+  version = "2.1.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "pydicom";
     repo = "pylibjpeg";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-Px1DyYDkKAUdYo+ZxZ1w7TkPzWN++styiFl02iQOvyQ=";
+    tag = "v${version}";
+    hash = "sha256-jMdNzruzr2VgEntFF5BBoK3yrq0VegtJNXAkCpHjsks=";
   };
 
-  nativeBuildInputs = [ setuptools ];
+  build-system = [ flit-core ];
 
-  propagatedBuildInputs = [ numpy ];
+  dependencies = [ numpy ];
+
+  optional-dependencies =
+    let
+      extras = {
+        libjpeg = [ pylibjpeg-libjpeg ];
+        openjpeg = [ pylibjpeg-openjpeg ];
+        rle = [ pylibjpeg-rle ];
+      };
+    in
+    extras // { all = lib.concatLists (lib.attrValues extras); };
 
   nativeCheckInputs = [
     pytestCheckHook
@@ -56,14 +47,11 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "pylibjpeg" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python framework for decoding JPEG images, with a focus on supporting Pydicom";
     homepage = "https://github.com/pydicom/pylibjpeg";
     changelog = "https://github.com/pydicom/pylibjpeg/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ bcdarwin ];
-    # several test failures of form
-    # "pydicom.errors.InvalidDicomError: File is missing DICOM File Meta Information header or the 'DICM' prefix is missing from the header. ..."
-    broken = stdenv.isDarwin;
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ bcdarwin ];
   };
 }

@@ -1,31 +1,44 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# dependencies
-, av
-, ctranslate2
-, huggingface-hub
-, onnxruntime
-, tokenizers
+  # build-system
+  setuptools,
 
-# tests
-, pytestCheckHook
+  # dependencies
+  av,
+  ctranslate2,
+  huggingface-hub,
+  onnxruntime,
+  tokenizers,
+
+  # tests
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "faster-whisper";
-  version = "0.10.0";
-  format = "setuptools";
+  version = "1.2.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
-    owner = "guillaumekln";
+    owner = "SYSTRAN";
     repo = "faster-whisper";
-    rev = "refs/tags/${version}";
-    hash = "sha256-qcpPQv5WoUkT92/TZ+MMq452FgPNcm3ZZ+ZNc0btOGE=";
+    tag = "v${version}";
+    hash = "sha256-pWVYxC1h0kIhhBxAt9oT2USuvoarlcwwYmaLUJlZZwY=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [
+    setuptools
+  ];
+
+  pythonRelaxDeps = [
+    "av"
+    "tokenizers"
+  ];
+
+  dependencies = [
     av
     ctranslate2
     huggingface-hub
@@ -33,26 +46,22 @@ buildPythonPackage rec {
     tokenizers
   ];
 
-  pythonImportsCheck = [
-    "faster_whisper"
-  ];
+  pythonImportsCheck = [ "faster_whisper" ];
 
   # all tests require downloads
   doCheck = false;
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   preCheck = ''
     export HOME=$TMPDIR
   '';
 
-  meta = with lib; {
-    changelog = "https://github.com/guillaumekln/faster-whisper/releases/tag/${version}";
+  meta = {
+    changelog = "https://github.com/SYSTRAN/faster-whisper/releases/tag/${src.tag}";
     description = "Faster Whisper transcription with CTranslate2";
-    homepage = "https://github.com/guillaumekln/faster-whisper";
-    license = licenses.mit;
-    maintainers = with maintainers; [ hexa ];
+    homepage = "https://github.com/SYSTRAN/faster-whisper";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ hexa ];
   };
 }

@@ -1,42 +1,38 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  pytest-cov-stub,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "lcgit";
-  version = "0.2.1";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "3.0.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "cisagov";
     repo = "lcgit";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-bLeblC68+j+YwvgnV1wgJiWm/jxZFzhTSDwXpoSzUTg=";
+    tag = "v${version}";
+    hash = "sha256-nCsTA0BKE/0afcqqqEx0mUrLOFbta14TPtNXHD67mas=";
   };
 
-  postPatch = ''
-    substituteInPlace pytest.ini \
-      --replace " --cov" ""
-  '';
+  build-system = [ setuptools ];
 
   nativeCheckInputs = [
     pytestCheckHook
+    pytest-cov-stub
   ];
 
-  pythonImportsCheck = [
-    "lcgit"
-  ];
+  pythonImportsCheck = [ "lcgit" ];
 
-  meta = with lib; {
-    description = "A pythonic Linear Congruential Generator iterator";
+  meta = {
+    description = "Pythonic Linear Congruential Generator iterator";
     homepage = "https://github.com/cisagov/lcgit";
-    changelog = "https://github.com/cisagov/lcgit/releases/tag/v${version}";
-    license = licenses.cc0;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/cisagov/lcgit/releases/tag/${src.tag}";
+    license = lib.licenses.cc0;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

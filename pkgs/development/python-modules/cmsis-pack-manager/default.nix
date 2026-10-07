@@ -1,42 +1,53 @@
-{ lib
-, fetchFromGitHub
-, rustPlatform
-, cffi
-, libiconv
-, stdenv
-, darwin
-, buildPythonPackage
-, appdirs
-, pyyaml
-, hypothesis
-, jinja2
-, pytestCheckHook
-, unzip
+{
+  lib,
+  fetchFromGitHub,
+  rustPlatform,
+  cffi,
+  libiconv,
+  buildPythonPackage,
+  appdirs,
+  pyyaml,
+  hypothesis,
+  jinja2,
+  pytestCheckHook,
+  unzip,
 }:
 
 buildPythonPackage rec {
   pname = "cmsis-pack-manager";
-  version = "0.5.2";
-  format = "pyproject";
+  version = "0.6.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "pyocd";
     repo = "cmsis-pack-manager";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-PeyJf3TGUxv8/MKIQUgWrenrK4Hb+4cvtDA2h3r6kGg=";
+    tag = "v${version}";
+    hash = "sha256-kb0VSg89qglL6Q5kx1nEN1OW1GYoccBTITtPw2/dXTY=";
   };
 
-  cargoDeps = rustPlatform.fetchCargoTarball {
+  cargoDeps = rustPlatform.fetchCargoVendor {
     inherit src;
-    hash = "sha256-dO4qw5Jx0exwb4RuOhu6qvGxQZ+LayHtXDHZKADLTEI=";
+    hash = "sha256-yRNSFlEwFhfkSNjbFHipVZvJZ40pKbI9HhLtciws7nc=";
   };
 
-  nativeBuildInputs = [ rustPlatform.cargoSetupHook rustPlatform.maturinBuildHook ];
+  nativeBuildInputs = [
+    rustPlatform.cargoSetupHook
+    rustPlatform.maturinBuildHook
+  ];
   propagatedNativeBuildInputs = [ cffi ];
-  buildInputs = [ libiconv ]
-    ++ lib.optional stdenv.isDarwin darwin.apple_sdk.frameworks.Security;
-  propagatedBuildInputs = [ appdirs pyyaml ];
-  nativeCheckInputs = [ hypothesis jinja2 pytestCheckHook unzip ];
+  buildInputs = [
+    libiconv
+  ];
+  propagatedBuildInputs = [
+    appdirs
+    pyyaml
+  ];
+  nativeCheckInputs = [
+    hypothesis
+    jinja2
+    pytestCheckHook
+    unzip
+  ];
 
   # remove cmsis_pack_manager source directory so that binaries can be imported
   # from the installed wheel instead
@@ -52,10 +63,11 @@ buildPythonPackage rec {
     "test_dump_parts_cli"
   ];
 
-  meta = with lib; {
-    description = "A Rust and Python module for handling CMSIS Pack files";
+  meta = {
+    description = "Rust and Python module for handling CMSIS Pack files";
     homepage = "https://github.com/pyocd/cmsis-pack-manager";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ frogamic sbruder ];
+    license = lib.licenses.asl20;
+    maintainers = [
+    ];
   };
 }

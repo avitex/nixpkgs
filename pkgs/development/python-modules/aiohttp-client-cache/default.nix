@@ -1,26 +1,88 @@
-{ lib, fetchPypi, python3, ...}:
+{
+  lib,
+  aioboto3,
+  aiobotocore,
+  aiofiles,
+  aiohttp,
+  aiosqlite,
+  attrs,
+  buildPythonPackage,
+  faker,
+  fetchPypi,
+  itsdangerous,
+  motor,
+  hatchling,
+  pytest-asyncio,
+  pytest-aiohttp,
+  pytestCheckHook,
+  redis,
+  url-normalize,
+}:
 
-python3.pkgs.buildPythonPackage rec {
-  pname = "aiohttp_client_cache";
-  version = "0.10.0";
+buildPythonPackage rec {
+  pname = "aiohttp-client-cache";
+  version = "0.14.3";
   pyproject = true;
+
   src = fetchPypi {
-    inherit pname version;
-    sha256 = "sha256-FXU4QNqa8B8ZADmoEyJfd8gsUDI0HEjIR9B2CBP55wU=";
+    pname = "aiohttp_client_cache";
+    inherit version;
+    hash = "sha256-Mp9AOMao7QtBACOYC20aLEhK8z5meonOJFyJnWLB+6E=";
   };
-  nativeBuildInputs = with python3.pkgs; [
-    poetry-core
-  ];
-  propagatedBuildInputs = with python3.pkgs; [
+
+  build-system = [ hatchling ];
+
+  dependencies = [
     aiohttp
     attrs
     itsdangerous
     url-normalize
   ];
-  meta = with lib; {
-    description = "An async persistent cache for aiohttp requests";
-    homepage = "https://pypi.org/project/aiohttp-client-cache/";
-    license = licenses.mit;
-    maintainers = with maintainers; [ seirl ];
+
+  optional-dependencies = {
+    all = [
+      aioboto3
+      aiobotocore
+      aiofiles
+      aiosqlite
+      motor
+      redis
+    ];
+    dynamodb = [
+      aioboto3
+      aiobotocore
+    ];
+    filesystem = [
+      aiofiles
+      aiosqlite
+    ];
+    mongodb = [ motor ];
+    redis = [ redis ];
+    sqlite = [ aiosqlite ];
+  };
+
+  nativeCheckInputs = [
+    faker
+    pytest-asyncio
+    pytest-aiohttp
+    pytestCheckHook
+  ]
+  ++ lib.concatAttrValues optional-dependencies;
+
+  pytestFlags = [ "--asyncio-mode=auto" ];
+
+  pythonImportsCheck = [ "aiohttp_client_cache" ];
+
+  disabledTestPaths = [
+    # Tests require running instances of the services
+    "test/integration/*"
+  ];
+
+  meta = {
+    description = "Async persistent cache for aiohttp requests";
+    homepage = "https://github.com/requests-cache/aiohttp-client-cache";
+    changelog = "https://github.com/requests-cache/aiohttp-client-cache/blob/v${version}/HISTORY.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ seirl ];
   };
 }

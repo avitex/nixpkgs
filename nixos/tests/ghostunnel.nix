@@ -1,49 +1,60 @@
-import ./make-test-python.nix ({ pkgs, ... }: {
+{ pkgs, ... }:
+{
   name = "ghostunnel";
   nodes = {
-    backend = { pkgs, ... }: {
-      services.nginx.enable = true;
-      services.nginx.virtualHosts."backend".root = pkgs.runCommand "webroot" {} ''
-        mkdir $out
-        echo hi >$out/hi.txt
-      '';
-      networking.firewall.allowedTCPPorts = [ 80 ];
-    };
-    service = { ... }: {
-      services.ghostunnel.enable = true;
-      services.ghostunnel.servers."plain-old" = {
-        listen = "0.0.0.0:443";
-        cert = "/root/service-cert.pem";
-        key = "/root/service-key.pem";
-        disableAuthentication = true;
-        target = "backend:80";
-        unsafeTarget = true;
+    backend =
+      { pkgs, ... }:
+      {
+        services.nginx.enable = true;
+        services.nginx.virtualHosts."backend".root = pkgs.runCommand "webroot" { } ''
+          mkdir $out
+          echo hi >$out/hi.txt
+        '';
+        networking.firewall.allowedTCPPorts = [ 80 ];
       };
-      services.ghostunnel.servers."client-cert" = {
-        listen = "0.0.0.0:1443";
-        cert = "/root/service-cert.pem";
-        key = "/root/service-key.pem";
-        cacert = "/root/ca.pem";
-        target = "backend:80";
-        allowCN = ["client"];
-        unsafeTarget = true;
+    service =
+      { ... }:
+      {
+        services.ghostunnel.enable = true;
+        services.ghostunnel.servers."plain-old" = {
+          listen = "0.0.0.0:443";
+          cert = "/root/service-cert.pem";
+          key = "/root/service-key.pem";
+          disableAuthentication = true;
+          target = "backend:80";
+          unsafeTarget = true;
+        };
+        services.ghostunnel.servers."client-cert" = {
+          listen = "0.0.0.0:1443";
+          cert = "/root/service-cert.pem";
+          key = "/root/service-key.pem";
+          cacert = "/root/ca.pem";
+          target = "backend:80";
+          allowCN = [ "client" ];
+          unsafeTarget = true;
+        };
+        networking.firewall.allowedTCPPorts = [
+          443
+          1443
+        ];
       };
-      networking.firewall.allowedTCPPorts = [ 443 1443 ];
-    };
-    client = { pkgs, ... }: {
-      environment.systemPackages = [
-        pkgs.curl
-      ];
-    };
+    client =
+      { pkgs, ... }:
+      {
+        environment.systemPackages = [
+          pkgs.curl
+        ];
+      };
   };
 
   testScript = ''
+    import subprocess
 
     # prepare certificates
 
     def cmd(command):
       print(f"+{command}")
-      r = os.system(command)
+      r = subprocess.run(command, shell=True).returncode
       if r != 0:
         raise Exception(f"Command {command} failed with exit code {r}")
 
@@ -101,4 +112,4 @@ import ./make-test-python.nix ({ pkgs, ... }: {
   meta.maintainers = with pkgs.lib.maintainers; [
     roberth
   ];
-})
+}

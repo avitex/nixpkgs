@@ -1,26 +1,32 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
 
-# dependencies
-, torch
-, scipy
+  # dependencies
+  torch,
+  scipy,
 
-# tests
-, pytestCheckHook
+  # tests
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "torchdiffeq";
-  version = "0.2.3";
-  format = "setuptools";
+  version = "0.2.5";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-/nX0NLkJCsDCdwLgK+0hRysPhwNb5lgfUe3F1AE+oxo=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-tQ03YNE/0TjczqxlH0uAOW9E/vzr0DegM/7P6qnMEuc=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     torch
     scipy
   ];
@@ -30,14 +36,12 @@ buildPythonPackage rec {
   # no tests in sdist, no tags on git
   doCheck = false;
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  meta = with lib; {
+  meta = {
     description = "Differentiable ODE solvers with full GPU support and O(1)-memory backpropagation";
     homepage = "https://github.com/rtqichen/torchdiffeq";
-    license = licenses.mit;
-    maintainers = teams.tts.members;
+    license = lib.licenses.mit;
+    teams = [ lib.teams.tts ];
   };
-}
+})

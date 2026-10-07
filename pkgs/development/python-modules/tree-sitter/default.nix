@@ -1,42 +1,63 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
-, pythonOlder
-, setuptools
-, wheel
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+
+  # tests
+  pytestCheckHook,
+  tree-sitter-python,
+  tree-sitter-rust,
+  tree-sitter-html,
+  tree-sitter-javascript,
+  tree-sitter-json,
 }:
 
 buildPythonPackage rec {
   pname = "tree-sitter";
-  version = "0.20.4";
-  format = "pyproject";
+  version = "0.25.2";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    pname = "tree_sitter";
-    inherit version;
-    hash = "sha256-atsSPi8+VjmbvyNZkkYzyILMQO6DRIhSALygki9xO+U=";
+  src = fetchFromGitHub {
+    owner = "tree-sitter";
+    repo = "py-tree-sitter";
+    tag = "v${version}";
+    hash = "sha256-MgiVxq9MUaOkNNgn46g2Cy7/IUx/yatKSR1vE6LscKg=";
+    fetchSubmodules = true;
   };
 
-  nativeBuildInputs = [
-    setuptools
-    wheel
+  build-system = [ setuptools ];
+
+  nativeCheckInputs = [
+    pytestCheckHook
+    tree-sitter-python
+    tree-sitter-rust
+    tree-sitter-html
+    tree-sitter-javascript
+    tree-sitter-json
   ];
 
-  # PyPI tarball doesn't contains tests and source has additional requirements
-  doCheck = false;
+  pythonImportsCheck = [ "tree_sitter" ];
 
-  pythonImportsCheck = [
-    "tree_sitter"
+  preCheck = ''
+    # https://github.com/NixOS/nixpkgs/issues/255262#issuecomment-1721265871
+    rm -r tree_sitter
+  '';
+
+  disabledTests = [
+    # Test fails only in the Nix sandbox, with:
+    #
+    #    AssertionError: Lists differ: ['', '', ''] != ['graph {\n', 'label="new_parse"\n', '}\n']
+    "test_dot_graphs"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Python bindings to the Tree-sitter parsing library";
     homepage = "https://github.com/tree-sitter/py-tree-sitter";
-    changelog = "https://github.com/tree-sitter/py-tree-sitter/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/tree-sitter/py-tree-sitter/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

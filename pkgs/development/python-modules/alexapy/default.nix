@@ -1,46 +1,38 @@
-{ lib
-, aiofiles
-, aiohttp
-, authcaptureproxy
-, backoff
-, beautifulsoup4
-, buildPythonPackage
-, certifi
-, cryptography
-, fetchFromGitLab
-, poetry-core
-, pyotp
-, pythonOlder
-, pythonRelaxDepsHook
-, requests
-, simplejson
-, yarl
+{
+  lib,
+  aiofiles,
+  aiohttp,
+  authcaptureproxy,
+  backoff,
+  beautifulsoup4,
+  buildPythonPackage,
+  certifi,
+  cryptography,
+  fetchFromGitLab,
+  poetry-core,
+  pyotp,
+  requests,
+  simplejson,
+  yarl,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "alexapy";
-  version = "1.27.10";
+  version = "1.30.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.10";
 
   src = fetchFromGitLab {
     owner = "keatontaylor";
     repo = "alexapy";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-eoL7q+p0m3YZd7Ub7U8nE3tQGNA2oQXelvN+H01b0BM=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-eHsI2LOJQiIC4uFR2H503J85A/LK32dLJ/q8CtGW6l4=";
   };
 
-  pythonRelaxDeps = [
-    "aiofiles"
-  ];
+  pythonRelaxDeps = [ "aiofiles" ];
 
-  nativeBuildInputs = [
-    poetry-core
-    pythonRelaxDepsHook
-  ];
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     aiofiles
     aiohttp
     authcaptureproxy
@@ -54,18 +46,16 @@ buildPythonPackage rec {
     yarl
   ];
 
-  pythonImportsCheck = [
-    "alexapy"
-  ];
+  pythonImportsCheck = [ "alexapy" ];
 
   # Module has no tests (only a websocket test which seems unrelated to the module)
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "Python Package for controlling Alexa devices (echo dot, etc) programmatically";
     homepage = "https://gitlab.com/keatontaylor/alexapy";
-    changelog = "https://gitlab.com/keatontaylor/alexapy/-/blob/v${version}/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://gitlab.com/keatontaylor/alexapy/-/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

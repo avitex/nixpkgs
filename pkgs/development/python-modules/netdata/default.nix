@@ -1,34 +1,30 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, poetry-core
-, httpx
-, pytest-asyncio
-, pytest-httpx
-, pytestCheckHook
-, yarl
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  httpx,
+  pytest-asyncio,
+  pytest-httpx,
+  pytestCheckHook,
+  yarl,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "netdata";
-  version = "1.1.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "1.4.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "home-assistant-ecosystem";
     repo = "python-netdata";
-    rev = "refs/tags/${version}";
-    hash = "sha256-XWlUSKGgndHtJjzA0mYvhCkJsRJ1SUbl8DGdmyFUmoo=";
+    tag = finalAttrs.version;
+    hash = "sha256-rffqpvqVvCi7CKjDchgRzUWDNxsA7C37UHvbELewR0E=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     httpx
     yarl
   ];
@@ -39,15 +35,13 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "netdata"
-  ];
+  pythonImportsCheck = [ "netdata" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python API for interacting with Netdata";
     homepage = "https://github.com/home-assistant-ecosystem/python-netdata";
-    changelog = "https://github.com/home-assistant-ecosystem/python-netdata/releases/tag/${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/home-assistant-ecosystem/python-netdata/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

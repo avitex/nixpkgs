@@ -1,46 +1,51 @@
-{ lib
-, stdenv
-, fetchurl
-, coreutils
-, gdk-pixbuf
-, gdk-pixbuf-xlib
-, gettext
-, gle
-, gtk3
-, intltool
-, libGL
-, libGLU
-, libX11
-, libXext
-, libXft
-, libXi
-, libXinerama
-, libXrandr
-, libXt
-, libXxf86vm
-, libxml2
-, makeWrapper
-, pam
-, perlPackages
-, pkg-config
-, systemd
-, forceInstallAllHacks ? true
-, withSystemd ? lib.meta.availableOn stdenv.hostPlatform systemd
-, nixosTests
-, substituteAll
-, wrapperPrefix ? "/run/wrappers/bin"
+{
+  lib,
+  stdenv,
+  fetchurl,
+  coreutils,
+  gdk-pixbuf,
+  gdk-pixbuf-xlib,
+  gettext,
+  gle,
+  gtk3,
+  intltool,
+  libGL,
+  libGLU,
+  libx11,
+  libxext,
+  libxft,
+  libxi,
+  libxinerama,
+  libxrandr,
+  libxt,
+  libxxf86vm,
+  libxml2,
+  makeWrapper,
+  pam,
+  perlPackages,
+  appres,
+  pkg-config,
+  systemdLibs,
+  forceInstallAllHacks ? true,
+  withSystemd ? lib.meta.availableOn stdenv.hostPlatform systemdLibs,
+  nixosTests,
+  replaceVars,
+  wrapperPrefix ? "/run/wrappers/bin",
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "xscreensaver";
-  version = "6.08";
+  version = "6.15";
 
   src = fetchurl {
     url = "https://www.jwz.org/xscreensaver/xscreensaver-${finalAttrs.version}.tar.gz";
-    hash = "sha256-XPUrpSXO7PlLLyvWNIXr3zGOEvzA8q2tfUwQbYVedqM=";
+    hash = "sha256-0uaH5WJj+/2Pyh+5zHyTMf1PCWq1fT90glZf4BLDYtM=";
   };
 
-  outputs = [ "out" "man" ];
+  outputs = [
+    "out"
+    "man"
+  ];
 
   nativeBuildInputs = [
     intltool
@@ -56,21 +61,21 @@ stdenv.mkDerivation (finalAttrs: {
     gtk3
     libGL
     libGLU
-    libX11
-    libXext
-    libXft
-    libXi
-    libXinerama
-    libXrandr
-    libXt
-    libXxf86vm
+    libx11
+    libxext
+    libxft
+    libxi
+    libxinerama
+    libxrandr
+    libxt
+    libxxf86vm
     libxml2
     pam
     perlPackages.LWPProtocolHttps
     perlPackages.MozillaCA
     perlPackages.perl
   ]
-  ++ lib.optionals withSystemd [ systemd ];
+  ++ lib.optionals withSystemd [ systemdLibs ];
 
   postPatch = ''
     pushd hacks
@@ -79,8 +84,7 @@ stdenv.mkDerivation (finalAttrs: {
   '';
 
   patches = [
-    (substituteAll {
-      src = ./xscreensaver-wrapper-prefix.patch;
+    (replaceVars ./xscreensaver-wrapper-prefix.patch {
       inherit wrapperPrefix;
     })
   ];
@@ -89,6 +93,8 @@ stdenv.mkDerivation (finalAttrs: {
     # Fix installation paths for GTK resources.
     sed -e 's%@GTK_DATADIR@%@datadir@% ; s%@PO_DATADIR@%@datadir@%' \
       -i driver/Makefile.in po/Makefile.in.in
+    # Fix installation path for PAM.
+    sed -e 's%PAM_ROOT	= /etc%PAM_ROOT	= @sysconfdir@%' -i driver/Makefile.in
   '';
 
   configureFlags = [
@@ -102,7 +108,13 @@ stdenv.mkDerivation (finalAttrs: {
     for bin in $out/bin/*; do
       wrapProgram "$bin" \
         --prefix PATH : "$out/libexec/xscreensaver" \
-        --prefix PATH : "${lib.makeBinPath [ coreutils perlPackages.perl ]}" \
+        --prefix PATH : "${
+          lib.makeBinPath [
+            coreutils
+            perlPackages.perl
+            appres
+          ]
+        }" \
         --prefix PERL5LIB ':' $PERL5LIB
     done
   ''
@@ -121,10 +133,12 @@ stdenv.mkDerivation (finalAttrs: {
 
   meta = {
     homepage = "https://www.jwz.org/xscreensaver/";
-    description = "A set of screensavers";
+    description = "Set of screensavers";
     downloadPage = "https://www.jwz.org/xscreensaver/download.html";
     license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ raskin AndersonTorres ];
+    maintainers = with lib.maintainers; [
+      raskin
+    ];
     platforms = lib.platforms.unix;
   };
 })

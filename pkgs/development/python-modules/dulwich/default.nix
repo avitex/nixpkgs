@@ -1,52 +1,71 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, certifi
-, fastimport
-, fetchPypi
-, gevent
-, geventhttpclient
-, git
-, glibcLocales
-, gnupg
-, gpgme
-, paramiko
-, pytest-xdist
-, pytestCheckHook
-, pythonOlder
-, urllib3
+{
+  lib,
+  buildPythonPackage,
+  cargo,
+  fastimport,
+  fetchFromGitHub,
+  gevent,
+  geventhttpclient,
+  git,
+  glibcLocales,
+  gnupg,
+  gpg,
+  merge3,
+  nix-update-script,
+  openssh,
+  paramiko,
+  pytestCheckHook,
+  rich,
+  rustPlatform,
+  rustc,
+  setuptools,
+  setuptools-rust,
+  urllib3,
 }:
 
-buildPythonPackage rec {
-  version = "0.21.7";
+buildPythonPackage (finalAttrs: {
   pname = "dulwich";
-  format = "setuptools";
+  version = "1.2.15";
+  pyproject = true;
+  __structuredAttrs = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-qenGaDPOpYDDrBKSfkuXEZhddq/KmNqXFAXUFN5g6Wg=";
+  src = fetchFromGitHub {
+    owner = "jelmer";
+    repo = "dulwich";
+    tag = "dulwich-${finalAttrs.version}";
+    hash = "sha256-ZLTgVeY9seeElnRc0G7M+0bFx8b/9i5dMj4/61A/maY=";
   };
 
-  LC_ALL = "en_US.UTF-8";
+  cargoDeps = rustPlatform.fetchCargoVendor {
+    inherit (finalAttrs) pname version src;
+    hash = "sha256-X8sKVLTPQVjAcW+h1X/AsHW7UgwSOUbAa4VRZfhepM0=";
+  };
 
-  propagatedBuildInputs = [
-    certifi
+  nativeBuildInputs = [
+    rustPlatform.cargoSetupHook
+    cargo
+    rustc
+  ];
+
+  build-system = [
+    setuptools
+    setuptools-rust
+  ];
+
+  dependencies = [
     urllib3
   ];
 
-  passthru.optional-dependencies = {
-    fastimport = [
-      fastimport
-    ];
+  optional-dependencies = {
+    colordiff = [ rich ];
+    fastimport = [ fastimport ];
+    https = [ urllib3 ];
+    merge = [ merge3 ];
     pgp = [
-      gpgme
+      gpg
       gnupg
     ];
-    paramiko = [
-      paramiko
-    ];
+    paramiko = [ paramiko ];
   };
 
   nativeCheckInputs = [
@@ -54,41 +73,53 @@ buildPythonPackage rec {
     geventhttpclient
     git
     glibcLocales
-    pytest-xdist
+    openssh # for ssh-keygen
     pytestCheckHook
-  ] ++ passthru.optional-dependencies.fastimport
-  ++ passthru.optional-dependencies.pgp
-  ++ passthru.optional-dependencies.paramiko;
+  ]
+  ++ lib.concatAttrValues finalAttrs.passthru.optional-dependencies;
 
-  doCheck = !stdenv.isDarwin;
+  enabledTestPaths = [ "tests" ];
 
   disabledTests = [
-    # OSError: [Errno 84] Invalid or incomplete multibyte or wide character: b'/build/tmpsqwlbpd1/\xc0'
-    "test_no_decode_encode"
-    # OSError: [Errno 84] Invalid or incomplete multibyte or wide character: b'/build/tmpwmtfyvo2/refs.git/refs/heads/\xcd\xee\xe2\xe0\xff\xe2\xe5\xf2\xea\xe01'
-    "test_cyrillic"
-    # OSError: [Errno 84] Invalid or incomplete multibyte or wide character: b'/build/tmpfseetobk/test/\xc0'
-    "test_commit_no_encode_decode"
+    # Depends on setuid which is not available in sandboxed environments
+    "SharedRepositoryTests"
   ];
+
+  preCheck = ''
+    export TMPDIR=$(mktemp -d)
+  '';
 
   disabledTestPaths = [
-    # missing test inputs
-    "dulwich/contrib/test_swift_smoke.py"
+    # AssertionError: GPGMEError not raised
+    "tests/test_signature.py::GPGSignatureVendorTests::test_verify_invalid_signature"
   ];
 
-  pythonImportsCheck = [
-    "dulwich"
-  ];
+  __darwinAllowLocalNetworking = true;
 
-  meta = with lib; {
+  pythonImportsCheck = [ "dulwich" ];
+
+  passthru.updateScript = nix-update-script {
+    extraArgs = [
+      "--version-regex"
+      "^dulwich-([1-9][0-9.]+)$"
+    ];
+  };
+
+  meta = {
     description = "Implementation of the Git file formats and protocols";
     longDescription = ''
       Dulwich is a Python implementation of the Git file formats and protocols, which
       does not depend on Git itself. All functionality is available in pure Python.
     '';
     homepage = "https://www.dulwich.io/";
-    changelog = "https://github.com/jelmer/dulwich/blob/dulwich-${version}/NEWS";
-    license = with licenses; [ asl20 gpl2Plus ];
-    maintainers = with maintainers; [ koral ];
+    changelog = "https://github.com/jelmer/dulwich/blob/dulwich-${finalAttrs.src.tag}/NEWS";
+    license = with lib.licenses; [
+      asl20
+      gpl2Plus
+    ];
+    maintainers = with lib.maintainers; [
+      koral
+      sarahec
+    ];
   };
-}
+})

@@ -1,54 +1,45 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, python
-, pygments
-, pythonOlder
-, wavedrom
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  latex2mathml,
+  pygments,
+  pytest7CheckHook,
+  setuptools,
+  wavedrom,
 }:
 
 buildPythonPackage rec {
   pname = "markdown2";
-  version = "2.4.10";
-  format = "setuptools";
+  version = "2.5.5";
+  pyproject = true;
 
-  disabled = pythonOlder "3.5";
-
-  # PyPI does not contain tests, so using GitHub instead.
   src = fetchFromGitHub {
     owner = "trentm";
     repo = "python-markdown2";
-    rev = version;
-    hash = "sha256-1Vs2OMQm/XBOEefV6W58X5hap91aTNuTx8UFf0285uk=";
+    tag = version;
+    hash = "sha256-h0vzv59RsceTZSvFF9DX5D6YanAKMTG3cNc1napXMyI=";
   };
 
-  nativeCheckInputs = [ pygments ];
+  build-system = [ setuptools ];
 
-  checkPhase = ''
-    runHook preCheck
+  pythonImportsCheck = [ "markdown2" ];
 
-    pushd test
-    ${python.interpreter} ./test.py -- -knownfailure
-    popd  # test
+  nativeCheckInputs = [ pytest7CheckHook ];
 
-    runHook postCheck
-  '';
-
-  passthru.optional-dependencies = {
-    code_syntax_highlighting = [
-      pygments
-    ];
-    wavedrom = [
-      wavedrom
-    ];
-    all = lib.flatten (lib.attrValues (lib.filterAttrs (n: v: n != "all") passthru.optional-dependencies));
+  optional-dependencies = {
+    code_syntax_highlighting = [ pygments ];
+    wavedrom = [ wavedrom ];
+    latex = [ latex2mathml ];
+    all = lib.concatAttrValues (lib.removeAttrs optional-dependencies [ "all" ]);
   };
 
-  meta = with lib; {
-    changelog = "https://github.com/trentm/python-markdown2/blob/${src.rev}/CHANGES.md";
-    description = "A fast and complete Python implementation of Markdown";
-    homepage =  "https://github.com/trentm/python-markdown2";
-    license = licenses.mit;
-    maintainers = with maintainers; [ hbunke ];
+  meta = {
+    changelog = "https://github.com/trentm/python-markdown2/blob/${src.tag}/CHANGES.md";
+    description = "Fast and complete Python implementation of Markdown";
+    mainProgram = "markdown2";
+    homepage = "https://github.com/trentm/python-markdown2";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ hbunke ];
   };
 }

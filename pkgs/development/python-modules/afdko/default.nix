@@ -1,115 +1,120 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, fonttools
-, defcon
-, lxml
-, fs
-, unicodedata2
-, zopfli
-, brotlipy
-, fontpens
-, brotli
-, fontmath
-, mutatormath
-, booleanoperations
-, ufoprocessor
-, ufonormalizer
-, psautohint
-, tqdm
-, setuptools-scm
-, scikit-build
-, cmake
-, ninja
-, antlr4_9
-, libxml2
-, pytestCheckHook
-# Enables some expensive tests, useful for verifying an update
-, runAllTests ? false
-, afdko
+{
+  lib,
+  stdenv,
+  addBinToPathHook,
+  antlr4_13,
+  booleanoperations,
+  buildPythonPackage,
+  cmake,
+  cython,
+  defcon,
+  fetchFromGitHub,
+  fontmath,
+  fonttools,
+  libxml2,
+  lxml,
+  mypy,
+  ninja,
+  pytestCheckHook,
+  runAllTests ? false,
+  scikit-build-core,
+  setuptools-scm,
+  tqdm,
+  ufonormalizer,
+  ufoprocessor,
+  uharfbuzz,
+
+  # passthru
+  afdko,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "afdko";
-  version = "4.0.0+unstable-2023-11-07";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "5.0.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "adobe-type-tools";
-    repo = pname;
-    rev = "6c832edbd81ecf689dbe66e840bf18ae61cf4bca";
-    hash = "sha256-XXkksHggUIs2O0/OSGsft8ofogcbtAa3w5JdldIAJAI=";
+    repo = "afdko";
+    tag = finalAttrs.version;
+    hash = "sha256:sha256-ts7vFfbPPrdooOH0JYrn3YKs7kRju4LbZ8Ypd3ExELc=";
   };
 
-  nativeBuildInputs = [
-    setuptools-scm
-    scikit-build
+  postPatch = ''
+    # https://github.com/NixOS/nixpkgs/pull/510112#issuecomment-4263642029
+    substituteInPlace CMakeLists.txt \
+      --replace-fail 'cmake_minimum_required(VERSION 3.16)' "cmake_minimum_required(VERSION 3.16)
+    find_package(LibXml2 REQUIRED)"
+  '';
+
+  build-system = [
     cmake
+    cython
     ninja
+    scikit-build-core
+    setuptools-scm
+  ];
+
+  cmakeFlags = [
+    "-DANTLR4_INCLUDE_DIRS=${lib.getDev antlr4_13.runtime.cpp}/include/antlr4-runtime"
   ];
 
   buildInputs = [
-    antlr4_9.runtime.cpp
+    antlr4_13.runtime.cpp
     libxml2.dev
   ];
 
   patches = [
-    # Don't try to install cmake and ninja using pip
-    ./no-pypi-build-tools.patch
+    ./dont-fetch-third-party-libs.patch
 
     # Use antlr4 runtime from nixpkgs and link it dynamically
     ./use-dynamic-system-antlr4-runtime.patch
+
+    # integer underflow causes incorrect behavior
+    # patch submitted upstream as https://github.com/adobe-type-tools/afdko/pull/1843
+    ./0001-addfeatures-hmtx-avoid-unsigned-integer-underflow.patch
+
+    # spurious assertion when a high ghost stem is a glyph's first stem aborts
+    # variable-font hinting (e.g. cantarell-fonts, NixOS/nixpkgs#535887)
+    # patch submitted upstream as https://github.com/adobe-type-tools/afdko/pull/1844
+    ./0002-otfautohint-fix-assertion-high-ghost-first-stem.patch
   ];
 
-  # Happy new year
-  postPatch = ''
-    substituteInPlace tests/tx_data/expected_output/alt-missing-glif.pfb --replace 2023 2024
-  '';
+  env = {
+    FORCE_SYSTEM_ANTLR4 = true;
+    # Use system libxml2
+    FORCE_SYSTEM_LIBXML2 = true;
+  };
 
-  env.NIX_CFLAGS_COMPILE = lib.optionalString stdenv.cc.isClang (toString [
-    "-Wno-error=incompatible-function-pointer-types"
-    "-Wno-error=int-conversion"
-  ]);
+  dontUseCmakeConfigure = true;
 
-  # setup.py will always (re-)execute cmake in buildPhase
-  dontConfigure = true;
-
-  propagatedBuildInputs = [
+  dependencies = [
     booleanoperations
-    fonttools
-    lxml           # fonttools[lxml], defcon[lxml] extra
-    fs             # fonttools[ufo] extra
-    unicodedata2   # fonttools[unicode] extra
-    brotlipy       # fonttools[woff] extra
-    zopfli         # fonttools[woff] extra
-    fontpens
-    brotli
     defcon
     fontmath
-    mutatormath
-    ufoprocessor
-    ufonormalizer
-    psautohint
+    fonttools
+    lxml
     tqdm
+    ufonormalizer
+    ufoprocessor
+  ]
+  ++ defcon.optional-dependencies.lxml
+  ++ defcon.optional-dependencies.pens
+  ++ fonttools.optional-dependencies.lxml
+  ++ fonttools.optional-dependencies.ufo
+  ++ fonttools.optional-dependencies.unicode
+  ++ fonttools.optional-dependencies.woff;
+
+  nativeCheckInputs = [
+    addBinToPathHook
+    mypy
+    pytestCheckHook
+    uharfbuzz
   ];
 
-  # Use system libxml2
-  FORCE_SYSTEM_LIBXML2 = true;
-
-  nativeCheckInputs = [ pytestCheckHook ];
-
-  preCheck = ''
-    export PATH=$PATH:$out/bin
-
-    # Remove build artifacts to prevent them from messing with the tests
-    rm -rf _skbuild
-  '';
-
-  disabledTests = lib.optionals (!runAllTests) [
+  disabledTests = [
+  ]
+  ++ lib.optionals (!runAllTests) [
     # Disable slow tests, reduces test time ~25 %
     "test_report"
     "test_post_overflow"
@@ -118,11 +123,13 @@ buildPythonPackage rec {
     "test_filename_without_dir"
     "test_overwrite"
     "test_options"
-  ] ++ lib.optionals (stdenv.hostPlatform.isAarch || stdenv.hostPlatform.isRiscV) [
+  ]
+  ++ lib.optionals (stdenv.hostPlatform.isAarch || stdenv.hostPlatform.isRiscV) [
     # unknown reason so far
     # https://github.com/adobe-type-tools/afdko/issues/1425
     "test_spec"
-  ] ++ lib.optionals (stdenv.hostPlatform.isi686) [
+  ]
+  ++ lib.optionals (stdenv.hostPlatform.isi686) [
     "test_dump_option"
     "test_type1mm_inputs"
   ];
@@ -131,11 +138,11 @@ buildPythonPackage rec {
     fullTestsuite = afdko.override { runAllTests = true; };
   };
 
-  meta = with lib; {
-    changelog = "https://github.com/adobe-type-tools/afdko/blob/${version}/NEWS.md";
+  meta = {
     description = "Adobe Font Development Kit for OpenType";
+    changelog = "https://github.com/adobe-type-tools/afdko/blob/${finalAttrs.version}/NEWS.md";
     homepage = "https://adobe-type-tools.github.io/afdko";
-    license = licenses.asl20;
-    maintainers = [ maintainers.sternenseemann ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ sternenseemann ];
   };
-}
+})

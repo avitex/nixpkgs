@@ -1,44 +1,41 @@
-{ lib, stdenv, fetchFromGitHub, fetchpatch, cmake, obs-studio }:
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  cmake,
+  obs-studio,
+}:
 
 stdenv.mkDerivation rec {
   pname = "obs-source-record";
-  version = "0.3.2";
+  version = "0.4.8";
 
   src = fetchFromGitHub {
     owner = "exeldro";
     repo = "obs-source-record";
     rev = version;
-    sha256 = "sha256-H65uQ9HnKmHs52v3spG92ayeYH/TvmwcMoePMmBMqN8=";
+    sha256 = "sha256-EykXa+7iVTnyCbT8rmadF3OP9Dmc1A4zxi4RukhuZ8s=";
   };
 
-  patches = [
-    # fix obs 29.1 compatibility
-    (fetchpatch {
-      url = "https://patch-diff.githubusercontent.com/raw/exeldro/obs-source-record/pull/83.diff";
-      hash = "sha256-eWOjHHfoXZeoPtqvVyexSi/UQqHm8nu4FEEjma64Ly4=";
-    })
-  ];
-
   nativeBuildInputs = [ cmake ];
-  buildInputs = [
-    obs-studio
-  ];
+  buildInputs = [ obs-studio ];
 
-  NIX_CFLAGS_COMPILE = [ "-Wno-error=deprecated-declarations" ];
+  env.NIX_CFLAGS_COMPILE = toString [ "-Wno-error=deprecated-declarations" ];
 
-  cmakeFlags = [
-    "-DBUILD_OUT_OF_TREE=On"
-  ];
+  cmakeFlags = [ "-DBUILD_OUT_OF_TREE=On" ];
 
   postInstall = ''
     rm -rf $out/{data,obs-plugins}
   '';
 
-  meta = with lib; {
+  meta = {
     description = "OBS Studio plugin to make sources available to record via a filter";
     homepage = "https://github.com/exeldro/obs-source-record";
-    maintainers = with maintainers; [ robbins ];
-    license = licenses.gpl2Only;
-    platforms = [ "x86_64-linux" ];
+    maintainers = with lib.maintainers; [
+      robbins
+      elzorrorebelde
+    ];
+    license = lib.licenses.gpl2Only;
+    inherit (obs-studio.meta) platforms;
   };
 }

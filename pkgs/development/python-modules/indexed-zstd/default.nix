@@ -1,37 +1,40 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, cython
-, zstd
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  cython,
+  zstd,
 }:
 
 buildPythonPackage rec {
   pname = "indexed_zstd";
-  version = "1.6.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.6";
+  version = "1.7.1";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-icCerrv6ihBjSTS4Fsw7qhoA5ha8yegfMVRiIOhTvvY=";
+    hash = "sha256-DspqT15rkF6qGs09l7Gt40B4qClIOkODn1zy7+lxUPQ=";
   };
 
-  nativeBuildInputs = [ cython ];
+  nativeBuildInputs = [
+    cython
+    setuptools
+  ];
 
   buildInputs = [ zstd.dev ];
+
+  postPatch = "cython -3 --cplus indexed_zstd/indexed_zstd.pyx";
 
   # has no tests
   doCheck = false;
 
   pythonImportsCheck = [ "indexed_zstd" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python library to seek within compressed zstd files";
     homepage = "https://github.com/martinellimarco/indexed_zstd";
-    license = licenses.mit;
+    license = lib.licenses.mit;
     maintainers = with lib.maintainers; [ mxmlnkn ];
-    platforms = platforms.all;
   };
 }

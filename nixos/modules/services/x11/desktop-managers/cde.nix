@@ -1,25 +1,40 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 with lib;
 
 let
   xcfg = config.services.xserver;
   cfg = xcfg.desktopManager.cde;
-in {
+in
+{
   options.services.xserver.desktopManager.cde = {
-    enable = mkEnableOption (lib.mdDoc "Common Desktop Environment");
+    enable = mkEnableOption "Common Desktop Environment";
 
     extraPackages = mkOption {
       type = with types; listOf package;
-      default = with pkgs.xorg; [
-        xclock bitmap xlsfonts xfd xrefresh xload xwininfo xdpyinfo xwd xwud
+      default = with pkgs; [
+        xclock
+        bitmap
+        xlsfonts
+        xfd
+        xrefresh
+        xload
+        xwininfo
+        xdpyinfo
+        xwd
+        xwud
       ];
       defaultText = literalExpression ''
-        with pkgs.xorg; [
+        with pkgs; [
           xclock bitmap xlsfonts xfd xrefresh xload xwininfo xdpyinfo xwd xwud
         ]
       '';
-      description = lib.mdDoc ''
+      description = ''
         Extra packages to be installed system wide.
       '';
     };
@@ -46,7 +61,7 @@ in {
       }
     ];
 
-    users.groups.mail = {};
+    users.groups.mail = { };
     security.wrappers = {
       dtmail = {
         setgid = true;
@@ -56,17 +71,21 @@ in {
       };
     };
 
-    system.activationScripts.setup-cde = ''
-      mkdir -p /var/dt/{tmp,appconfig/appmanager}
-      chmod a+w+t /var/dt/{tmp,appconfig/appmanager}
-    '';
+    systemd.tmpfiles.settings."10-cde" = {
+      "/var/dt".d.mode = "0755";
+      "/var/dt/tmp".d.mode = "1777";
+      "/var/dt/appconfig".d.mode = "0755";
+      "/var/dt/appconfig/appmanager".d.mode = "1777";
+    };
 
     services.xserver.desktopManager.session = [
-    { name = "CDE";
-      start = ''
-        exec ${pkgs.cdesktopenv}/bin/Xsession
-      '';
-    }];
+      {
+        name = "CDE";
+        start = ''
+          exec ${pkgs.cdesktopenv}/bin/Xsession
+        '';
+      }
+    ];
   };
 
   meta.maintainers = [ ];

@@ -1,49 +1,52 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "fastjsonschema";
-  version = "2.18.1";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "2.21.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "horejsek";
     repo = "python-fastjsonschema";
     rev = "v${version}";
     fetchSubmodules = true;
-    hash = "sha256-t6JnqQgsWAL8oL8+LO0xrXMYsZOlTF3DlXkRiqUzYtU=";
+    hash = "sha256-EV7/vPYeJSG2uTLpENso9WhcR98/ZTbanKffJfmfZz4=";
   };
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  build-system = [ setuptools ];
 
-  dontUseSetuptoolsCheck = true;
+  nativeCheckInputs = [ pytestCheckHook ];
 
   disabledTests = [
     "benchmark"
     # these tests require network access
-    "remote ref"
+    "remote"
+    "ref"
     "definitions"
-  ] ++ lib.optionals stdenv.isDarwin [
-    "test_compile_to_code_custom_format"  # cannot import temporary module created during test
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
+    "test_compile_to_code_custom_format" # cannot import temporary module created during test
   ];
 
-  pythonImportsCheck = [
-    "fastjsonschema"
+  disabledTestPaths = [
+    # fastjsonschema.exceptions.JsonSchemaDefinitionException: Unknown format uuid/duration
+    "tests/json_schema/test_draft2019.py::test"
   ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "fastjsonschema" ];
+
+  meta = {
     description = "JSON schema validator for Python";
+    downloadPage = "https://github.com/horejsek/python-fastjsonschema";
     homepage = "https://horejsek.github.io/python-fastjsonschema/";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ drewrisinger ];
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
 }

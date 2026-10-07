@@ -1,23 +1,28 @@
-{ bison
-, buildPackages
-, curl
-, fetchFromGitHub
-, fetchurl
-, file
-, flex
-, targetArchitecture ? "i586"
-, lib
-, makeWrapper
-, perl
-, stdenv
-, texinfo
-, unzip
-, which }:
+{
+  bison,
+  buildPackages,
+  curl,
+  fetchFromGitHub,
+  fetchurl,
+  file,
+  flex,
+  targetArchitecture ? "i586",
+  lib,
+  makeWrapper,
+  perl,
+  stdenv,
+  texinfo,
+  unzip,
+  which,
+}:
 
 let
   s = import ./sources.nix { inherit fetchurl fetchFromGitHub; };
 in
-assert lib.elem targetArchitecture [ "i586" "i686" ];
+assert lib.elem targetArchitecture [
+  "i586"
+  "i686"
+];
 stdenv.mkDerivation rec {
   pname = "djgpp";
   version = s.gccVersion;
@@ -40,6 +45,8 @@ stdenv.mkDerivation rec {
   + ''
     runHook postPatch
   '';
+
+  env.NIX_CFLAGS_COMPILE = "-std=gnu89";
 
   nativeBuildInputs = [
     makeWrapper
@@ -92,7 +99,7 @@ stdenv.mkDerivation rec {
   '';
 
   meta = {
-    description = "A complete 32-bit GNU-based development system for Intel x86 PCs running DOS";
+    description = "Complete 32-bit GNU-based development system for Intel x86 PCs running DOS";
     homepage = "https://www.delorie.com/djgpp/";
     license = lib.licenses.gpl2Plus;
     maintainers = with lib.maintainers; [ hughobrien ];

@@ -1,34 +1,31 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonAtLeast
-, basemap
-, cython
-, geos
-, numpy
-, matplotlib
-, pyproj
-, pyshp
-, python
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  setuptools,
+  basemap,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "basemap-data";
-  format = "setuptools";
+  pyproject = true;
   inherit (basemap) version src;
 
-  sourceRoot = "${src.name}/packages/basemap_data";
+  build-system = [ setuptools ];
+
+  sourceRoot = "${finalAttrs.src.name}/data/basemap_data";
 
   # no tests
   doCheck = false;
 
-  pythonImportsCheck =  [ "mpl_toolkits.basemap_data" ];
+  pythonImportsCheck = [ "mpl_toolkits.basemap_data" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://matplotlib.org/basemap/";
     description = "Data assets for matplotlib basemap";
-    license = with licenses; [ mit lgpl3Plus ];
-    maintainers = with maintainers; [ ];
+    license = with lib.licenses; [
+      mit
+      lgpl3Plus
+    ];
+    teams = [ lib.teams.geospatial ];
   };
-}
+})

@@ -1,19 +1,21 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fetchpatch,
 
   # dependencies
-, cmake
-, python-dateutil
-, dbus-python
-, dnf4
-, gettext
-, libcomps
-, libdnf
-, python
-, rpm
-, sphinx
-, systemd
+  cmake,
+  python-dateutil,
+  dbus-python,
+  dnf4,
+  gettext,
+  libcomps,
+  libdnf,
+  python,
+  rpm,
+  sphinx,
+  systemd-python,
 }:
 
 let
@@ -22,29 +24,35 @@ in
 
 buildPythonPackage rec {
   pname = "dnf-plugins-core";
-  version = "4.4.4";
-  format = "other";
+  version = "4.10.1";
+  pyproject = false;
 
-  outputs = [ "out" "man" ];
+  outputs = [
+    "out"
+    "man"
+  ];
 
   src = fetchFromGitHub {
     owner = "rpm-software-management";
     repo = "dnf-plugins-core";
-    rev = version;
-    hash = "sha256-SGgUozOAU6h87SguXh+13CxV4GnVhdN3SpwKfDPh2GY=";
+    tag = version;
+    hash = "sha256-nZyM61bQ9L4t3/fa9cP+xo9ke00e6w2Obt80OpqOG8A=";
   };
 
   patches = [
-    ./fix-python-install-dir.patch
+    # Fix building with CMake 4
+    (fetchpatch {
+      url = "https://github.com/rpm-software-management/dnf-plugins-core/commit/1f5d725d857b61760174dd09165e885dd63762c5.patch?full_index=1";
+      hash = "sha256-dI6tVokgenb4aaLH5YuG3EZ1Ehgf/NwwPprcDWcHt2Q=";
+    })
   ];
 
   postPatch = ''
     substituteInPlace CMakeLists.txt \
-      --replace "@PYTHON_INSTALL_DIR@" "$out/${python.sitePackages}" \
-      --replace "SYSCONFDIR /etc" "SYSCONFDIR $out/etc" \
-      --replace "SYSTEMD_DIR /usr/lib/systemd/system" "SYSTEMD_DIR $out/lib/systemd/system"
+      --replace-fail "SYSCONFDIR /etc" "SYSCONFDIR $out/etc" \
+      --replace-fail "SYSTEMD_DIR /usr/lib/systemd/system" "SYSTEMD_DIR $out/lib/systemd/system"
     substituteInPlace doc/CMakeLists.txt \
-      --replace 'SPHINX_BUILD_NAME "sphinx-build-3"' 'SPHINX_BUILD_NAME "${sphinx}/bin/sphinx-build"'
+      --replace-fail 'SPHINX_BUILD_NAME "sphinx-build-3"' 'SPHINX_BUILD_NAME "${sphinx}/bin/sphinx-build"'
   '';
 
   nativeBuildInputs = [
@@ -60,12 +68,13 @@ buildPythonPackage rec {
     libcomps
     libdnf
     rpm
-    systemd
+    systemd-python
   ];
 
   cmakeFlags = [
     "-DPYTHON_DESIRED=${pyMajor}"
     "-DWITHOUT_LOCAL=0"
+    "-DPYTHON_INSTALL_DIR=${placeholder "out"}/${python.sitePackages}"
   ];
 
   postBuild = ''
@@ -108,15 +117,13 @@ buildPythonPackage rec {
     done
   '';
 
-  makeWrapperArgs = [
-    ''--add-flags "--setopt=pluginpath=$out/${python.sitePackages}/dnf-plugins"''
-  ];
+  makeWrapperArgs = [ ''--add-flags "--setopt=pluginpath=$out/${python.sitePackages}/dnf-plugins"'' ];
 
-  meta = with lib; {
+  meta = {
     description = "Core plugins to use with DNF package manager";
     homepage = "https://github.com/rpm-software-management/dnf-plugins-core";
     changelog = "https://github.com/rpm-software-management/dnf-plugins-core/releases/tag/${version}";
-    license = licenses.gpl2Only;
-    maintainers = with maintainers; [ katexochen ];
+    license = lib.licenses.gpl2Only;
+    maintainers = with lib.maintainers; [ katexochen ];
   };
 }

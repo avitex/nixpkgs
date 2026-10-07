@@ -1,32 +1,41 @@
-{ lib
-, buildPythonPackage
-, pkgs
-, requests
-, numpy
-, graphviz
-, python
-, isPy3k
-, isPy310
+{
+  lib,
+  buildPythonPackage,
+  distutils,
+  graphviz,
+  numpy,
+  pkgs,
+  python,
+  requests,
+  setuptools,
 }:
 
 buildPythonPackage {
   inherit (pkgs.mxnet) pname version src;
+  pyproject = true;
 
-  format = "setuptools";
+  build-system = [ setuptools ];
 
   buildInputs = [ pkgs.mxnet ];
-  propagatedBuildInputs = [ requests numpy graphviz ];
 
-  LD_LIBRARY_PATH = lib.makeLibraryPath [ pkgs.mxnet ];
+  dependencies = [
+    distutils
+    graphviz
+    numpy
+    requests
+  ];
 
-  doCheck = !isPy3k;
+  pythonRelaxDeps = [
+    "graphviz"
+    "numpy"
+  ];
+
+  env.LD_LIBRARY_PATH = toString (lib.makeLibraryPath [ pkgs.mxnet ]);
 
   postPatch = ''
     # Required to support numpy >=1.24 where np.bool is removed in favor of just bool
     substituteInPlace python/mxnet/numpy/utils.py \
-      --replace "bool = onp.bool" "bool = bool"
-    substituteInPlace python/setup.py \
-      --replace "graphviz<0.9.0," "graphviz"
+      --replace-fail "bool = onp.bool" "bool = bool"
   '';
 
   preConfigure = ''
@@ -38,7 +47,5 @@ buildPythonPackage {
     ln -s ${pkgs.mxnet}/lib/libmxnet.so $out/${python.sitePackages}/mxnet
   '';
 
-  meta = pkgs.mxnet.meta // {
-    broken = (pkgs.mxnet.broken or false) || (isPy310 && pkgs.mxnet.cudaSupport);
-  };
+  meta = pkgs.mxnet.meta;
 }

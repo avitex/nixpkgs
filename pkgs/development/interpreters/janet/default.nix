@@ -1,33 +1,40 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, meson
-, ninja
-, nix-update-script
-, runCommand
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  meson,
+  ninja,
+  nix-update-script,
+  pkgsBuildBuild,
+  runCommand,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "janet";
-  version = "1.33.0";
+  version = "1.41.2";
 
   src = fetchFromGitHub {
     owner = "janet-lang";
     repo = "janet";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-kXbJtWxvysC4hLkgVyPpkunFhN+2iVu+S+LCo5ikj5s=";
+    hash = "sha256-sNRhcGG8JysmPHHXeRkYCt7qA75U6flptUEWWun+rDs=";
   };
 
   postPatch = ''
     substituteInPlace janet.1 \
       --replace /usr/local/ $out/
-  '' + lib.optionalString stdenv.isDarwin ''
+  ''
+  + lib.optionalString stdenv.hostPlatform.isDarwin ''
     # error: Socket is not connected
     substituteInPlace meson.build \
       --replace "'test/suite-ev.janet'," ""
   '';
 
-  nativeBuildInputs = [ meson ninja ];
+  depsBuildBuild = [ pkgsBuildBuild.stdenv.cc ];
+  nativeBuildInputs = [
+    meson
+    ninja
+  ];
 
   mesonBuildType = "release";
   mesonFlags = [ "-Dgit_hash=release" ];
@@ -41,25 +48,31 @@ stdenv.mkDerivation (finalAttrs: {
   '';
 
   passthru = {
-    tests.run = runCommand "janet-test-run" {
-      nativeBuildInputs = [finalAttrs.finalPackage];
-    } ''
-      echo "(+ 1 2 3)" | janet | tail -n 1 > arithmeticTest.txt;
-      diff -U3 --color=auto <(cat arithmeticTest.txt) <(echo "6");
+    tests.run =
+      runCommand "janet-test-run"
+        {
+          nativeBuildInputs = [ finalAttrs.finalPackage ];
+        }
+        ''
+          echo "(+ 1 2 3)" | janet | tail -n 1 > arithmeticTest.txt;
+          diff -U3 --color=auto <(cat arithmeticTest.txt) <(echo "6");
 
-      echo "(print \"Hello, World!\")" | janet | tail -n 2 > ioTest.txt;
-      diff -U3 --color=auto <(cat ioTest.txt) <(echo -e "Hello, World!\nnil");
+          echo "(print \"Hello, World!\")" | janet | tail -n 2 > ioTest.txt;
+          diff -U3 --color=auto <(cat ioTest.txt) <(echo -e "Hello, World!\nnil");
 
-      touch $out;
-    '';
-    updateScript = nix-update-script {};
+          touch $out;
+        '';
+    updateScript = nix-update-script { };
   };
 
-  meta = with lib; {
+  meta = {
     description = "Janet programming language";
+    mainProgram = "janet";
     homepage = "https://janet-lang.org/";
-    license = licenses.mit;
-    maintainers = with maintainers; [ andrewchambers peterhoeg ];
-    platforms = platforms.all;
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [
+      peterhoeg
+    ];
+    platforms = lib.platforms.all;
   };
 })

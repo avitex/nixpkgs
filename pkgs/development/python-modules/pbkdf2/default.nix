@@ -1,4 +1,8 @@
-{ lib, buildPythonPackage, fetchPypi }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+}:
 
 buildPythonPackage rec {
   pname = "pbkdf2";
@@ -13,7 +17,8 @@ buildPythonPackage rec {
   # ImportError: No module named test
   doCheck = false;
 
-  meta = with lib; {
-    maintainers = with maintainers; [ domenkozar ];
+  meta = {
+    maintainers = [ ];
+    license = lib.licenses.mit;
   };
 }

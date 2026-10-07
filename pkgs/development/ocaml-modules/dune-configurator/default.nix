@@ -1,24 +1,25 @@
-{ lib, buildDunePackage, dune_3, csexp }:
+{
+  lib,
+  buildDunePackage,
+  ocaml,
+  dune,
+  csexp,
+  version ? if lib.versionAtLeast ocaml.version "4.13" then dune.version else "3.22.2",
+}:
 
-buildDunePackage rec {
+buildDunePackage {
   pname = "dune-configurator";
+  inherit version;
 
-  inherit (dune_3) src version patches;
-
-  # This fixes finding csexp
-  postPatch = ''
-    rm -rf vendor/pp vendor/csexp
-  '';
-
-  minimalOCamlVersion = "4.05";
+  inherit (dune.override { inherit version; }) src;
 
   dontAddPrefix = true;
 
   propagatedBuildInputs = [ csexp ];
 
-  meta = with lib; {
+  meta = {
     description = "Helper library for gathering system configuration";
-    maintainers = [ maintainers.marsam ];
-    license = licenses.mit;
+    maintainers = [ ];
+    license = lib.licenses.mit;
   };
 }

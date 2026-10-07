@@ -1,48 +1,49 @@
 /*
-  Manages /etc/nix.conf.
+  Manages /etc/nix/nix.conf.
 
   See also
    - ./nix-channel.nix
    - ./nix-flakes.nix
    - ./nix-remote-build.nix
    - nixos/modules/services/system/nix-daemon.nix
- */
-{ config, lib, pkgs, ... }:
+*/
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   inherit (lib)
-    concatStringsSep
-    boolToString
-    escape
-    floatToString
-    getVersion
-    isBool
-    isDerivation
-    isFloat
-    isInt
-    isList
-    isString
     literalExpression
     mapAttrsToList
     mkAfter
-    mkDefault
     mkIf
     mkOption
     mkRenamedOptionModuleWith
-    optionalString
     optionals
-    strings
     systems
-    toPretty
     types
-    versionAtLeast
     ;
 
   cfg = config.nix;
 
   nixPackage = cfg.package.out;
 
-  isNixAtLeast = versionAtLeast (getVersion nixPackage);
+  defaultSystemFeatures = [
+    "nixos-test"
+    "benchmark"
+    "big-parallel"
+    "kvm"
+  ]
+  ++ optionals (pkgs.stdenv.hostPlatform ? gcc.arch) (
+    # a builder can run code for `gcc.arch` and inferior architectures
+    [ "gccarch-${pkgs.stdenv.hostPlatform.gcc.arch}" ]
+    ++ map (x: "gccarch-${x}") (
+      systems.architectures.inferiors.${pkgs.stdenv.hostPlatform.gcc.arch} or [ ]
+    )
+  );
 
   legacyConfMappings = {
     useSandbox = "sandbox";
@@ -59,95 +60,122 @@ let
     systemFeatures = "system-features";
   };
 
-  semanticConfType = with types;
+  semanticConfType =
+    with types;
     let
-      confAtom = nullOr
-        (oneOf [
+      confAtom =
+        nullOr (oneOf [
           bool
           int
           float
           str
           path
           package
-        ]) // {
-        description = "Nix config atom (null, bool, int, float, str, path or package)";
-      };
+        ])
+        // {
+          description = "Nix config atom (null, bool, int, float, str, path or package)";
+        };
     in
     attrsOf (either confAtom (listOf confAtom));
 
   nixConf =
-    assert isNixAtLeast "2.2";
-    let
+    (pkgs.formats.nixConf {
+      inherit (cfg)
+        package
+        checkAllErrors
+        checkConfig
+        extraOptions
+        ;
+      inherit (nixPackage) version;
+    }).generate
+      "nix.conf"
+      cfg.settings;
 
-      mkValueString = v:
-        if v == null then ""
-        else if isInt v then toString v
-        else if isBool v then boolToString v
-        else if isFloat v then floatToString v
-        else if isList v then toString v
-        else if isDerivation v then toString v
-        else if builtins.isPath v then toString v
-        else if isString v then v
-        else if strings.isConvertibleWithToString v then toString v
-        else abort "The nix conf value: ${toPretty {} v} can not be encoded";
+  makeNixBuildUser = nr: {
+    name = "nixbld${toString nr}";
+    value = {
+      description = "Nix build user ${toString nr}";
 
-      mkKeyValue = k: v: "${escape [ "=" ] k} = ${mkValueString v}";
-
-      mkKeyValuePairs = attrs: concatStringsSep "\n" (mapAttrsToList mkKeyValue attrs);
-
-    in
-    pkgs.writeTextFile {
-      name = "nix.conf";
-      text = ''
-        # WARNING: this file is generated from the nix.* options in
-        # your NixOS configuration, typically
-        # /etc/nixos/configuration.nix.  Do not edit it!
-        ${mkKeyValuePairs cfg.settings}
-        ${cfg.extraOptions}
-      '';
-      checkPhase = lib.optionalString cfg.checkConfig (
-        if pkgs.stdenv.hostPlatform != pkgs.stdenv.buildPlatform then ''
-          echo "Ignoring validation for cross-compilation"
-        ''
-        else
-        let
-          showCommand = if isNixAtLeast "2.20pre" then "config show" else "show-config";
-        in
-        ''
-          echo "Validating generated nix.conf"
-          ln -s $out ./nix.conf
-          set -e
-          set +o pipefail
-          NIX_CONF_DIR=$PWD \
-            ${cfg.package}/bin/nix ${showCommand} ${optionalString (isNixAtLeast "2.3pre") "--no-net"} \
-              ${optionalString (isNixAtLeast "2.4pre") "--option experimental-features nix-command"} \
-            |& sed -e 's/^warning:/error:/' \
-            | (! grep '${if cfg.checkAllErrors then "^error:" else "^error: unknown setting"}')
-          set -o pipefail
-        '');
+      /*
+        For consistency with the setgid(2), setuid(2), and setgroups(2)
+        calls in `libstore/build.cc', don't add any supplementary group
+        here except "nixbld".
+      */
+      uid = builtins.add config.ids.uids.nixbld nr;
+      isSystemUser = true;
+      group = "nixbld";
+      extraGroups = [ "nixbld" ];
     };
+  };
+
+  nixbldUsers = lib.listToAttrs (map makeNixBuildUser (lib.range 1 cfg.nrBuildUsers));
 
 in
 {
   imports = [
-    (mkRenamedOptionModuleWith { sinceRelease = 2003; from = [ "nix" "useChroot" ]; to = [ "nix" "useSandbox" ]; })
-    (mkRenamedOptionModuleWith { sinceRelease = 2003; from = [ "nix" "chrootDirs" ]; to = [ "nix" "sandboxPaths" ]; })
-  ] ++
-    mapAttrsToList
-      (oldConf: newConf:
-        mkRenamedOptionModuleWith {
-          sinceRelease = 2205;
-          from = [ "nix" oldConf ];
-          to = [ "nix" "settings" newConf ];
-      })
-      legacyConfMappings;
+    (mkRenamedOptionModuleWith {
+      sinceRelease = 2003;
+      from = [
+        "nix"
+        "useChroot"
+      ];
+      to = [
+        "nix"
+        "useSandbox"
+      ];
+    })
+    (mkRenamedOptionModuleWith {
+      sinceRelease = 2003;
+      from = [
+        "nix"
+        "chrootDirs"
+      ];
+      to = [
+        "nix"
+        "sandboxPaths"
+      ];
+    })
+  ]
+  ++ mapAttrsToList (
+    oldConf: newConf:
+    mkRenamedOptionModuleWith {
+      sinceRelease = 2205;
+      from = [
+        "nix"
+        oldConf
+      ];
+      to = [
+        "nix"
+        "settings"
+        newConf
+      ];
+    }
+  ) legacyConfMappings;
 
   options = {
     nix = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = ''
+          Whether to enable Nix.
+          Disabling Nix makes the system hard to modify and the Nix programs and configuration will not be made available by NixOS itself.
+        '';
+      };
+
+      package = lib.mkOption {
+        type = lib.types.package;
+        default = pkgs.nix;
+        defaultText = lib.literalExpression "pkgs.nix";
+        description = ''
+          This option specifies the Nix package instance to use throughout the system.
+        '';
+      };
+
       checkConfig = mkOption {
         type = types.bool;
         default = true;
-        description = lib.mdDoc ''
+        description = ''
           If enabled, checks that Nix can parse the generated nix.conf.
         '';
       };
@@ -155,7 +183,7 @@ in
       checkAllErrors = mkOption {
         type = types.bool;
         default = true;
-        description = lib.mdDoc ''
+        description = ''
           If enabled, checks the nix.conf parsing for any kind of error. When disabled, checks only for unknown settings.
         '';
       };
@@ -167,7 +195,17 @@ in
           keep-outputs = true
           keep-derivations = true
         '';
-        description = lib.mdDoc "Additional text appended to {file}`nix.conf`.";
+        description = "Additional text appended to {file}`nix.conf`.";
+      };
+
+      nrBuildUsers = lib.mkOption {
+        type = lib.types.int;
+        description = ''
+          Number of `nixbld` user accounts created to
+          perform secure concurrent builds.  If you receive an error
+          message saying that “all build users are currently in use”,
+          you should increase this value.
+        '';
       };
 
       settings = mkOption {
@@ -179,7 +217,7 @@ in
               type = types.either types.int (types.enum [ "auto" ]);
               default = "auto";
               example = 64;
-              description = lib.mdDoc ''
+              description = ''
                 This option defines the maximum number of jobs that Nix will try to
                 build in parallel. The default is auto, which means it will use all
                 available logical cores. It is recommend to set it to the total
@@ -192,7 +230,7 @@ in
               type = types.bool;
               default = false;
               example = true;
-              description = lib.mdDoc ''
+              description = ''
                 If set to true, Nix automatically detects files in the store that have
                 identical contents, and replaces them with hard links to a single copy.
                 This saves disk space. If set to false (the default), you can still run
@@ -204,7 +242,7 @@ in
               type = types.int;
               default = 0;
               example = 64;
-              description = lib.mdDoc ''
+              description = ''
                 This option defines the maximum number of concurrent tasks during
                 one build. It affects, e.g., -j option for make.
                 The special value 0 means that the builder should use all
@@ -214,10 +252,20 @@ in
               '';
             };
 
+            experimental-features = mkOption {
+              type = with types; listOf str;
+              default = [ ];
+              example = [ "ca-derivations" ];
+              description = ''
+                List of experimental features to enable in Nix.
+                See <https://nixos.org/manual/nix/stable/development/experimental-features> for available features.
+              '';
+            };
+
             sandbox = mkOption {
               type = types.either types.bool (types.enum [ "relaxed" ]);
               default = true;
-              description = lib.mdDoc ''
+              description = ''
                 If set, Nix will perform builds in a sandboxed environment that it
                 will set up automatically for each build. This prevents impurities
                 in builds by disallowing access to dependencies outside of the Nix
@@ -239,8 +287,11 @@ in
             extra-sandbox-paths = mkOption {
               type = types.listOf types.str;
               default = [ ];
-              example = [ "/dev" "/proc" ];
-              description = lib.mdDoc ''
+              example = [
+                "/dev"
+                "/proc"
+              ];
+              description = ''
                 Directories from the host filesystem to be included
                 in the sandbox.
               '';
@@ -248,7 +299,7 @@ in
 
             substituters = mkOption {
               type = types.listOf types.str;
-              description = lib.mdDoc ''
+              description = ''
                 List of binary cache URLs used to obtain pre-built binaries
                 of Nix packages.
 
@@ -260,7 +311,7 @@ in
               type = types.listOf types.str;
               default = [ ];
               example = [ "https://hydra.nixos.org/" ];
-              description = lib.mdDoc ''
+              description = ''
                 List of binary cache URLs that non-root users can use (in
                 addition to those specified using
                 {option}`nix.settings.substituters`) by passing
@@ -271,7 +322,7 @@ in
             require-sigs = mkOption {
               type = types.bool;
               default = true;
-              description = lib.mdDoc ''
+              description = ''
                 If enabled (the default), Nix will only download binaries from binary caches if
                 they are cryptographically signed with any of the keys listed in
                 {option}`nix.settings.trusted-public-keys`. If disabled, signatures are neither
@@ -283,7 +334,7 @@ in
             trusted-public-keys = mkOption {
               type = types.listOf types.str;
               example = [ "hydra.nixos.org-1:CNHJZBh9K4tP3EKF6FkkgeVYsS3ohTl+oS0Qa8bezVs=" ];
-              description = lib.mdDoc ''
+              description = ''
                 List of public keys used to sign binary caches. If
                 {option}`nix.settings.trusted-public-keys` is enabled,
                 then Nix will use a binary from a binary cache if and only
@@ -295,9 +346,12 @@ in
 
             trusted-users = mkOption {
               type = types.listOf types.str;
-              default = [ "root" ];
-              example = [ "root" "alice" "@wheel" ];
-              description = lib.mdDoc ''
+              example = [
+                "root"
+                "alice"
+                "@wheel"
+              ];
+              description = ''
                 A list of names of users that have additional rights when
                 connecting to the Nix daemon, such as the ability to specify
                 additional binary caches, or to import unsigned NARs. You
@@ -310,23 +364,27 @@ in
 
             system-features = mkOption {
               type = types.listOf types.str;
-              example = [ "kvm" "big-parallel" "gccarch-skylake" ];
-              description = lib.mdDoc ''
+              # We expose system-featuers here and in config below.
+              # This allows users to access the default value via `options.nix.settings.system-features`
+              default = defaultSystemFeatures;
+              defaultText = literalExpression ''[ "nixos-test" "benchmark" "big-parallel" "kvm" "gccarch-<arch>" ]'';
+              description = ''
                 The set of features supported by the machine. Derivations
                 can express dependencies on system features through the
                 `requiredSystemFeatures` attribute.
-
-                By default, pseudo-features `nixos-test`, `benchmark`,
-                and `big-parallel` used in Nixpkgs are set, `kvm`
-                is also included if it is available.
               '';
             };
 
             allowed-users = mkOption {
               type = types.listOf types.str;
               default = [ "*" ];
-              example = [ "@wheel" "@builders" "alice" "bob" ];
-              description = lib.mdDoc ''
+              example = [
+                "@wheel"
+                "@builders"
+                "alice"
+                "bob"
+              ];
+              description = ''
                 A list of names of users (separated by whitespace) that are
                 allowed to connect to the Nix daemon. As with
                 {option}`nix.settings.trusted-users`, you can specify groups by
@@ -344,11 +402,10 @@ in
             use-sandbox = true;
             show-trace = true;
 
-            system-features = [ "big-parallel" "kvm" "recursive-nix" ];
-            sandbox-paths = { "/bin/sh" = "''${pkgs.busybox-sandbox-shell.out}/bin/busybox"; };
+            sandbox-paths = [ "/bin/sh=''${pkgs.busybox-sandbox-shell.out}/bin/busybox" ];
           }
         '';
-        description = lib.mdDoc ''
+        description = ''
           Configuration for Nix, see
           <https://nixos.org/manual/nix/stable/command-ref/conf-file.html> or
           {manpage}`nix.conf(5)` for available options.
@@ -366,18 +423,40 @@ in
   };
 
   config = mkIf cfg.enable {
+    environment.systemPackages = [
+      nixPackage
+      pkgs.nix-info
+    ]
+    ++ lib.optional config.programs.bash.completion.enable pkgs.nix-bash-completions;
+
+    systemd.tmpfiles.rules = [
+      "d  /nix/var                           0755 root root - -"
+      "L+ /nix/var/nix/gcroots/booted-system 0755 root root - /run/booted-system"
+      # Boot-time cleanup
+      "R! /nix/var/nix/gcroots/tmp           -    -    -    - -"
+      "R! /nix/var/nix/temproots             -    -    -    - -"
+    ];
+
     environment.etc."nix/nix.conf".source = nixConf;
     nix.settings = {
       trusted-public-keys = [ "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=" ];
+      trusted-users = [ "root" ];
       substituters = mkAfter [ "https://cache.nixos.org/" ];
-      system-features = mkDefault (
-        [ "nixos-test" "benchmark" "big-parallel" "kvm" ] ++
-        optionals (pkgs.stdenv.hostPlatform ? gcc.arch) (
-          # a builder can run code for `gcc.arch` and inferior architectures
-          [ "gccarch-${pkgs.stdenv.hostPlatform.gcc.arch}" ] ++
-          map (x: "gccarch-${x}") (systems.architectures.inferiors.${pkgs.stdenv.hostPlatform.gcc.arch} or [])
-        )
-      );
+      system-features = defaultSystemFeatures;
     };
+
+    nix.nrBuildUsers = lib.mkDefault (
+      if cfg.settings.auto-allocate-uids or false then
+        0
+      else
+        lib.max 32 (if cfg.settings.max-jobs == "auto" then 0 else cfg.settings.max-jobs)
+    );
+
+    users.users = nixbldUsers;
+
+    services.displayManager.hiddenUsers = lib.attrNames nixbldUsers;
+
+    # Legacy configuration conversion.
+    nix.settings.sandbox-fallback = false;
   };
 }

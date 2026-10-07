@@ -1,23 +1,22 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchPypi
-, setuptools
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "distlib";
-  version = "0.3.7";
-  format = "pyproject";
+  version = "0.4.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-na/lSzSgKOr9lQOdXl1IUaE3NFQPEzEGDTHJkW5xR6g=";
+    hash = "sha256-/uxAB1vgOgRQGpc9gfYzc1tLafmLBUUFkjEMD0AaTg0=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
   postFixup = lib.optionalString (!stdenv.hostPlatform.isWindows) ''
     find $out -name '*.exe' -delete
@@ -37,10 +36,10 @@ buildPythonPackage rec {
   # Tests use pypi.org.
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "Low-level components of distutils2/packaging";
     homepage = "https://distlib.readthedocs.io";
-    license = licenses.psfl;
-    maintainers = with maintainers; [ lnl7 ];
+    license = lib.licenses.psfl;
+    maintainers = [ ];
   };
 }

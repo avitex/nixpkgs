@@ -1,49 +1,46 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, isPyPy
-, setuptools
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  isPyPy,
+  setuptools,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "zope-testing";
-  version = "5.0.1";
+  version = "6.1";
   pyproject = true;
 
-  src = fetchPypi {
-    pname = "zope.testing";
-    inherit version;
-    hash = "sha256-6HzQ2NZmVzza8TOBare5vuyAGmSoZZXBnLX+mS7z1kk=";
+  src = fetchFromGitHub {
+    owner = "zopefoundation";
+    repo = "zope.testing";
+    tag = version;
+    hash = "sha256-dAUiG8DxlhQKMBXh49P0CDC9UjqAYjB+2vVCTI36cgc=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail "setuptools >= 78.1.1,< 81" setuptools
+  '';
+
+  build-system = [ setuptools ];
 
   doCheck = !isPyPy;
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pytestFlagsArray = [
-    "src/zope/testing/tests.py"
-  ];
+  enabledTestPaths = [ "src/zope/testing/tests.py" ];
 
-  pythonImportsCheck = [
-    "zope.testing"
-  ];
+  pythonImportsCheck = [ "zope.testing" ];
 
-  pythonNamespaces = [
-    "zope"
-  ];
+  pythonNamespaces = [ "zope" ];
 
-  meta = with lib; {
+  meta = {
     description = "Zope testing helpers";
-    homepage =  "https://github.com/zopefoundation/zope.testing";
-    changelog = "https://github.com/zopefoundation/zope.testing/blob/${version}/CHANGES.rst";
-    license = licenses.zpl21;
-    maintainers = with maintainers; [ goibhniu ];
+    homepage = "https://github.com/zopefoundation/zope.testing";
+    changelog = "https://github.com/zopefoundation/zope.testing/blob/${src.tag}/CHANGES.rst";
+    license = lib.licenses.zpl21;
+    maintainers = [ ];
   };
 }

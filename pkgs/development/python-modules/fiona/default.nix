@@ -1,77 +1,106 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, cython_3
-, gdal
-, oldest-supported-numpy
-, setuptools
-, wheel
-, attrs
-, certifi
-, click
-, click-plugins
-, cligj
-, munch
-, shapely
-, boto3
-, pytestCheckHook
-, pytz
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  cython,
+  gdal,
+  setuptools,
+
+  # dependencies
+  attrs,
+  certifi,
+  click,
+  click-plugins,
+  cligj,
+
+  # optional-dependencies
+  pyparsing,
+  shapely,
+  boto3,
+
+  # tests
+  fsspec,
+  pytestCheckHook,
+  pytz,
+  snuggs,
+  versionCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "fiona";
-  version = "1.9.5";
+  version = "1.10.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "Toblerity";
     repo = "Fiona";
-    rev = "refs/tags/${version}";
-    hash = "sha256-fq/BuyzuK4iOxdpE4h+KRH0CxOEk/wdmbb9KgCfJ1cw=";
+    tag = finalAttrs.version;
+    hash = "sha256-5NN6PBh+6HS9OCc9eC2TcBvkcwtI4DV8qXnz4tlaMXc=";
   };
 
-  nativeBuildInputs = [
-    cython_3
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail "cython~=3.0.2" cython
+  ''
+  +
+    # pyparsing deprecated parseString in favor of parse_string
+    ''
+      substituteInPlace fiona/fio/features.py fiona/_vendor/snuggs.py \
+        --replace-fail parseString parse_string
+    '';
+
+  build-system = [
+    cython
     gdal # for gdal-config
-    oldest-supported-numpy
     setuptools
-    wheel
   ];
 
-  buildInputs = [
-    gdal
-  ];
+  buildInputs = [ gdal ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     attrs
     certifi
     click
-    cligj
     click-plugins
-    munch
+    cligj
   ];
 
-  passthru.optional-dependencies = {
-    calc = [ shapely ];
+  optional-dependencies = {
+    calc = [
+      pyparsing
+      shapely
+    ];
     s3 = [ boto3 ];
   };
 
+  pythonImportsCheck = [ "fiona" ];
+
   nativeCheckInputs = [
+    fsspec
     pytestCheckHook
     pytz
-  ] ++ passthru.optional-dependencies.s3;
+    shapely
+    snuggs
+    versionCheckHook
+  ]
+  ++ finalAttrs.passthru.optional-dependencies.s3;
 
+  # prevent importing local fiona
   preCheck = ''
-    rm -r fiona # prevent importing local fiona
+    rm -r fiona
   '';
 
-  pytestFlagsArray = [
+  disabledTestMarks = [
     # Tests with gdal marker do not test the functionality of Fiona,
     # but they are used to check GDAL driver capabilities.
-    "-m 'not gdal'"
+    "gdal"
+  ];
+
+  pytestFlags = [
+    # UserWarning: The parameter --where is used more than once. Remove its duplicate as parameters should be unique.
+    "-Wignore::UserWarning"
   ];
 
   disabledTests = [
@@ -80,21 +109,25 @@ buildPythonPackage rec {
     "https"
     "wheel"
 
+    # AssertionError: assert """"bool": true""" in data
+    "test_write_bool_subtype"
+
+    # AssertionError: assert '"coordinates": [ [ [ -111.74, 42.0 ], [ -111.66, 42.0 ]' in f.read(2000)
+    "test_open_kwargs"
+
+    # fiona.errors.DatasetDeleteError: Driver does not support dataset removal operation
+    "test_remove"
+
     # see: https://github.com/Toblerity/Fiona/issues/1273
     "test_append_memoryfile_drivers"
   ];
 
-  pythonImportsCheck = [
-    "fiona"
-  ];
-
-  doInstallCheck = true;
-
-  meta = with lib; {
-    changelog = "https://github.com/Toblerity/Fiona/blob/${src.rev}/CHANGES.txt";
+  meta = {
     description = "OGR's neat, nimble, no-nonsense API for Python";
+    changelog = "https://github.com/Toblerity/Fiona/blob/${finalAttrs.src.tag}/CHANGES.txt";
+    mainProgram = "fio";
     homepage = "https://fiona.readthedocs.io/";
-    license = licenses.bsd3;
-    maintainers = teams.geospatial.members;
+    license = lib.licenses.bsd3;
+    teams = [ lib.teams.geospatial ];
   };
-}
+})

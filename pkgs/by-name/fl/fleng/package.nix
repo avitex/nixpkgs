@@ -1,24 +1,27 @@
-{ lib
-, stdenv
-, fetchurl
+{
+  lib,
+  stdenv,
+  fetchurl,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "fleng";
-  version = "19";
+  version = "23";
 
   src = fetchurl {
     url = "http://www.call-with-current-continuation.org/fleng/fleng-${finalAttrs.version}.tgz";
-    hash = "sha256-xYMNGS3avZ9JsR8kJlSHz+C2XsLmhsDO/KTr5JquRK8=";
+    hash = "sha256-I8ksy3UAah/LTvtNrzjhw5vNUM55ba80ivo4S/r5yHg=";
   };
 
   doCheck = true;
 
   meta = {
+    # last successful hydra build on darwin was in 2025
+    broken = stdenv.hostPlatform.isDarwin;
     homepage = "http://www.call-with-current-continuation.org/fleng/fleng.html";
-    description = "A low level concurrent logic programming language descended from Prolog";
+    description = "Low level concurrent logic programming language descended from Prolog";
     license = lib.licenses.publicDomain;
-    maintainers = with lib.maintainers; [ AndersonTorres ];
+    maintainers = [ ];
     platforms = lib.platforms.unix;
   };
 })

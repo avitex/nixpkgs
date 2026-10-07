@@ -1,65 +1,68 @@
-{ lib
-, aiohttp
-, aioresponses
-, buildPythonPackage
-, click
-, dateparser
-, fetchFromGitHub
-, marshmallow-dataclass
-, poetry-core
-, pyjwt
-, pythonOlder
-, pytest-asyncio
-, pytestCheckHook
-, tabulate
+{
+  lib,
+  aiohttp,
+  aiointercept,
+  buildPythonPackage,
+  click,
+  cryptography,
+  dateparser,
+  fetchFromGitHub,
+  marshmallow-dataclass,
+  poetry-core,
+  pyjwt,
+  pytest-asyncio,
+  pytestCheckHook,
+  syrupy_6,
+  tabulate,
+  typeguard,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "renault-api";
-  version = "0.2.1";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "0.5.13";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "hacf-fr";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-HDaX94XHkyrIA0hWYwcpUItEIeRK2ACvS6jg1YA6Wv4=";
+    repo = "renault-api";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-+kzIPnz34uTjUQ9hksxr3RIEg0+/w+8BdoH+ruenzi0=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
-    click
-    dateparser
+    cryptography
     marshmallow-dataclass
     pyjwt
-    tabulate
   ];
+
+  optional-dependencies = {
+    cli = [
+      click
+      dateparser
+      tabulate
+    ];
+  };
 
   nativeCheckInputs = [
-    aioresponses
+    aiointercept
     pytest-asyncio
     pytestCheckHook
-  ];
+    syrupy_6
+    typeguard
+  ]
+  ++ lib.flatten (builtins.attrValues finalAttrs.passthru.optional-dependencies);
 
-  pytestFlagsArray = [
-    "--asyncio-mode=auto"
-  ];
+  pythonImportsCheck = [ "renault_api" ];
 
-  pythonImportsCheck = [
-    "renault_api"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Python library to interact with the Renault API";
     homepage = "https://github.com/hacf-fr/renault-api";
-    changelog = "https://github.com/hacf-fr/renault-api/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/hacf-fr/renault-api/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
+    mainProgram = "renault-api";
   };
-}
+})

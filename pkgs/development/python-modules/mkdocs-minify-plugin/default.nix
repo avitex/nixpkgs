@@ -1,23 +1,24 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, mkdocs
-, csscompressor
-, htmlmin
-, jsmin
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  mkdocs,
+  csscompressor,
+  htmlmin,
+  jsmin,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "mkdocs-minify-plugin";
-  version = "0.7.1";
+  version = "0.8.0";
   format = "setuptools";
 
   src = fetchFromGitHub {
     owner = "byrnereese";
     repo = "mkdocs-minify-plugin";
-    rev = "refs/tags/${version}";
-    hash = "sha256-LDCAWKVbFsa6Y/tmY2Zne4nOtxe4KvNplZuWxg4e4L8=";
+    tag = version;
+    hash = "sha256-Cp8eSEW7Yx7l1TcaS4ctOBLGYpAzapm2tkSbmzyb7rA=";
   };
 
   propagatedBuildInputs = [
@@ -37,10 +38,10 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "mkdocs" ];
 
-  meta = with lib; {
-    description = "A mkdocs plugin to minify the HTML of a page before it is written to disk.";
+  meta = {
+    description = "Mkdocs plugin to minify the HTML of a page before it is written to disk";
     homepage = "https://github.com/byrnereese/mkdocs-minify-plugin";
-    license = licenses.mit;
-    maintainers = with maintainers; [ tfc ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ tfc ];
   };
 }

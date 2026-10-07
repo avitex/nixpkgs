@@ -1,38 +1,74 @@
-{ lib, stdenv, fetchFromGitHub, fuse3, macfuse-stubs, pkg-config, sqlite, pcre }:
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  fuse3,
+  macfuse-stubs,
+  pkg-config,
+  sqlite,
+  pcre2,
+  installShellFiles,
+}:
 
 let
-  fuse = if stdenv.isDarwin then macfuse-stubs else fuse3;
-in stdenv.mkDerivation rec {
+  fuse = if stdenv.hostPlatform.isDarwin then macfuse-stubs else fuse3;
+in
+stdenv.mkDerivation (finalAttrs: {
   pname = "tup";
-  version = "0.7.11";
-  outputs = [ "bin" "man" "out" ];
+  version = "0.8";
+  outputs = [
+    "bin"
+    "man"
+    "out"
+  ];
 
   src = fetchFromGitHub {
     owner = "gittup";
     repo = "tup";
-    rev = "v${version}";
-    hash = "sha256-Q2Y5ErcfhLChi9Wezn8+7eNXYX2UXW1fBOqEclmgzOo=";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-biVR932wHiUG56mvXoKWFzrzpkclbW9RWM4vY1+OMZ0=";
   };
 
-  nativeBuildInputs = [ pkg-config ];
-  buildInputs = [ fuse pcre sqlite ];
+  nativeBuildInputs = [
+    pkg-config
+    installShellFiles
+  ];
+  buildInputs = [
+    fuse
+    pcre2
+    sqlite
+  ];
 
-  patches = [ ./fusermount-setuid.patch ];
+  patches = [
+    ./fusermount-setuid.patch
+    # Taken from https://github.com/gittup/tup/issues/518#issuecomment-3014825681
+    ./fix_newer_fuse3_file_reads.patch
+  ];
 
   configurePhase = ''
-    substituteInPlace  src/tup/link.sh --replace '`git describe' '`echo ${version}'
+    runHook preConfigure
 
-    for f in Tupfile Tuprules.tup src/tup/server/Tupfile build.sh; do
-      substituteInPlace "$f" \
-        --replace "pkg-config"  "${stdenv.cc.targetPrefix}pkg-config" \
-        --replace "pcre-config" "${stdenv.cc.targetPrefix}pkg-config libpcre"
+    substituteInPlace  src/tup/link.sh --replace-fail '`git describe' '`echo ${finalAttrs.version}'
+
+    for path in Tupfile build.sh src/tup/server/Tupfile ; do
+      substituteInPlace  $path  --replace-fail "pkg-config" "${stdenv.cc.targetPrefix}pkg-config"
     done
+
+    # Replace "pcre2-config --libs8" => "pkg-config libpcre2-8 --libs".
+    #
+    # There is prefixed pkg-config for cross-compilation, but no prefixed "pcre2-config".
+    for path in Tupfile Tuprules.tup ; do
+      substituteInPlace  $path --replace-fail "pcre2-config" "${stdenv.cc.targetPrefix}pkg-config libpcre2-8 "
+    done
+    substituteInPlace  Tupfile --replace-fail "--libs8" "--libs"
 
     cat << EOF > tup.config
     CONFIG_CC=${stdenv.cc.targetPrefix}cc
     CONFIG_AR=${stdenv.cc.targetPrefix}ar
     CONFIG_TUP_USE_SYSTEM_SQLITE=y
     EOF
+
+    runHook postConfigure
   '';
 
   # Regular tup builds require fusermount to have suid, which nix cannot
@@ -49,15 +85,16 @@ in stdenv.mkDerivation rec {
 
   installPhase = ''
     runHook preInstall
-    install -D tup -t $bin/bin/
-    install -D tup.1 -t $man/share/man/man1/
+    installBin tup
+    installManPage tup.1
     runHook postInstall
   '';
 
   setupHook = ./setup-hook.sh;
 
-  meta = with lib; {
-    description = "A fast, file-based build system";
+  meta = {
+    description = "Fast, file-based build system";
+    mainProgram = "tup";
     longDescription = ''
       Tup is a file-based build system for Linux, OSX, and Windows. It inputs a list
       of file changes and a directed acyclic graph (DAG), then processes the DAG to
@@ -67,15 +104,8 @@ in stdenv.mkDerivation rec {
       your project rather than on your build system.
     '';
     homepage = "https://gittup.org/tup/";
-    license = licenses.gpl2;
-    maintainers = with maintainers; [ ehmry ];
-    platforms = platforms.unix;
-
-    # TODO: Remove once nixpkgs uses newer SDKs that supports '*at' functions.
-    # Probably MacOS SDK 10.13 or later. Check the current version in
-    # ../../../../os-specific/darwin/apple-sdk/default.nix
-    #
-    # https://github.com/gittup/tup/commit/3697c74
-    broken = stdenv.isDarwin;
+    license = lib.licenses.gpl2Only;
+    platforms = lib.platforms.unix;
+    broken = stdenv.hostPlatform.isDarwin;
   };
-}
+})

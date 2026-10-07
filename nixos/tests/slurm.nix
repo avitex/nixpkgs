@@ -1,23 +1,25 @@
-import ./make-test-python.nix ({ lib, pkgs, ... }:
+{ lib, pkgs, ... }:
 let
-    slurmconfig = {
-      services.slurm = {
-        controlMachine = "control";
-        nodeName = [ "node[1-3] CPUs=1 State=UNKNOWN" ];
-        partitionName = [ "debug Nodes=node[1-3] Default=YES MaxTime=INFINITE State=UP" ];
-        extraConfig = ''
-          AccountingStorageHost=dbd
-          AccountingStorageType=accounting_storage/slurmdbd
-        '';
-      };
-      environment.systemPackages = [ mpitest ];
-      networking.firewall.enable = false;
-      systemd.tmpfiles.rules = [
-        "f /etc/munge/munge.key 0400 munge munge - mungeverryweakkeybuteasytointegratoinatest"
-      ];
+  slurmconfig = {
+    services.slurm = {
+      controlMachine = "control";
+      nodeName = [ "node[1-3] CPUs=1 State=UNKNOWN" ];
+      partitionName = [ "debug Nodes=node[1-3] Default=YES MaxTime=INFINITE State=UP" ];
+      extraConfig = ''
+        AccountingStorageHost=dbd
+        AccountingStorageType=accounting_storage/slurmdbd
+        AuthAltTypes=auth/jwt
+      '';
     };
+    environment.systemPackages = [ mpitest ];
+    networking.firewall.enable = false;
+    systemd.tmpfiles.rules = [
+      "f /etc/munge/munge.key 0400 munge munge - mungeverryweakkeybuteasytointegratoinatest"
+    ];
+  };
 
-    mpitest = let
+  mpitest =
+    let
       mpitestC = pkgs.writeText "mpitest.c" ''
         #include <stdio.h>
         #include <stdlib.h>
@@ -43,126 +45,194 @@ let
           return EXIT_SUCCESS;
         }
       '';
-    in pkgs.runCommand "mpitest" {} ''
+    in
+    pkgs.runCommand "mpitest" { } ''
       mkdir -p $out/bin
-      ${pkgs.openmpi}/bin/mpicc ${mpitestC} -o $out/bin/mpitest
+      ${lib.getDev pkgs.mpi}/bin/mpicc ${mpitestC} -o $out/bin/mpitest
     '';
-in {
+
+  sbatchOutput = "/tmp/shared/sbatch.log";
+  sbatchScript = pkgs.writeText "sbatchScript" ''
+    #!${pkgs.runtimeShell}
+    #SBATCH --nodes 1
+    #SBATCH --ntasks 1
+    #SBATCH --output ${sbatchOutput}
+
+    echo "sbatch success"
+  '';
+in
+{
   name = "slurm";
 
   meta.maintainers = [ lib.maintainers.markuskowa ];
 
   nodes =
     let
-    computeNode =
-      { ...}:
-      {
-        imports = [ slurmconfig ];
-        # TODO slurmd port and slurmctld port should be configurations and
-        # automatically allowed by the  firewall.
-        services.slurm = {
-          client.enable = true;
-        };
-      };
-    in {
-
-    control =
-      { ...}:
-      {
-        imports = [ slurmconfig ];
-        services.slurm = {
-          server.enable = true;
-        };
-      };
-
-    submit =
-      { ...}:
-      {
-        imports = [ slurmconfig ];
-        services.slurm = {
-          enableStools = true;
-        };
-      };
-
-    dbd =
-      { pkgs, ... } :
-      let
-        passFile = pkgs.writeText "dbdpassword" "password123";
-      in {
-        networking.firewall.enable = false;
-        systemd.tmpfiles.rules = [
-          "f /etc/munge/munge.key 0400 munge munge - mungeverryweakkeybuteasytointegratoinatest"
-        ];
-        services.slurm.dbdserver = {
-          enable = true;
-          storagePassFile = "${passFile}";
-        };
-        services.mysql = {
-          enable = true;
-          package = pkgs.mariadb;
-          initialScript = pkgs.writeText "mysql-init.sql" ''
-            CREATE USER 'slurm'@'localhost' IDENTIFIED BY 'password123';
-            GRANT ALL PRIVILEGES ON slurm_acct_db.* TO 'slurm'@'localhost';
-          '';
-          ensureDatabases = [ "slurm_acct_db" ];
-          ensureUsers = [{
-            ensurePermissions = { "slurm_acct_db.*" = "ALL PRIVILEGES"; };
-            name = "slurm";
-          }];
-          settings.mysqld = {
-            # recommendations from: https://slurm.schedmd.com/accounting.html#mysql-configuration
-            innodb_buffer_pool_size="1024M";
-            innodb_log_file_size="64M";
-            innodb_lock_wait_timeout=900;
+      computeNode =
+        { ... }:
+        {
+          imports = [ slurmconfig ];
+          # TODO slurmd port and slurmctld port should be configurations and
+          # automatically allowed by the  firewall.
+          services.slurm = {
+            client.enable = true;
           };
         };
-      };
+    in
+    {
 
-    node1 = computeNode;
-    node2 = computeNode;
-    node3 = computeNode;
-  };
+      control =
+        { ... }:
+        {
+          imports = [ slurmconfig ];
+          services.slurm = {
+            server.enable = true;
+          };
+          systemd.tmpfiles.rules = [
+            "f /var/spool/slurmctld/jwt_hs256.key 0400 slurm slurm - thisisjustanexamplejwttoken0000"
+          ];
+        };
 
+      submit =
+        { ... }:
+        {
+          imports = [ slurmconfig ];
+          services.slurm = {
+            enableStools = true;
+          };
+        };
 
-  testScript =
-  ''
-  start_all()
+      dbd =
+        { pkgs, ... }:
+        let
+          passFile = pkgs.writeText "dbdpassword" "password123";
+        in
+        {
+          networking.firewall.enable = false;
+          systemd.tmpfiles.rules = [
+            "f /etc/munge/munge.key 0400 munge munge - mungeverryweakkeybuteasytointegratoinatest"
+          ];
+          services.slurm.dbdserver = {
+            enable = true;
+            storagePassFile = "${passFile}";
+          };
+          services.mysql = {
+            enable = true;
+            package = pkgs.mariadb;
+            initialScript = pkgs.writeText "mysql-init.sql" ''
+              CREATE USER 'slurm'@'localhost' IDENTIFIED BY 'password123';
+              GRANT ALL PRIVILEGES ON slurm_acct_db.* TO 'slurm'@'localhost';
+            '';
+            ensureDatabases = [ "slurm_acct_db" ];
+            ensureUsers = [
+              {
+                ensurePermissions = {
+                  "slurm_acct_db.*" = "ALL PRIVILEGES";
+                };
+                name = "slurm";
+              }
+            ];
+          };
+        };
 
-  # Make sure DBD is up after DB initialzation
-  with subtest("can_start_slurmdbd"):
-      dbd.succeed("systemctl restart slurmdbd")
-      dbd.wait_for_unit("slurmdbd.service")
-      dbd.wait_for_open_port(6819)
+      rest =
+        { ... }:
+        {
+          imports = [ slurmconfig ];
+          services.slurm.rest.enable = true;
+        };
 
-  # there needs to be an entry for the current
-  # cluster in the database before slurmctld is restarted
-  with subtest("add_account"):
-      control.succeed("sacctmgr -i add cluster default")
-      # check for cluster entry
-      control.succeed("sacctmgr list cluster | awk '{ print $1 }' | grep default")
+      node1 = computeNode;
+      node2 = computeNode;
+      node3 = computeNode;
+    };
 
-  with subtest("can_start_slurmctld"):
-      control.succeed("systemctl restart slurmctld")
-      control.wait_for_unit("slurmctld.service")
+  testScript = ''
+    start_all()
 
-  with subtest("can_start_slurmd"):
-      for node in [node1, node2, node3]:
-          node.succeed("systemctl restart slurmd.service")
-          node.wait_for_unit("slurmd")
+    with subtest("can_start_slurmdbd"):
+        dbd.wait_for_unit("slurmdbd.service")
+        dbd.wait_for_open_port(6819)
 
-  # Test that the cluster works and can distribute jobs;
+    with subtest("cluster_is_initialized"):
+        control.wait_for_unit("multi-user.target")
+        control.wait_for_unit("slurmctld.service")
+        control.wait_for_open_port(6817)
 
-  with subtest("run_distributed_command"):
-      # Run `hostname` on 3 nodes of the partition (so on all the 3 nodes).
-      # The output must contain the 3 different names
-      submit.succeed("srun -N 3 hostname | sort | uniq | wc -l | xargs test 3 -eq")
+        for node in [node1, node2, node3]:
+            node.wait_for_unit("slurmd.service")
+            node.wait_for_open_port(6818)
 
-      with subtest("check_slurm_dbd"):
-          # find the srun job from above in the database
-          control.succeed("sleep 5")
-          control.succeed("sacct | grep hostname")
+        submit.wait_for_unit("multi-user.target")
 
-  with subtest("run_PMIx_mpitest"):
-      submit.succeed("srun -N 3 --mpi=pmix mpitest | grep size=3")
+        control.wait_until_succeeds(
+            "sacctmgr -nP list cluster format=cluster | grep -qx default"
+        )
+
+        # Test that the cluster works and can distribute jobs;
+        control.wait_until_succeeds(
+            "sinfo -Nh -o '%N %T' | grep -Fx 'node1 idle' && "
+            "sinfo -Nh -o '%N %T' | grep -Fx 'node2 idle' && "
+            "sinfo -Nh -o '%N %T' | grep -Fx 'node3 idle'"
+        )
+
+    with subtest("run_distributed_command"):
+        # Run `hostname` on 3 nodes of the partition (so on all the 3 nodes).
+        # The output must contain the 3 different names
+        submit.succeed(
+            "test \"$(srun -J distributed-hostname-check -N 3 hostname | sort -u | tr '\n' ' ')\" = 'node1 node2 node3 '"
+        )
+
+    with subtest("check_slurm_dbd_job_for_srun"):
+        # find the srun job from above in the database
+        submit.wait_until_succeeds(
+            "sacct -X -P -n --name=distributed-hostname-check -o JobName,State | "
+            "grep -Eq '^distributed-hostname-check\\|COMPLETED(\\+.*)?$'"
+    )
+
+    with subtest("run_PMIx_mpitest"):
+        submit.succeed(
+            "out=$(srun -N 3 --mpi=pmix mpitest); "
+            "echo \"$out\"; "
+            "echo \"$out\" | grep -Fx 'size=3'; "
+            "test \"$(echo \"$out\" | grep -c 'hello world from process')\" -eq 3"
+        )
+
+    with subtest("run_sbatch"):
+        submit.succeed(
+            "jobid=$(sbatch --parsable --wait ${sbatchScript}); "
+            "echo \"$jobid\" > /tmp/sbatch.jobid"
+        )
+        submit.succeed("grep -Fx 'sbatch success' ${sbatchOutput}")
+        submit.wait_until_succeeds(
+            "sacct -X -j $(cat /tmp/sbatch.jobid) -n -o State | grep -Eq 'COMPLETED|COMPLETED\\+'"
+        )
+        submit.succeed("test -z \"$(squeue -h)\"")
+
+    with subtest("cluster_returns_to_idle"):
+        control.wait_until_succeeds(
+            "sinfo -Nh -o '%N %T' | grep -Fx 'node1 idle' && "
+            "sinfo -Nh -o '%N %T' | grep -Fx 'node2 idle' && "
+            "sinfo -Nh -o '%N %T' | grep -Fx 'node3 idle'"
+        )
+
+    with subtest("rest"):
+        rest.wait_for_unit("slurmrestd.service")
+        rest.wait_for_open_port(6820)
+
+        token = control.succeed("scontrol token").split('=', 1)[1].strip()
+
+        rest.succeed(
+            "${pkgs.curl}/bin/curl -fsS "
+            "-H X-SLURM-USER-TOKEN:%s "
+            "http://localhost:6820/slurm/v0.0.43/diag | grep -q 'meta'" % token
+        )
+
+    with subtest("rest_rejects_invalid_token"):
+        rest.fail(
+            "${pkgs.curl}/bin/curl -fsS "
+            "-H X-SLURM-USER-TOKEN:not-a-real-token "
+            "http://localhost:6820/slurm/v0.0.43/diag"
+        )
   '';
-})
+}

@@ -1,62 +1,56 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, installShellFiles
-, pbr
-, openstackdocstheme
-, oslo-config
-, oslo-log
-, oslo-serialization
-, oslo-utils
-, prettytable
-, requests
-, simplejson
-, sphinx
-, sphinxcontrib-programoutput
-, babel
-, osc-lib
-, python-keystoneclient
-, debtcollector
-, callPackage
+{
+  lib,
+  buildPythonPackage,
+  callPackage,
+  debtcollector,
+  fetchPypi,
+  keystoneauth1,
+  openstackdocstheme,
+  osc-lib,
+  oslo-config,
+  oslo-log,
+  oslo-serialization,
+  oslo-utils,
+  pbr,
+  prettytable,
+  requests,
+  setuptools,
+  sphinxHook,
+  sphinxcontrib-programoutput,
 }:
 
 buildPythonPackage rec {
   pname = "python-manilaclient";
-  version = "4.7.0";
-  format = "setuptools";
+  version = "6.3.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-blkE+pLzZQ8BCHAmk6yNjzqbBAlK2ab1FySGFB/kN2c=";
+    pname = "python_manilaclient";
+    inherit version;
+    hash = "sha256-ktc2Z6GsIKsINYjokStZdpvgcG8g+26YRewG09cnI9Q=";
   };
 
-  nativeBuildInputs = [
-    installShellFiles
+  build-system = [
     openstackdocstheme
-    sphinx
+    setuptools
+    sphinxHook
     sphinxcontrib-programoutput
   ];
 
-  propagatedBuildInputs = [
-    pbr
+  sphinxBuilders = [ "man" ];
+
+  dependencies = [
+    debtcollector
+    keystoneauth1
+    osc-lib
     oslo-config
     oslo-log
     oslo-serialization
     oslo-utils
+    pbr
     prettytable
     requests
-    simplejson
-    babel
-    osc-lib
-    python-keystoneclient
-    debtcollector
   ];
-
-  postInstall = ''
-    export PATH=$out/bin:$PATH
-    sphinx-build -a -E -d doc/build/doctrees -b man doc/source doc/build/man
-    installManPage doc/build/man/python-manilaclient.1
-  '';
 
   # Checks moved to 'passthru.tests' to workaround infinite recursion
   doCheck = false;
@@ -65,14 +59,13 @@ buildPythonPackage rec {
     tests = callPackage ./tests.nix { };
   };
 
-  pythonImportsCheck = [
-    "manilaclient"
-  ];
+  pythonImportsCheck = [ "manilaclient" ];
 
-  meta = with lib; {
+  meta = {
     description = "Client library for OpenStack Manila API";
+    mainProgram = "manila";
     homepage = "https://github.com/openstack/python-manilaclient";
-    license = licenses.asl20;
-    maintainers = teams.openstack.members;
+    license = lib.licenses.asl20;
+    teams = [ lib.teams.openstack ];
   };
 }

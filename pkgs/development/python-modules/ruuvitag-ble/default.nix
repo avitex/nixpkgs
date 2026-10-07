@@ -1,34 +1,31 @@
-{ lib
-, bluetooth-data-tools
-, bluetooth-sensor-state-data
-, buildPythonPackage
-, fetchFromGitHub
-, hatchling
-, home-assistant-bluetooth
-, pytestCheckHook
-, pythonOlder
-, sensor-state-data
+{
+  lib,
+  bluetooth-data-tools,
+  bluetooth-sensor-state-data,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  home-assistant-bluetooth,
+  pytest-cov-stub,
+  pytestCheckHook,
+  sensor-state-data,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "ruuvitag-ble";
-  version = "0.1.2";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.9";
+  version = "0.4.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "Bluetooth-Devices";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-J+807p2mE+VZ0oqldFtjdcNGsRTkAU54s6byQSGrng4=";
+    repo = "ruuvitag-ble";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-/xtNT36s7vdU0+1QFW2Of6v3OIQ9e6ZA9K3t9rPw5o8=";
   };
 
-  nativeBuildInputs = [
-    hatchling
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     bluetooth-data-tools
     bluetooth-sensor-state-data
     home-assistant-bluetooth
@@ -36,22 +33,17 @@ buildPythonPackage rec {
   ];
 
   nativeCheckInputs = [
+    pytest-cov-stub
     pytestCheckHook
   ];
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace " --cov=ruuvitag_ble --cov-report=term-missing:skip-covered" ""
-  '';
+  pythonImportsCheck = [ "ruuvitag_ble" ];
 
-  pythonImportsCheck = [
-    "ruuvitag_ble"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Library for Ruuvitag BLE devices";
     homepage = "https://github.com/Bluetooth-Devices/ruuvitag-ble";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/Bluetooth-Devices/ruuvitag-ble/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

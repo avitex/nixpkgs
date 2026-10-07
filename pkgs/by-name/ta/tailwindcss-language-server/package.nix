@@ -1,41 +1,79 @@
-{ lib
-, stdenv
-, buildNpmPackage
-, fetchFromGitHub
-, python3
-, darwin
-, libsecret
-, pkg-config
+{
+  lib,
+  stdenvNoCC,
+  fetchFromGitHub,
+  nodejs,
+  pnpm_10,
+  fetchPnpmDeps,
+  pnpmConfigHook,
+  nix-update-script,
 }:
-
-let
-  version = "0.0.16";
-in
-buildNpmPackage {
+stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "tailwindcss-language-server";
-  inherit version;
+  version = "0.16.0";
 
   src = fetchFromGitHub {
     owner = "tailwindlabs";
     repo = "tailwindcss-intellisense";
-    rev = "@tailwindcss/language-server@v${version}";
-    hash = "sha256-azzWrT8Ac+bdEfmNo+9WfQgHwA3+q9yGZMLfYXAQHtU=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-QMTzylHAO5s5VtyBAnHEoxKq8ndRyAdvh/N5xUYRLas=";
   };
 
-  makeCacheWritable = true;
-  npmDepsHash = "sha256-z2fLtGnYgI8ocWTBrqpdElgjNghoE42LFJRWyVt/U7M=";
-  npmWorkspace = "packages/tailwindcss-language-server";
+  pnpmDeps = fetchPnpmDeps {
+    inherit (finalAttrs)
+      pname
+      version
+      src
+      pnpmWorkspaces
+      ;
+    pnpm = pnpm_10;
+    fetcherVersion = 4;
+    hash = "sha256-5e6fC+5BwQm9TqZlnZ9GiPlVwCdEePTpUh4m4tt8qy4=";
+  };
 
-  buildInputs = [ libsecret ] ++ lib.optionals stdenv.isDarwin (with darwin.apple_sdk.frameworks; [ Security AppKit ]);
+  nativeBuildInputs = [
+    pnpmConfigHook
+    pnpm_10
+  ];
 
-  nativeBuildInputs = [ python3 pkg-config ];
+  buildInputs = [
+    nodejs
+  ];
 
-  meta = with lib; {
-    description = "Intelligent Tailwind CSS tooling for Visual Studio Code";
+  pnpmWorkspaces = [
+    "@tailwindcss/language-server..."
+  ];
+
+  # Must build the "@tailwindcss/language-service" package. Dependency is linked via workspace by "pnpm"
+  # https://github.com/tailwindlabs/tailwindcss-intellisense/blob/v0.16.0/pnpm-lock.yaml#L77
+  buildPhase = ''
+    runHook preBuild
+
+    pnpm --filter "@tailwindcss/language-server..." build
+
+    runHook postBuild
+  '';
+
+  installPhase = ''
+    runHook preInstall
+
+    mkdir -p $out/{bin,lib/tailwindcss-language-server}
+    cp -r {packages,node_modules} $out/lib/tailwindcss-language-server
+    chmod +x $out/lib/tailwindcss-language-server/packages/tailwindcss-language-server/bin/tailwindcss-language-server
+    ln -s $out/lib/tailwindcss-language-server/packages/tailwindcss-language-server/bin/tailwindcss-language-server $out/bin/tailwindcss-language-server
+
+    runHook postInstall
+  '';
+
+  passthru.updateScript = nix-update-script { };
+
+  meta = {
+    description = "Tailwind CSS Language Server";
     homepage = "https://github.com/tailwindlabs/tailwindcss-intellisense";
-    license = licenses.mit;
-    maintainers = with maintainers; [ happysalada];
+    changelog = "https://github.com/tailwindlabs/tailwindcss-intellisense/releases/tag/v${finalAttrs.version}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ happysalada ];
     mainProgram = "tailwindcss-language-server";
-    platforms = platforms.all;
+    platforms = nodejs.meta.platforms;
   };
-}
+})

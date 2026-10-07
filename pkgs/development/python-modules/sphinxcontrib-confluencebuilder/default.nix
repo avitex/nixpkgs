@@ -1,29 +1,28 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, flit-core
-, docutils
-, sphinx
-, requests
-, jinja2
+{
+  lib,
+  buildPythonPackage,
+  docutils,
+  fetchPypi,
+  flit-core,
+  jinja2,
+  requests,
+  sphinx,
 }:
 
 buildPythonPackage rec {
   pname = "sphinxcontrib-confluencebuilder";
-  version = "2.3.0";
-  format = "pyproject";
+  version = "3.2.0";
+  pyproject = true;
 
   src = fetchPypi {
     pname = "sphinxcontrib_confluencebuilder";
     inherit version;
-    hash = "sha256-Zpe2n131afnq4IhQEEZtquvSEkkjv/uznXt2tQhGfZA=";
+    hash = "sha256-gC0GnwncJ3MPrWrdzz537ihhbJN5uHl/opLnUmcM+RE=";
   };
 
-  nativeBuildInputs = [
-    flit-core
-  ];
+  build-system = [ flit-core ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     docutils
     sphinx
     requests
@@ -33,16 +32,16 @@ buildPythonPackage rec {
   # Tests are disabled due to a circular dependency on Sphinx
   doCheck = false;
 
-  pythonImportsCheck = [
-    "sphinxcontrib.confluencebuilder"
-  ];
+  pythonImportsCheck = [ "sphinxcontrib.confluencebuilder" ];
 
   pythonNamespaces = [ "sphinxcontrib" ];
 
-  meta = with lib; {
+  meta = {
     description = "Confluence builder for sphinx";
     homepage = "https://github.com/sphinx-contrib/confluencebuilder";
-    license = licenses.bsd1;
-    maintainers = with maintainers; [ graysonhead ];
+    changelog = "https://github.com/sphinx-contrib/confluencebuilder/blob/v${version}/CHANGES.rst";
+    license = lib.licenses.bsd1;
+    maintainers = with lib.maintainers; [ graysonhead ];
+    mainProgram = "sphinx-build-confluence";
   };
 }

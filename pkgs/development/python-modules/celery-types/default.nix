@@ -1,37 +1,37 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, poetry-core
-, pythonOlder
-, typing-extensions
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  typing-extensions,
+  uv-build,
 }:
 
 buildPythonPackage rec {
   pname = "celery-types";
-  version = "0.20.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.10";
+  version = "0.26.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-5cdiVVYF7QWSuu2dUZIwBGzo56EcZ6ghVVwIt87OGWA=";
+    pname = "celery_types";
+    inherit version;
+    hash = "sha256-+jGBNv2tg/g/FTHe7Nn+Zktd///ynzwx6RIKRrjjkI8=";
   };
 
-  propagatedBuildInputs = [
-    typing-extensions
-  ];
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail "uv_build>=0.9.18,<0.10.0" "uv_build"
+  '';
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ uv-build ];
+
+  dependencies = [ typing-extensions ];
 
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "PEP-484 stubs for Celery";
     homepage = "https://github.com/sbdchd/celery-types";
-    license = licenses.mit;
-    maintainers = with maintainers; [ elohmeier ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

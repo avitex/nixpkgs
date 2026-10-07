@@ -1,67 +1,52 @@
-{ lib
-, aiomisc-pytest
-, aiormq
-, buildPythonPackage
-, fetchFromGitHub
-, pamqp
-, poetry-core
-, pytestCheckHook
-, pythonOlder
-, shortuuid
-, yarl
+{
+  lib,
+  aiormq,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pyprojectVersionPatchHook,
+  uv-build,
+  yarl,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "aio-pika";
-  version = "9.4.0";
+  version = "9.6.2";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "mosquito";
     repo = "aio-pika";
-    rev = "refs/tags/${version}";
-    hash = "sha256-EntV/CBvT4II4nxsVe3KjNA4EPV7Oc6h2G0fX0fHKTU=";
+    tag = finalAttrs.version;
+    hash = "sha256-N5MjFIolMRTTn4aV1NskBwonB/8FSuEZETumUrAa02Y=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail "uv_build>=0.9.26,<0.10.0" uv_build
+  '';
 
-  propagatedBuildInputs = [
+  pythonRelaxDeps = [ "aiormq" ];
+
+  build-system = [ uv-build ];
+
+  nativeBuildInputs = [ pyprojectVersionPatchHook ];
+
+  dependencies = [
     aiormq
     yarl
   ];
 
-  nativeCheckInputs = [
-    aiomisc-pytest
-    pamqp
-    pytestCheckHook
-    shortuuid
-  ];
+  # Tests require running a RabbitMQ server.
+  # They rely on having AMQP_URL set or running Docker.
+  doCheck = false;
 
-  disabledTestPaths = [
-    # Tests attempt to connect to a RabbitMQ server
-    "tests/test_amqp.py"
-    "tests/test_amqp_robust.py"
-    "tests/test_amqp_robust_proxy.py"
-    "tests/test_amqps.py"
-    "tests/test_master.py"
-    "tests/test_memory_leak.py"
-    "tests/test_rpc.py"
-    "tests/test_types.py"
-  ];
+  pythonImportsCheck = [ "aio_pika" ];
 
-  pythonImportsCheck = [
-    "aio_pika"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "AMQP 0.9 client designed for asyncio and humans";
     homepage = "https://github.com/mosquito/aio-pika";
-    changelog = "https://github.com/mosquito/aio-pika/blob/${version}/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ emilytrau ];
+    changelog = "https://github.com/mosquito/aio-pika/blob/${finalAttrs.version}/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ emilytrau ];
   };
-}
+})

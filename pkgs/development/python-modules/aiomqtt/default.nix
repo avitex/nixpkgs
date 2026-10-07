@@ -1,57 +1,45 @@
-{ lib
-, anyio
-, buildPythonPackage
-, fetchFromGitHub
-, paho-mqtt
-, poetry-core
-, poetry-dynamic-versioning
-, pytestCheckHook
-, pythonOlder
-, typing-extensions
+{
+  lib,
+  anyio,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  paho-mqtt,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "aiomqtt";
-  version = "2.0.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "2.5.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "sbtinstruments";
     repo = "aiomqtt";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-Ww4NdCtT04b4tRmarJjB4xmfRBNIQekP8iARAdpmBH0=";
+    tag = "v${version}";
+    hash = "sha256-f9m+mdlSADOixsKymxsKiVxgWF7JBc3kjVU+rOkC+yM=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-    poetry-dynamic-versioning
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
-    paho-mqtt
-    typing-extensions
-  ];
+  dependencies = [ paho-mqtt ];
 
   nativeCheckInputs = [
     anyio
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "aiomqtt"
+  pythonImportsCheck = [ "aiomqtt" ];
+
+  disabledTestMarks = [
+    "network"
   ];
 
-  pytestFlagsArray = [
-    "-m" "'not network'"
-  ];
-
-  meta = with lib; {
-    description = "The idiomatic asyncio MQTT client, wrapped around paho-mqtt";
+  meta = {
+    description = "Idiomatic asyncio MQTT client, wrapped around paho-mqtt";
     homepage = "https://github.com/sbtinstruments/aiomqtt";
-    changelog = "https://github.com/sbtinstruments/aiomqtt/blob/${src.rev}/CHANGELOG.md";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/sbtinstruments/aiomqtt/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
 }

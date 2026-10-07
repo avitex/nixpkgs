@@ -1,35 +1,33 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, hatchling
-, platformdirs
-, traitlets
-, pip
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  platformdirs,
+  traitlets,
+  pip,
+  pytestCheckHook,
+
+  # Reverse dependency
+  sage,
 }:
 
 buildPythonPackage rec {
   pname = "jupyter-core";
-  version = "5.7.1";
-  disabled = pythonOlder "3.7";
+  version = "5.9.1";
 
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "jupyter";
     repo = "jupyter_core";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-Uh7slD8mQg2R++wltXrYiPSJnmM5w9tej8GN/0GMBmA=";
+    tag = "v${version}";
+    hash = "sha256-mAvfyiN8Fdm9U3Ar7xicwOinKfTqk9qrfq/SGiaxNvU=";
   };
 
-  patches = [
-    ./tests_respect_pythonpath.patch
-  ];
+  patches = [ ./tests_respect_pythonpath.patch ];
 
-  nativeBuildInputs = [
-    hatchling
-  ];
+  nativeBuildInputs = [ hatchling ];
 
   propagatedBuildInputs = [
     platformdirs
@@ -45,9 +43,9 @@ buildPythonPackage rec {
     export HOME=$TMPDIR
   '';
 
-  pytestFlagsArray = [
+  pytestFlags = [
     # suppress pytest.PytestUnraisableExceptionWarning: Exception ignored in: <socket.socket fd=-1, family=AddressFamily.AF_UNIX, type=SocketKind.SOCK_STREAM, proto=0>
-    "-W ignore::pytest.PytestUnraisableExceptionWarning"
+    "-Wignore::pytest.PytestUnraisableExceptionWarning"
   ];
 
   disabledTests = [
@@ -61,11 +59,15 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "jupyter_core" ];
 
-  meta = with lib; {
+  passthru.tests = {
+    inherit sage;
+  };
+
+  meta = {
     description = "Base package on which Jupyter projects rely";
     homepage = "https://jupyter.org/";
-    changelog = "https://github.com/jupyter/jupyter_core/blob/${src.rev}/CHANGELOG.md";
-    license = licenses.bsd3;
-    maintainers = teams.jupyter.members;
+    changelog = "https://github.com/jupyter/jupyter_core/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.bsd3;
+    teams = [ lib.teams.jupyter ];
   };
 }

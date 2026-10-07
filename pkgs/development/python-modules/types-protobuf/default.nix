@@ -1,34 +1,37 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, types-futures
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  types-futures,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "types-protobuf";
-  version = "4.24.0.20240106";
-  format = "setuptools";
+  version = "6.32.1.20260221";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-Ak8DTzteK7K7/1XrxNWR7Q0igNkPrO7csUi55xSj8+4=";
+    pname = "types_protobuf";
+    inherit (finalAttrs) version;
+    hash = "sha256-bV+wYKYWv7B2y7YbSzw5afX8i+xYEPmi9+ZI7ly8v24=";
   };
 
-  propagatedBuildInputs = [
-    types-futures
-  ];
+  build-system = [ setuptools ];
+
+  dependencies = [ types-futures ];
 
   # Module doesn't have tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "google-stubs"
-  ];
+  pythonImportsCheck = [ "google-stubs" ];
 
-  meta = with lib; {
+  meta = {
     description = "Typing stubs for protobuf";
     homepage = "https://github.com/python/typeshed";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ andersk ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ andersk ];
   };
-}
+})

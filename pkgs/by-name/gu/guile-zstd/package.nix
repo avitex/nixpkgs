@@ -1,14 +1,15 @@
-{ stdenv
-, lib
-, fetchFromGitea
-, autoreconfHook
-, pkg-config
-, guile
-, texinfo
-, zstd
+{
+  stdenv,
+  lib,
+  fetchFromGitea,
+  autoreconfHook,
+  pkg-config,
+  guile,
+  texinfo,
+  zstd,
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "guile-zstd";
   version = "0.1.1";
 
@@ -16,23 +17,28 @@ stdenv.mkDerivation rec {
     domain = "notabug.org";
     owner = "guile-zstd";
     repo = "guile-zstd";
-    rev = "v${version}";
+    rev = "v${finalAttrs.version}";
     hash = "sha256-IAyDoqb7qHAy666hxs6CCZrFnfwwV8AaR92XlQQ6FLE=";
   };
 
   strictDeps = true;
-  nativeBuildInputs = [ autoreconfHook guile pkg-config texinfo ];
+  nativeBuildInputs = [
+    autoreconfHook
+    guile
+    pkg-config
+    texinfo
+  ];
   buildInputs = [ guile ];
   propagatedBuildInputs = [ zstd ];
   makeFlags = [ "GUILE_AUTO_COMPILE=0" ];
 
-  doCheck = !stdenv.isDarwin;
+  doCheck = !stdenv.hostPlatform.isDarwin;
 
-  meta = with lib; {
-    description = "A GNU Guile library providing bindings to zstd";
+  meta = {
+    description = "GNU Guile library providing bindings to zstd";
     homepage = "https://notabug.org/guile-zstd/guile-zstd";
-    license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ foo-dogsquared ];
+    license = lib.licenses.gpl3Plus;
+    maintainers = [ ];
     platforms = guile.meta.platforms;
   };
-}
+})

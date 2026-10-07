@@ -1,24 +1,25 @@
-{ stdenv
-, lib
-, fetchFromGitHub
-, meson
-, ninja
-, pkg-config
-, ffmpeg-headless
-, libcdio
-, libcdio-paranoia
-, libmusicbrainz5
-, curl
+{
+  stdenv,
+  lib,
+  fetchFromGitHub,
+  meson,
+  ninja,
+  pkg-config,
+  ffmpeg_8-headless,
+  libcdio,
+  libcdio-paranoia,
+  libmusicbrainz,
+  curl,
 }:
 stdenv.mkDerivation (finalAttrs: {
   pname = "cyanrip";
-  version = "0.9.2";
+  version = "0.9.3.1";
 
   src = fetchFromGitHub {
     owner = "cyanreg";
     repo = "cyanrip";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-sWgHf8S4GZDAIvMUf5KvGy2y0JcUbRS53IjArdgokqc=";
+    hash = "sha256-GAPHsYQYJQOBV4ok7omqhiDPKX+VC4Bw3Msb3pd8Zo8=";
   };
 
   nativeBuildInputs = [
@@ -28,18 +29,20 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   buildInputs = [
-    ffmpeg-headless
+    ffmpeg_8-headless
     libcdio
     libcdio-paranoia
-    libmusicbrainz5
+    libmusicbrainz
     curl
   ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/cyanreg/cyanrip";
+    changelog = "https://github.com/cyanreg/cyanrip/releases/tag/${finalAttrs.src.rev}";
     description = "Bule-ish CD ripper";
-    license = licenses.lgpl21Plus;
-    platforms = platforms.all;
-    maintainers = [ maintainers.zane ];
+    mainProgram = "cyanrip";
+    license = lib.licenses.lgpl21Plus;
+    platforms = lib.platforms.all;
+    maintainers = [ lib.maintainers.zane ];
   };
 })

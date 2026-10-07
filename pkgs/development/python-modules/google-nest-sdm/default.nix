@@ -1,65 +1,67 @@
-{ lib
-, aiohttp
-, buildPythonPackage
-, coreutils
-, fetchFromGitHub
-, google-auth
-, google-auth-oauthlib
-, google-cloud-pubsub
-, pydantic
-, pytest-aiohttp
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, requests-oauthlib
+{
+  lib,
+  aiohttp,
+  buildPythonPackage,
+  fetchFromGitHub,
+  freezegun,
+  google-auth,
+  google-auth-oauthlib,
+  google-cloud-pubsub,
+  mashumaro,
+  pytest-aiohttp,
+  pytest-asyncio,
+  pytestCheckHook,
+  pyyaml,
+  requests-oauthlib,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "google-nest-sdm";
-  version = "3.0.3";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.10";
+  version = "9.2.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "allenporter";
     repo = "python-google-nest-sdm";
-    rev = "refs/tags/${version}";
-    hash = "sha256-VO/TY/QBzVFxqIumVJjw+Ic0hrqkRBS+7wQKBhcN9Jw=";
+    tag = finalAttrs.version;
+    hash = "sha256-cFTcLWHHSJOEvpx9YwKZ1FW87P4VvvNTO3j3b0F5y1M=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     aiohttp
     google-auth
     google-auth-oauthlib
     google-cloud-pubsub
-    pydantic
+    mashumaro
+    pyyaml
     requests-oauthlib
   ];
 
   __darwinAllowLocalNetworking = true;
 
   nativeCheckInputs = [
-    coreutils
+    freezegun
     pytest-aiohttp
     pytest-asyncio
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "google_nest_sdm"
-  ];
+  pythonImportsCheck = [ "google_nest_sdm" ];
 
   disabledTests = [
     "test_clip_preview_transcode"
     "test_event_manager_event_expiration_with_transcode"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Module for Google Nest Device Access using the Smart Device Management API";
     homepage = "https://github.com/allenporter/python-google-nest-sdm";
-    changelog = "https://github.com/allenporter/python-google-nest-sdm/releases/tag/${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/allenporter/python-google-nest-sdm/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
+    mainProgram = "google_nest";
   };
-}
+})

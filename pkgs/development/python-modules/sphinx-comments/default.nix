@@ -1,8 +1,9 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools
-, sphinx
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  sphinx,
 }:
 
 buildPythonPackage rec {
@@ -21,10 +22,10 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "sphinx_comments" ];
 
-  meta = with lib; {
+  meta = {
     description = "Add comments and annotation to your documentation";
     homepage = "https://github.com/executablebooks/sphinx-comments";
-    license = licenses.mit;
-    maintainers = with maintainers; [ marsam ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

@@ -1,12 +1,13 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, httpx
-, poetry-core
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, respx
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  httpx,
+  poetry-core,
+  pytest-asyncio,
+  pytest-cov-stub,
+  pytestCheckHook,
+  respx,
 }:
 
 buildPythonPackage rec {
@@ -14,43 +15,40 @@ buildPythonPackage rec {
   version = "0.4.0";
   pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
   src = fetchFromGitHub {
     owner = "pjanuario";
     repo = "pyecoforest";
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     hash = "sha256-C8sFq0vsVsq6irWbRd0eq18tfKu0qRRBZHt23CiDTGU=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace "--cov=pyecoforest --cov-report=term-missing:skip-covered" ""
-  '';
+  build-system = [ poetry-core ];
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
-
-  propagatedBuildInputs = [
-    httpx
-  ];
+  dependencies = [ httpx ];
 
   nativeCheckInputs = [
     pytest-asyncio
+    pytest-cov-stub
     pytestCheckHook
     respx
   ];
 
-  pythonImportsCheck = [
-    "pyecoforest"
+  disabledTests = [
+    # respx.models.AllMockedAssertionError
+    "test_get"
+    "test_get_errors"
+    "test_set_temperature"
+    "test_set_power"
+    "test_turn"
   ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "pyecoforest" ];
+
+  meta = {
     description = "Module for interacting with Ecoforest devices";
     homepage = "https://github.com/pjanuario/pyecoforest";
     changelog = "https://github.com/pjanuario/pyecoforest/blob/${version}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

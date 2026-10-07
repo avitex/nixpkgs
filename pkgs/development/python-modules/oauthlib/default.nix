@@ -1,61 +1,71 @@
-{ lib
-, blinker
-, buildPythonPackage
-, cryptography
-, fetchFromGitHub
-, mock
-, pyjwt
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  blinker,
+  buildPythonPackage,
+  cryptography,
+  fetchFromGitHub,
+  mock,
+  pyjwt,
+  pytestCheckHook,
+  setuptools,
 
-# for passthru.tests
-, django-allauth
-, django-oauth-toolkit
-, google-auth-oauthlib
-, requests-oauthlib
+  # for passthru.tests
+  django-allauth,
+  django-oauth-toolkit,
+  google-auth-oauthlib,
+  requests-oauthlib,
 }:
 
 buildPythonPackage rec {
   pname = "oauthlib";
-  version = "3.2.2";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "3.3.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
-    owner = pname;
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-KADS1pEaLYi86LEt2VVuz8FVTBANzxC8EeQLgGMxuBU=";
+    owner = "oauthlib";
+    repo = "oauthlib";
+    tag = "v${version}";
+    hash = "sha256-ZTmR+pTNQaRQMnUA+8hXM5VACRd8Hn62KTNooy5FQyk=";
   };
 
-  propagatedBuildInputs = [
-    blinker
-    cryptography
-    pyjwt
-  ];
+  nativeBuildInputs = [ setuptools ];
+
+  optional-dependencies = {
+    rsa = [ cryptography ];
+    signedtoken = [
+      cryptography
+      pyjwt
+    ];
+    signals = [ blinker ];
+  };
 
   nativeCheckInputs = [
     mock
     pytestCheckHook
+  ]
+  ++ lib.concatAttrValues optional-dependencies;
+
+  disabledTests = [
+    # too narrow time comparison issues
+    "test_fetch_access_token"
   ];
 
-  pythonImportsCheck = [
-    "oauthlib"
-  ];
+  pythonImportsCheck = [ "oauthlib" ];
 
   passthru.tests = {
     inherit
       django-allauth
       django-oauth-toolkit
       google-auth-oauthlib
-      requests-oauthlib;
+      requests-oauthlib
+      ;
   };
 
-  meta = with lib; {
+  meta = {
+    changelog = "https://github.com/oauthlib/oauthlib/blob/${src.tag}/CHANGELOG.rst";
     description = "Generic, spec-compliant, thorough implementation of the OAuth request-signing logic";
-    homepage = "https://github.com/idan/oauthlib";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ prikhi ];
+    homepage = "https://github.com/oauthlib/oauthlib";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ prikhi ];
   };
 }

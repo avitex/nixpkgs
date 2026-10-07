@@ -1,125 +1,175 @@
-{ lib
-, broadbean
-, buildPythonPackage
-, cf-xarray
-, dask
-, deepdiff
-, fetchFromGitHub
-, h5netcdf
-, h5py
-, hypothesis
-, importlib-metadata
-, ipykernel
-, ipython
-, ipywidgets
-, jsonschema
-, lxml
-, matplotlib
-, numpy
-, opencensus
-, opencensus-ext-azure
-, opentelemetry-api
-, packaging
-, pandas
-, pillow
-, pip
-, pytest-asyncio
-, pytest-mock
-, pytest-rerunfailures
-, pytest-xdist
-, pytestCheckHook
-, pythonOlder
-, pyvisa
-, pyvisa-sim
-, rsa
-, ruamel-yaml
-, setuptools
-, sphinx
-, tabulate
-, tqdm
-, typing-extensions
-, uncertainties
-, versioningit
-, websockets
-, wheel
-, wrapt
-, xarray
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+  versioningit,
+
+  # dependencies
+  broadbean,
+  cf-xarray,
+  dask,
+  h5netcdf,
+  h5py,
+  ipykernel,
+  ipywidgets,
+  jsonschema,
+  libcst,
+  matplotlib,
+  networkx,
+  numpy,
+  opentelemetry-api,
+  packaging,
+  pandas,
+  pillow,
+  pyarrow,
+  pyvisa,
+  ruamel-yaml,
+  tabulate,
+  tqdm,
+  typing-extensions,
+  uncertainties,
+  websockets,
+  xarray,
+
+  # optional-dependencies
+  furo,
+  nbsphinx,
+  pyvisa-sim,
+  scipy,
+  sphinx,
+  sphinx-issues,
+  towncrier,
+
+  # tests
+  deepdiff,
+  hypothesis,
+  lxml,
+  pip,
+  pytest-asyncio,
+  pytest-cov-stub,
+  pytest-mock,
+  pytest-rerunfailures,
+  pytest-xdist,
+  pytestCheckHook,
+  writableTmpDirAsHomeHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "qcodes";
-  version = "0.42.1";
+  version = "0.56.0";
   pyproject = true;
 
-  disabled = pythonOlder "3.9";
-
   src = fetchFromGitHub {
-    owner = "QCoDeS";
+    owner = "microsoft";
     repo = "Qcodes";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-oNQLIL5L3gtFS6yxqgLDI1s4s9UYqxGc8ASqHuZv6Rk=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-7J1vKMG1/d/8O+j+RmUtVpjFdZB4w0BVoGrIONbr/e4=";
   };
 
-  nativeBuildInputs = [
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail \
+        'default-version = "0.54.0dev+Unknown"' \
+        'default-version = "${finalAttrs.version}"' \
+      --replace-fail \
+        "'ignore:Model_336 is deprecated:qcodes.utils.deprecate.QCoDeSDeprecationWarning'," \
+        ""
+  '';
+
+  build-system = [
     setuptools
     versioningit
-    wheel
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     broadbean
     cf-xarray
     dask
     h5netcdf
     h5py
     ipykernel
-    ipython
     ipywidgets
     jsonschema
     matplotlib
+    networkx
     numpy
-    opencensus
-    opencensus-ext-azure
     opentelemetry-api
     packaging
     pandas
     pillow
+    pyarrow
     pyvisa
-    rsa
     ruamel-yaml
     tabulate
     tqdm
     typing-extensions
     uncertainties
     websockets
-    wrapt
     xarray
-  ] ++ lib.optionals (pythonOlder "3.10") [
-    importlib-metadata
   ];
+
+  optional-dependencies = {
+    docs = [
+      # autodocsumm
+      furo
+      nbsphinx
+      pyvisa-sim
+      # qcodes-loop
+      scipy
+      sphinx
+      # sphinx-favicon
+      sphinx-issues
+      # sphinx-jsonschema
+      # sphinxcontrib-towncrier
+      towncrier
+    ];
+    loop = [
+      # qcodes-loop
+    ];
+    refactor = [
+      libcst
+    ];
+    zurichinstruments = [
+      # zhinst-qcodes
+    ];
+  };
 
   nativeCheckInputs = [
     deepdiff
     hypothesis
+    libcst
     lxml
     pip
     pytest-asyncio
+    pytest-cov-stub
     pytest-mock
     pytest-rerunfailures
     pytest-xdist
     pytestCheckHook
     pyvisa-sim
     sphinx
+    writableTmpDirAsHomeHook
   ];
 
   __darwinAllowLocalNetworking = true;
 
-  pytestFlagsArray = [
+  pytestFlags = [
     "-v"
-    "-n"
-    "$NIX_BUILD_CORES"
+    "--hypothesis-profile ci"
     # Follow upstream with settings
     "--durations=20"
+
+    # ERROR tests/test_interactive_widget.py - DeprecationWarning: Jupyter is migrating its paths to use standard platformdirs
+    # given by the platformdirs library.  To remove this warning and
+    # see the appropriate new directories, set the environment variable
+    # `JUPYTER_PLATFORM_DIRS=1` and then run `jupyter --paths`.
+    # The use of platformdirs will be the default in `jupyter_core` v6
+    "-Wignore::DeprecationWarning"
+    # impending matplotlib deprecation, does not block distribution
+    "-Wignore::PendingDeprecationWarning"
   ];
 
   disabledTestPaths = [
@@ -127,12 +177,20 @@ buildPythonPackage rec {
     "tests/dataset/measurement/test_load_legacy_data.py"
     # TypeError
     "tests/dataset/test_dataset_basic.py"
+    # qcodes.utils.deprecate.QCoDeSDeprecationWarning: Model_336 is deprecated
+    "tests/drivers/test_lakeshore_336_legacy.py"
+  ];
+
+  disabledTestMarks = [
+    "serial"
   ];
 
   disabledTests = [
     # Tests are time-sensitive and power-consuming
     # Those tests fails repeatably and are flaky
+    "test_access_channels_by_name"
     "test_access_channels_by_slice"
+    "test_access_channels_by_tuple"
     "test_aggregator"
     "test_datasaver"
     "test_do1d_additional_setpoints_shape"
@@ -140,23 +198,26 @@ buildPythonPackage rec {
     "test_field_limits"
     "test_get_array_in_scalar_param_data"
     "test_get_parameter_data"
+    "test_measured"
     "test_ramp_safely"
+    "test_ramp_scaled"
+
+    # more flaky tests
+    # https://github.com/microsoft/Qcodes/issues/5551
+    "test_query_close_once_at_init"
+    "test_step_ramp"
   ];
 
-  pythonImportsCheck = [
-    "qcodes"
-  ];
+  pythonImportsCheck = [ "qcodes" ];
 
-  postInstall = ''
-    export HOME="$TMPDIR"
-  '';
-
-  meta = with lib; {
+  meta = {
     description = "Python-based data acquisition framework";
-    changelog = "https://github.com/QCoDeS/Qcodes/releases/tag/v${version}";
+    changelog = "https://github.com/QCoDeS/Qcodes/releases/tag/${finalAttrs.src.tag}";
     downloadPage = "https://github.com/QCoDeS/Qcodes";
     homepage = "https://qcodes.github.io/Qcodes/";
-    license = licenses.mit;
-    maintainers = with maintainers; [ evilmav ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [
+      GaetanLepage
+    ];
   };
-}
+})

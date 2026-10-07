@@ -1,53 +1,47 @@
-{ lib
-, buildPythonPackage
-, canonicaljson
-, fetchPypi
-, importlib-metadata
-, pynacl
-, pytestCheckHook
-, pythonOlder
-, setuptools-scm
-, typing-extensions
-, unpaddedbase64
+{
+  lib,
+  buildPythonPackage,
+  canonicaljson,
+  fetchPypi,
+  setuptools,
+  pynacl,
+  pytestCheckHook,
+  setuptools-scm,
+  unpaddedbase64,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "signedjson";
   version = "1.1.4";
-  format = "setuptools";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
+    pname = "signedjson";
+    inherit (finalAttrs) version;
     hash = "sha256-zZHFavU/Fp7wMsYunEoyktwViGaTMxjQWS40Yts9ZJI=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
+    setuptools
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     canonicaljson
     unpaddedbase64
     pynacl
-  ] ++ lib.optionals (pythonOlder "3.8") [
-    importlib-metadata
-    typing-extensions
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "signedjson"
-  ];
+  pythonImportsCheck = [ "signedjson" ];
 
-  meta = with lib; {
+  meta = {
     description = "Sign JSON with Ed25519 signatures";
     homepage = "https://github.com/matrix-org/python-signedjson";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
-}
+})

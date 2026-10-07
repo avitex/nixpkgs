@@ -1,15 +1,22 @@
-{ lib, buildPythonPackage, fetchFromGitHub, pyyaml }:
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pyyaml,
+  nixosTests,
+}:
 
-buildPythonPackage rec {
+buildPythonPackage {
   pname = "ovmfvartool";
   version = "unstable-2022-09-04";
   format = "setuptools";
 
   src = fetchFromGitHub {
-    owner = "hlandau";
-    repo = pname;
-    rev = "45e6b1e53967ee6590faae454c076febce096931";
-    hash = "sha256-XbvcE/MXNj5S5N7A7jxdwgEE5yMuB82Xg+PYBsFRIm0=";
+    # https://github.com/hlandau/ovmfvartool/pull/4
+    owner = "baloo";
+    repo = "ovmfvartool";
+    rev = "6a17190131bf44699ea27815543a65efff880142";
+    hash = "sha256-lIneg3kL21oxqjsraogGlOVsgmYnp38CPav1TwBg0p0=";
   };
 
   propagatedBuildInputs = [ pyyaml ];
@@ -19,10 +26,18 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "ovmfvartool" ];
 
-  meta = with lib; {
+  passthru.tests = {
+    inherit (nixosTests.nixos-test-driver) efivars;
+  };
+
+  meta = {
     description = "Parse and generate OVMF_VARS.fd from Yaml";
+    mainProgram = "ovmfvartool";
     homepage = "https://github.com/hlandau/ovmfvartool";
-    license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ baloo raitobezarius ];
+    license = lib.licenses.gpl3Plus;
+    maintainers = with lib.maintainers; [
+      baloo
+      raitobezarius
+    ];
   };
 }

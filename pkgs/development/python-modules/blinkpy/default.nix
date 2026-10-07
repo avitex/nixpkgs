@@ -1,42 +1,44 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, aiofiles
-, aiohttp
-, pytestCheckHook
-, python-dateutil
-, python-slugify
-, pythonOlder
-, requests
-, setuptools
-, sortedcontainers
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  aiofiles,
+  aiohttp,
+  pytest-asyncio,
+  pytestCheckHook,
+  python-dateutil,
+  python-slugify,
+  requests,
+  setuptools,
+  sortedcontainers,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "blinkpy";
-  version = "0.22.6";
+  version = "0.25.9";
   pyproject = true;
-
-  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
     owner = "fronzbot";
     repo = "blinkpy";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-46REi+3dUY9dJrhXgKkQ1OfN6XCy1fV9cW6wk82ClOA=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-D85AXTvpIZhWhY6wZefe7tcdk9RJrYdBM1hdyN0Vsas=";
   };
 
   postPatch = ''
     substituteInPlace pyproject.toml \
-      --replace ', "wheel~=0.40.0"' "" \
-      --replace "setuptools~=68.0" "setuptools"
+      --replace-fail "wheel>=0.40,<0.48" wheel \
+      --replace-fail "setuptools>=68,<84" setuptools
   '';
 
-  nativeBuildInputs = [
-    setuptools
+  build-system = [ setuptools ];
+
+  pythonRelaxDeps = [
+    "aiohttp"
+    "requests"
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     aiofiles
     aiohttp
     python-dateutil
@@ -46,6 +48,7 @@ buildPythonPackage rec {
   ];
 
   nativeCheckInputs = [
+    pytest-asyncio
     pytestCheckHook
   ];
 
@@ -59,11 +62,11 @@ buildPythonPackage rec {
     "blinkpy.sync_module"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Python library for the Blink Camera system";
     homepage = "https://github.com/fronzbot/blinkpy";
-    changelog = "https://github.com/fronzbot/blinkpy/blob/${src.rev}/CHANGES.rst";
-    license = licenses.mit;
-    maintainers = with maintainers; [ dotlambda ];
+    changelog = "https://github.com/fronzbot/blinkpy/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ dotlambda ];
   };
-}
+})

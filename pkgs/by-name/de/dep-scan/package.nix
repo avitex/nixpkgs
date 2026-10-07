@@ -1,34 +1,38 @@
-{ lib
-, python3
-, fetchFromGitHub
+{
+  lib,
+  fetchFromGitHub,
+  python3Packages,
+  writableTmpDirAsHomeHook,
+  cdxgen,
+  nixosTests,
 }:
 
-python3.pkgs.buildPythonApplication rec {
+python3Packages.buildPythonApplication (finalAttrs: {
   pname = "dep-scan";
-  version = "5.0.2";
+  version = "6.3.0";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "owasp-dep-scan";
     repo = "dep-scan";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-qiJyGBGxznNF4LNG9fbmjG7wX0odhrUO2LxOWABtLQA=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-DQo8GLO2d9QqS44zwkAt5I3GWk/pi4HAF/CChKf1SB4=";
   };
 
-  postPatch = ''
-    substituteInPlace pytest.ini \
-      --replace " --cov-append --cov-report term --cov depscan" ""
-  '';
+  build-system = with python3Packages; [ setuptools ];
 
-  nativeBuildInputs = with python3.pkgs; [
-    setuptools
-  ];
-
-  propagatedBuildInputs = with python3.pkgs; [
+  dependencies = with python3Packages; [
     appthreat-vulnerability-db
+    custom-json-diff
+    cvss
     defusedxml
+    ds-analysis-lib
+    ds-reporting-lib
+    ds-server-lib
+    ds-xbom-lib
     jinja2
     oras
+    packageurl-python
     pdfkit
     pygithub
     pyyaml
@@ -37,30 +41,44 @@ python3.pkgs.buildPythonApplication rec {
     toml
   ];
 
-  nativeCheckInputs = with python3.pkgs; [
+  nativeCheckInputs = with python3Packages; [
     httpretty
+    pytest-asyncio
+    pytest-cov-stub
     pytestCheckHook
+    writableTmpDirAsHomeHook
   ];
 
-  pythonImportsCheck = [
-    "depscan"
-  ];
-
-  preCheck = ''
-    export HOME=$(mktemp -d)
-  '';
+  pythonImportsCheck = [ "depscan" ];
 
   disabledTests = [
     # Test is not present
     "test_query_metadata2"
   ];
 
-  meta = with lib; {
+  # depscan --src shiftleft/scan-slim -o containertests -t docker
+  #
+  # WARNING [2025-07-28 20:17:35,654] cdxgen command not found. Please install using npm install @cyclonedx/cdxgen or set PATH variable
+  # WARNING [2025-07-28 20:17:35,654] /nix/store/56bxjw4rgdqa82f61w70z92qq6b14ass-dep-scan-5.5.0/lib/python3.13/site-packages/depscan/lib/local_bin/cdxgen command not found. Please install using npm install @cyclonedx/cdxgen or set PATH variable
+  # INFO [2025-07-28 20:17:35,654] Generating Software Bill-of-Materials for container image shiftleft/scan-slim. This might take a few mins ...
+  # WARNING [2025-07-28 20:17:35,654] Unable to locate cdxgen command.
+  makeWrapperArgs = [
+    "--prefix PATH : ${
+      lib.makeBinPath [
+        cdxgen
+      ]
+    }"
+  ];
+
+  passthru.tests = { inherit (nixosTests) dep-scan; };
+
+  meta = {
     description = "Security and risk audit tool based on known vulnerabilities, advisories, and license limitations for project dependencies";
     homepage = "https://github.com/owasp-dep-scan/dep-scan";
-    changelog = "https://github.com/owasp-dep-scan/dep-scan/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
-    mainProgram = "dep-scan";
+    changelog = "https://github.com/owasp-dep-scan/dep-scan/releases/tag/v${finalAttrs.version}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
+    teams = [ lib.teams.ngi ];
+    mainProgram = "depscan";
   };
-}
+})

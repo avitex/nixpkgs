@@ -1,31 +1,35 @@
-{ lib
-, buildPythonPackage
-, coloredlogs
-, executor
-, fetchFromGitHub
-, humanfriendly
-, naturalsort
-, property-manager
-, pytestCheckHook
-, pythonOlder
-, six
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+
+  setuptools,
+  coloredlogs,
+  executor,
+  humanfriendly,
+  naturalsort,
+  property-manager,
+  six,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "update-dotdee";
   version = "6.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "xolox";
     repo = "python-update-dotdee";
-    rev = version;
+    rev = finalAttrs.version;
     hash = "sha256-2k7FdgWM0ESHQb2za87yhXGaR/rbMYLVcv10QexUH1A=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [
+    setuptools
+  ];
+
+  dependencies = [
     coloredlogs
     executor
     humanfriendly
@@ -34,28 +38,26 @@ buildPythonPackage rec {
     six
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   postPatch = ''
     substituteInPlace tox.ini \
-      --replace " --cov --showlocals --verbose" ""
+      --replace-fail " --cov --showlocals --verbose" ""
   '';
 
-  pythonImportsCheck = [
-    "update_dotdee"
-  ];
+  pythonImportsCheck = [ "update_dotdee" ];
 
   disabledTests = [
     # TypeError: %o format: an integer is required, not str
     "test_executable"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Generic modularized configuration file manager";
+    mainProgram = "update-dotdee";
     homepage = "https://github.com/xolox/python-update-dotdee";
-    license = licenses.mit;
-    maintainers = with maintainers; [ eyjhb ];
+    changelog = "https://github.com/xolox/python-update-dotdee/blob/${finalAttrs.version}/CHANGELOG.rst";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ eyjhb ];
   };
-}
+})

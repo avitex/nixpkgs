@@ -1,6 +1,7 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
 }:
 
 buildPythonPackage rec {
@@ -21,10 +22,10 @@ buildPythonPackage rec {
 
   pythonNamespaces = [ "ruamel" ];
 
-  meta = with lib; {
+  meta = {
     description = "Common routines for ruamel packages";
     homepage = "https://sourceforge.net/projects/ruamel-base/";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

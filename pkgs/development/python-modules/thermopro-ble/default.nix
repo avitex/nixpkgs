@@ -1,56 +1,49 @@
-{ lib
-, bluetooth-data-tools
-, bluetooth-sensor-state-data
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, pytestCheckHook
-, pythonOlder
-, sensor-state-data
+{
+  lib,
+  bluetooth-data-tools,
+  bluetooth-sensor-state-data,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  pytest-asyncio,
+  pytest-cov-stub,
+  pytestCheckHook,
+  sensor-state-data,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "thermopro-ble";
-  version = "0.8.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.9";
+  version = "1.1.4";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "bluetooth-devices";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-ENzFX0rD97hCnllFKjcSGbAbEksqln/Hj0MuDVOKGDo=";
+    repo = "thermopro-ble";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-goTJwTMaWBm5gc0/LOkjpKeRTkLStHkKJYsbE5Wj/X4=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     bluetooth-data-tools
     bluetooth-sensor-state-data
     sensor-state-data
   ];
 
   nativeCheckInputs = [
+    pytest-asyncio
+    pytest-cov-stub
     pytestCheckHook
   ];
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace " --cov=thermopro_ble --cov-report=term-missing:skip-covered" ""
-  '';
+  pythonImportsCheck = [ "thermopro_ble" ];
 
-  pythonImportsCheck = [
-    "thermopro_ble"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Library for Thermopro BLE devices";
     homepage = "https://github.com/bluetooth-devices/thermopro-ble";
-    changelog = "https://github.com/Bluetooth-Devices/thermopro-ble/blob/v${version}/CHANGELOG.md";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/Bluetooth-Devices/thermopro-ble/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

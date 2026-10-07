@@ -1,34 +1,41 @@
-{ lib
-, aiohttp
-, buildPythonPackage
-, busypie
-, cbor2
-, fetchFromGitHub
-, pycryptodomex
-, pytestCheckHook
-, pytest-vcr
-, pytest-asyncio
-, requests
-, pythonOlder
+{
+  lib,
+  aiohttp,
+  buildPythonPackage,
+  busypie,
+  cbor2,
+  fetchFromGitHub,
+  h2,
+  httpx,
+  pycryptodomex,
+  pytest-asyncio,
+  pytest-vcr,
+  pytestCheckHook,
+  requests,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pubnub";
-  version = "7.3.2";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "10.7.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
-    owner = pname;
+    owner = "pubnub";
     repo = "python";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-J6vwdOI/GM/K0TxRwIgkXibNAc+n9wVCpmMkzMhBepw=";
+    tag = finalAttrs.version;
+    hash = "sha256-qHLkRWq30o6F1P5z+hxUkGLOh15ReOVtto0ttKCiPqg=";
   };
 
-  propagatedBuildInputs = [
+  pythonRelaxDeps = [ "httpx" ];
+
+  build-system = [ setuptools ];
+
+  dependencies = [
     aiohttp
     cbor2
+    h2
+    httpx
     pycryptodomex
     requests
   ];
@@ -45,6 +52,8 @@ buildPythonPackage rec {
     "tests/integrational"
     "tests/manual"
     "tests/functional/push"
+    # Examples
+    "tests/examples"
   ];
 
   disabledTests = [
@@ -52,15 +61,15 @@ buildPythonPackage rec {
     "test_handshaking"
   ];
 
-  pythonImportsCheck = [
-    "pubnub"
-  ];
+  pythonImportsCheck = [ "pubnub" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python-based APIs for PubNub";
     homepage = "https://github.com/pubnub/python";
-    changelog = "https://github.com/pubnub/python/releases/tag/v${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/pubnub/python/releases/tag/${finalAttrs.src.tag}";
+    # PubNub Software Development Kit License Agreement
+    # https://github.com/pubnub/python/blob/master/LICENSE
+    license = lib.licenses.unfreeRedistributable;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

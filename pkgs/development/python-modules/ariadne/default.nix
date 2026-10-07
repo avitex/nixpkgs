@@ -1,41 +1,38 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, hatchling
-, freezegun
-, graphql-core
-, pytest-asyncio
-, pytest-mock
-, pytestCheckHook
-, pythonOlder
-, snapshottest
-, starlette
-, typing-extensions
-, werkzeug
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  freezegun,
+  graphql-core,
+  hatchling,
+  httpx,
+  opentelemetry-api,
+  pyprojectVersionPatchHook,
+  pytest-asyncio,
+  pytest-mock,
+  pytestCheckHook,
+  python-multipart,
+  starlette,
+  syrupy,
+  typing-extensions,
+  werkzeug,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "ariadne";
-  version = "0.21.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "1.0.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "mirumee";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-T5J0xAF33PDkC8sDOzHADpQJxwdXwKary0y/jaUJ9Fk=";
+    repo = "ariadne";
+    tag = finalAttrs.version;
+    hash = "sha256-V5/4kLdb3Apnnq91HQ3eApl1R2+pqeWhWi5Y0ULqJrI=";
   };
-  patches = [
-    ./remove-opentracing.patch
-  ];
 
-  nativeBuildInputs = [
-    hatchling
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     graphql-core
     starlette
     typing-extensions
@@ -43,41 +40,30 @@ buildPythonPackage rec {
 
   nativeCheckInputs = [
     freezegun
+    httpx
+    opentelemetry-api
+    pyprojectVersionPatchHook
     pytest-asyncio
     pytest-mock
     pytestCheckHook
-    snapshottest
+    python-multipart
+    syrupy
     werkzeug
   ];
 
-  pythonImportsCheck = [
-    "ariadne"
-  ];
-
-  disabledTests = [
-    # TypeError: TestClient.request() got an unexpected keyword argument 'content'
-    "test_attempt_parse_request_missing_content_type_raises_bad_request_error"
-    "test_attempt_parse_non_json_request_raises_bad_request_error"
-    "test_attempt_parse_non_json_request_body_raises_bad_request_error"
-    # opentracing
-    "test_query_is_executed_for_multipart_form_request_with_file"
-    "test_query_is_executed_for_multipart_request_with_large_file_with_tracing"
-  ];
+  pythonImportsCheck = [ "ariadne" ];
 
   disabledTestPaths = [
     # missing graphql-sync-dataloader test dep
     "tests/test_dataloaders.py"
     "tests/wsgi/test_configuration.py"
-    # both include opentracing module, which has been removed from nixpkgs
-    "tests/tracing/test_opentracing.py"
-    "tests/tracing/test_opentelemetry.py"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Python library for implementing GraphQL servers using schema-first approach";
     homepage = "https://ariadnegraphql.org";
-    changelog = "https://github.com/mirumee/ariadne/blob/${version}/CHANGELOG.md";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ samuela ];
+    changelog = "https://github.com/mirumee/ariadne/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ samuela ];
   };
-}
+})

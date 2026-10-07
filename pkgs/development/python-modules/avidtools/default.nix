@@ -1,36 +1,29 @@
-{ lib
-, buildPythonPackage
-, datetime
-, fetchPypi
-, nvdlib
-, pydantic
-, pythonOlder
-, setuptools
-, typing-extensions
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  nvdlib,
+  poetry-core,
+  pydantic,
+  pythonOlder,
+  typing-extensions,
 }:
 
 buildPythonPackage rec {
   pname = "avidtools";
-  version = "0.1.1.2";
+  version = "0.2.1";
   pyproject = true;
 
-  disabled = pythonOlder "3.9";
+  disabled = pythonOlder "3.12";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-t+ohPjOBwY8i+g7VC30ehEu6SFIsn1SwGR/ICkV9blg=";
+    hash = "sha256-rYkA/+YfFhrS/WSx+jUWCsXDjp03aMoMiGdXeK3Kf4M=";
   };
 
-  postPatch = ''
-    sed -i "/'typing'/d" setup.py
-  '';
+  build-system = [ poetry-core ];
 
-  nativeBuildInputs = [
-    setuptools
-  ];
-
-  propagatedBuildInputs = [
-    datetime
+  dependencies = [
     nvdlib
     pydantic
     typing-extensions
@@ -39,14 +32,13 @@ buildPythonPackage rec {
   # Module has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "avidtools"
-  ];
+  pythonImportsCheck = [ "avidtools" ];
 
-  meta = with lib; {
+  meta = {
     description = "Developer tools for AVID";
     homepage = "https://github.com/avidml/avidtools";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/avidml/avidtools/releases/tag/${version}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

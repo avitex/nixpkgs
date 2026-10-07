@@ -1,47 +1,38 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, hatchling
-, requests
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  requests,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "google-i18n-address";
-  version = "3.1.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "3.1.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "mirumee";
     repo = "google-i18n-address";
-    rev = "refs/tags/${version}";
-    hash = "sha256-dW/1wwnFDjYpym1ZaSZ7mOLpkHxsvuAHC8zBRekxWaw=";
+    tag = version;
+    hash = "sha256-7RqS/+6zInlhWydJwp4xf2uGpfmSdiSwvJugpL8Mlpk=";
   };
 
-  nativeBuildInputs = [
-    hatchling
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
-    requests
-  ];
+  dependencies = [ requests ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "i18naddress"
-  ];
+  pythonImportsCheck = [ "i18naddress" ];
 
-  meta = with lib; {
+  meta = {
     description = "Google's i18n address data packaged for Python";
     homepage = "https://github.com/mirumee/google-i18n-address";
     changelog = "https://github.com/mirumee/google-i18n-address/releases/tag/${version}";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
+    mainProgram = "update-validation-files";
   };
 }

@@ -1,15 +1,13 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
 }:
 
 buildPythonPackage rec {
   pname = "policyuniverse";
   version = "1.5.1.20231109";
   format = "setuptools";
-
-  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
@@ -19,14 +17,12 @@ buildPythonPackage rec {
   # Tests are not shipped and there are no GitHub tags
   doCheck = false;
 
-  pythonImportsCheck = [
-    "policyuniverse"
-  ];
+  pythonImportsCheck = [ "policyuniverse" ];
 
-  meta = with lib; {
+  meta = {
     description = "Parse and Process AWS IAM Policies, Statements, ARNs and wildcards";
     homepage = "https://github.com/Netflix-Skunkworks/policyuniverse";
-    license = with licenses; [ asl20 ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

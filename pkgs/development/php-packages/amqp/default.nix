@@ -1,8 +1,14 @@
-{ buildPecl, lib, rabbitmq-c, fetchFromGitHub }:
+{
+  buildPecl,
+  lib,
+  rabbitmq-c,
+  fetchFromGitHub,
+}:
 
 let
-  version = "2.1.2";
-in buildPecl {
+  version = "2.2.0";
+in
+buildPecl {
   inherit version;
   pname = "amqp";
 
@@ -10,18 +16,18 @@ in buildPecl {
     owner = "php-amqp";
     repo = "php-amqp";
     rev = "v${version}";
-    sha256 = "sha256-jVD5dq2kgFnprj190W9hnLG+9yPLWm19AjoGBBz6v8c=";
+    sha256 = "sha256-HgwuQWxJFno24yo26qM30Qb8s3L9mYVntvMxC2MYxTk=";
   };
 
   buildInputs = [ rabbitmq-c ];
 
-  AMQP_DIR = rabbitmq-c;
+  env.AMQP_DIR = rabbitmq-c;
 
-  meta = with lib; {
+  meta = {
     changelog = "https://github.com/php-amqp/php-amqp/releases/tag/v${version}";
     description = "PHP extension to communicate with any AMQP compliant server";
-    license = licenses.php301;
+    license = lib.licenses.php301;
     homepage = "https://github.com/php-amqp/php-amqp";
-    maintainers = teams.php.members;
+    teams = [ lib.teams.php ];
   };
 }

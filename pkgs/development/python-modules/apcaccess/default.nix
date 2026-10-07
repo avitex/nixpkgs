@@ -1,38 +1,40 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "apcaccess";
   version = "0.0.13";
-  format = "setuptools";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "flyte";
     repo = "apcaccess";
-    rev = version;
+    tag = finalAttrs.version;
     hash = "sha256-XLoNRh6MgXCfRtWD9NpVZSyroW6E9nRYw6Grxa+AQkc=";
   };
 
   postPatch = ''
     substituteInPlace setup.py \
-      --replace "setup_requires='pytest-runner'," ""
+      --replace-fail "setup_requires='pytest-runner'," ""
   '';
 
-  pythonImportsCheck = [
-    "apcaccess"
-  ];
+  build-system = [ setuptools ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  pythonImportsCheck = [ "apcaccess" ];
 
-  meta = with lib; {
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  meta = {
     description = "Library offers programmatic access to the status information provided by apcupsd over its Network Information Server";
+    mainProgram = "apcaccess";
     homepage = "https://github.com/flyte/apcaccess";
-    license = licenses.mit;
-    maintainers = with maintainers; [ uvnikita ];
+    changelog = "https://github.com/flyte/apcaccess/releases/tag/${finalAttrs.version}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ uvnikita ];
   };
-}
+})

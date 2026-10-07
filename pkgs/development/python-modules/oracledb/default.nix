@@ -1,47 +1,49 @@
-{ lib
-, buildPythonPackage
-, cryptography
-, cython_3
-, fetchPypi
-, pythonOlder
-, setuptools
-, wheel
+{
+  lib,
+  buildPythonPackage,
+  cryptography,
+  cython,
+  fetchFromGitHub,
+  setuptools,
+  typing-extensions,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "oracledb";
-  version = "2.0.1";
+  version = "26.0.0";
   pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-wSI1qe7xIwOBhOV/O5sUXhSbImVOgkICTPToHNiQ9SM=";
+  src = fetchFromGitHub {
+    owner = "oracle";
+    repo = "python-oracledb";
+    tag = "v${finalAttrs.version}";
+    fetchSubmodules = true;
+    hash = "sha256-GfhxrDpDn8iInnaMZ/s2EealifpxSNsda3NuZ4ZeROE=";
   };
 
-  nativeBuildInputs = [
-    cython_3
+  build-system = [
+    cython
     setuptools
-    wheel
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     cryptography
+    typing-extensions
   ];
 
   # Checks need an Oracle database
   doCheck = false;
 
-  pythonImportsCheck = [
-    "oracledb"
-  ];
+  pythonImportsCheck = [ "oracledb" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python driver for Oracle Database";
     homepage = "https://oracle.github.io/python-oracledb";
-    changelog = "https://github.com/oracle/python-oracledb/blob/v${version}/doc/src/release_notes.rst";
-    license = with licenses; [ asl20 /* and or */ upl ];
-    maintainers = with maintainers; [ harvidsen ];
+    changelog = "https://github.com/oracle/python-oracledb/blob/${finalAttrs.src.tag}/doc/src/release_notes.rst";
+    license = with lib.licenses; [
+      asl20 # and or
+      upl
+    ];
+    maintainers = with lib.maintainers; [ harvidsen ];
   };
-}
+})

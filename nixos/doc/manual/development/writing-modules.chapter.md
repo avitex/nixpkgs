@@ -28,7 +28,8 @@ NixOS modules:
 ```nix
 { config, pkgs, ... }:
 
-{ option definitions
+{
+  # option definitions
 }
 ```
 
@@ -42,16 +43,16 @@ is shown in [Example: Structure of NixOS Modules](#ex-module-syntax).
 { config, pkgs, ... }:
 
 {
-  imports =
-    [ paths of other modules
-    ];
+  imports = [
+    # paths of other modules
+  ];
 
   options = {
-    option declarations
+    # option declarations
   };
 
   config = {
-    option definitions
+    # option definitions
   };
 }
 ```
@@ -102,13 +103,24 @@ functions system environment substitution should *not* be disabled explicitly.
 ::: {#locate-example .example}
 ### NixOS Module for the "locate" Service
 ```nix
-{ config, lib, pkgs, ... }:
-
-with lib;
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
+  inherit (lib)
+    concatStringsSep
+    mkIf
+    mkOption
+    optionalString
+    types
+    ;
   cfg = config.services.locate;
-in {
+in
+{
   options.services.locate = {
     enable = mkOption {
       type = types.bool;
@@ -136,25 +148,25 @@ in {
   };
 
   config = {
-    systemd.services.update-locatedb =
-      { description = "Update Locate Database";
-        path  = [ pkgs.su ];
-        script =
-          ''
-            mkdir -m 0755 -p $(dirname ${toString cfg.output})
-            exec updatedb \
-              --localuser=${cfg.localuser} \
-              ${optionalString (!cfg.includeStore) "--prunepaths='/nix/store'"} \
-              --output=${toString cfg.output} ${concatStringsSep " " cfg.extraFlags}
-          '';
-      };
+    systemd.services.update-locatedb = {
+      description = "Update Locate Database";
+      path = [ pkgs.su ];
+      script = ''
+        mkdir -p $(dirname ${toString cfg.output})
+        chmod 0755 $(dirname ${toString cfg.output})
+        exec updatedb \
+          --localuser=${cfg.localuser} \
+          ${optionalString (!cfg.includeStore) "--prunepaths='/nix/store'"} \
+          --output=${toString cfg.output} ${concatStringsSep " " cfg.extraFlags}
+      '';
+    };
 
-    systemd.timers.update-locatedb = mkIf cfg.enable
-      { description = "Update timer for locate database";
-        partOf      = [ "update-locatedb.service" ];
-        wantedBy    = [ "timers.target" ];
-        timerConfig.OnCalendar = cfg.interval;
-      };
+    systemd.timers.update-locatedb = mkIf cfg.enable {
+      description = "Update timer for locate database";
+      partOf = [ "update-locatedb.service" ];
+      wantedBy = [ "timers.target" ];
+      timerConfig.OnCalendar = cfg.interval;
+    };
   };
 }
 ```
@@ -163,9 +175,12 @@ in {
 ::: {#exec-escaping-example .example}
 ### Escaping in Exec directives
 ```nix
-{ config, lib, pkgs, utils, ... }:
-
-with lib;
+{
+  config,
+  pkgs,
+  utils,
+  ...
+}:
 
 let
   cfg = config.services.echo;
@@ -175,28 +190,22 @@ let
       printf '%s\n' "$s"
     done
   '';
-  args = [ "a%Nything" "lang=\${LANG}" ";" "/bin/sh -c date" ];
-in {
-  systemd.services.echo =
-    { description = "Echo to the journal";
-      wantedBy = [ "multi-user.target" ];
-      serviceConfig.Type = "oneshot";
-      serviceConfig.ExecStart = ''
-        ${echoAll} ${utils.escapeSystemdExecArgs args}
-      '';
-    };
+  args = [
+    "a%Nything"
+    "lang=\${LANG}"
+    ";"
+    "/bin/sh -c date"
+  ];
+in
+{
+  systemd.services.echo = {
+    description = "Echo to the journal";
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig.Type = "oneshot";
+    serviceConfig.ExecStart = ''
+      ${echoAll} ${utils.escapeSystemdExecArgs args}
+    '';
+  };
 }
 ```
 :::
-
-```{=include=} sections
-option-declarations.section.md
-option-types.section.md
-option-def.section.md
-assertions.section.md
-meta-attributes.section.md
-importing-modules.section.md
-replace-modules.section.md
-freeform-modules.section.md
-settings-options.section.md
-```

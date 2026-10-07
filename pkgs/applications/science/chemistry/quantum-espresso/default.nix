@@ -1,27 +1,26 @@
-{ lib
-, stdenv
-, fetchFromGitLab
-, fetchFromGitHub
-, fetchurl
-, git
-, cmake
-, gnum4
-, gfortran
-, pkg-config
-, fftw
-, blas
-, lapack
-, scalapack
-, wannier90
-, hdf5
-, libmbd
-, libxc
-, enableMpi ? true
-, mpi
+{
+  lib,
+  stdenv,
+  fetchFromGitLab,
+  fetchFromGitHub,
+  git,
+  cmake,
+  gfortran,
+  pkg-config,
+  fftw,
+  blas,
+  lapack,
+  scalapack,
+  wannier90,
+  hdf5,
+  libmbd,
+  libxc,
+  enableMpi ? true,
+  mpi,
 }:
 
-assert ! blas.isILP64;
-assert ! lapack.isILP64;
+assert !blas.isILP64;
+assert !lapack.isILP64;
 
 let
   # "rev"s must exactly match the git submodule commits in the QE repo
@@ -44,14 +43,14 @@ let
 
 in
 stdenv.mkDerivation rec {
-  version = "7.2";
+  version = "7.5";
   pname = "quantum-espresso";
 
   src = fetchFromGitLab {
     owner = "QEF";
     repo = "q-e";
     rev = "qe-${version}";
-    hash = "sha256-0q0QWX4BVjVHjcbKOBpjbBADuL+2S5LAALyrxmjVs4c=";
+    hash = "sha256-8/7++v53VDfn2P/QcrFRjUSygik3gintVMQwLU4nE24=";
   };
 
   # add git submodules manually and fix pkg-config file
@@ -65,19 +64,25 @@ stdenv.mkDerivation rec {
       --replace "qe_git_submodule_update(external/d3q)" "" \
       --replace "qe_git_submodule_update(external/qe-gipaw)" ""
 
-    ${builtins.toString (builtins.attrValues
-      (builtins.mapAttrs
-        (name: val: ''
+    ${toString (
+      builtins.attrValues (
+        builtins.mapAttrs (name: val: ''
           cp -r ${val}/* external/${name}/.
           chmod -R +rwx external/${name}
-        '')
-        gitSubmodules
+        '') gitSubmodules
       )
     )}
 
     substituteInPlace cmake/quantum_espresso.pc.in \
-      --replace 'libdir="''${prefix}/@CMAKE_INSTALL_LIBDIR@"' 'libdir="@CMAKE_INSTALL_FULL_LIBDIR@"'
+      --replace 'libdir="''${prefix}/@CMAKE_INSTALL_LIBDIR@"' 'libdir="@CMAKE_INSTALL_FULL_LIBDIR@"' \
+      --replace 'includedir="''${prefix}/@CMAKE_INSTALL_INCLUDEDIR@/qe"' 'includedir="@CMAKE_INSTALL_FULL_INCLUDEDIR@/qe"' \
+      --replace 'moduledir="''${prefix}/@QE_INSTALL_Fortran_MODULES@/qe"' 'moduledir="@CMAKE_INSTALL_FULL_INCLUDEDIR@/qe"'
   '';
+
+  patches = [
+    # this patch reverts commit 5fb5a679, which enforced static library builds.
+    ./findLibxc.patch
+  ];
 
   passthru = { inherit mpi; };
 
@@ -96,7 +101,8 @@ stdenv.mkDerivation rec {
     libmbd
     libxc
     hdf5
-  ] ++ lib.optional enableMpi scalapack;
+  ]
+  ++ lib.optional enableMpi scalapack;
 
   propagatedBuildInputs = lib.optional enableMpi mpi;
   propagatedUserEnvPkgs = lib.optional enableMpi mpi;
@@ -109,13 +115,14 @@ stdenv.mkDerivation rec {
     "-DQE_ENABLE_LIBXC=ON"
     "-DQE_ENABLE_HDF5=ON"
     "-DQE_ENABLE_PLUGINS=pw2qmcpack"
-  ] ++ lib.optionals enableMpi [
+  ]
+  ++ lib.optionals enableMpi [
     "-DQE_ENABLE_MPI=ON"
     "-DQE_ENABLE_MPI_MODULE=ON"
     "-DQE_ENABLE_SCALAPACK=ON"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Electronic-structure calculations and materials modeling at the nanoscale";
     longDescription = ''
       Quantum ESPRESSO is an integrated suite of Open-Source computer codes for
@@ -124,8 +131,10 @@ stdenv.mkDerivation rec {
       pseudopotentials.
     '';
     homepage = "https://www.quantum-espresso.org/";
-    license = licenses.gpl2;
-    platforms = [ "x86_64-linux" "x86_64-darwin" ];
-    maintainers = [ maintainers.costrouc ];
+    license = lib.licenses.gpl2;
+    platforms = [
+      "x86_64-linux"
+    ];
+    maintainers = [ lib.maintainers.costrouc ];
   };
 }

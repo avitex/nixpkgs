@@ -1,33 +1,53 @@
-{ stdenv, lib, fetchFromGitHub, cmake, cunit }:
+{
+  stdenv,
+  lib,
+  fetchFromGitHub,
+  pkg-config,
+  cunit,
+  sphinx,
+  autoreconfHook,
+  nettle,
+}:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "wslay";
   version = "1.1.1";
 
   src = fetchFromGitHub {
     owner = "tatsuhiro-t";
     repo = "wslay";
-    rev = "release-${version}";
+    tag = "release-${finalAttrs.version}";
     hash = "sha256-xKQGZO5hNzMg+JYKeqOBsu73YO+ucBEOcNhG8iSNYvA=";
   };
 
+  postPatch = ''
+    substituteInPlace doc/sphinx/conf.py.in \
+      --replace-fail "add_stylesheet" "add_css_file"
+  '';
+
   strictDeps = true;
 
-  nativeBuildInputs = [ cmake ];
-
-  cmakeFlags = [
-    (lib.cmakeBool "WSLAY_TESTS" true)
+  nativeBuildInputs = [
+    autoreconfHook
+    pkg-config
+    sphinx
   ];
+
+  buildInputs = [ nettle ];
 
   doCheck = true;
 
   checkInputs = [ cunit ];
 
-  meta = with lib; {
+  preCheck = lib.optionalString stdenv.hostPlatform.isDarwin ''
+    export DYLD_LIBRARY_PATH=$(pwd)/lib/.libs
+  '';
+
+  meta = {
     homepage = "https://tatsuhiro-t.github.io/wslay/";
-    description = "The WebSocket library in C";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ pingiun ];
-    platforms = platforms.unix;
+    description = "WebSocket library in C";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ pingiun ];
+    platforms = lib.platforms.unix;
   };
-}
+})

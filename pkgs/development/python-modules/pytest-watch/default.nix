@@ -1,10 +1,11 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, docopt
-, colorama
-, pytest
-, watchdog
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  docopt,
+  colorama,
+  pytest,
+  watchdog,
 }:
 
 buildPythonPackage rec {
@@ -19,16 +20,20 @@ buildPythonPackage rec {
 
   buildInputs = [ pytest ];
 
-  propagatedBuildInputs = [ colorama docopt watchdog ];
+  propagatedBuildInputs = [
+    colorama
+    docopt
+    watchdog
+  ];
 
   # No Tests
   doCheck = false;
   pythonImportsCheck = [ "pytest_watch" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/joeyespo/pytest-watch";
     description = "Local continuous test runner with pytest and watchdog";
-    license = licenses.mit;
-    maintainers = with maintainers; [ dmvianna ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ dmvianna ];
   };
 }

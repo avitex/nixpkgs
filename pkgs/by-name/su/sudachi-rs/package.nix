@@ -1,21 +1,22 @@
-{ lib
-, rustPlatform
-, fetchFromGitHub
-, sudachidict
-, runCommand
-, sudachi-rs
-, writeScript
+{
+  lib,
+  rustPlatform,
+  fetchFromGitHub,
+  sudachidict,
+  runCommand,
+  sudachi-rs,
+  writeScript,
 }:
 
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "sudachi-rs";
-  version = "0.6.8";
+  version = "0.6.11";
 
   src = fetchFromGitHub {
     owner = "WorksApplications";
     repo = "sudachi.rs";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-9GXU+YDPuQ+roqQfUE5q17Hl6AopsvGhRPjZ+Ui+n24=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-UHJSojDJ5EpoXvXj3qIs2s9Kzg7JrPQhi7o6WWF4Y5o=";
   };
 
   postPatch = ''
@@ -23,7 +24,7 @@ rustPlatform.buildRustPackage rec {
       --replace '"resources"' '"${placeholder "out"}/share/resources"'
   '';
 
-  cargoHash = "sha256-Ufo3dB2KGDDNiebp7hLhQrUMLsefO8wRpJQDz57Yb8Y=";
+  cargoHash = "sha256-qWuFY97qPoKVxWp29ywaMEr2fTc0Y4wDR9LK+40r6QI=";
 
   # prepare the resources before the build so that the binary can find sudachidict
   preBuild = ''
@@ -42,19 +43,19 @@ rustPlatform.buildRustPackage rec {
     '';
     tests = {
       # detects an error that sudachidict is not found
-      cli = runCommand "${pname}-cli-test" { } ''
+      cli = runCommand "${finalAttrs.pname}-cli-test" { } ''
         mkdir $out
         echo "高輪ゲートウェイ駅" | ${lib.getExe sudachi-rs} > $out/result
       '';
     };
   };
 
-  meta = with lib; {
-    description = "A Japanese morphological analyzer";
+  meta = {
+    description = "Japanese morphological analyzer";
     homepage = "https://github.com/WorksApplications/sudachi.rs";
-    changelog = "https://github.com/WorksApplications/sudachi.rs/blob/${src.rev}/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ natsukium ];
+    changelog = "https://github.com/WorksApplications/sudachi.rs/blob/${finalAttrs.src.rev}/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ natsukium ];
     mainProgram = "sudachi";
   };
-}
+})

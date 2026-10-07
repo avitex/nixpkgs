@@ -1,25 +1,22 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, hatch-vcs
-, hatchling
-, importlib-resources
-, pytestCheckHook
-, pythonOlder
-, referencing
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  hatch-vcs,
+  hatchling,
+  pytestCheckHook,
+  referencing,
 }:
 
 buildPythonPackage rec {
   pname = "jsonschema-specifications";
-  version = "2023.11.2";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "2025.9.1";
+  pyproject = true;
 
   src = fetchPypi {
     pname = "jsonschema_specifications";
     inherit version;
-    hash = "sha256-lHL8T+pHTNdL6korGQ2uzLWp5NsuqA7896G1gvyagbg=";
+    hash = "sha256-tUCYfyOedFYTx6kXbz7bcrgypKxGXPAnEiiDl4MrXo0=";
   };
 
   nativeBuildInputs = [
@@ -29,22 +26,16 @@ buildPythonPackage rec {
 
   propagatedBuildInputs = [
     referencing
-  ] ++ lib.optionals (pythonOlder "3.9") [
-    importlib-resources
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "jsonschema_specifications"
-  ];
+  pythonImportsCheck = [ "jsonschema_specifications" ];
 
-  meta = with lib; {
+  meta = {
     description = "Support files exposing JSON from the JSON Schema specifications";
     homepage = "https://github.com/python-jsonschema/jsonschema-specifications";
-    license = licenses.mit;
-    maintainers = with maintainers; [ SuperSandro2000 ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ SuperSandro2000 ];
   };
 }

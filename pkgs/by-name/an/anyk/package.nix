@@ -1,27 +1,26 @@
-{ stdenv
-, lib
-, fetchurl
-, fetchzip
-, openjdk
-, writeScript
-, runCommandLocal
-, bash
-, unzip
-, makeWrapper
-, libredirect
-, xsettingsd
-, makeDesktopItem
-, copyDesktopItems
-, python3
+{
+  stdenv,
+  lib,
+  maven,
+  fetchzip,
+  jre,
+  writeScript,
+  runCommandLocal,
+  bash,
+  unzip,
+  makeWrapper,
+  libredirect,
+  xsettingsd,
+  makeDesktopItem,
+  copyDesktopItems,
+  python3,
 }:
 let
-  # Downloads can be found here: https://nav.gov.hu/nyomtatvanyok/letoltesek/nyomtatvanykitolto_programok/nyomtatvany_apeh/keretprogramok/AbevJava
-  # There are no versioned download URLs but archive.org can be used to preserve them.
-  # The original download URL is: https://nav.gov.hu/pfile/programFile?path=/nyomtatvanyok/letoltesek/nyomtatvanykitolto_programok/nyomtatvany_apeh/keretprogramok/AbevJava
-  # You can put the URL here to create a fresh archive URL: https://web.archive.org/save
-  abevjavaSrc = fetchzip {
-    url = "https://web.archive.org/web/20231106112510if_/https://nav.gov.hu/pfile/programFile?path=/nyomtatvanyok/letoltesek/nyomtatvanykitolto_programok/nyomtatvany_apeh/keretprogramok/AbevJava";
-    sha256 = "sha256-qt0mHv3HI6C8OltFjSR47+RLSnmB2Si5U8rXEvdN4/c=";
+  # Run update.py to update this file.
+  inherit (lib.importJSON ./version.json) version url sha256;
+
+  src = fetchzip {
+    inherit url sha256;
     extension = "zip";
     stripRoot = false;
   };
@@ -29,30 +28,35 @@ let
   # ÁNYK uses some SOAP stuff that's not shipped with OpenJDK any more.
   # We don't really want to use openjdk8 because it's unusable on HiDPI
   # and people are more likely to have a modern OpenJDK installed.
-  extraClasspath = [
-    (fetchurl {
-      url = "mirror://maven/org/glassfish/metro/webservices-rt/2.4.10/webservices-rt-2.4.10.jar";
-      sha256 = "sha256-lHclIZn3HR2B2lMttmmQGIV67qJi5KhL5jT2WNUQpPI=";
-    })
+  # We use Maven to resolve these unbundled dependencies.
+  # jdk_headless is just overridden so we don't have to fetch another OpenJDK for no reason.
+  soapDeps = (maven.override { jdk_headless = jre; }).buildMavenPackage {
+    pname = "anyk-soap-deps";
+    version = "1.0.0";
 
-    (fetchurl {
-      url = "mirror://maven/org/glassfish/metro/webservices-api/2.4.10/webservices-api-2.4.10.jar";
-      sha256 = "sha256-1jiabjPkRnh+l/fmTt8aKE5hpeLreYOiLH9sVIcLUQE=";
-    })
+    src = lib.sources.sourceFilesBySuffices ./. [ "pom.xml" ];
 
-    (fetchurl {
-      url = "mirror://maven/com/sun/activation/jakarta.activation/2.0.1/jakarta.activation-2.0.1.jar";
-      sha256 = "sha256-ueJLfdbgdJVWLqllMb4xMMltuk144d/Yitu96/QzKHE=";
-    })
+    mvnHash = "sha256-6pezqcTIPR5NYFQUmLZ5Y3TOd+XRcB/eRmNSAEoBmls=";
 
-    # Patch one of the classes so it works with the packages above by removing .internal. from the package names.
-    (runCommandLocal "anyk-patch" {} ''
-      mkdir $out
-      cd $out
-      ${unzip}/bin/unzip ${abevjavaSrc}/application/abevjava.jar hu/piller/enykp/niszws/ClientStubBuilder.class
-      ${python3}/bin/python ${./patch_paths.py} hu/piller/enykp/niszws/ClientStubBuilder.class
-    '')
-  ];
+    installPhase = ''
+      mkdir -p $out/share/java
+      cp target/lib/*.jar $out/share/java/
+    '';
+  };
+
+  # Binary patch ÁNYK so it works with the JARs we fetch above (removing .internal. from some package names).
+  anykSoapPatch =
+    runCommandLocal "anyk-patch"
+      {
+        nativeBuildInputs = [ unzip ];
+      }
+      ''
+        mkdir $out
+        cd $out
+        unzip ${src}/application/abevjava.jar \
+          hu/piller/enykp/niszws/ClientStubBuilder.class
+        shopt -s globstar; ${python3}/bin/python ${./patch_paths.py} **/*.class
+      '';
 
   # This script can be used to run template installation jars (or use the Szervíz -> Telepítés menu)
   anyk-java = writeScript "anyk-java" ''
@@ -85,21 +89,23 @@ let
       SCALING_PROP="-Dsun.java2d.uiScale=''${WINDOW_SCALING_FACTOR}"
     fi
     # ÁNYK crashes with NullPointerException with the GTK look and feel so use the cross-platform one.
-    exec ${openjdk}/bin/java -Dswing.systemlaf=javax.swing.plaf.metal.MetalLookAndFeel $SCALING_PROP "$@"
+    exec ${jre}/bin/java -Dswing.systemlaf=javax.swing.plaf.metal.MetalLookAndFeel $SCALING_PROP "$@"
   '';
-in stdenv.mkDerivation {
+in
+stdenv.mkDerivation {
   pname = "anyk";
-  version = "3.26.0";
-
-  src = abevjavaSrc;
+  inherit version src;
 
   dontConfigure = true;
   dontBuild = true;
 
-  nativeBuildInputs = [ makeWrapper copyDesktopItems ];
+  nativeBuildInputs = [
+    makeWrapper
+    copyDesktopItems
+  ];
 
   desktopItems = [
-    (makeDesktopItem rec {
+    (makeDesktopItem {
       desktopName = "ÁNYK";
       name = "anyk";
       exec = "anyk";
@@ -109,6 +115,7 @@ in stdenv.mkDerivation {
   ];
 
   installPhase = ''
+    runHook preInstall
     mkdir $out
     cp -r application $out/opt
 
@@ -116,30 +123,29 @@ in stdenv.mkDerivation {
     substituteAll ${anyk-java} $out/bin/anyk-java
     chmod +x $out/bin/anyk-java
 
-    # ÁNYK has some old school dependencies that are no longer bundled with Java, put them on the classpath.
-    makeWrapper $out/bin/anyk-java $out/bin/anyk --add-flags "-cp ${lib.concatStringsSep ":" extraClasspath}:$out/opt/abevjava.jar hu.piller.enykp.gui.framework.MainFrame"
+    # ÁNYK has some old school dependencies that are no longer bundled with Java, put them on the classpath. The * is resolved by Java at runtime.
+    makeWrapper $out/bin/anyk-java $out/bin/anyk --add-flags "-cp '${soapDeps}/share/java/*:${anykSoapPatch}:$out/opt/abevjava.jar' hu.piller.enykp.gui.framework.MainFrame"
 
-    mkdir -p $out/share/applications $out/share/pixmaps $out/share/icons
+    mkdir -p $out/share/applications
 
     copyDesktopItems
 
-    ln -s $out/opt/abevjava.png $out/share/pixmaps/anyk.png
-    ln -s $out/opt/abevjava.png $out/share/icons/anyk.png
+    install -D $out/opt/abevjava.png $out/share/icons/hicolor/32x32/apps/anyk.png
+    runHook postInstall
   '';
 
-  meta = with lib; {
-    description = "Tool for filling forms for the Hungarian government,";
+  meta = {
+    description = "Tool for filling forms for the Hungarian government";
     longDescription = ''
       Official tool for filling Hungarian government forms.
 
       Use `anyk-java` to install form templates/help files like this: `anyk-java -jar NAV_IGAZOL.jar`
     '';
     homepage = "https://nav.gov.hu/nyomtatvanyok/letoltesek/nyomtatvanykitolto_programok/nyomtatvany_apeh/keretprogramok/javakitolto";
-    license = licenses.unfree;
-    maintainers = with maintainers; [ chpatrick ];
-    platforms = openjdk.meta.platforms;
-    sourceProvenance = [ sourceTypes.binaryBytecode ];
+    license = lib.licenses.unfree;
+    maintainers = with lib.maintainers; [ chpatrick ];
+    platforms = jre.meta.platforms;
+    sourceProvenance = [ lib.sourceTypes.binaryBytecode ];
     mainProgram = "anyk";
   };
 }
-

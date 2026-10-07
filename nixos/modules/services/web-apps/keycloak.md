@@ -54,6 +54,30 @@ The path should be provided as a string, not a Nix path, since Nix
 paths are copied into the world readable Nix store.
 :::
 
+## Unix socket authentication {#module-services-keycloak-unix-socket}
+
+For PostgreSQL, Keycloak can connect via Unix socket using peer
+authentication, avoiding the need for a database password.
+
+To use Unix sockets, set [](#opt-services.keycloak.database.host)
+to the PostgreSQL socket directory (e.g., `/run/postgresql`) and
+add the required junixsocket plugins:
+```nix
+{
+  services.keycloak = {
+    database.host = "/run/postgresql";
+    plugins = with pkgs.keycloak.plugins; [
+      junixsocket-common
+      junixsocket-native-common
+    ];
+  };
+}
+```
+
+::: {.note}
+Unix socket authentication is only supported for PostgreSQL.
+:::
+
 ## Hostname {#module-services-keycloak-hostname}
 
 The hostname is used to build the public URL used as base for
@@ -68,13 +92,11 @@ to `/auth`. See the option description
 for more details.
 :::
 
-[](#opt-services.keycloak.settings.hostname-strict-backchannel)
-determines whether Keycloak should force all requests to go
-through the frontend URL. By default,
-Keycloak allows backend requests to
-instead use its local hostname or IP address and may also
-advertise it to clients through its OpenID Connect Discovery
-endpoint.
+[](#opt-services.keycloak.settings.hostname-backchannel-dynamic)
+Keycloak has the capability to offer a separate URL for backchannel requests,
+enabling internal communication while maintaining the use of a public URL
+for frontchannel requests. Moreover, the backchannel is dynamically
+resolved based on incoming headers endpoint.
 
 For more information on hostname configuration, see the [Hostname
 section of the Keycloak Server Installation and Configuration
@@ -126,16 +148,18 @@ should be set to. See the description of
 ## Example configuration {#module-services-keycloak-example-config}
 
 A basic configuration with some custom settings could look like this:
-```
-services.keycloak = {
-  enable = true;
-  settings = {
-    hostname = "keycloak.example.com";
-    hostname-strict-backchannel = true;
+```nix
+{
+  services.keycloak = {
+    enable = true;
+    settings = {
+      hostname = "keycloak.example.com";
+      hostname-strict-backchannel = true;
+    };
+    initialAdminPassword = "e6Wcm0RrtegMEHl"; # change on first login
+    sslCertificate = "/run/keys/ssl_cert";
+    sslCertificateKey = "/run/keys/ssl_key";
+    database.passwordFile = "/run/keys/db_password";
   };
-  initialAdminPassword = "e6Wcm0RrtegMEHl";  # change on first login
-  sslCertificate = "/run/keys/ssl_cert";
-  sslCertificateKey = "/run/keys/ssl_key";
-  database.passwordFile = "/run/keys/db_password";
-};
+}
 ```

@@ -1,9 +1,9 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, lxml
-, setuptools
-, setuptools-git
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  lxml,
+  setuptools,
 }:
 
 buildPythonPackage rec {
@@ -17,24 +17,20 @@ buildPythonPackage rec {
   };
 
   postPatch = ''
-    sed -i "/'sphinx',/d" setup.py
+    substituteInPlace setup.py \
+      --replace-fail "'setuptools_git >= 0.3'," "" \
+      --replace-fail "'sphinx'," ""
   '';
 
-  nativeBuildInputs = [
-    setuptools
-    setuptools-git
-  ];
-
-  propagatedBuildInputs = [
-    lxml
-  ];
+  build-system = [ setuptools ];
+  dependencies = [ lxml ];
 
   pythonImportsCheck = [ "dbusdeviation" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://tecnocode.co.uk/dbus-deviation/";
-    description = "A project for parsing D-Bus introspection XML and processing it in various ways";
-    license = licenses.lgpl21Plus;
-    maintainers = with maintainers; [ lilyinstarlight ];
+    description = "Project for parsing D-Bus introspection XML and processing it in various ways";
+    license = lib.licenses.lgpl21Plus;
+    maintainers = [ ];
   };
 }

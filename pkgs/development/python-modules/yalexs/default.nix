@@ -1,66 +1,77 @@
-{ lib
-, aiofiles
-, aiohttp
-, aioresponses
-, aiounittest
-, buildPythonPackage
-, ciso8601
-, fetchFromGitHub
-, pubnub
-, pyjwt
-, pytestCheckHook
-, python-dateutil
-, pythonOlder
-, requests
-, requests-mock
+{
+  lib,
+  aiofiles,
+  aiohttp,
+  aiointercept,
+  buildPythonPackage,
+  ciso8601,
+  fetchFromGitHub,
+  freenub,
+  poetry-core,
+  propcache,
+  pyjwt,
+  pytest-asyncio,
+  pytest-cov-stub,
+  pytest-freezegun,
+  pytestCheckHook,
+  python-dateutil,
+  python-socketio,
+  requests-mock,
+  requests,
+  typing-extensions,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "yalexs";
-  version = "1.10.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.9";
+  version = "9.2.13";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "bdraco";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-7LFKqC8IHzXKKU5Pw6Qud9jqJFc0lSEJFn636T6CsfQ=";
+    repo = "yalexs";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-KJgXxefAkFI6AmIkd6B2O7Iw017UPd/SV7AxV+JOkwM=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ poetry-core ];
+
+  pythonRelaxDeps = [ "aiohttp" ];
+
+  dependencies = [
     aiofiles
     aiohttp
     ciso8601
-    pubnub
+    freenub
+    propcache
     pyjwt
     python-dateutil
+    python-socketio
     requests
-  ];
+    typing-extensions
+  ]
+  ++ python-socketio.optional-dependencies.asyncio_client;
 
   nativeCheckInputs = [
-    aioresponses
-    aiounittest
+    aiointercept
+    pytest-asyncio
+    pytest-cov-stub
+    pytest-freezegun
     pytestCheckHook
     requests-mock
   ];
 
-  postPatch = ''
-    # Not used requirement
-    substituteInPlace setup.py \
-      --replace '"vol",' ""
-  '';
-
-  pythonImportsCheck = [
-    "yalexs"
+  disabledTests = [
+    # aiohttp api breakage, remove when bumping to 9.2.8 or newer
+    "test__raise_response_exceptions"
   ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "yalexs" ];
+
+  meta = {
     description = "Python API for Yale Access (formerly August) Smart Lock and Doorbell";
     homepage = "https://github.com/bdraco/yalexs";
-    changelog = "https://github.com/bdraco/yalexs/releases/tag/v${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/bdraco/yalexs/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

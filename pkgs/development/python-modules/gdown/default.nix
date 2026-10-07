@@ -1,49 +1,65 @@
-{ lib
-, beautifulsoup4
-, buildPythonPackage
-, fetchPypi
-, filelock
-, requests
-, tqdm
-, setuptools
-, six
-, pythonOlder
+{
+  lib,
+  beautifulsoup4,
+  buildPythonPackage,
+  fetchPypi,
+  filelock,
+  hatch-fancy-pypi-readme,
+  hatch-vcs,
+  hatchling,
+  requests,
+  setuptools,
+  tqdm,
+  pytestCheckHook,
+  writableTmpDirAsHomeHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "gdown";
-  version = "4.7.3";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "6.4.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-N+3DoO3aGn/l68xjHDqtBhJYJ2ZGBjDuUvSBuh7Hrv4=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-4MkBpNhHs91IL1VucWcm+/a6yhx7BGdX2UiyR+63yCI=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [
+    hatchling
+    hatch-vcs
+    hatch-fancy-pypi-readme
+  ];
+
+  dependencies = [
     beautifulsoup4
     filelock
     requests
-    tqdm
     setuptools
-    six
-  ] ++ requests.optional-dependencies.socks;
+    tqdm
+  ]
+  ++ requests.optional-dependencies.socks;
 
-  checkPhase = ''
-    $out/bin/gdown --help > /dev/null
-  '';
-
-  pythonImportsCheck = [
-    "gdown"
+  nativeCheckInputs = [
+    pytestCheckHook
+    writableTmpDirAsHomeHook
   ];
 
-  meta = with lib; {
-    description = "A CLI tool for downloading large files from Google Drive";
+  disabledTestPaths = [
+    # requires network
+    "tests/test___main__.py"
+    "tests/test_cached_download.py"
+    "tests/test_download.py"
+    "tests/test_download_folder.py"
+  ];
+
+  pythonImportsCheck = [ "gdown" ];
+
+  meta = {
+    description = "CLI tool for downloading large files from Google Drive";
     homepage = "https://github.com/wkentaro/gdown";
-    changelog = "https://github.com/wkentaro/gdown/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ breakds ];
+    changelog = "https://github.com/wkentaro/gdown/releases/tag/v${finalAttrs.version}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ breakds ];
+    mainProgram = "gdown";
   };
-}
+})

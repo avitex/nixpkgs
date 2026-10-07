@@ -1,7 +1,8 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, libkrb5
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  libkrb5,
 }:
 
 buildPythonPackage rec {
@@ -19,12 +20,10 @@ buildPythonPackage rec {
   # No tests in archive
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "Kerberos high-level interface";
     homepage = "https://pypi.org/project/kerberos/";
-    license = licenses.asl20;
-    knownVulnerabilities = [
-      "CVE-2015-3206"
-    ];
+    license = lib.licenses.asl20;
+    knownVulnerabilities = [ "CVE-2015-3206" ];
   };
 }

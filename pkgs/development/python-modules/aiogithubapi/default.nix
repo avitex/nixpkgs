@@ -1,29 +1,27 @@
-{ lib
-, aiohttp
-, aresponses
-, async-timeout
-, backoff
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, sigstore
+{
+  lib,
+  aiohttp,
+  aresponses,
+  backoff,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  pytest-asyncio,
+  pytestCheckHook,
+  sigstore,
+  writableTmpDirAsHomeHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "aiogithubapi";
-  version = "23.11.0";
+  version = "26.0.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "ludeeus";
     repo = "aiogithubapi";
-    rev = "refs/tags/${version}";
-    hash = "sha256-SbpfHKD4QJuCe3QG0GTvsffkuFiGPLEUXOVW9f1gyTI=";
+    tag = finalAttrs.version;
+    hash = "sha256-LQFOmg59kusqYtaLQaFePh+4aM25MaXVNkYy3PIeZ5A=";
   };
 
   __darwinAllowLocalNetworking = true;
@@ -32,50 +30,40 @@ buildPythonPackage rec {
     # Upstream is releasing with the help of a CI to PyPI, GitHub releases
     # are not in their focus
     substituteInPlace pyproject.toml \
-      --replace 'version = "0"' 'version = "${version}"' \
-      --replace 'backoff = "^1.10.0"' 'backoff = "*"' \
-      --replace 'sigstore = "<2"' 'sigstore = "*"'
+      --replace-fail 'version = "0"' 'version = "${finalAttrs.version}"'
   '';
 
-  nativeBuildInputs = [
-    poetry-core
+  build-system = [ hatchling ];
+
+  dependencies = [
+    aiohttp
+    backoff
   ];
 
-  propagatedBuildInputs = [
-    aiohttp
-    async-timeout
-    backoff
-    sigstore
-  ];
+  # Optional dependencies for deprecated-verify are not added
+  # Only sigstore < 2 is supported
 
   nativeCheckInputs = [
     aresponses
     pytest-asyncio
     pytestCheckHook
+    writableTmpDirAsHomeHook
   ];
 
-  pytestFlagsArray = [
-    "--asyncio-mode=auto"
-  ];
+  pytestFlags = [ "--asyncio-mode=auto" ];
 
   preCheck = ''
-    export HOME=$(mktemp -d)
+    # Need sigstore is an optional dependencies and need <2
+    rm -rf tests/test_helper.py
   '';
 
-  pythonImportsCheck = [
-    "aiogithubapi"
-  ];
+  pythonImportsCheck = [ "aiogithubapi" ];
 
-  disabledTests = [
-    # sigstore.errors.TUFError: Failed to refresh TUF metadata
-    "test_sigstore"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Python client for the GitHub API";
     homepage = "https://github.com/ludeeus/aiogithubapi";
-    changelog = "https://github.com/ludeeus/aiogithubapi/releases/tag/${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/ludeeus/aiogithubapi/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

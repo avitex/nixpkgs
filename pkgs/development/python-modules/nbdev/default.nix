@@ -1,54 +1,61 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, fastprogress
-, fastcore
-, asttokens
-, astunparse
-, watchdog
-, execnb
-, ghapi
-, pyyaml
-, quarto
-, pythonOlder
+{
+  lib,
+  astunparse,
+  build,
+  buildPythonPackage,
+  execnb,
+  fastcore,
+  fastgit,
+  fetchPypi,
+  ghapi,
+  ipywidgets,
+  pyyaml,
+  setuptools,
+  watchdog,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "nbdev";
-  version = "2.3.13";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "3.3.12";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-Umkf3CcRRSS+pK3UKeTg+Ru3TW+qHNoQ2F6nUk8jQUU=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-D5je848qb6oYy60LwZGAbJAmt1GMiBSnXYsPPquWfaE=";
   };
 
-  propagatedBuildInputs = [
-    fastprogress
-    fastcore
-    asttokens
+  pythonRelaxDeps = [
+    "fastgit"
+    "ghapi"
+    "ipywidgets"
+  ];
+
+  build-system = [
+    build
+    setuptools
+  ];
+
+  dependencies = [
     astunparse
-    watchdog
     execnb
+    fastcore
+    fastgit
     ghapi
+    ipywidgets
     pyyaml
-    quarto
+    watchdog
   ];
 
   # no real tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "nbdev"
-  ];
+  pythonImportsCheck = [ "nbdev" ];
 
-  meta = with lib; {
-    homepage = "https://github.com/fastai/nbdev";
+  meta = {
+    homepage = "https://github.com/AnswerDotAI/nbdev";
     description = "Create delightful software with Jupyter Notebooks";
-    changelog = "https://github.com/fastai/nbdev/blob/${version}/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ rxiao ];
+    changelog = "https://github.com/AnswerDotAI/nbdev/blob/${finalAttrs.version}/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ rxiao ];
   };
-}
+})

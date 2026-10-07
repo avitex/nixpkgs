@@ -1,95 +1,121 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, hatchling
-, hatch-vcs
-, awkward
-, uproot
-, dask
-, dask-awkward
-, dask-histogram
-, correctionlib
-, pyarrow
-, fsspec
-, matplotlib
-, numba
-, numpy
-, scipy
-, tqdm
-, lz4
-, cloudpickle
-, toml
-, mplhep
-, packaging
-, pandas
-, hist
-, cachetools
-, distributed
-, pyinstrument
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  hatchling,
+  hatch-vcs,
+
+  # dependencies
+  aiohttp,
+  awkward,
+  cachetools,
+  cloudpickle,
+  correctionlib,
+  fsspec,
+  hist,
+  ipywidgets,
+  loky,
+  lz4,
+  matplotlib,
+  mplhep,
+  numba,
+  numpy,
+  packaging,
+  pandas,
+  pyarrow,
+  pydantic,
+  pyyaml,
+  requests,
+  rich,
+  scipy,
+  toml,
+  tqdm,
+  uproot,
+  vector,
+
+  # tests
+  distributed,
+  pyinstrument,
+  pytest-xdist,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "coffea";
-  version = "2024.1.0";
+  version = "2026.9.0";
   pyproject = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "CoffeaTeam";
     repo = "coffea";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-jw8ACKXJZhj4fE7oppTxLUR4mhi+gh2ZD7lnUT3pcwc=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-zVcTAlL4Wl6oUm2VOmX0zBgsHbEyI93RNQwf4NBhE9s=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace "numba>=0.58.1" "numba"
-  '';
-
-  nativeBuildInputs = [
+  build-system = [
     hatchling
     hatch-vcs
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
+    aiohttp
     awkward
-    uproot
-    dask
-    dask.optional-dependencies.array
-    dask-awkward
-    dask-histogram
+    cachetools
+    cloudpickle
     correctionlib
-    pyarrow
     fsspec
+    hist
+    ipywidgets
+    loky
+    lz4
     matplotlib
+    mplhep
     numba
     numpy
-    scipy
-    tqdm
-    lz4
-    cloudpickle
-    toml
-    mplhep
     packaging
     pandas
-    hist
-    cachetools
+    pyarrow
+    pydantic
+    pyyaml
+    requests
+    rich
+    scipy
+    toml
+    tqdm
+    uproot
+    vector
   ];
 
   nativeCheckInputs = [
     distributed
     pyinstrument
+    pytest-xdist
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "coffea"
+  pythonImportsCheck = [ "coffea" ];
+
+  disabledTests = [
+    # Requires internet access
+    # https://github.com/CoffeaTeam/coffea/issues/1094
+    "test_lumimask"
+
+    # Flaky: FileNotFoundError: [Errno 2] No such file or directory
+    # https://github.com/scikit-hep/coffea/issues/1246
+    "test_packed_selection_cutflow_dak" # cutflow.npz
+    "test_packed_selection_nminusone_dak" # nminusone.npz
   ];
 
-  meta = with lib; {
+  __darwinAllowLocalNetworking = true;
+
+  meta = {
     description = "Basic tools and wrappers for enabling not-too-alien syntax when running columnar Collider HEP analysis";
     homepage = "https://github.com/CoffeaTeam/coffea";
-    license = with licenses; [ bsd3 ];
-    maintainers = with maintainers; [ veprbl ];
+    changelog = "https://github.com/CoffeaTeam/coffea/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ veprbl ];
   };
-}
+})

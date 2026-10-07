@@ -1,41 +1,72 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, isl
-, pybind11
-, pytestCheckHook
-, pythonOlder
-, six
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  cmake,
+  nanobind_3,
+  ninja,
+  pcpp,
+  scikit-build-core,
+  typing-extensions,
+
+  # buildInputs
+  isl,
+
+  # tests
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "islpy";
-  version = "2023.2.5";
-  format = "setuptools";
+  version = "2026.2.2";
+  pyproject = true;
+  __structuredAttrs = true;
 
-  disabled = pythonOlder "3.6";
-
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "sha256-3XQ5i682k4q7fCqdmCjMGi5UnGyASFzsiwaymr+q0Y8=";
+  src = fetchFromGitHub {
+    owner = "inducer";
+    repo = "islpy";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-rsmEMZty80qG1RXf2V5MXwchv0sQZ3jV9Go7FXzKzNY=";
   };
 
-  postConfigure = ''
-    substituteInPlace setup.py \
-      --replace "\"pytest>=2\"," ""
+  build-system = [
+    cmake
+    nanobind_3
+    ninja
+    pcpp
+    scikit-build-core
+    typing-extensions
+  ];
+
+  buildInputs = [
+    isl
+  ];
+
+  dontUseCmakeConfigure = true;
+
+  cmakeFlags = [
+    (lib.cmakeBool "USE_SHIPPED_ISL" false)
+    (lib.cmakeBool "USE_BARVINOK" false)
+    (lib.cmakeOptionType "list" "ISL_INC_DIRS" "${lib.getDev isl}/include")
+    (lib.cmakeOptionType "list" "ISL_LIB_DIRS" "${lib.getLib isl}/lib")
+  ];
+
+  # Force resolving the package from $out to make generated ext files usable by tests
+  preCheck = ''
+    rm -rf islpy
   '';
 
-  buildInputs = [ isl pybind11 ];
-  propagatedBuildInputs = [ six ];
-
-  preCheck = "mv islpy islpy.hidden";
   nativeCheckInputs = [ pytestCheckHook ];
+
   pythonImportsCheck = [ "islpy" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python wrapper around isl, an integer set library";
     homepage = "https://github.com/inducer/islpy";
-    license = licenses.mit;
-    maintainers = [ ];
+    changelog = "https://github.com/inducer/islpy/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ tomasajt ];
   };
-}
+})

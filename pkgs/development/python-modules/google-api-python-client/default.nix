@@ -1,47 +1,45 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, google-auth
-, google-auth-httplib2
-, google-api-core
-, httplib2
-, uritemplate
-, oauth2client
-, setuptools
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  google-auth,
+  google-auth-httplib2,
+  google-api-core,
+  httplib2,
+  uritemplate,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "google-api-python-client";
-  version = "2.109.0";
-  format = "setuptools";
+  version = "2.192.0";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-0GOQwlR3w2HVJjn+AO+RLD+rja/H+/KVgMEUTpJSOnk=";
+  src = fetchFromGitHub {
+    owner = "googleapis";
+    repo = "google-api-python-client";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-v6b4WkbXBIqdZFCWVBz7dsMxtHkIsylDGWp5QyNQ9O0=";
+    # Remove mixed-case files that cause hash differences between platforms
+    postFetch = ''
+      rm -rf $out/docs/
+    '';
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     google-auth
     google-auth-httplib2
     google-api-core
     httplib2
     uritemplate
-    oauth2client
-    setuptools
   ];
 
-  # No tests included in archive
-  doCheck = false;
+  pythonImportsCheck = [ "googleapiclient" ];
 
-  pythonImportsCheck = [
-    "googleapiclient"
-  ];
-
-  meta = with lib; {
-    description = "The official Python client library for Google's discovery based APIs";
+  meta = {
+    description = "Official Python client library for Google's discovery based APIs";
     longDescription = ''
       These client libraries are officially supported by Google. However, the
       libraries are considered complete and are in maintenance mode. This means
@@ -49,8 +47,8 @@ buildPythonPackage rec {
       any new features.
     '';
     homepage = "https://github.com/google/google-api-python-client";
-    changelog = "https://github.com/googleapis/google-api-python-client/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/googleapis/google-api-python-client/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = [ lib.maintainers.sarahec ];
   };
-}
+})

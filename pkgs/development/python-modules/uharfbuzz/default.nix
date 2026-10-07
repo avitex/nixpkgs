@@ -1,46 +1,42 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, cython
-, setuptools-scm
-, pytestCheckHook
-, ApplicationServices
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  cython,
+  pkgconfig,
+  setuptools,
+  setuptools-scm,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "uharfbuzz";
-  version = "0.37.3";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.5";
+  version = "0.53.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "harfbuzz";
     repo = "uharfbuzz";
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     fetchSubmodules = true;
-    hash = "sha256-876gFYyMqeGYoXMdBguV6bi7DJKHJs9HNLw9xRu+Mxk=";
+    hash = "sha256-EY5jAzcAHY4lmGsitVFtFMijEfAaSCifCjkdJhU2N1g=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     cython
+    pkgconfig
+    setuptools
     setuptools-scm
   ];
 
-  buildInputs = lib.optionals stdenv.isDarwin [ ApplicationServices ];
-
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   pythonImportsCheck = [ "uharfbuzz" ];
 
-  meta = with lib; {
+  meta = {
     description = "Streamlined Cython bindings for the harfbuzz shaping engine";
     homepage = "https://github.com/harfbuzz/uharfbuzz";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
 }

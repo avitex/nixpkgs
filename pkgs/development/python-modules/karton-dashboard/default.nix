@@ -1,27 +1,24 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, flask
-, karton-core
-, mistune
-, networkx
-, prometheus-client
-, pythonOlder
-, pythonRelaxDepsHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  flask,
+  karton-core,
+  mistune,
+  networkx,
+  prometheus-client,
 }:
 
 buildPythonPackage rec {
   pname = "karton-dashboard";
-  version = "1.5.0";
+  version = "1.7.0";
   format = "setuptools";
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "CERT-Polska";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-O7Wrl9+RWkHPO0+9aue1Nlv0263qX8Thnh5FmnoKjxU=";
+    repo = "karton-dashboard";
+    tag = "v${version}";
+    hash = "sha256-DYfL//i1gJ0ci7jVPtrMKC8j+i5/L8rvmbs8zz6Eq2M=";
   };
 
   pythonRelaxDeps = [
@@ -29,10 +26,6 @@ buildPythonPackage rec {
     "mistune"
     "networkx"
     "prometheus-client"
-  ];
-
-  nativeBuildInputs = [
-    pythonRelaxDepsHook
   ];
 
   propagatedBuildInputs = [
@@ -46,11 +39,12 @@ buildPythonPackage rec {
   # Project has no tests. pythonImportsCheck requires MinIO configuration
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "Web application that allows for Karton task and queue introspection";
+    mainProgram = "karton-dashboard";
     homepage = "https://github.com/CERT-Polska/karton-dashboard";
     changelog = "https://github.com/CERT-Polska/karton-dashboard/releases/tag/v${version}";
-    license = with licenses; [ bsd3 ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

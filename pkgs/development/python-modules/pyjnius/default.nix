@@ -1,37 +1,43 @@
-{ lib
-, buildPythonPackage
-, cython
-, fetchPypi
-, jdk
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  cython,
+  fetchPypi,
+  jdk,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pyjnius";
-  version = "1.6.1";
-  format = "setuptools";
+  version = "1.7.0";
 
-  disabled = pythonOlder "3.7";
+  __structuredAttrs = true;
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-0qfs5u15vx1/l6T21hMC2fHXZSGCo+TIpp267zE5bmA=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-n4FwhISwqE6tPrC6hOU6xXnkxDyhDHRvmJip891Q9U0=";
   };
+
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail "Cython~=3.1.2" "Cython"
+  '';
+
+  build-system = [ setuptools ];
 
   nativeBuildInputs = [
     jdk
     cython
   ];
 
-  pythonImportsCheck = [
-    "jnius"
-  ];
+  pythonImportsCheck = [ "jnius" ];
 
-  meta = with lib; {
-    description = "A Python module to access Java classes as Python classes using the Java Native Interface (JNI)";
+  meta = {
+    description = "Python module to access Java classes as Python classes using the Java Native Interface (JNI)";
     homepage = "https://github.com/kivy/pyjnius";
-    changelog = "https://github.com/kivy/pyjnius/blob/${version}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ifurther ];
+    changelog = "https://github.com/kivy/pyjnius/blob/${finalAttrs.version}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ ifurther ];
   };
-}
+})

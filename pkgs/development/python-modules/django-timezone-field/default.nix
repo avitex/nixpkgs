@@ -1,62 +1,53 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, poetry-core
-, django
-, djangorestframework
-, pytz
-, pytest
-, pytest-lazy-fixture
-, python
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  django,
+  djangorestframework,
+  pytestCheckHook,
+  pytest-django,
+  pytest-lazy-fixtures,
+  pytz,
 }:
 
 buildPythonPackage rec {
   pname = "django-timezone-field";
-  version = "5.1";
-  disabled = pythonOlder "3.5";
-  format = "pyproject";
+  version = "7.2.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "mfogel";
-    repo = pname;
-    rev = version;
-    hash = "sha256-FAYO8OEE/h4rsbC4Oc57ylWV7TqQ6DOd6/2M+mb/AsM=";
+    repo = "django-timezone-field";
+    tag = version;
+    hash = "sha256-EGjBzKTYXTShrPIHfBIm1LqzYGuxew7ptvlGppXOYSY=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
+  build-system = [ poetry-core ];
+
+  dependencies = [ django ];
+
+  pythonImportsCheck = [
+    # Requested setting USE_DEPRECATED_PYTZ, but settings are not configured.
+    #"timezone_field"
   ];
 
-  propagatedBuildInputs = [
-    django
+  preCheck = ''
+    export DJANGO_SETTINGS_MODULE=tests.settings
+  '';
+
+  nativeCheckInputs = [
     djangorestframework
+    pytestCheckHook
+    pytest-django
+    pytest-lazy-fixtures
     pytz
   ];
 
-  pythonImportsCheck = [
-    "timezone_field"
-  ];
-
-  # Uses pytest.lazy_fixture directly which is broken in pytest-lazy-fixture
-  # https://github.com/TvoroG/pytest-lazy-fixture/issues/22
-  doCheck = false;
-
-  DJANGO_SETTINGS_MODULE = "tests.settings";
-
-  nativeCheckInputs = [
-    pytest
-    pytest-lazy-fixture
-  ];
-
-  checkPhase = ''
-    ${python.interpreter} -m django test
-  '';
-
-  meta = with lib; {
+  meta = {
     description = "Django app providing database, form and serializer fields for pytz timezone objects";
     homepage = "https://github.com/mfogel/django-timezone-field";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ hexa ];
+    license = lib.licenses.bsd2;
+    maintainers = with lib.maintainers; [ hexa ];
   };
 }

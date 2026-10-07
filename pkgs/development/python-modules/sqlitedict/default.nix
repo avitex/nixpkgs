@@ -1,11 +1,11 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, py
-, pytest-benchmark
-, pytestCheckHook
-, pythonOlder
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  py,
+  pytest-benchmark,
+  pytestCheckHook,
+  setuptools,
 }:
 
 buildPythonPackage rec {
@@ -13,18 +13,14 @@ buildPythonPackage rec {
   version = "2.1.0";
   pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
   src = fetchFromGitHub {
     owner = "RaRe-Technologies";
     repo = "sqlitedict";
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     hash = "sha256-GfvvkQ6a75UBPn70IFOvjvL1MedSc4siiIjA3IsQnic=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
   nativeCheckInputs = [
     py
@@ -36,19 +32,15 @@ buildPythonPackage rec {
     mkdir tests/db
   '';
 
-  pythonImportsCheck = [
-    "sqlitedict"
-  ];
+  pythonImportsCheck = [ "sqlitedict" ];
 
-  pytestFlagsArray = [
-    "--benchmark-disable"
-  ];
+  pytestFlags = [ "--benchmark-disable" ];
 
-  meta = with lib; {
+  meta = {
     description = "Persistent, thread-safe dict";
     homepage = "https://github.com/RaRe-Technologies/sqlitedict";
     changelog = "https://github.com/piskvorky/sqlitedict/blob/v${version}/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ arnoldfarkas ];
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
 }

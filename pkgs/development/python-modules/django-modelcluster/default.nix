@@ -1,60 +1,58 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# dependencies
-, django
-, pytz
+  # build-system
+  setuptools,
 
-# optionals
-, django-taggit
+  # dependencies
+  django,
+  pytz,
 
-# tests
-, pytest-django
-, pytestCheckHook
+  # optional-dependencies
+  django-taggit,
+
+  # tests
+  pytest-django,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "django-modelcluster";
-  version = "6.2.1";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.5";
+  version = "6.5";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "wagtail";
     repo = "django-modelcluster";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-y2jGSZvTeSnpWDFJ+aNGofTEtMMlY9TrXZjQeET5OhY=";
+    tag = "v${version}";
+    hash = "sha256-jIEiwWuC+sudUHsHuG975nxrlC2yKZN/QjdvMKEeL6s=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     django
     pytz
   ];
 
-  passthru.optional-dependencies.taggit = [
-    django-taggit
-  ];
+  optional-dependencies.taggit = [ django-taggit ];
 
   env.DJANGO_SETTINGS_MODULE = "tests.settings";
 
   nativeCheckInputs = [
     pytest-django
     pytestCheckHook
-  ] ++ passthru.optional-dependencies.taggit;
+  ]
+  ++ optional-dependencies.taggit;
 
-  # https://github.com/wagtail/django-modelcluster/issues/173
-  disabledTests = lib.optionals (lib.versionAtLeast django.version "4.2") [
-    "test_formfield_callback"
-  ];
+  pythonImportsCheck = [ "modelcluster" ];
 
-  meta = with lib; {
+  meta = {
     description = "Django extension to allow working with 'clusters' of models as a single unit, independently of the database";
     homepage = "https://github.com/torchbox/django-modelcluster/";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ desiderius ];
+    changelog = "https://github.com/wagtail/django-modelcluster/blob/${src.tag}/CHANGELOG.txt";
+    license = lib.licenses.bsd2;
   };
-
 }

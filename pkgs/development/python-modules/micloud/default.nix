@@ -1,10 +1,11 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, click
-, pycryptodome
-, requests
-, tzlocal
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  click,
+  pycryptodome,
+  requests,
+  tzlocal,
 }:
 
 buildPythonPackage rec {
@@ -31,10 +32,11 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "micloud" ];
 
-  meta = with lib; {
+  meta = {
     description = "Xiaomi cloud connect library";
+    mainProgram = "micloud";
     homepage = "https://github.com/Squachen/micloud";
-    license = licenses.mit;
-    maintainers = with maintainers; [ dotlambda ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ dotlambda ];
   };
 }

@@ -1,47 +1,42 @@
-{ lib
-, aiodns
-, aiohttp
-, async-timeout
-, attrs
-, brotlipy
-, buildPythonPackage
-, faust-cchardet
-, click
-, colorama
-, fetchFromGitHub
-, halo
-, poetry-core
-, pythonOlder
-, requests
-, rich
+{
+  lib,
+  aiodns,
+  aiohttp,
+  async-timeout,
+  attrs,
+  brotlipy,
+  buildPythonPackage,
+  faust-cchardet,
+  click,
+  colorama,
+  fetchFromGitHub,
+  halo,
+  poetry-core,
+  requests,
+  rich,
 }:
 
 buildPythonPackage rec {
   pname = "surepy";
   version = "0.9.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "benleb";
-    repo = pname;
-    rev = "refs/tags/v${version}";
+    repo = "surepy";
+    tag = "v${version}";
     hash = "sha256-ETgpXSUUsV1xoZjdnL2bzn4HwDjKC2t13yXwf28OBqI=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace 'aiohttp = {extras = ["speedups"], version = "^3.7.4"}' 'aiohttp = {extras = ["speedups"], version = ">=3.7.4"}' \
-      --replace 'async-timeout = "^3.0.1"' 'async-timeout = ">=3.0.1"' \
-      --replace 'rich = "^10.1.0"' 'rich = ">=10.1.0"'
-  '';
-
-  nativeBuildInputs = [
-    poetry-core
+  pythonRelaxDeps = [
+    "aiohttp"
+    "async-timeout"
+    "rich"
   ];
 
-  propagatedBuildInputs = [
+  build-system = [ poetry-core ];
+
+  dependencies = [
     aiodns
     aiohttp
     async-timeout
@@ -58,14 +53,14 @@ buildPythonPackage rec {
   # Project has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "surepy"
-  ];
+  pythonImportsCheck = [ "surepy" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python library to interact with the Sure Petcare API";
     homepage = "https://github.com/benleb/surepy";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/benleb/surepy/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
+    mainProgram = "surepy";
   };
 }

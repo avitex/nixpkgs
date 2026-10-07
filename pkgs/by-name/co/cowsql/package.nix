@@ -1,25 +1,35 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, autoreconfHook
-, pkg-config
-, libuv
-, raft-cowsql
-, sqlite
-, incus
-, gitUpdater
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  autoreconfHook,
+  pkg-config,
+  libuv,
+  raft-cowsql,
+  sqlite,
+  incus,
+  nix-update-script,
+  fetchpatch,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "cowsql";
-  version = "1.15.4";
+  version = "1.15.9";
 
   src = fetchFromGitHub {
     owner = "cowsql";
     repo = "cowsql";
-    rev = "refs/tags/v${finalAttrs.version}";
-    hash = "sha256-JbLiwWXOrEhqCdM8tWwxl68O5Sga4T7NYCXzqP9+Dh0=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-7djVcozWklI/0KhDC20df+H3YQbodUZaXBnQT4Ug8oI=";
   };
+
+  patches = [
+    # fix build w/ glibc-2.44
+    (fetchpatch {
+      url = "https://github.com/cowsql/cowsql/commit/7c4d73151969ead4f81077ae243d81396ce67988.patch";
+      hash = "sha256-aJkf3egKbF23KNC0feDkxh8gIEupsyDBY3PTKuT6lcQ=";
+    })
+  ];
 
   nativeBuildInputs = [
     autoreconfHook
@@ -36,22 +46,23 @@ stdenv.mkDerivation (finalAttrs: {
 
   doCheck = true;
 
-  outputs = [ "dev" "out" ];
+  outputs = [
+    "dev"
+    "out"
+  ];
 
   passthru = {
     inherit (incus) tests;
 
-    updateScript = gitUpdater {
-      rev-prefix = "v";
-    };
+    updateScript = nix-update-script { };
   };
 
-  meta = with lib; {
-    changelog = "https://github.com/cowsql/cowsql/releases/tag/${version}";
+  meta = {
+    changelog = "https://github.com/cowsql/cowsql/releases/tag/v${finalAttrs.version}";
     description = "Embeddable, replicated and fault tolerant SQL engine";
     homepage = "https://github.com/cowsql/cowsql";
-    license = licenses.lgpl3Only;
-    maintainers = teams.lxc.members;
-    platforms = platforms.unix;
+    license = lib.licenses.lgpl3Only;
+    teams = with lib.teams; [ lxc ];
+    platforms = lib.platforms.unix;
   };
 })

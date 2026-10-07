@@ -1,22 +1,29 @@
-{ lib, fetchFromGitHub, buildDunePackage
-, lwt # optional lwt support
-, ounit2, fileutils # only for tests
+{
+  lib,
+  fetchFromGitHub,
+  buildDunePackage,
+  lwt, # optional lwt support
+  ounit2,
+  fileutils, # only for tests
 }:
 
-buildDunePackage rec {
-  version = "2.5";
+buildDunePackage (finalAttrs: {
+  version = "2.6";
   pname = "inotify";
 
   src = fetchFromGitHub {
     owner = "whitequark";
     repo = "ocaml-inotify";
-    rev = "v${version}";
-    hash = "sha256-3Ju6l6aF5eJgIZJKO0lQGXjjGDzCdX2fuwyNSAjIyAs=";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-Vg9uVIx6/OMS1WoJIHwZbSt5ZyFy+Xgw5167FJWGslg=";
   };
 
   buildInputs = [ lwt ];
 
-  checkInputs = [ ounit2 fileutils ];
+  checkInputs = [
+    ounit2
+    fileutils
+  ];
 
   doCheck = true;
 
@@ -24,7 +31,7 @@ buildDunePackage rec {
     description = "Bindings for Linux’s filesystem monitoring interface, inotify";
     license = lib.licenses.lgpl21;
     maintainers = [ lib.maintainers.vbgl ];
-    inherit (src.meta) homepage;
+    inherit (finalAttrs.src.meta) homepage;
     platforms = lib.platforms.linux;
   };
-}
+})

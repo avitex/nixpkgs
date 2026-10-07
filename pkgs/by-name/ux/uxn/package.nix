@@ -1,22 +1,26 @@
-{ lib
-, stdenv
-, fetchFromSourcehut
-, SDL2
-, unstableGitUpdater
+{
+  lib,
+  stdenv,
+  fetchFromSourcehut,
+  SDL2,
+  unstableGitUpdater,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "uxn";
-  version = "unstable-2024-01-15";
+  version = "1.0-unstable-2025-11-20";
 
   src = fetchFromSourcehut {
     owner = "~rabbits";
     repo = "uxn";
-    rev = "8212ca5edb55a28976515a73fcb454f18eb44a09";
-    hash = "sha256-K/qTKSGt/sFHt0lfUbwa/Y2XlWst30q1aKvsm4sjrLc=";
+    rev = "5dce902ef8d360310d1b9b29084b63c71aabb0fa";
+    hash = "sha256-7qpf5vF9Q67owtHQFUzwLmhA7iLNlS4vKwMAkPSqb4E=";
   };
 
-  outputs = [ "out" "projects" ];
+  outputs = [
+    "out"
+    "projects"
+  ];
 
   nativeBuildInputs = [
     SDL2
@@ -31,7 +35,10 @@ stdenv.mkDerivation (finalAttrs: {
   postPatch = ''
     patchShebangs build.sh
     substituteInPlace build.sh \
-      --replace "-L/usr/local/lib " ""
+      --replace "-L/usr/local/lib " "" \
+      --replace "$(brew --prefix)/lib/libSDL2.a " "" \
+      --replace "--static-libs" "--libs" \
+      --replace " | sed -e 's/-lSDL2 //'" ""
   '';
 
   buildPhase = ''
@@ -59,9 +66,9 @@ stdenv.mkDerivation (finalAttrs: {
 
   meta = {
     homepage = "https://wiki.xxiivv.com/site/uxn.html";
-    description = "An assembler and emulator for the Uxn stack machine";
+    description = "Assembler and emulator for the Uxn stack machine";
     license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ AndersonTorres ];
+    maintainers = with lib.maintainers; [ jleightcap ];
     mainProgram = "uxnemu";
     inherit (SDL2.meta) platforms;
   };

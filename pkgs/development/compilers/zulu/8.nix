@@ -1,34 +1,44 @@
-{ callPackage
-, enableJavaFX ? false
-, ...
+{
+  callPackage,
+  enableJavaFX ? false,
+  ...
 }@args:
+let
+  zuluVersion = "8.94.0.17";
+  jdkVersion = "8.0.492";
+in
+callPackage ./common.nix (
+  {
+    # Details from https://www.azul.com/downloads/?version=java-8-lts&package=jdk
+    # Note that the latest build may differ by platform
+    dists = {
+      x86_64-linux = {
+        inherit zuluVersion jdkVersion;
+        hash =
+          if enableJavaFX then
+            "sha256-/2LCORNb2xXPuQZkNgsN7rjZU/FW9j8SmbOe26jvdeU="
+          else
+            "sha256-ptFBBPLnGGy6iUPE3BgpONuRUJ3CwO+ezuBGyGRiTTY=";
+      };
 
-callPackage ./common.nix ({
-  # Details from https://www.azul.com/downloads/?version=java-8-lts&package=jdk
-  # Note that the latest build may differ by platform
-  dists = {
-    x86_64-linux = {
-      zuluVersion = "8.72.0.17";
-      jdkVersion = "8.0.382";
-      hash =
-        if enableJavaFX then "sha256-mIPCFESU7hy2naYur2jvFBtVn/LZQRcFiyiG61buCYs="
-        else "sha256-exWlbyrgBb7aD4daJps9qtFP+hKWkwbMdFR4OFslupY=";
-    };
+      aarch64-linux = {
+        inherit zuluVersion jdkVersion;
+        hash =
+          if enableJavaFX then
+            "sha256-aoHwrAacHQA0yI7u3dBYu/oiRpYUQF1ZBwFErun6Wd8="
+          else
+            "sha256-JPXoGDpS77WrzuK4FzsIhwibp0dvEbwVYDRkNTzE5Kg=";
+      };
 
-    x86_64-darwin = {
-      zuluVersion = "8.72.0.17";
-      jdkVersion = "8.0.382";
-      hash =
-        if enableJavaFX then "sha256-/x8FqygivzddXsOwIV8aj/u+LPXMmokgu97vLAVEv80="
-        else "sha256-3dTPIPGUeT6nb3gncNvEa4VTRyQIBJpp8oZadrT2ToE=";
+      aarch64-darwin = {
+        inherit zuluVersion jdkVersion;
+        hash =
+          if enableJavaFX then
+            "sha256-RluOwTuXKtAa8pyYFf8fpj2ApgPzuuG/HmSppRdqbR0="
+          else
+            "sha256-c7hKv/DKShtki2zRI4EZRJa88x7gHyvdHtCRTJ7loVk=";
+      };
     };
-
-    aarch64-darwin = {
-      zuluVersion = "8.72.0.17";
-      jdkVersion = "8.0.382";
-      hash =
-        if enableJavaFX then "sha256-FkQ+0MzSZWUzc/HmiDVZEHGOrdKAVCdK5pm9wXXzzaU="
-        else "sha256-rN5AI4xAWppE4kJlzMod0JmGyHdHjTXYtx8/wOW6CFk=";
-    };
-  };
-} // builtins.removeAttrs args [ "callPackage" ])
+  }
+  // removeAttrs args [ "callPackage" ]
+)

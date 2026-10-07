@@ -1,36 +1,34 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, python
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  python,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "bitarray";
-  version = "2.8.5";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "3.10.1";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-t1ZP0hjMRHn38BBtNB4Jb3iQe0eGWu7/cCyAffGSfAE=";
+    hash = "sha256-wz5IkGQHqz0O25bMWrKlmb2l3QRwTrzZs+Du3OcxDgo=";
   };
+
+  build-system = [ setuptools ];
 
   checkPhase = ''
     cd $out
     ${python.interpreter} -c 'import bitarray; bitarray.test()'
   '';
 
-  pythonImportsCheck = [
-    "bitarray"
-  ];
+  pythonImportsCheck = [ "bitarray" ];
 
-  meta = with lib; {
+  meta = {
     description = "Efficient arrays of booleans";
     homepage = "https://github.com/ilanschnell/bitarray";
     changelog = "https://github.com/ilanschnell/bitarray/raw/${version}/CHANGE_LOG";
-    license = licenses.psfl;
-    maintainers = with maintainers; [ bhipple ];
+    license = lib.licenses.psfl;
   };
 }

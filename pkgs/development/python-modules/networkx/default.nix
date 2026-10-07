@@ -1,44 +1,44 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  fetchpatch,
 
-# build-system
-, setuptools
+  # build-system
+  setuptools,
 
-# optional-dependencies
-, lxml
-, matplotlib
-, numpy
-, pandas
-, pydot
-, pygraphviz
-, scipy
-, sympy
+  # optional-dependencies
+  lxml,
+  matplotlib,
+  numpy,
+  pandas,
+  pydot,
+  pygraphviz,
+  scipy,
+  sympy,
 
-# tests
-, pytest-xdist
-, pytestCheckHook
+  # tests
+  pytest-xdist,
+  pytestCheckHook,
+
+  # reverse dependency
+  sage,
 }:
 
 buildPythonPackage rec {
   pname = "networkx";
-  # upgrade may break sage, please test the sage build or ping @timokau on upgrade
-  version = "3.2.1";
+  # upgrade may break sage, please test the sage build or ping the sage team on upgrade
+  version = "3.6.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-nxu1zzQJvzJOCnIsIL20wg7jm/HDDOiuSZyFArC14MY=";
+    hash = "sha256-JrfDV6zMDIzeVYrUhig3KLZbapXYXuHNZrr6tMgWhQk=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     default = [
       numpy
       scipy
@@ -53,9 +53,18 @@ buildPythonPackage rec {
     ];
   };
 
+  passthru.tests = {
+    inherit sage;
+  };
+
   nativeCheckInputs = [
     pytest-xdist
     pytestCheckHook
+  ];
+
+  disabledTests = [
+    # No warnings of type (<class 'DeprecationWarning'>, <class 'PendingDeprecationWarning'>, <class 'FutureWarning'>) were emitted.
+    "test_connected_raise"
   ];
 
   meta = {

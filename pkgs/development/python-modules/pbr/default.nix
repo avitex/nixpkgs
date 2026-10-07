@@ -1,22 +1,26 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonAtLeast
-, setuptools
-, callPackage
+{
+  lib,
+  buildPythonPackage,
+  callPackage,
+  distutils,
+  fetchPypi,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "pbr";
-  version = "6.0.0";
+  version = "7.1.2";
   pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-0TdxIqWgDi+UDuSCmZUY7+FtdF1COmcMJ3c9+8PJp9k=";
+    hash = "sha256-Rjm4fMkdDVhHG3vaHyi30ISbpD15NcTEgvPHT+9xmAQ=";
   };
 
-  nativeBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
+    distutils # for distutils.command in pbr/packaging.py
     setuptools
   ];
 
@@ -29,11 +33,11 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "pbr" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python Build Reasonableness";
+    mainProgram = "pbr";
     homepage = "https://github.com/openstack/pbr";
-    license = licenses.asl20;
-    broken = pythonAtLeast "3.12"; # uses removed distutils
-    maintainers = teams.openstack.members;
+    license = lib.licenses.asl20;
+    teams = [ lib.teams.openstack ];
   };
 }

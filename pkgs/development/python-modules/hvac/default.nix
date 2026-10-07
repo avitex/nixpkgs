@@ -1,27 +1,23 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pyhcl
-, requests
-, poetry-core
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pyhcl,
+  requests,
+  poetry-core,
 }:
 
 buildPythonPackage rec {
   pname = "hvac";
-  version = "2.1.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "2.4.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-tIvNoRpKsKe2xHIyx7p8h/2jGK4tSnZigAxGWnh0KJQ=";
+    hash = "sha256-4AVq2QZOeSPodOZ2kBWwMlgLY54pJG9asQRPeVnBx+A=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  nativeBuildInputs = [ poetry-core ];
 
   propagatedBuildInputs = [
     pyhcl
@@ -31,15 +27,13 @@ buildPythonPackage rec {
   # Requires running a Vault server
   doCheck = false;
 
-  pythonImportsCheck = [
-    "hvac"
-  ];
+  pythonImportsCheck = [ "hvac" ];
 
-  meta = with lib; {
+  meta = {
     description = "HashiCorp Vault API client";
     homepage = "https://github.com/ianunruh/hvac";
     changelog = "https://github.com/hvac/hvac/blob/v${version}/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
 }

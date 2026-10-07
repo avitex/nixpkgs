@@ -1,63 +1,48 @@
-{ lib
-, async-timeout
-, buildPythonPackage
-, fetchFromGitHub
-, fetchpatch
-, pillow
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, setuptools
-, wheel
+{
+  lib,
+  aiohttp,
+  async-timeout,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pillow,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "aioslimproto";
-  version = "2.3.3";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.10";
+  version = "3.2.3";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "home-assistant-libs";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-d+PEzCF1Cw/7NmumxIRRlr3hojpNsZM/JMQ0KWdosXk=";
+    repo = "aioslimproto";
+    tag = finalAttrs.version;
+    hash = "sha256-TSoVQ1AwJSWAwMKfxZC/9lWyCiMo9Fvq9L0fuyUmAMY=";
   };
 
-  patches = [
-    # https://github.com/home-assistant-libs/aioslimproto/pull/189
-    (fetchpatch {
-      name = "unpin-setuptools-version.patch";
-      url = "https://github.com/home-assistant-libs/aioslimproto/commit/06fd56987be8903ff147bad38af84b21bc31bc18.patch";
-      hash = "sha256-kTu1+IwDrcdqelyK/vfhxw8MQBis5I1jag7YTytKQhs=";
-    })
-  ];
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail 'version = "0.0.0"' 'version = "${finalAttrs.version}"'
+  '';
 
-  nativeBuildInputs = [
-    setuptools
-    wheel
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
+    aiohttp
     async-timeout
     pillow
   ];
 
-  nativeCheckInputs = [
-    pytest-asyncio
-    pytestCheckHook
-  ];
+  # Module has no tests
+  doCheck = false;
 
-  pythonImportsCheck = [
-    "aioslimproto"
-  ];
+  pythonImportsCheck = [ "aioslimproto" ];
 
-  meta = with lib; {
+  meta = {
     description = "Module to control Squeezebox players";
     homepage = "https://github.com/home-assistant-libs/aioslimproto";
-    changelog = "https://github.com/home-assistant-libs/aioslimproto/releases/tag/${version}";
-    license = with licenses; [ asl20 ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/home-assistant-libs/aioslimproto/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

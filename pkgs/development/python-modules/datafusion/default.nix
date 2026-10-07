@@ -1,85 +1,105 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchFromGitHub
-, rustPlatform
-, pytestCheckHook
-, libiconv
-, numpy
-, protobuf
-, pyarrow
-, Security
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  rustPlatform,
+  pythonOlder,
+
+  # nativeBuildInputs
+  protoc,
+
+  # buildInputs
+  protobuf,
+
+  # dependencies
+  cloudpickle,
+  pyarrow,
+  typing-extensions,
+
+  # tests
+  arro3-core,
+  nanoarrow,
+  numpy,
+  pytest-asyncio,
+  pytestCheckHook,
 }:
 
-let
-  arrow-testing = fetchFromGitHub {
-    name = "arrow-testing";
-    owner = "apache";
-    repo = "arrow-testing";
-    rev = "5bab2f264a23f5af68f69ea93d24ef1e8e77fc88";
-    hash = "sha256-Pxx8ohUpXb5u1995IvXmxQMqWiDJ+7LAll/AjQP7ph8=";
-  };
-
-  parquet-testing = fetchFromGitHub {
-    name = "parquet-testing";
-    owner = "apache";
-    repo = "parquet-testing";
-    rev = "e13af117de7c4f0a4d9908ae3827b3ab119868f3";
-    hash = "sha256-rVI9zyk9IRDlKv4u8BeMb0HRdWLfCpqOlYCeUdA7BB8=";
-  };
-in
-
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "datafusion";
-  version = "25.0.0";
-  format = "pyproject";
+  # WARNING: Ensure rerun-sdk is compatible with this version of datafusion
+  version = "54.0.0";
+  pyproject = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     name = "datafusion-source";
     owner = "apache";
-    repo = "arrow-datafusion-python";
-    rev = "refs/tags/${version}";
-    hash = "sha256-oC+fp41a9rsdobpvShZ7sDdtYPJQQ7JLg6MFL+4Pksg=";
+    repo = "datafusion-python";
+    tag = finalAttrs.version;
+    # Fetch arrow-testing and parquet-testing (tests assets)
+    fetchSubmodules = true;
+    hash = "sha256-Kh8w8L3AJCs9a3KA9RHaA0btbJEBdYZge1VK7AX0lX0=";
   };
 
-  cargoDeps = rustPlatform.fetchCargoTarball {
-    name = "datafusion-cargo-deps";
-    inherit src pname version;
-    hash = "sha256-0e0ZRgwcS/46mi4c2loAnBA2bsaD+/RiMh7oNg3EvHY=";
+  cargoDeps = rustPlatform.fetchCargoVendor {
+    inherit (finalAttrs) pname src version;
+    hash = "sha256-s4+Y2axZKL7wKiw8Z6c12eWAnf1zGPAFFvWS45vFrlo=";
   };
 
   nativeBuildInputs = with rustPlatform; [
     cargoSetupHook
     maturinBuildHook
+    protoc
   ];
 
-  buildInputs = [ protobuf ] ++ lib.optionals stdenv.isDarwin [ libiconv Security ];
+  buildInputs = [
+    protobuf
+  ];
 
-  propagatedBuildInputs = [ pyarrow ];
+  dependencies = [
+    cloudpickle
+    pyarrow
+  ]
+  ++ lib.optionals (pythonOlder "3.13") [
+    typing-extensions
+  ];
 
-  nativeCheckInputs = [ pytestCheckHook numpy ];
-  pythonImportsCheck = [ "datafusion" ];
-  pytestFlagsArray = [ "--pyargs" pname ];
+  nativeCheckInputs = [
+    arro3-core
+    nanoarrow
+    numpy
+    pytest-asyncio
+    pytestCheckHook
+  ];
+
+  pythonImportsCheck = [
+    "datafusion"
+    "datafusion._internal"
+  ];
 
   preCheck = ''
-    pushd $TMPDIR
-    ln -s ${arrow-testing} ./testing
-    ln -s ${parquet-testing} ./parquet
+    rm -rf python/datafusion
   '';
 
-  postCheck = ''
-    popd
-  '';
+  disabledTests = [
+    # Exception: DataFusion error (requires internet access)
+    "test_register_http_csv"
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
+    # Flaky: Failed: Query was not interrupted; got error: None
+    "test_collect_interrupted"
+  ];
 
-  meta = with lib; {
+  meta = {
     description = "Extensible query execution framework";
     longDescription = ''
       DataFusion is an extensible query execution framework, written in Rust,
       that uses Apache Arrow as its in-memory format.
     '';
     homepage = "https://arrow.apache.org/datafusion/";
-    changelog = "https://github.com/apache/arrow-datafusion-python/blob/${version}/CHANGELOG.md";
-    license = with licenses; [ asl20 ];
-    maintainers = with maintainers; [ cpcloud ];
+    changelog = "https://github.com/apache/datafusion-python/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ cpcloud ];
   };
-}
+})

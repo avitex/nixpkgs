@@ -1,9 +1,10 @@
-{ lib
-, buildPythonPackage
-, django
-, fetchPypi
-, shortuuid
-, six
+{
+  lib,
+  buildPythonPackage,
+  django,
+  fetchPypi,
+  shortuuid,
+  six,
 }:
 
 buildPythonPackage rec {
@@ -25,14 +26,12 @@ buildPythonPackage rec {
   # no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "shortuuidfield"
-  ];
+  pythonImportsCheck = [ "shortuuidfield" ];
 
-  meta = with lib; {
+  meta = {
     description = "Short UUIDField for Django. Good for use in urls & file names";
     homepage = "https://github.com/benrobster/django-shortuuidfield";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ derdennisop ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ derdennisop ];
   };
 }

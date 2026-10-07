@@ -1,40 +1,38 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools-scm
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  setuptools-scm,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "napari-plugin-engine";
-  version = "0.2.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.8";
+  version = "0.2.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "napari";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-cKpCAEYYRq3UPje7REjzhEe1J9mmrtXs8TBnxWukcNE=";
+    repo = "napari-plugin-engine";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-GdOip1ekw4MUzGugiaYQQvBKkZaKVoWI/rASelrNmAU=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
+    setuptools
     setuptools-scm
   ];
 
   # Circular dependency: napari
   doCheck = false;
 
-  pythonImportsCheck = [
-    "napari_plugin_engine"
-  ];
+  pythonImportsCheck = [ "napari_plugin_engine" ];
 
-  meta = with lib; {
+  meta = {
     description = "First generation napari plugin engine";
     homepage = "https://github.com/napari/napari-plugin-engine";
-    license = licenses.mit;
-    maintainers = with maintainers; [ SomeoneSerge ];
+    changelog = "https://github.com/napari/napari-plugin-engine/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ SomeoneSerge ];
   };
-}
+})

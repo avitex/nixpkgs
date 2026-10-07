@@ -1,36 +1,42 @@
-{ lib
-, pyserial
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pyserial,
+  pytestCheckHook,
+  pythonAtLeast,
+  setuptools,
+  telnetlib3,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "nad-receiver";
-  version = "0.3.0";
-  format = "setuptools";
+  version = "0.4.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "joopert";
     repo = "nad_receiver";
-    rev = version;
-    hash = "sha256-jRMk/yMA48ei+g/33+mMYwfwixaKTMYcU/z/VOoJbvY=";
+    tag = finalAttrs.version;
+    hash = "sha256-CViZZCX/3s/ZbRoJN3VfpG2Nt70eNnaN7k9nD1glfRE=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     pyserial
+    telnetlib3
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   pythonImportsCheck = [ "nad_receiver" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python interface for NAD receivers";
     homepage = "https://github.com/joopert/nad_receiver";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/joopert/nad_receiver/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

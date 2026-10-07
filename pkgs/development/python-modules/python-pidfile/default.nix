@@ -1,7 +1,8 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, psutil
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  psutil,
 }:
 
 buildPythonPackage rec {
@@ -14,9 +15,7 @@ buildPythonPackage rec {
     hash = "sha256-pgQBL2iagsHMRFEKI85ZwyaIL7kcIftAy6s+lX958M0=";
   };
 
-  propagatedBuildInputs = [
-    psutil
-  ];
+  propagatedBuildInputs = [ psutil ];
 
   pythonImportsCheck = [ "pidfile" ];
 
@@ -24,10 +23,10 @@ buildPythonPackage rec {
   # see this: https://github.com/mosquito/python-pidfile/issues/7
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "Python context manager for managing pid files";
     homepage = "https://github.com/mosquito/python-pidfile";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ lom ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

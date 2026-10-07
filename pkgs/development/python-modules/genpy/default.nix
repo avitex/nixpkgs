@@ -1,8 +1,9 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytools
-, numpy
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pytools,
+  numpy,
 }:
 
 buildPythonPackage rec {
@@ -20,10 +21,10 @@ buildPythonPackage rec {
     numpy
   ];
 
-  meta = with lib; {
+  meta = {
     description = "C/C++ source generation from an AST";
     homepage = "https://github.com/inducer/genpy";
-    license = licenses.mit;
+    license = lib.licenses.mit;
     maintainers = [ ];
   };
 }

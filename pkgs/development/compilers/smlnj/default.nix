@@ -1,94 +1,96 @@
-{ lib, stdenv, fetchurl, Libsystem }:
+{
+  lib,
+  stdenv,
+  callPackage,
+  fetchFromGitHub,
+  fetchurl,
+  automake,
+  autoconf,
+  cmake,
+  versionCheckHook,
+}:
 let
-  version = "110.95";
-  baseurl = "http://smlnj.cs.uchicago.edu/dist/working/${version}";
+  version = "2026.2";
+  src = fetchFromGitHub {
+    owner = "smlnj";
+    repo = "smlnj";
+    tag = "v${version}";
+    fetchSubmodules = true;
+    hash = "sha256-1oiDdiGZvg8Dlz3InFLjOilvBTShuTFHz91Xmc1onMA=";
+  };
 
-  arch = if stdenv.is64bit
-    then "64"
-    else "32";
+  llvm = callPackage ./llvm.nix { inherit src version; };
 
-  boot32 = { url = "${baseurl}/boot.x86-unix.tgz";
-             sha256 = "07bcrvjphyin1ygjbymcqhd1mbfk4hff82wmxcllh77lr28l5dxf"; };
-  boot64 = { url = "${baseurl}/boot.amd64-unix.tgz";
-             sha256 = "1zn96a83kb6bn6228yfjsvb58m2qxw9k4j3qz0p9c8za479w4ch6"; };
+  bootFile =
+    if stdenv.hostPlatform.isUnix && stdenv.hostPlatform.isx86_64 then
+      fetchurl {
+        url = "https://smlnj.cs.uchicago.edu/dist/working/${version}/boot.amd64-unix.tgz";
+        hash = "sha256-ug2Busk6aYeqEGh923ZG8c3xw1Cjmct2Fxv7K44cjOs=";
+      }
+    else if stdenv.hostPlatform.isUnix && stdenv.hostPlatform.isAarch64 then
+      fetchurl {
+        url = "https://smlnj.cs.uchicago.edu/dist/working/${version}/boot.arm64-unix.tgz";
+        hash = "sha256-UQ8GxaabgJ3QoH6hlnWCNSsxyR73H2VdKsbsgt376k0=";
+      }
+    else
+      throw "Unsupported host platform: ${stdenv.hostPlatform.config}";
 
-  bootBinary = if stdenv.is64bit
-               then boot64
-               else boot32;
-
-  sources = map fetchurl [
-    bootBinary
-    { url = "${baseurl}/config.tgz";              sha256 = "09srqxkxl86iaz6l6dz83c1apsac0pxpfq6b74i6l0nfl261jibw"; }
-    { url = "${baseurl}/cm.tgz";                  sha256 = "0gh8inrb07z597axw8qipwyx52m8nac5d5r0rvgzvdnnjg9nr9zy"; }
-    { url = "${baseurl}/compiler.tgz";            sha256 = "1kk6jwzyc261l5nii3n8rwccmgvcj1mg5fgycfsfsiyyy1v8xfx7"; }
-    { url = "${baseurl}/runtime.tgz";             sha256 = "17i069h5cv411sgzx3ynlf4v3wlrxiba9bwy1b0x0cyhs879kppc"; }
-    { url = "${baseurl}/system.tgz";              sha256 = "0s8ij3wfxpjrmrwxrgrirfxjj8vkda6l32j88al5q1ic3ncwc58s"; }
-    { url = "${baseurl}/MLRISC.tgz";              sha256 = "1v2d3gjxrcgc95x5glqcw0nfp13aapkcw03fyi70m3k1yc61izmz"; }
-    { url = "${baseurl}/smlnj-lib.tgz";           sha256 = "04i11ki8v9s7yz3lg6b0djhi03zzkzav0b5cr81ypxlkmf4hh6bp"; }
-    { url = "${baseurl}/old-basis.tgz";           sha256 = "1ryqpy0n7c9gd995ndmjvaci74f95nr8n1jjgm28yd1sn7hnavhi"; }
-    { url = "${baseurl}/ckit.tgz";                sha256 = "18mcs3j8c5gq9cmck7r175am60blaznqmhzyir622yfc8fpw1map"; }
-    { url = "${baseurl}/nlffi.tgz";               sha256 = "16mrl5aqbgsgljxa3z8kj5max9drddml34bq7rn1i78594jfvkwk"; }
-    { url = "${baseurl}/cml.tgz";                 sha256 = "00x784nv1pi6534k3vva26i9qx84cvw242vgwbs5020zkm6gvrmn"; }
-    { url = "${baseurl}/eXene.tgz";               sha256 = "143825h36v6z77kwvrvpszgwnhmjs3yldb18i9z4lwkqfb4kn7f7"; }
-    { url = "${baseurl}/ml-lpt.tgz";              sha256 = "17ly9h9ry8r94dx6lkas6w2cxknwkpma4z9pj8rgzmd3w6qm7j1z"; }
-    { url = "${baseurl}/ml-lex.tgz";              sha256 = "1ja3l2kiq17754c58mwdiqi25f7ax0cji2wk0vq4872iwwxc22px"; }
-    { url = "${baseurl}/ml-yacc.tgz";             sha256 = "1m48nkwvw87yg39sjihlw8na5m34bzz3d4zpfbjaj2f75fkjy3jf"; }
-    { url = "${baseurl}/ml-burg.tgz";             sha256 = "13nbvbah7bn8gjm4gi41m412vpl69wd6d3x3wzbb6xpia9vm4z4j"; }
-    { url = "${baseurl}/pgraph.tgz";              sha256 = "1aizkl8avz01kx221xy5z7a1a1b5xqn2hrk66wr8d0iav2nh5c98"; }
-    { url = "${baseurl}/trace-debug-profile.tgz"; sha256 = "1c80xgck9sb2rm554nfg4f5mpjkdbrwkcx88pj120056225l10vx"; }
-    { url = "${baseurl}/heap2asm.tgz";            sha256 = "1n68drd7as5dy20ccfvgd9cmnhfpfvz7g3f0gc8kpaqaz3vpy36g"; }
-    { url = "${baseurl}/smlnj-c.tgz";             sha256 = "1b6svh2kk5211rq73fdwx3sf80d2rshf0dmkkrq5mw4852nzqz3p"; }
-    { url = "${baseurl}/doc.tgz";                 sha256 = "021yzhy9maypq4ahz0d0qpr601spndg583fn9mapv6rl42kwhjq6"; }
-    { url = "${baseurl}/asdl.tgz";                sha256 = "0nqavqcbidwnphbbwjrxhpy8glbyad51wy0cpqimbsw3sgns0zkd"; }
-  ];
-in stdenv.mkDerivation {
+in
+stdenv.mkDerivation {
   pname = "smlnj";
-  inherit version;
+  inherit src version;
 
-  inherit sources;
+  nativeBuildInputs = [
+    autoconf
+    automake
+    cmake
+  ];
 
-  patchPhase = ''
-    sed -i '/PATH=/d' config/_arch-n-opsys base/runtime/config/gen-posix-names.sh
-    echo SRCARCHIVEURL="file:/$TMP" > config/srcarchiveurl
-    patch --verbose config/_heap2exec ${./heap2exec.diff}
-  '' + lib.optionalString stdenv.isDarwin ''
-    # Locate standard headers like <unistd.h>
-    substituteInPlace base/runtime/config/gen-posix-names.sh \
-      --replace "\$SDK_PATH/usr" "${Libsystem}"
-  '';
+  __structuredAttrs = true;
+  strictDeps = true;
 
-  unpackPhase = ''
-    for s in $sources; do
-      b=$(basename $s)
-      cp $s ''${b#*-}
-    done
-    unpackFile config.tgz
-    mkdir base
-    ./config/unpack $TMP runtime
-  '';
+  dontUseCmakeConfigure = true;
 
   buildPhase = ''
-    ./config/install.sh -default ${arch}
+    runHook preBuild
+
+    unpackFile ${bootFile}
+    mkdir -pv $out/bin $out/lib bin lib
+    ln -s ${llvm}/bin/llvm-config     bin/llvm-config
+    ln -s ${llvm}/bin/llvm-config     $out/bin/llvm-config
+    ln -s ${llvm}/lib/libCFGCodeGen.a lib/libCFGCodeGen.a
+    ln -s ${llvm}/lib/libCFGCodeGen.a $out/lib/libCFGCodeGen.a
+
+    ./build.sh -install $out
+
+    rm $out/bin/llvm-config $out/lib/libCFGCodeGen.a
+
+    runHook postBuild
   '';
 
-  installPhase = ''
-    mkdir -pv $out
-    cp -rv bin lib $out
+  nativeInstallCheckInputs = [ versionCheckHook ];
+  versionCheckProgramArg = "@SMLversion";
+  doInstallCheck = true;
 
-    cd $out/bin
-    for i in *; do
-      sed -i "2iSMLNJ_HOME=$out/" $i
-    done
-  '';
+  passthru.llvm = llvm;
 
-  meta = with lib; {
-    description = "Standard ML of New Jersey, a compiler";
-    homepage    = "http://smlnj.org";
-    license     = licenses.bsd3;
-    platforms   = [ "x86_64-linux" "i686-linux" "x86_64-darwin" ];
-    maintainers = with maintainers; [ thoughtpolice ];
+  meta = {
+    description = "Standard ML of New Jersey, a Standard ML compiler";
+    homepage = "https://smlnj.org";
+    downloadPage = "https://smlnj.org/dist/working/${version}/install.html";
+    changelog = "https://smlnj.org/dist/working/${version}/README.html";
+    license = lib.licenses.bsd3;
+    sourceProvenance = with lib.sourceTypes; [
+      fromSource
+      binaryNativeCode
+    ];
+    maintainers = [ lib.maintainers.skyesoss ];
     mainProgram = "sml";
-    # never built on x86_64-darwin since first introduction in nixpkgs
-    broken = stdenv.isDarwin && stdenv.isx86_64;
+    platforms = [
+      "x86_64-linux"
+      "aarch64-linux"
+      "aarch64-darwin"
+    ];
+    broken = !(stdenv.buildPlatform.canExecute stdenv.hostPlatform);
   };
 }

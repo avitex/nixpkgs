@@ -1,35 +1,38 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, home-assistant
-, python
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  hatch-vcs,
+  home-assistant,
+  python,
 }:
 
 buildPythonPackage rec {
   pname = "homeassistant-stubs";
-  version = "2024.1.5";
-  format = "pyproject";
+  version = "2026.9.4";
+  pyproject = true;
 
-  disabled = python.version != home-assistant.python.version;
+  disabled = python.version != home-assistant.python3Packages.python.version;
 
   src = fetchFromGitHub {
     owner = "KapJI";
     repo = "homeassistant-stubs";
-    rev = "refs/tags/${version}";
-    hash = "sha256-mS9GsJwscLQu+vApoxIWE1tZUcu3B3CTMFrcu96POEY=";
+    tag = version;
+    hash = "sha256-EO1X4HPz6dDLjvstacr9YF0I1xrpe4MYTkOEkqm55YM=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
+  build-system = [
+    hatchling
+    hatch-vcs
     home-assistant
   ];
 
   postPatch = ''
     # Relax constraint to year and month
-    substituteInPlace pyproject.toml --replace \
-      'homeassistant = "${version}"' \
-      'homeassistant = "~${lib.versions.majorMinor home-assistant.version}"'
+    substituteInPlace pyproject.toml --replace-fail \
+      'homeassistant==${version}' \
+      'homeassistant~=${lib.versions.majorMinor home-assistant.version}'
   '';
 
   pythonImportsCheck = [
@@ -38,11 +41,11 @@ buildPythonPackage rec {
 
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "Typing stubs for Home Assistant Core";
     homepage = "https://github.com/KapJI/homeassistant-stubs";
-    changelog = "https://github.com/KapJI/homeassistant-stubs/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = teams.home-assistant.members;
+    changelog = "https://github.com/KapJI/homeassistant-stubs/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    teams = [ lib.teams.home-assistant ];
   };
 }

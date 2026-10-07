@@ -1,28 +1,29 @@
-{ lib
-, aioresponses
-, async-upnp-client
-, buildPythonPackage
-, fetchFromGitHub
-, lxml
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  aioresponses,
+  async-upnp-client,
+  buildPythonPackage,
+  fetchFromGitHub,
+  lxml,
+  pytestCheckHook,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "openhomedevice";
-  version = "2.2";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.5";
+  version = "2.7";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "bazwilliams";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-GGp7nKFH01m1KW6yMkKlAdd26bDi8JDWva6OQ0CWMIw=";
+    repo = "openhomedevice";
+    tag = finalAttrs.version;
+    hash = "sha256-Nz9xGB/ugcVy97HN8QIks0bpN+27d5Jv3yHq39OW9x0=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     async-upnp-client
     lxml
   ];
@@ -32,19 +33,15 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "openhomedevice"
-  ];
+  pythonImportsCheck = [ "openhomedevice" ];
 
-  pytestFlagsArray = [
-    "tests/*.py"
-  ];
+  enabledTestPaths = [ "tests/*.py" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python module to access Linn Ds and Openhome devices";
     homepage = "https://github.com/bazwilliams/openhomedevice";
-    changelog = "https://github.com/bazwilliams/openhomedevice/releases/tag/${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/bazwilliams/openhomedevice/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

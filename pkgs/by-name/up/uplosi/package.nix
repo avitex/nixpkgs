@@ -1,31 +1,53 @@
-{ lib
-, fetchFromGitHub
-, buildGoModule
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  buildGoModule,
+  installShellFiles,
+  nix-update-script,
 }:
-buildGoModule rec {
+
+buildGoModule (finalAttrs: {
   pname = "uplosi";
-  version = "0.1.2";
+  version = "0.4.0";
 
   src = fetchFromGitHub {
     owner = "edgelesssys";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-9hOeKnjH6r3CPQSe6fQ6PXlVPEJ9NiyXvp5N1krG2XA=";
+    repo = "uplosi";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-5I916T70sH4UAq5EGRjR7lnRBbPqMJIxaXwUCJQ4DcM=";
   };
 
-  vendorHash = "sha256-RsjUPLe8omoN+XGyNhHDxzNfZR7VVTkh/f/On1oCRqM=";
+  vendorHash = "sha256-2lJmPNLpI1ksFb0EtcjPjyTy7eX1DKeX0F80k9FtGno=";
 
-  CGO_ENABLED = "0";
-  ldflags = [ "-s" "-w" "-X main.version=${version}" ];
-  flags = [ "-trimpath" ];
+  env.CGO_ENABLED = "0";
+  ldflags = [
+    "-s"
+    "-X main.version=${finalAttrs.version}"
+  ];
 
-  meta = with lib; {
+  nativeBuildInputs = [ installShellFiles ];
+
+  postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
+    installShellCompletion --cmd uplosi \
+      --bash <($out/bin/uplosi completion bash) \
+      --fish <($out/bin/uplosi completion fish) \
+      --zsh <($out/bin/uplosi completion zsh)
+  '';
+
+  passthru.updateScript = nix-update-script { };
+
+  meta = {
     description = "Upload OS images to cloud provider";
     homepage = "https://github.com/edgelesssys/uplosi";
-    changelog = "https://github.com/edgelesssys/uplosi/releases/tag/v${version}";
-    license = licenses.asl20;
+    changelog = "https://github.com/edgelesssys/uplosi/releases/tag/v${finalAttrs.version}";
+    license = lib.licenses.asl20;
     mainProgram = "uplosi";
-    maintainers = with maintainers; [ katexochen malt3 ];
-    platforms = platforms.unix;
+    maintainers = with lib.maintainers; [
+      katexochen
+      malt3
+      charludo
+    ];
+    platforms = lib.platforms.unix;
   };
-}
+})

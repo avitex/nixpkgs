@@ -1,45 +1,40 @@
-{ lib
-, aiohttp
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, pythonOlder
+{
+  lib,
+  aiohttp,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  pyprojectVersionPatchHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pybravia";
-  version = "0.3.3";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "0.5.3";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "Drafteed";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-Ux9EereKKbgaVQORliW6J5FSBlytLM+m4PVFBk+OW6k=";
+    repo = "pybravia";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-dHc1jmwmLRXpxxIKPMyscDtyWB/UU8xyL7Uv4ioi2TY=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  nativeBuildInputs = [ pyprojectVersionPatchHook ];
 
-  propagatedBuildInputs = [
-    aiohttp
-  ];
+  build-system = [ hatchling ];
+
+  dependencies = [ aiohttp ];
 
   # Module has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "pybravia"
-  ];
+  pythonImportsCheck = [ "pybravia" ];
 
-  meta = with lib; {
+  meta = {
     description = "Library for remote control of Sony Bravia TVs 2013 and newer";
     homepage = "https://github.com/Drafteed/pybravia";
-    changelog = "https://github.com/Drafteed/pybravia/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/Drafteed/pybravia/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

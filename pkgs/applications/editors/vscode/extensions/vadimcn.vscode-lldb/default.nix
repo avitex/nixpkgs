@@ -1,11 +1,22 @@
-{ pkgs, lib, stdenv, fetchFromGitHub, runCommand, rustPlatform, makeWrapper, llvmPackages
-, buildNpmPackage, cmake, nodejs, unzip, python3, pkg-config, libsecret, darwin
+{
+  callPackage,
+  cargo,
+  cmake,
+  fetchFromGitHub,
+  lib,
+  llvmPackages_19,
+  makeRustPlatform,
+  makeWrapper,
+  nodejs,
+  python3,
+  rustc,
+  unzip,
 }:
 assert lib.versionAtLeast python3.version "3.5";
 let
   publisher = "vadimcn";
   pname = "vscode-lldb";
-  version = "1.10.0";
+  version = "1.12.2";
 
   vscodeExtUniqueId = "${publisher}.${pname}";
   vscodeExtPublisher = publisher;
@@ -13,98 +24,111 @@ let
 
   src = fetchFromGitHub {
     owner = "vadimcn";
-    repo = "vscode-lldb";
+    repo = "codelldb";
     rev = "v${version}";
-    hash = "sha256-ExSS5HxDmJJtYypRYJNz7nY0D50gjoDBc4CnJMfgVw8=";
+    hash = "sha256-7//+y02rfDloeNADpoM8tist7fPstBZ2Eqt4dM5dCaE=";
   };
 
-  # need to build a custom version of lldb and llvm for enhanced rust support
-  lldb = (import ./lldb.nix { inherit fetchFromGitHub runCommand llvmPackages; });
+  lldb = llvmPackages_19.lldb;
+  stdenv = llvmPackages_19.libcxxStdenv;
 
-  adapter = rustPlatform.buildRustPackage {
-    pname = "${pname}-adapter";
-    inherit version src;
+  cargoHash = "sha256-fuUTLdavMiYfpyxctXes2GJCsNZd5g1d4B/v+W/Rnu8=";
 
-    cargoHash = "sha256-e/Jki/4pCs0qzaBVR4iiUhdBFmWlTZYREQkuFSoWYFo=";
+  adapter = (
+    callPackage ./adapter.nix {
+      # The adapter is meant to be compiled with clang++,
+      # based on the provided CMake toolchain files.
+      # <https://github.com/vadimcn/codelldb/tree/master/cmake>
+      rustPlatform = makeRustPlatform {
+        inherit stdenv cargo rustc;
+      };
 
-    nativeBuildInputs = [ makeWrapper ];
+      inherit
+        pname
+        src
+        version
+        stdenv
+        cargoHash
+        codelldb-launch
+        ;
+    }
+  );
 
-    buildAndTestSubdir = "adapter";
+  nodeDeps = (
+    callPackage ./node_deps.nix {
+      inherit
+        pname
+        src
+        version
+        ;
+    }
+  );
 
-    buildFeatures = [ "weak-linkage" ];
+  codelldb-types = (
+    callPackage ./codelldb-types.nix {
+      rustPlatform = makeRustPlatform {
+        inherit stdenv cargo rustc;
+      };
 
-    cargoBuildFlags = [
-      "--lib"
-      "--bin=codelldb"
-    ];
+      inherit
+        pname
+        src
+        version
+        cargoHash
+        ;
+    }
+  );
 
-    postFixup = ''
-      mkdir -p $out/share
-      # codelldb expects libcodelldb.so to be in the same
-      # directory as the executable, and can't find it in $out/lib.
-      # To make codelldb executable as a standalone,
-      # we put all files in $out/share, and then wrap the binary in $out/bin.
-      mv $out/bin/* $out/share
-      cp $out/lib/* $out/share
-      ln -s ${lldb.lib} $out/lldb
-      makeWrapper $out/share/codelldb $out/bin/codelldb \
-        --set-default LLDB_DEBUGSERVER_PATH "${lldb.out}/bin/lldb-server"
-    '';
+  codelldb-launch = (
+    callPackage ./codelldb-launch.nix {
+      rustPlatform = makeRustPlatform {
+        inherit stdenv cargo rustc;
+      };
 
-    patches = [ ./adapter-output-shared_object.patch ];
+      inherit
+        pname
+        src
+        version
+        cargoHash
+        ;
+    }
+  );
 
-    # Tests are linked to liblldb but it is not available here.
-    doCheck = false;
-  };
-
-  nodeDeps = buildNpmPackage {
-    pname = "${pname}-node-deps";
-    inherit version src;
-
-    npmDepsHash = "sha256-fMKGi+AJTMlWl7SQtZ21hUwOLgqlFYDhwLvEergQLfI=";
-
-    nativeBuildInputs = [
-      python3
-      pkg-config
-    ];
-
-    buildInputs = [
-      libsecret
-    ] ++ lib.optionals stdenv.isDarwin (with darwin.apple_sdk.frameworks; [
-      Security
-      AppKit
-    ]);
-
-    dontNpmBuild = true;
-
-    installPhase = ''
-      runHook preInstall
-
-      mkdir -p $out/lib
-      cp -r node_modules $out/lib
-
-      runHook postInstall
-    '';
-  };
-
-in stdenv.mkDerivation {
+in
+stdenv.mkDerivation {
   pname = "vscode-extension-${publisher}-${pname}";
-  inherit src version vscodeExtUniqueId vscodeExtPublisher vscodeExtName;
+  inherit
+    src
+    version
+    vscodeExtUniqueId
+    vscodeExtPublisher
+    vscodeExtName
+    ;
 
   installPrefix = "share/vscode/extensions/${vscodeExtUniqueId}";
 
-  nativeBuildInputs = [ cmake nodejs unzip makeWrapper ];
+  nativeBuildInputs = [
+    cmake
+    makeWrapper
+    nodejs
+    unzip
+    codelldb-types
+    codelldb-launch
+  ];
 
-  patches = [ ./cmake-build-extension-only.patch ];
+  patches = [ ./patches/cmake-build-extension-only.patch ];
 
-  postPatch = ''
-    # temporary patch for forgotten version updates
-    substituteInPlace CMakeLists.txt \
-      --replace "1.9.2" ${version}
+  # Make devDependencies available to tools/prep-package.js
+  preConfigure = ''
+    cp -r ${nodeDeps}/lib/node_modules .
   '';
 
   postConfigure = ''
     cp -r ${nodeDeps}/lib/node_modules .
+  ''
+  + lib.optionalString stdenv.hostPlatform.isDarwin ''
+    export HOME="$TMPDIR/home"
+    mkdir $HOME
   '';
 
   cmakeFlags = [
@@ -113,7 +137,7 @@ in stdenv.mkDerivation {
   ];
   makeFlags = [ "vsix_bootstrap" ];
 
-  preBuild = lib.optionalString stdenv.isDarwin ''
+  preBuild = lib.optionalString stdenv.hostPlatform.isDarwin ''
     export HOME=$TMPDIR
   '';
 
@@ -123,14 +147,17 @@ in stdenv.mkDerivation {
 
     unzip ./codelldb-bootstrap.vsix 'extension/*' -d ./vsix-extracted
 
-    mkdir -p $ext/{adapter,formatters}
+    mkdir -p $ext/adapter
     mv -t $ext vsix-extracted/extension/*
-    cp -t $ext/adapter ${adapter}/share/*
-    cp -r ../adapter/scripts $ext/adapter
+    cp -t $ext/ -r ${adapter}/share/*
     wrapProgram $ext/adapter/codelldb \
-      --set-default LLDB_DEBUGSERVER_PATH "${lldb.out}/bin/lldb-server"
-    cp -t $ext/formatters ../formatters/*.py
-    ln -s ${lldb.lib} $ext/lldb
+      --prefix LD_LIBRARY_PATH : "$ext/lldb/lib" \
+      --set-default LLDB_DEBUGSERVER_PATH "${adapter.lldbServer}"
+
+    # Used by VSCode
+    mkdir -p $ext/bin
+    cp ${codelldb-launch}/bin/codelldb-launch $ext/bin/codelldb-launch
+
     # Mark that all components are installed.
     touch $ext/platform.ok
 
@@ -145,15 +172,16 @@ in stdenv.mkDerivation {
   '';
 
   passthru = {
-    inherit lldb adapter;
+    inherit lldb;
+    adapter = adapter.override { standalone = true; };
     updateScript = ./update.sh;
   };
 
   meta = {
-    description = "A native debugger extension for VSCode based on LLDB";
+    description = "Native debugger extension for VSCode based on LLDB";
     homepage = "https://github.com/vadimcn/vscode-lldb";
-    license = [ lib.licenses.mit ];
-    maintainers = [ lib.maintainers.nigelgbanks ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
     platforms = lib.platforms.all;
   };
 }

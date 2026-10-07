@@ -1,29 +1,29 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
 }:
 
 buildPythonPackage rec {
   pname = "types-psutil";
-  version = "5.9.5.17";
+  version = "7.2.1.20260116";
   format = "setuptools";
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-99h2mBLXKktRPX7J61WA/i9gE/wnA5SmA8tlNIEfPk0=";
+    pname = "types_psutil";
+    inherit version;
+    hash = "sha256-RmG+XV16zV2K+wKpLQUWCmy7LOdHIyRbUfe6ff25+YE=";
   };
 
   # Module doesn't have tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "psutil-stubs"
-  ];
+  pythonImportsCheck = [ "psutil-stubs" ];
 
-  meta = with lib; {
+  meta = {
     description = "Typing stubs for psutil";
     homepage = "https://github.com/python/typeshed";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ anselmschueler ];
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
 }

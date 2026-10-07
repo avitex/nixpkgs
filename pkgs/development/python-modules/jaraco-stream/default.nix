@@ -1,19 +1,39 @@
-{ buildPythonPackage, fetchPypi, setuptools-scm, six }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  more-itertools,
+  pytestCheckHook,
+  setuptools-scm,
+  setuptools,
+}:
 
 buildPythonPackage rec {
   pname = "jaraco-stream";
-  version = "3.0.3";
-  format = "setuptools";
+  version = "3.0.4";
+  pyproject = true;
 
   src = fetchPypi {
-    pname = "jaraco.stream";
+    pname = "jaraco_stream";
     inherit version;
-    sha256 = "3af4b0441090ee65bd6dde930d29f93f50c4a2fe6048e2a9d288285f5e4dc441";
+    sha256 = "sha256-4rxQKOch7SzIUrluyaM/K3Zk6bLb+H7vvmF9EmZBk0s=";
   };
+
+  build-system = [ setuptools-scm ];
+
+  propagatedBuildInputs = [ more-itertools ];
 
   pythonNamespaces = [ "jaraco" ];
 
-  doCheck = false;
-  buildInputs = [ setuptools-scm ];
-  propagatedBuildInputs = [ six ];
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  pythonImportsCheck = [ "jaraco.stream" ];
+
+  meta = {
+    description = "Module with routines for handling streaming data";
+    homepage = "https://github.com/jaraco/jaraco.stream";
+    changelog = "https://github.com/jaraco/jaraco.stream/blob/v${version}/NEWS.rst";
+    license = lib.licenses.mit;
+    maintainers = [ ];
+  };
 }

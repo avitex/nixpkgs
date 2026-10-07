@@ -1,66 +1,65 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools
-, wheel
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  wheel,
 
-, psycopg
-, aiosqlite
-, asyncmy
+  psycopg,
+  aiosqlite,
+  asyncmy,
 
-# test
-, pytest-asyncio
+  # test
+  pytest-asyncio,
+  pytest-cov-stub,
 
-, pytestCheckHook
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "mayim";
-  version = "1.1.0";
+  version = "1.3.2";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "ahopkins";
     repo = "mayim";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-nb0E9kMEJUihaCp8RnqGh0nSyDQo50eL1C4K5lBPlPQ=";
+    tag = "v${version}";
+    hash = "sha256-HEnzHpgTbEZOBzUG7DDIO9YRWIoLroLY+Spq/jkMib0=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     wheel
   ];
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace "--cov=src --cov-append --cov-report term-missing" ""
-  '';
-
-  passthru.optional-dependencies = {
-    postgres = [
-      psycopg
-    ] ++ psycopg.optional-dependencies.pool;
-    mysql = [
-      asyncmy
-    ];
-    sqlite = [
-      aiosqlite
-    ];
+  optional-dependencies = {
+    postgres = [ psycopg ] ++ psycopg.optional-dependencies.pool;
+    mysql = [ asyncmy ];
+    sqlite = [ aiosqlite ];
   };
 
   nativeCheckInputs = [
     pytestCheckHook
     pytest-asyncio
-  ] ++ (with passthru.optional-dependencies; [postgres mysql sqlite]);
+    pytest-cov-stub
+  ]
+  ++ (
+    with optional-dependencies;
+    lib.concatLists [
+      postgres
+      mysql
+      sqlite
+    ]
+  );
 
-  pythonImportsCheck = [
-    "mayim"
-  ];
+  pythonImportsCheck = [ "mayim" ];
 
-  meta = with lib; {
+  meta = {
     description = "Asynchronous SQL hydrator";
     homepage = "https://github.com/ahopkins/mayim";
-    license = licenses.mit;
-    maintainers = with maintainers; [ huyngo ];
+    changelog = "https://github.com/ahopkins/mayim/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ huyngo ];
   };
 }

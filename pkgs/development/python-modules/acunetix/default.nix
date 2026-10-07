@@ -1,17 +1,16 @@
-{ lib
-, aiofiles
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, requests
+{
+  lib,
+  aiofiles,
+  buildPythonPackage,
+  fetchFromGitHub,
+  requests,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "acunetix";
   version = "0.0.7";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "hikariatama";
@@ -21,7 +20,9 @@ buildPythonPackage rec {
     hash = "sha256-ycdCz8CNSP0USxv657jf6Vz4iF//reCeO2tG+und86A=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     aiofiles
     requests
   ];
@@ -29,14 +30,12 @@ buildPythonPackage rec {
   # Module has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "acunetix"
-  ];
+  pythonImportsCheck = [ "acunetix" ];
 
-  meta = with lib; {
+  meta = {
     description = "Acunetix Web Vulnerability Scanner SDK for Python";
     homepage = "https://github.com/hikariatama/acunetix";
-    license = licenses.agpl3Only;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.agpl3Only;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

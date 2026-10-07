@@ -1,35 +1,44 @@
-{ buildPythonPackage
-, addOpenGLRunpath
-, fetchPypi
-, fetchFromGitHub
-, mako
-, boost
-, numpy
-, pytools
-, pytest
-, decorator
-, appdirs
-, six
-, cudaPackages
-, python
-, mkDerivation
-, lib
+{
+  buildPythonPackage,
+  addDriverRunpath,
+  fetchPypi,
+  fetchFromGitHub,
+  mako,
+  boost,
+  numpy,
+  pytools,
+  pytest,
+  decorator,
+  appdirs,
+  six,
+  cudaPackages,
+  python,
+  mkDerivation,
+  lib,
+  symlinkJoin,
 }:
 let
-  compyte = import ./compyte.nix {
-    inherit mkDerivation fetchFromGitHub;
-  };
+  compyte = import ./compyte.nix { inherit mkDerivation fetchFromGitHub; };
 
-  inherit (cudaPackages) cudatoolkit;
+  cudaRoot = symlinkJoin {
+    name = "pycuda-cuda-root";
+    paths = with cudaPackages; [
+      cuda_cudart
+      cuda_nvcc
+      (lib.getInclude cuda_profiler_api)
+      (lib.getInclude libcurand)
+      (lib.getLib libcurand)
+    ];
+  };
 in
 buildPythonPackage rec {
   pname = "pycuda";
-  version = "2024.1";
+  version = "2026.1";
   format = "setuptools";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-1Q0j/2NxSCz/fUuVPvQKuByd8DjsthRIT5/VNHMnMn4=";
+    hash = "sha256-dZUWFgYougbzLOflY+P1uSFGkdyVKKA+qZ6hBz9OFLo=";
   };
 
   preConfigure = with lib.versions; ''
@@ -37,7 +46,7 @@ buildPythonPackage rec {
                           --boost-lib-dir=${boost}/lib \
                           --no-use-shipped-boost \
                           --boost-python-libname=boost_python${major python.version}${minor python.version} \
-                          --cuda-root=${cudatoolkit}
+                          --cuda-root=${cudaRoot}
   '';
 
   postInstall = ''
@@ -47,7 +56,7 @@ buildPythonPackage rec {
   postFixup = ''
     find $out/lib -type f \( -name '*.so' -or -name '*.so.*' \) | while read lib; do
       echo "setting opengl runpath for $lib..."
-      addOpenGLRunpath "$lib"
+      addDriverRunpath "$lib"
     done
   '';
 
@@ -58,9 +67,7 @@ buildPythonPackage rec {
     py.test
   '';
 
-  nativeBuildInputs = [
-    addOpenGLRunpath
-  ];
+  nativeBuildInputs = [ addDriverRunpath ];
 
   propagatedBuildInputs = [
     numpy
@@ -69,17 +76,19 @@ buildPythonPackage rec {
     decorator
     appdirs
     six
-    cudatoolkit
+    cudaPackages.cuda_cudart
+    cudaPackages.cuda_nvcc
+    (lib.getInclude cudaPackages.cuda_profiler_api)
+    cudaPackages.libcurand
     compyte
     python
     mako
   ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/inducer/pycuda/";
-    description = "CUDA integration for Python.";
-    license = licenses.mit;
-    maintainers = with maintainers; [ artuuge ];
+    description = "CUDA integration for Python";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
-
 }

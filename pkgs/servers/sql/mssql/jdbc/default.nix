@@ -1,12 +1,16 @@
-{ lib, stdenv, fetchurl }:
+{
+  lib,
+  stdenv,
+  fetchurl,
+}:
 
 stdenv.mkDerivation rec {
   pname = "mssql-jdbc";
-  version = "12.4.2";
+  version = "13.4.0";
 
   src = fetchurl {
     url = "https://github.com/Microsoft/mssql-jdbc/releases/download/v${version}/mssql-jdbc-${version}.jre8.jar";
-    sha256 = "sha256-JGt6SXg4Ok+czMwGpDk9xdVw/WSkNLeBxqghcM3WmRE=";
+    sha256 = "sha256-gba5hgxxO1PCN70x9tZQJRUXgYqD2T5emf3/JQol+NM=";
   };
 
   dontUnpack = true;
@@ -23,5 +27,6 @@ stdenv.mkDerivation rec {
   meta = {
     sourceProvenance = with lib.sourceTypes; [ binaryBytecode ];
     platforms = lib.platforms.unix;
+    license = lib.licenses.mit;
   };
 }

@@ -1,27 +1,47 @@
-{ lib
-, about-time
-, buildPythonPackage
-, click
-, fetchFromGitHub
-, grapheme
-, pytestCheckHook
+{
+  lib,
+  about-time,
+  buildPythonPackage,
+  click,
+  fetchFromGitHub,
+  graphemeu,
+  pytestCheckHook,
+  python,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "alive-progress";
-  version = "3.1.4";
-  format = "setuptools";
+  version = "3.3.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "rsalmei";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-27PgxQ9nw8p5hfaSf/jPYG7419o3i8B8R09o93szSOk=";
+    repo = "alive-progress";
+    tag = "v${version}";
+    hash = "sha256-2ymLdmaV7mO6tp5bjmbL/67xLP7Srfpt5m8YhOHGmWQ=";
+    # Avoid downloading heavy images in img directory
+    sparseCheckout = [
+      "alive_progress"
+      "tests"
+    ];
   };
 
-  propagatedBuildInputs = [
+  postInstall = ''
+    mkdir -p $out/share/doc/python${python.pythonVersion}-$pname-$version/
+    mv $out/LICENSE $out/share/doc/python${python.pythonVersion}-$pname-$version/
+  '';
+
+  build-system = [ setuptools ];
+
+  dependencies = [
     about-time
-    grapheme
+    graphemeu
+  ];
+
+  pythonRelaxDeps = [
+    "about_time"
+    "graphemeu"
   ];
 
   nativeCheckInputs = [
@@ -29,14 +49,13 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "alive_progress"
-  ];
+  pythonImportsCheck = [ "alive_progress" ];
 
-  meta = with lib; {
-    description = "A new kind of Progress Bar, with real-time throughput, ETA, and very cool animations";
+  meta = {
+    description = "New kind of Progress Bar, with real-time throughput, ETA, and very cool animations";
     homepage = "https://github.com/rsalmei/alive-progress";
-    license = licenses.mit;
-    maintainers = with maintainers; [ thiagokokada ];
+    changelog = "https://github.com/rsalmei/alive-progress/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ thiagokokada ];
   };
 }

@@ -1,48 +1,67 @@
-{ lib
-, crystal
-, fetchFromGitHub
-, llvmPackages
-, openssl
-, makeWrapper
+{
+  lib,
+  crystal,
+  fetchFromGitHub,
+  llvmPackages,
+  openssl,
+  makeWrapper,
 }:
 
 let
-  version = "0.10.0";
-in
-crystal.buildCrystalPackage {
-  pname = "crystalline";
-  inherit version;
-
+  version = "0.18.0";
   src = fetchFromGitHub {
     owner = "elbywan";
     repo = "crystalline";
-    rev = "v${version}";
-    hash = "sha256-g4k/vP7yYbTAy2bTAfr6HQhkskWfI6Zv2lxP+AZf6yw=";
+    tag = "v${version}";
+    hash = "sha256-Z5qVm1ovhMUccS9KSp8i7UowxxgEr9OvnJRYREaNmnM=";
   };
+in
+crystal.buildCrystalPackage {
+  pname = "crystalline";
+  inherit version src;
 
   format = "crystal";
   shardsFile = ./shards.nix;
 
-  nativeBuildInputs = [ llvmPackages.llvm openssl makeWrapper ];
+  nativeBuildInputs = [
+    llvmPackages.llvm
+    openssl
+    makeWrapper
+  ];
+  env.LLVM_CONFIG = lib.getExe' (lib.getDev llvmPackages.llvm) "llvm-config";
+
+  preConfigure = ''
+    substituteInPlace "./src/crystalline/main.cr" \
+      --replace-fail '`shards version #{__DIR__}`' '"${version}"' \
+      --replace-fail 'system("git rev-parse --short HEAD || echo unknown").stringify' '"${src.rev}"'
+  '';
 
   doCheck = false;
   doInstallCheck = false;
 
   crystalBinaries.crystalline = {
     src = "src/crystalline.cr";
-    options = [ "--release" "--no-debug" "--progress" "-Dpreview_mt" ];
+    options = [
+      "--release"
+      "--no-debug"
+      "--progress"
+      "-Dpreview_mt"
+    ];
   };
 
   postInstall = ''
     wrapProgram "$out/bin/crystalline" --prefix PATH : '${
-      lib.makeBinPath [llvmPackages.llvm.dev]
+      lib.makeBinPath [
+        (lib.getDev llvmPackages.llvm)
+      ]
     }'
   '';
 
-  meta = with lib; {
-    description = "A Language Server Protocol implementation for Crystal";
+  meta = {
+    description = "Language Server Protocol implementation for Crystal";
+    mainProgram = "crystalline";
     homepage = "https://github.com/elbywan/crystalline";
-    license = licenses.mit;
-    maintainers = with maintainers; [ donovanglover ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ donovanglover ];
   };
 }

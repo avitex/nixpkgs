@@ -1,21 +1,27 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, click
-, multimethod
-, numpy
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  click,
+  multimethod,
+  numpy,
 }:
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "woodblock";
   version = "0.1.7";
-  format = "setuptools";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
-    sha256 = "c0347ece920b7009d94551983a01f42db02920ca8d7b0ff36d24a337e2c937f7";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-wDR+zpILcAnZRVGYOgH0LbApIMqNew/zbSSjN+LJN/c=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     click
     multimethod
     numpy
@@ -24,14 +30,13 @@ buildPythonPackage rec {
   # no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "woodblock"
-  ];
+  pythonImportsCheck = [ "woodblock" ];
 
-  meta = with lib; {
-    description = "A framework to generate file carving test data";
+  meta = {
+    description = "Framework to generate file carving test data";
+    mainProgram = "woodblock";
     homepage = "https://github.com/fkie-cad/woodblock";
-    license = licenses.mit;
+    license = lib.licenses.mit;
     maintainers = [ ];
   };
-}
+})

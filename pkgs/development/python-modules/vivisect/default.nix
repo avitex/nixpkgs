@@ -1,71 +1,71 @@
-{ lib
-, buildPythonPackage
-, cxxfilt
-, fetchPypi
-, msgpack
-, pyasn1
-, pyasn1-modules
-, pycparser
-, pyqt5
-, pythonRelaxDepsHook
-, pyqtwebengine
-, pythonOlder
-, withGui ? false
-, wrapQtAppsHook
+{
+  lib,
+  buildPythonPackage,
+  cxxfilt,
+  fetchPypi,
+  msgpack,
+  pyasn1,
+  pyasn1-modules,
+  pycparser,
+  pyqt5,
+  # pyqtwebengine, # removed
+  withGui ? false,
+  wrapQtAppsHook,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "vivisect";
-  version = "1.1.1";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.6";
+  version = "1.3.2";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-URRBEZelw4s43zqtb/GrLxIksvrqHbqQWntT9jVonhU=";
+    hash = "sha256-UQryZ4aGVEr5vRLElmTwRNtgi3h6CPzzq5n+E58tuo8=";
   };
 
   pythonRelaxDeps = [
     "cxxfilt"
+    "msgpack"
     "pyasn1"
     "pyasn1-modules"
   ];
 
-  nativeBuildInputs = [
-    pythonRelaxDepsHook
+  build-system = [ setuptools ];
+
+  nativeBuildInputs = lib.optionals withGui [
     wrapQtAppsHook
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     pyasn1
     pyasn1-modules
     cxxfilt
     msgpack
     pycparser
-  ] ++ lib.optionals (withGui) passthru.optional-dependencies.gui;
+  ]
+  ++ lib.optionals withGui optional-dependencies.gui;
 
-  passthru.optional-dependencies.gui = [
+  optional-dependencies.gui = [
     pyqt5
-    pyqtwebengine
+    # pyqtwebengine
   ];
 
-  postFixup = ''
+  postFixup = lib.optionalString withGui ''
     wrapQtApp $out/bin/vivbin
   '';
 
-  # requires another repo for test files
+  # Tests requires another repo for test files
   doCheck = false;
 
-  pythonImportsCheck = [
-    "vivisect"
-  ];
+  pythonImportsCheck = [ "vivisect" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python disassembler, debugger, emulator, and static analysis framework";
     homepage = "https://github.com/vivisect/vivisect";
     changelog = "https://github.com/vivisect/vivisect/blob/v${version}/CHANGELOG.rst";
-    license = licenses.asl20;
+    license = lib.licenses.asl20;
     maintainers = [ ];
+    broken = withGui; # https://github.com/vivisect/vivisect/issues/683
   };
 }

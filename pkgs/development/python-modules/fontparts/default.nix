@@ -1,46 +1,71 @@
-{ lib, buildPythonPackage, fetchPypi, python, pythonOlder
-, fonttools, lxml, fs, unicodedata2
-, defcon, fontpens, fontmath, booleanoperations
-, pytest, setuptools-scm
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+  setuptools-scm,
+
+  # dependencies
+  fonttools,
+  defcon,
+  fontmath,
+  booleanoperations,
+
+  # tests
+  python,
 }:
 
-buildPythonPackage rec {
-  pname = "fontParts";
-  version = "0.12.1";
+buildPythonPackage (finalAttrs: {
+  pname = "fontparts";
+  version = "1.0.0";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-eeU13S1IcC+bsiK3YDlT4rVDeXDGcxx1wY/is8t5pCA=";
-    extension = "zip";
+  src = fetchFromGitHub {
+    owner = "robotools";
+    repo = "fontParts";
+    tag = finalAttrs.version;
+    hash = "sha256-dBR9Lf8ECLAOAkEkEy4JCgOKmyXzwXaOXdW4cErWQcs=";
   };
 
-  nativeBuildInputs = [ setuptools-scm ];
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail ', "vcs-versioning"' "" \
+      --replace-fail "setuptools_scm[toml]>=3.4,<10" "setuptools_scm[toml]"
+    substituteInPlace setup.cfg \
+      --replace-fail "setuptools_scm==9.2.2" "setuptools_scm"
+  '';
 
-  propagatedBuildInputs = [
-    booleanoperations
-    fonttools
-    unicodedata2  # fonttools[unicode] extra
-    lxml          # fonttools[lxml] extra
-    fs            # fonttools[ufo] extra
-    defcon
-    fontpens      # defcon[pens] extra
-    fontmath
+  build-system = [
+    setuptools
+    setuptools-scm
   ];
+
+  dependencies = [
+    booleanoperations
+    defcon
+    fontmath
+    fonttools
+  ]
+  ++ defcon.optional-dependencies.pens
+  ++ fonttools.optional-dependencies.ufo
+  ++ fonttools.optional-dependencies.lxml
+  ++ fonttools.optional-dependencies.unicode;
+
+  pythonImportsCheck = [ "fontParts" ];
 
   checkPhase = ''
     runHook preCheck
     ${python.interpreter} Lib/fontParts/fontshell/test.py
     runHook postCheck
   '';
-  nativeCheckInputs = [ pytest ];
 
-  meta = with lib; {
-    description = "An API for interacting with the parts of fonts during the font development process.";
+  meta = {
+    description = "API for interacting with the parts of fonts during the font development process";
     homepage = "https://github.com/robotools/fontParts";
-    changelog = "https://github.com/robotools/fontParts/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = [ maintainers.sternenseemann ];
+    changelog = "https://github.com/robotools/fontParts/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = [ lib.maintainers.sternenseemann ];
   };
-}
+})

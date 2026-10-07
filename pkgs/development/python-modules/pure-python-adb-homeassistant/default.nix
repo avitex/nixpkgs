@@ -1,6 +1,7 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
 }:
 buildPythonPackage rec {
   pname = "pure-python-adb-homeassistant";
@@ -18,10 +19,10 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "adb_messenger" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python implementation of the ADB client";
     homepage = "https://github.com/JeffLIrion/pure-python-adb";
-    license = licenses.mit;
-    maintainers = [ maintainers.makefu ];
+    license = lib.licenses.mit;
+    maintainers = [ lib.maintainers.makefu ];
   };
 }

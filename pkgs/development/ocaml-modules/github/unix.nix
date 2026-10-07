@@ -1,5 +1,12 @@
-{ lib, buildDunePackage, github
-, cohttp, cohttp-lwt-unix, stringext, cmdliner, lwt
+{
+  buildDunePackage,
+  fetchpatch,
+  github,
+  cohttp,
+  cohttp-lwt-unix,
+  stringext,
+  cmdliner,
+  lwt,
 }:
 
 buildDunePackage {
@@ -7,7 +14,7 @@ buildDunePackage {
   inherit (github) version src;
 
   postPatch = ''
-    substituteInPlace unix/dune --replace 'github bytes' 'github'
+    substituteInPlace unix/dune --replace-fail 'github bytes' 'github'
   '';
 
   propagatedBuildInputs = [

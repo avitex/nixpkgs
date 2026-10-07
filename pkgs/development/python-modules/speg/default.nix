@@ -1,7 +1,7 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, speg
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
 }:
 
 buildPythonPackage rec {
@@ -20,10 +20,10 @@ buildPythonPackage rec {
   # checks fail for seemingly spurious reasons
   doCheck = false;
 
-  meta = with lib; {
-    description = "A PEG-based parser interpreter with memoization (in time)";
+  meta = {
+    description = "PEG-based parser interpreter with memoization (in time)";
     homepage = "https://github.com/avakar/speg";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ xworld21 ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ xworld21 ];
   };
 }

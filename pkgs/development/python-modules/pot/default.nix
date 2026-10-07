@@ -1,70 +1,96 @@
-{ lib
-, autograd
-, buildPythonPackage
-, fetchFromGitHub
-, cupy
-, cvxopt
-, cython
-, oldest-supported-numpy
-, matplotlib
-, numpy
-, tensorflow
-, pymanopt
-, pytestCheckHook
-, pythonOlder
-, scikit-learn
-, scipy
-, enableDimensionalityReduction ? false
-, enableGPU ? false
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  cython,
+  numpy,
+  setuptools,
+
+  # dependencies
+  scipy,
+
+  # optional-dependencies
+  # backend-jax
+  jax,
+  jaxlib,
+  # backend-tf
+  tensorflow,
+  # backend-torch
+  torch,
+  # cvxopt
+  cvxopt,
+  # dr
+  scikit-learn,
+  pymanopt,
+  autograd,
+  # plot
+  matplotlib,
+
+  # tests
+  pytestCheckHook,
+  pytest-cov-stub,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pot";
-  version = "0.9.3";
+  version = "0.9.6.post1";
   pyproject = true;
-
-  disabled = pythonOlder "3.6";
 
   src = fetchFromGitHub {
     owner = "PythonOT";
     repo = "POT";
-    rev = "refs/tags/${version}";
-    hash = "sha256-fdqDM0V6zTFe1lcqi53ZZNHAfmuR2I7fdX4SN9qeNn8=";
+    tag = finalAttrs.version;
+    hash = "sha256-db4fKXqvg9DEmbI/RTQWcOdw+3ccPk74ME0VDsXZlsQ=";
   };
-
-  nativeBuildInputs = [
-    cython
-    oldest-supported-numpy
-  ];
-
-  propagatedBuildInputs = [
-    numpy
-    scipy
-  ] ++ lib.optionals enableGPU [
-    cupy
-  ] ++ lib.optionals enableDimensionalityReduction [
-    autograd
-    pymanopt
-  ];
-
-  nativeCheckInputs = [
-    cvxopt
-    matplotlib
-    numpy
-    tensorflow
-    scikit-learn
-    pytestCheckHook
-  ];
 
   postPatch = ''
     substituteInPlace setup.cfg \
-      --replace " --cov-report= --cov=ot" "" \
-      --replace " --durations=20" "" \
-      --replace " --junit-xml=junit-results.xml" ""
+      --replace-fail " --durations=20" "" \
+      --replace-fail " --junit-xml=junit-results.xml" ""
 
     # we don't need setup.py to find the macos sdk for us
     sed -i '/sdk_path/d' setup.py
   '';
+
+  build-system = [
+    cython
+    numpy
+    setuptools
+  ];
+
+  dependencies = [
+    numpy
+    scipy
+  ];
+
+  optional-dependencies = {
+    backend-numpy = [ ];
+    backend-jax = [
+      jax
+      jaxlib
+    ];
+    backend-cupy = [ ];
+    backend-tf = [ tensorflow ];
+    backend-torch = [ torch ];
+    cvxopt = [ cvxopt ];
+    dr = [
+      scikit-learn
+      pymanopt
+      autograd
+    ];
+    gnn = [
+      torch
+      # torch-geometric
+    ];
+    plot = [ matplotlib ];
+  };
+
+  nativeCheckInputs = [
+    pytestCheckHook
+    pytest-cov-stub
+  ];
 
   # need to run the tests with the built package next to the test directory
   preCheck = ''
@@ -74,6 +100,7 @@ buildPythonPackage rec {
 
   postCheck = ''
     popd
+    rm -rf ot
   '';
 
   disabledTests = [
@@ -100,12 +127,18 @@ buildPythonPackage rec {
     "test_wasserstein_1d_type_devices"
     "test_wasserstein"
     "test_weak_ot_bakends"
+
     # TypeError: Only integers, slices...
     "test_emd1d_device_tf"
-  ];
 
-  disabledTestPaths = lib.optionals (!enableDimensionalityReduction) [
-    "test/test_dr.py"
+    # ValueError: setting an array element with a sequence
+    "test_fully_relaxed_path"
+    "test_pointwise_gromov"
+    "test_semi_relaxed_path"
+
+    # ValueError: Unknown Distance Metric: sokalmichener
+    "test_dist"
+    "test_dist_vs_cdist"
   ];
 
   pythonImportsCheck = [
@@ -113,10 +146,12 @@ buildPythonPackage rec {
     "ot.lp"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Python Optimal Transport Library";
     homepage = "https://pythonot.github.io/";
-    license = licenses.mit;
-    maintainers = with maintainers; [ yl3dy ];
+    downloadPage = "https://github.com/PythonOT/POT";
+    changelog = "https://github.com/PythonOT/POT/blob/${finalAttrs.src.tag}/RELEASES.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ yl3dy ];
   };
-}
+})

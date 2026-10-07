@@ -1,36 +1,44 @@
-import ./make-test-python.nix ({ pkgs, ... }: {
+{ pkgs, ... }:
+{
   name = "mtp";
   meta = with pkgs.lib.maintainers; {
-    maintainers = [ matthewcroughan nixinator ];
+    maintainers = [
+      matthewcroughan
+    ];
   };
 
-  nodes =
-  {
-    client = { config, pkgs, ... }: {
-      # DBUS runs only once a user session is created, which means a user has to
-      # login. Here, we log in as root. Once logged in, the gvfs-daemon service runs
-      # as UID 0 in User-0.service
-      services.getty.autologinUser = "root";
+  nodes = {
+    client =
+      { config, pkgs, ... }:
+      {
+        # DBUS runs only once a user session is created, which means a user has to
+        # login. Here, we log in as root. Once logged in, the gvfs-daemon service runs
+        # as UID 0 in User-0.service
+        services.getty.autologinUser = "root";
 
-      # XDG_RUNTIME_DIR is needed for running systemd-user services such as
-      # gvfs-daemon as root.
-      environment.variables.XDG_RUNTIME_DIR = "/run/user/0";
+        # XDG_RUNTIME_DIR is needed for running systemd-user services such as
+        # gvfs-daemon as root.
+        environment.variables.XDG_RUNTIME_DIR = "/run/user/0";
 
-      environment.systemPackages = with pkgs; [ usbutils glib jmtpfs tree ];
-      services.gvfs.enable = true;
+        environment.systemPackages = with pkgs; [
+          usbutils
+          glib
+          tree
+        ];
+        services.gvfs.enable = true;
 
-      # Creates a usb-mtp device inside the VM, which is mapped to the host's
-      # /tmp folder, it is able to write files to this location, but only has
-      # permissions to read its own creations.
-      virtualisation.qemu.options = [
-        "-usb"
-        "-device usb-mtp,rootdir=/tmp,readonly=false"
-      ];
-    };
+        # Creates a usb-mtp device inside the VM, which is mapped to the host's
+        # /tmp folder, it is able to write files to this location, but only has
+        # permissions to read its own creations.
+        virtualisation.qemu.options = [
+          "-usb"
+          "-device usb-mtp,rootdir=/tmp,readonly=false"
+        ];
+      };
   };
 
-
-  testScript = { nodes, ... }:
+  testScript =
+    { nodes, ... }:
     let
       # Creates a list of QEMU MTP devices matching USB ID (46f4:0004). This
       # value can be sourced in a shell script. This is so we can loop over the
@@ -79,31 +87,14 @@ import ./make-test-python.nix ({ pkgs, ... }: {
           ${unmountAllMtpDevices}
         '';
       };
-      jmtpfs = {
-        # jmtpfsTest:
-        # 1. Mounts the device on a dir named `phone` using jmtpfs
-        # 2. Puts the current Nixpkgs libmtp version into a file
-        # 3. Checks for corruption with `diff`
-        # 4. Prints the directory tree
-        jmtpfsTest = pkgs.writeScript "jmtpfsTest.sh" ''
-          set -e
-          mkdir phone
-          jmtpfs phone
-          echo "${pkgs.libmtp.version}" > phone/tmp/testFile
-          echo "${pkgs.libmtp.version}" > testFile
-          diff phone/tmp/testFile testFile
-          tree phone
-        '';
-      };
     in
     # Using >&2 allows the results of the scripts to be printed to the terminal
     # when building this test with Nix. Scripts would otherwise complete
     # silently.
     ''
-    start_all()
-    client.wait_for_unit("multi-user.target")
-    client.wait_for_unit("dbus.service")
-    client.succeed("${gvfs.gvfsTest} >&2")
-    client.succeed("${jmtpfs.jmtpfsTest} >&2")
-  '';
-})
+      start_all()
+      client.wait_for_unit("multi-user.target")
+      client.wait_for_unit("dbus.service")
+      client.succeed("${gvfs.gvfsTest} >&2")
+    '';
+}

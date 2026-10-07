@@ -1,27 +1,28 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonAtLeast
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonAtLeast,
 
-# build-system
-, setuptools
+  # build-system
+  setuptools,
 
-# dependencies
-, build
-, docutils
-, flit-core
-, packaging
-, pygments
-, requests
-, trove-classifiers
+  # dependencies
+  build,
+  docutils,
+  flit-core,
+  packaging,
+  pygments,
+  requests,
+  trove-classifiers,
 
-# test
-, pytestCheckHook
+  # test
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "pyroma";
-  version = "4.2";
+  version = "5.0.1";
   pyproject = true;
 
   # https://github.com/regebro/pyroma/issues/104
@@ -30,8 +31,8 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "regebro";
     repo = "pyroma";
-    rev = version;
-    sha256 = "sha256-ElSw+bY6fbHJPTX7O/9JZ4drttfbUQsU/fv3Cqqb/J4=";
+    tag = version;
+    sha256 = "sha256-J5+/1jc/Dvh7aPV9FgG/uhxWG4DbQISgx+kX4Ayd1cU=";
   };
 
   propagatedBuildInputs = [
@@ -45,9 +46,7 @@ buildPythonPackage rec {
     trove-classifiers
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   disabledTests = [
     # tries to reach pypi
@@ -57,10 +56,11 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "pyroma" ];
 
-  meta = with lib; {
+  meta = {
     description = "Test your project's packaging friendliness";
+    mainProgram = "pyroma";
     homepage = "https://github.com/regebro/pyroma";
-    license = licenses.mit;
-    maintainers = with maintainers; [ kamadorueda ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ kamadorueda ];
   };
 }

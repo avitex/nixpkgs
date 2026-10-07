@@ -1,55 +1,66 @@
-{ cmake
-, fetchFromGitHub
-, glfw
-, jazz2-content
-, lib
-, libopenmpt
-, libvorbis
-, openal
-, SDL2
-, stdenv
-, testers
-, zlib
-, graphicsLibrary ? "GLFW"
+{
+  cmake,
+  curl,
+  fetchFromGitHub,
+  gitUpdater,
+  jazz2-content,
+  lib,
+  libGL,
+  libopenmpt,
+  libvorbis,
+  openal,
+  SDL2,
+  stdenv,
+  versionCheckHook,
+  zlib,
 }:
 
-assert lib.assertOneOf "graphicsLibrary" graphicsLibrary [ "SDL2" "GLFW" ];
 stdenv.mkDerivation (finalAttrs: {
   pname = "jazz2";
-  version = "2.4.1";
+  version = "3.8.0";
 
   src = fetchFromGitHub {
     owner = "deathkiller";
     repo = "jazz2-native";
-    rev = finalAttrs.version;
-    hash = "sha256-AbB7xtdyin/VySswHoPRq9LmhHLUJfetXqtIxEw+KSI=";
+    tag = finalAttrs.version;
+    hash = "sha256-EhHa4bg9qWPxNTYptKn4kEjZEwQTQvX/GATbAVYjtl0=";
   };
 
   patches = [ ./nocontent.patch ];
 
+  strictDeps = true;
   nativeBuildInputs = [ cmake ];
-  buildInputs = [ libopenmpt libvorbis openal zlib ]
-  ++ lib.optionals (graphicsLibrary == "GLFW") [ glfw ]
-  ++ lib.optionals (graphicsLibrary == "SDL2") [ SDL2 ];
-
-  cmakeFlags = [
-    "-DLIBOPENMPT_INCLUDE_DIR=${lib.getDev libopenmpt}/include/libopenmpt"
-    "-DNCINE_DOWNLOAD_DEPENDENCIES=OFF"
-    "-DNCINE_OVERRIDE_CONTENT_PATH=${jazz2-content}"
-  ] ++ lib.optionals (graphicsLibrary == "GLFW") [
-    "-DGLFW_INCLUDE_DIR=${glfw}/include/GLFW"
+  buildInputs = [
+    curl
+    libGL
+    libopenmpt
+    libvorbis
+    openal
+    SDL2
+    zlib
   ];
 
-  passthru.tests.version = testers.testVersion {
-    package = finalAttrs.finalPackage;
+  cmakeFlags = [
+    (lib.cmakeBool "NCINE_DOWNLOAD_DEPENDENCIES" false)
+    (lib.cmakeFeature "LIBOPENMPT_INCLUDE_DIR" "${lib.getDev libopenmpt}/include/libopenmpt")
+    (lib.cmakeFeature "NCINE_OVERRIDE_CONTENT_PATH" "${jazz2-content}")
+  ];
+
+  nativeInstallCheckInputs = [
+    versionCheckHook
+  ];
+  doInstallCheck = true;
+
+  passthru = {
+    updateScript = gitUpdater { };
   };
 
-  meta = with lib; {
+  meta = {
     description = "Open-source Jazz Jackrabbit 2 reimplementation";
     homepage = "https://github.com/deathkiller/jazz2-native";
-    license = licenses.gpl3Only;
+    license = lib.licenses.gpl3Only;
     mainProgram = "jazz2";
-    maintainers = with maintainers; [ surfaceflinger ];
-    platforms = platforms.linux;
+    maintainers = with lib.maintainers; [ surfaceflinger ];
+    platforms = lib.platforms.linux;
   };
 })

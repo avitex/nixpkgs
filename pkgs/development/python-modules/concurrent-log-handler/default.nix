@@ -1,33 +1,34 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, portalocker
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  hatchling,
+  portalocker,
 }:
 
 buildPythonPackage rec {
   pname = "concurrent-log-handler";
-  version = "0.9.24";
-  format = "setuptools";
+  version = "0.9.29";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-APVkbG5fb8Y2VFNvO0Sqorm3SyMkXhT1JY7ZHOOdEuI=";
+    pname = "concurrent_log_handler";
+    inherit version;
+    hash = "sha256-vDenbT84TL9KmPaT69dwVD7cD0zVxqtrxw6eHX1YImU=";
   };
 
-  propagatedBuildInputs = [
-    portalocker
-  ];
+  build-system = [ hatchling ];
 
-  pythonImportsCheck = [
-    "concurrent_log_handler"
-  ];
+  dependencies = [ portalocker ];
+
+  pythonImportsCheck = [ "concurrent_log_handler" ];
 
   doCheck = false; # upstream has no tests
 
-  meta = with lib; {
+  meta = {
     description = "Python logging handler that allows multiple processes to safely write to the same log file concurrently";
-    homepage = "https://pypi.org/project/concurrent-log-handler";
-    license = licenses.asl20;
-    maintainers = [ maintainers.lourkeur ];
+    homepage = "https://github.com/Preston-Landers/concurrent-log-handler";
+    license = lib.licenses.asl20;
+    maintainers = [ lib.maintainers.bbjubjub ];
   };
 }

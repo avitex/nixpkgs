@@ -1,9 +1,10 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pydantic
-, setuptools
-, setuptools-scm
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pydantic,
+  setuptools,
+  setuptools-scm,
 }:
 
 buildPythonPackage rec {
@@ -14,7 +15,7 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "chalk-ai";
     repo = "pydantic-scim";
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     hash = "sha256-Hbc94v/+slXRGDKKbMui8WPwn28/1XcKvHkbLebWtj0=";
   };
 
@@ -28,21 +29,17 @@ buildPythonPackage rec {
       --replace 'version=get_version(),' 'version="${version}",'
   '';
 
-  propagatedBuildInputs = [
-    pydantic
-  ] ++ pydantic.optional-dependencies.email;
+  propagatedBuildInputs = [ pydantic ] ++ pydantic.optional-dependencies.email;
 
-  pythonImportsCheck = [
-    "pydanticscim"
-  ];
+  pythonImportsCheck = [ "pydanticscim" ];
 
   # no tests
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "Pydantic types for SCIM";
     homepage = "https://github.com/chalk-ai/pydantic-scim";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ hexa ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ hexa ];
   };
 }

@@ -1,60 +1,78 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, pdm-backend
-, pyvcd
-, jinja2
-, importlib-resources
-, importlib-metadata
-, git
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pdm-backend,
+  jschon,
+  pyvcd,
+  jinja2,
+  git,
 
-# for tests
-, pytestCheckHook
-, symbiyosys
-, yices
-, yosys
+  # for tests
+  pytestCheckHook,
+  sby,
+  yices,
+  yosys,
 }:
 
 buildPythonPackage rec {
   pname = "amaranth";
-  format = "pyproject";
-  # python -m setuptools_scm
-  version = "0.4.dev197+g${lib.substring 0 7 src.rev}";
-  disabled = pythonOlder "3.8";
+  version = "0.5.10";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "amaranth-lang";
     repo = "amaranth";
-    rev = "11d5bb19eb34463918c07dc5e2e0eac7dbf822b0";
-    sha256 = "sha256-Ji5oYfF2hKSunAdAQTniv8Ajj6NE/bvW5cvadrGKa+U=";
+    tag = "v${version}";
+    hash = "sha256-AJmZBDMTGAq2i6xWpFoLjijJ+nycgJvTdNDrudjd/v0=";
   };
 
-  nativeBuildInputs = [
-    git
-    pdm-backend
-  ];
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail "pdm-backend~=2.3.0" "pdm-backend>=2.3.0"
+  '';
 
-  propagatedBuildInputs = [
+  nativeBuildInputs = [ git ];
+
+  build-system = [ pdm-backend ];
+
+  dependencies = [
+    jschon
     jinja2
     pyvcd
-  ] ++
-    lib.optional (pythonOlder "3.9") importlib-resources ++
-    lib.optional (pythonOlder "3.8") importlib-metadata;
+  ];
 
   nativeCheckInputs = [
     pytestCheckHook
-    symbiyosys
+    sby
     yices
     yosys
   ];
 
   pythonImportsCheck = [ "amaranth" ];
 
-  meta = with lib; {
-    description = "A modern hardware definition language and toolchain based on Python";
+  disabledTests = [
+    "verilog"
+    "test_reversible"
+    "test_distance"
+  ];
+
+  disabledTestPaths = [
+    # Subprocesses
+    "tests/test_examples.py"
+    # Verification failures
+    "tests/test_lib_fifo.py"
+  ];
+
+  meta = {
+    description = "Modern hardware definition language and toolchain based on Python";
     homepage = "https://amaranth-lang.org/docs/amaranth";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ emily thoughtpolice ];
+    changelog = "https://github.com/amaranth-lang/amaranth/blob/${src.tag}/docs/changes.rst";
+    license = lib.licenses.bsd2;
+    maintainers = with lib.maintainers; [
+      thoughtpolice
+      pbsds
+    ];
+    mainProgram = "amaranth-rpc";
   };
 }

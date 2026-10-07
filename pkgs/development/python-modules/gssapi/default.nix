@@ -1,84 +1,80 @@
-{ stdenv
-, lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, six
-, decorator
-, nose
-, krb5
-, GSS
-, parameterized
-, shouldbe
-, cython
-, python
-, k5test
+{
+  stdenv,
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  cython,
+  setuptools,
+
+  # dependencies
+  decorator,
+
+  # native dependencies
+  krb5-c, # C krb5 library, not PyPI krb5
+
+  # tests
+  parameterized,
+  k5test,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "gssapi";
-  version = "1.8.3";
-  format = "setuptools";
-  disabled = pythonOlder "3.6";
+  version = "1.11.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "pythongssapi";
-    repo = "python-${pname}";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-H1JfdvxJvX5dmC9aTqIOkjAqFEL44KoUXEhoYj2uRY8=";
+    repo = "python-gssapi";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-E9rX5/7jTFR4nZ7ww2B083Tlz5vwl00yhakBQg75WZs=";
   };
 
-  # It's used to locate headers
   postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail "Cython == 3.2.4" Cython
     substituteInPlace setup.py \
-      --replace 'get_output(f"{kc} gssapi --prefix")' '"${lib.getDev krb5}"'
+      --replace-fail 'get_output(f"{kc} gssapi --prefix")' '"${lib.getDev krb5-c}"'
   '';
 
   env = lib.optionalAttrs (!stdenv.buildPlatform.canExecute stdenv.hostPlatform) {
     GSSAPI_SUPPORT_DETECT = "false";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     cython
-    krb5
+    krb5-c
+    setuptools
   ];
 
-  propagatedBuildInputs =  [
-    decorator
-    six
-  ];
+  dependencies = [ decorator ];
 
-  buildInputs = lib.optionals stdenv.isDarwin [
-    GSS
-  ];
+  # k5test is marked as broken on darwin
+  doCheck = !stdenv.hostPlatform.isDarwin;
 
   nativeCheckInputs = [
     k5test
-    nose
     parameterized
-    shouldbe
-    six
+    pytestCheckHook
   ];
 
-  doCheck = pythonOlder "3.8"  # `shouldbe` not available
-    && !stdenv.isDarwin;  # many failures on darwin
-
-  # skip tests which fail possibly due to be an upstream issue (see
-  # https://github.com/pythongssapi/python-gssapi/issues/220)
-  checkPhase = ''
-    # some tests don't respond to being disabled through nosetests -x
-    echo $'\ndel CredsTestCase.test_add_with_impersonate' >> gssapi/tests/test_high_level.py
-    echo $'\ndel TestBaseUtilities.test_acquire_creds_impersonate_name' >> gssapi/tests/test_raw.py
-    echo $'\ndel TestBaseUtilities.test_add_cred_impersonate_name' >> gssapi/tests/test_raw.py
-
-    export PYTHONPATH="$out/${python.sitePackages}:$PYTHONPATH"
-    nosetests -e 'ext_test_\d.*'
+  preCheck = ''
+    mv gssapi/tests $TMPDIR/
+    pushd $TMPDIR
   '';
+
+  postCheck = ''
+    popd
+  '';
+
   pythonImportsCheck = [ "gssapi" ];
 
-  meta = with lib; {
-    homepage = "https://pypi.python.org/pypi/gssapi";
+  meta = {
+    changelog = "https://github.com/pythongssapi/python-gssapi/releases/tag/${finalAttrs.src.tag}";
+    homepage = "https://github.com/pythongssapi/python-gssapi";
     description = "Python GSSAPI Wrapper";
-    license = licenses.mit;
+    license = lib.licenses.mit;
   };
-}
+})

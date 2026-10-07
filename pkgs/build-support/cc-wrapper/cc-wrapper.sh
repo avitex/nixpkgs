@@ -17,6 +17,8 @@ fi
 
 source @out@/nix-support/utils.bash
 
+source @out@/nix-support/darwin-sdk-setup.bash
+
 
 # Parse command line options and set several variables.
 # For instance, figure out if linker flags should be passed.
@@ -42,7 +44,7 @@ while (( "$n" < "$nParams" )); do
 
     case "$p" in
         -[cSEM] | -MM) dontLink=1 ;;
-        -cc1) cc1=1 ;;
+        -cc1 | -fc1 ) cc1=1 ;;
         -nostdinc) cInclude=0 cxxInclude=0 ;;
         -nostdinc++) cxxInclude=0 ;;
         -nostdlib) cxxLibrary=0 ;;
@@ -79,6 +81,11 @@ if [ "$nonFlagArgs" = 0 ]; then
     dontLink=1
 fi
 
+# Arocc does not link
+if [ "@isArocc@" = 1 ]; then
+    dontLink=1
+fi
+
 # Optionally filter out paths not refering to the store.
 if [[ "${NIX_ENFORCE_PURITY:-}" = 1 && -n "$NIX_STORE" ]]; then
     kept=()
@@ -96,7 +103,7 @@ if [[ "${NIX_ENFORCE_PURITY:-}" = 1 && -n "$NIX_STORE" ]]; then
             -[IL] | -isystem) path=$p2 skipNext=true ;;
         esac
 
-        if [[ -n $path ]] && badPath "$path"; then
+        if [[ -n $path ]] && badPathWithDarwinSdk "$path"; then
             skip "$path"
             $skipNext && n+=1
             continue
@@ -124,13 +131,22 @@ if [ "$NIX_ENFORCE_NO_NATIVE_@suffixSalt@" = 1 ]; then
     # Old bash empty array hack
     for p in ${params+"${params[@]}"}; do
         if [[ "$p" = -m*=native ]]; then
-            skip "$p"
+            >&2 echo "warning: Skipping impure flag $p because NIX_ENFORCE_NO_NATIVE is set"
         else
             kept+=("$p")
         fi
     done
     # Old bash empty array hack
     params=(${kept+"${kept[@]}"})
+fi
+
+# Some build systems such as Bazel and SwiftPM use `clang` instead of `clang++`,
+# which will find the libc++ headers in the sysroot for C++ files.
+if [[ "$isCxx" = 0 && "@isClang@" ]]; then
+# This duplicates the behavior of a native toolchain, which can find the
+# libc++ headers but requires `-lc++` to be specified explicitly when linking.
+    isCxx=1
+    cxxLibrary=0
 fi
 
 if [[ "$isCxx" = 1 ]]; then
@@ -169,9 +185,19 @@ fi
 
 source @out@/nix-support/add-hardening.sh
 
-# Add the flags for the C compiler proper.
-extraAfter=(${hardeningCFlagsAfter[@]+"${hardeningCFlagsAfter[@]}"} $NIX_CFLAGS_COMPILE_@suffixSalt@)
-extraBefore=(${hardeningCFlagsBefore[@]+"${hardeningCFlagsBefore[@]}"} $NIX_CFLAGS_COMPILE_BEFORE_@suffixSalt@)
+# Add the flags for the compiler proper. Flang reads its user-supplied
+# flags from the Fortran-specific NIX_FFLAGS_COMPILE channel so that
+# C-only flags injected by setup hooks (e.g. -frandom-seed= from
+# reproducible-builds.sh, which Flang does not accept) never reach the
+# Fortran driver. This mirrors the NIX_GNATFLAGS_COMPILE channel that
+# the Ada/GNAT wrapper uses for the same reason.
+if [ "@isFlang@" = 1 ]; then
+    extraAfter=(${hardeningCFlagsAfter[@]+"${hardeningCFlagsAfter[@]}"} $NIX_FFLAGS_COMPILE_@suffixSalt@)
+    extraBefore=(${hardeningCFlagsBefore[@]+"${hardeningCFlagsBefore[@]}"} $NIX_FFLAGS_COMPILE_BEFORE_@suffixSalt@)
+else
+    extraAfter=(${hardeningCFlagsAfter[@]+"${hardeningCFlagsAfter[@]}"} $NIX_CFLAGS_COMPILE_@suffixSalt@)
+    extraBefore=(${hardeningCFlagsBefore[@]+"${hardeningCFlagsBefore[@]}"} $NIX_CFLAGS_COMPILE_BEFORE_@suffixSalt@)
+fi
 
 if [ "$dontLink" != 1 ]; then
     linkType=$(checkLinkType $NIX_LDFLAGS_BEFORE_@suffixSalt@ "${params[@]}" ${NIX_CFLAGS_LINK_@suffixSalt@:-} $NIX_LDFLAGS_@suffixSalt@)
@@ -225,6 +251,12 @@ if [[ "${#positionalArgs[@]}" -gt 0 ]]; then
     extraAfter+=(-- "${positionalArgs[@]}")
 fi
 
+# if a cc-wrapper-hook exists, run it.
+if [[ -e @out@/nix-support/cc-wrapper-hook ]]; then
+    compiler=@prog@
+    source @out@/nix-support/cc-wrapper-hook
+fi
+
 # Optionally print debug info.
 if (( "${NIX_DEBUG:-0}" >= 1 )); then
     # Old bash workaround, see ld-wrapper for explanation.
@@ -236,18 +268,12 @@ if (( "${NIX_DEBUG:-0}" >= 1 )); then
     printf "  %q\n" ${extraAfter+"${extraAfter[@]}"} >&2
 fi
 
-PATH="$path_backup"
+export PATH="$path_backup"
 # Old bash workaround, see above.
 
-# if a cc-wrapper-hook exists, run it.
-if [[ -e @out@/nix-support/cc-wrapper-hook ]]; then
-    compiler=@prog@
-    source @out@/nix-support/cc-wrapper-hook
-fi
-
 if (( "${NIX_CC_USE_RESPONSE_FILE:-@use_response_file_by_default@}" >= 1 )); then
-    responseFile=$(mktemp "${TMPDIR:-/tmp}/cc-params.XXXXXX")
-    trap 'rm -f -- "$responseFile"' EXIT
+    responseFile=$(@mktemp@ "${TMPDIR:-/tmp}/cc-params.XXXXXX")
+    trap '@rm@ -f -- "$responseFile"' EXIT
     printf "%q\n" \
        ${extraBefore+"${extraBefore[@]}"} \
        ${params+"${params[@]}"} \

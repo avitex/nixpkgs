@@ -1,35 +1,38 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, nix-update-script
-, meson
-, ninja
-, pkg-config
-, vala
-, elementary-settings-daemon
-, libgee
-, granite
-, gsettings-desktop-schemas
-, gala
-, gtk3
-, glib
-, polkit
-, zeitgeist
-, switchboard
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  nix-update-script,
+  meson,
+  ninja,
+  pkg-config,
+  vala,
+  elementary-settings-daemon,
+  libgee,
+  gettext,
+  granite7,
+  gsettings-desktop-schemas,
+  gala,
+  gtk4,
+  glib,
+  polkit,
+  zeitgeist,
+  switchboard,
 }:
 
 stdenv.mkDerivation rec {
   pname = "switchboard-plug-security-privacy";
-  version = "7.1.0";
+  version = "8.0.2";
 
   src = fetchFromGitHub {
     owner = "elementary";
-    repo = pname;
-    rev = version;
-    sha256 = "sha256-2eQ89FpEMF85UmqVu9FJUvSlaVGmsrRBnhAW7oUiUqg=";
+    repo = "settings-security-privacy";
+    tag = version;
+    hash = "sha256-OlLeeS0b4IMCvOMyHlIRaQl11ivn4Y2+vYdXOzIlvaw=";
   };
 
   nativeBuildInputs = [
+    gettext # msgfmt
     meson
     ninja
     pkg-config
@@ -40,9 +43,9 @@ stdenv.mkDerivation rec {
     elementary-settings-daemon # settings schema
     gala
     glib
-    granite
+    granite7
     gsettings-desktop-schemas
-    gtk3
+    gtk4
     libgee
     polkit
     switchboard
@@ -53,12 +56,12 @@ stdenv.mkDerivation rec {
     updateScript = nix-update-script { };
   };
 
-  meta = with lib; {
+  meta = {
     description = "Switchboard Security & Privacy Plug";
-    homepage = "https://github.com/elementary/switchboard-plug-security-privacy";
-    license = licenses.gpl3Plus;
-    platforms = platforms.linux;
-    maintainers = teams.pantheon.members;
+    homepage = "https://github.com/elementary/settings-security-privacy";
+    license = lib.licenses.gpl3Plus;
+    platforms = lib.platforms.linux;
+    teams = [ lib.teams.pantheon ];
   };
 
 }

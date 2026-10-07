@@ -1,40 +1,43 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, rustPlatform
-, libiconv
-, pkg-config
-, installShellFiles
+{
+  lib,
+  fetchFromGitHub,
+  rustPlatform,
+  libiconv,
+  pkg-config,
+  installShellFiles,
 }:
 
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "tuxmux";
-  version = "0.1.1";
+  version = "0.2.3";
 
   src = fetchFromGitHub {
     owner = "edeneast";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-BZ1Vo1NIpzUBGyvd/UbxLaFbrLzoaP8kn/8GoAYBmlo=";
+    repo = "tuxmux";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-WcHsFKpYexBEg382837NqGgNMTKzVUG3XIER9aa1zK8=";
   };
 
-  cargoHash = "sha256-HIYQPHLMhQtpCIkl5EzjJGHXzBtw7mY85l5bqapw3rg=";
+  cargoHash = "sha256-ceEF9ySxcU9vVZdNIogSiHbN/xYjudAoohy7jyeKrBU=";
 
   buildInputs = [ libiconv ];
-  nativeBuildInputs = [ pkg-config installShellFiles ];
+  nativeBuildInputs = [
+    pkg-config
+    installShellFiles
+  ];
 
   postInstall = ''
-    installShellCompletion $releaseDir/../completions/tm.{bash,fish}
-    installShellCompletion --zsh $releaseDir/../completions/_tm
+    installShellCompletion $releaseDir/../completions/tux.{bash,fish}
+    installShellCompletion --zsh $releaseDir/../completions/_tux
 
     installManPage $releaseDir/../man/*
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Tmux session manager";
     homepage = "https://github.com/edeneast/tuxmux";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ edeneast ];
-    mainProgram = "tm";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ edeneast ];
+    mainProgram = "tux";
   };
-}
+})

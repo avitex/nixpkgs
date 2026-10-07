@@ -1,9 +1,9 @@
-{ pkgs
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, pyqt5
-, asyncua
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pyqt5,
+  asyncua,
 }:
 
 buildPythonPackage rec {
@@ -13,12 +13,10 @@ buildPythonPackage rec {
 
   src = fetchFromGitHub {
     owner = "FreeOpcUa";
-    repo = pname;
+    repo = "opcua-widgets";
     rev = version;
     hash = "sha256-ABJlKYN5H/1k8ynvSTSoJBX12vTTyavuNUAmTJ84mn0=";
   };
-
-  disabled = pythonOlder "3.10";
 
   propagatedBuildInputs = [
     pyqt5
@@ -30,10 +28,10 @@ buildPythonPackage rec {
   #This test is broken, when updating this package check if the test was fixed.
   doCheck = false;
 
-  meta = with pkgs.lib; {
+  meta = {
     description = "Common widgets for opcua-modeler og opcua-client-gui";
     homepage = "https://github.com/FreeOpcUa/opcua-widgets";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ janik ];
+    license = lib.licenses.gpl3Only;
+    maintainers = [ ];
   };
 }

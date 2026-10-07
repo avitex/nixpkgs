@@ -1,62 +1,54 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, fixtures
-, pytestCheckHook
-, pythonOlder
-, pyxdg
-, requests
-, requests-mock
-, rich
-, setuptools
-, tomli
-, urllib3
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fixtures,
+  pytestCheckHook,
+  requests,
+  requests-mock,
+  rich,
+  setuptools,
+  urllib3,
+  writableTmpDirAsHomeHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "podman";
-  version = "4.9.0";
+  version = "5.8.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "containers";
     repo = "podman-py";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-fLuWOfv4kW5a9h658s8pBgXsBfcYdkXNp9+bWtgKHv8=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-i4eWC1MyBdc+en3W3+4fdeDP79Z2hsk9SIg3PfG0mI0=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
-    pyxdg
+  dependencies = [
     requests
-    rich
-    tomli
     urllib3
   ];
+
+  optional-dependencies = {
+    progress_bar = [ rich ];
+  };
 
   nativeCheckInputs = [
     fixtures
     pytestCheckHook
     requests-mock
+    writableTmpDirAsHomeHook
   ];
 
-  preCheck = ''
-    export HOME=$(mktemp -d)
-  '';
-
-  pythonImportsCheck = [
-    "podman"
-  ];
+  pythonImportsCheck = [ "podman" ];
 
   disabledTests = [
     # Integration tests require a running container setup
     "AdapterIntegrationTest"
     "ContainersIntegrationTest"
+    "ContainersExecIntegrationTests"
     "ImagesIntegrationTest"
     "ManifestsIntegrationTest"
     "NetworksIntegrationTest"
@@ -66,12 +58,18 @@ buildPythonPackage rec {
     "VolumesIntegrationTest"
   ];
 
-  meta = with lib; {
+  disabledTestPaths = [
+    # Access to the host's filesystem
+    "podman/tests/integration/test_container_create.py"
+    "podman/tests/unit/test_utils.py"
+    "podman/tests/integration/test_volumes.py"
+  ];
+
+  meta = {
     description = "Python bindings for Podman's RESTful API";
     homepage = "https://github.com/containers/podman-py";
-    changelog = "https://github.com/containers/podman-py/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
-    mainProgram = "podman";
+    changelog = "https://github.com/containers/podman-py/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

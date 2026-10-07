@@ -1,9 +1,10 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, samba
-, pkg-config
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  samba,
+  pkg-config,
+  stdenv, # for meta.broken
 }:
 
 buildPythonPackage rec {
@@ -11,32 +12,26 @@ buildPythonPackage rec {
   version = "1.0.25.1";
   format = "setuptools";
 
-  disabled = pythonOlder "3.7";
-
   src = fetchPypi {
     inherit pname version;
     hash = "sha256-IvFxXfglif2cxCU/6rOQtO8Lq/FPZFE82NB7N4mWMiY=";
   };
 
-  nativeBuildInputs = [
-    pkg-config
-  ];
+  nativeBuildInputs = [ pkg-config ];
 
-  buildInputs = [
-    samba
-  ];
+  buildInputs = [ samba ];
 
   # Tests would require a local SMB server
   doCheck = false;
 
-  pythonImportsCheck = [
-    "smbc"
-  ];
+  pythonImportsCheck = [ "smbc" ];
 
-  meta = with lib; {
-    description = "libsmbclient binding for Python";
+  meta = {
+    description = "Libsmbclient binding for Python";
     homepage = "https://github.com/hamano/pysmbc";
-    license = with licenses; [ gpl2Plus ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.gpl2Plus;
+    maintainers = with lib.maintainers; [ fab ];
+    # last successful hydra build on darwin was in 2025
+    broken = stdenv.hostPlatform.isDarwin;
   };
 }

@@ -1,45 +1,57 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools
-, trio
-, outcome
-, sniffio
-, exceptiongroup
-, pytest-trio
-, pytestCheckHook
-, pythonAtLeast
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  greenlet,
+  trio,
+  outcome,
+  sniffio,
+  pytest-trio,
+  pytestCheckHook,
+  pythonAtLeast,
 }:
 
 buildPythonPackage rec {
   pname = "trio-asyncio";
-  version = "0.13.0";
+  version = "0.16.0";
   pyproject = true;
 
-  disabled = pythonOlder "3.8";
+  # https://github.com/python-trio/trio-asyncio/issues/160
+  disabled = pythonAtLeast "3.14";
 
-  src = fetchPypi {
-    pname = "trio_asyncio";
-    inherit version;
-    hash = "sha256-fKJLIaGxes3mV1LWkziGuiQoTlL0srDe/k6o7YpjSmI=";
+  src = fetchFromGitHub {
+    owner = "python-trio";
+    repo = "trio-asyncio";
+    tag = "v${version}";
+    hash = "sha256-7kp99tdJhExjg8WsfBtXJyFrKnSAtTF1fhPFxCU7eI8=";
   };
 
   postPatch = ''
     substituteInPlace setup.py \
-      --replace "'pytest-runner'" ""
+      --replace-fail '"pytest-runner"' ""
   '';
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
+    greenlet
     trio
     outcome
     sniffio
-  ] ++ lib.optionals (pythonOlder "3.11") [
-    exceptiongroup
+  ];
+
+  pytestFlags = [
+    # RuntimeWarning: Can't run the Python asyncio tests because they're not installed
+    "-Wignore::RuntimeWarning"
+    "-Wignore::DeprecationWarning"
+  ];
+
+  disabledTests = [
+    # TypeError: RaisesGroup.__init__() got an unexpected keyword argument 'strict'
+    # https://github.com/python-trio/trio-asyncio/issues/154
+    "test_run_trio_task_errors"
+    "test_cancel_loop_with_tasks"
   ];
 
   nativeCheckInputs = [
@@ -47,19 +59,16 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  disabledTestPaths = [
-    "tests/python" # tries to import internal API test.test_asyncio
-  ];
+  pythonImportsCheck = [ "trio_asyncio" ];
 
-  pythonImportsCheck = [
-    "trio_asyncio"
-  ];
-
-  meta = with lib; {
+  meta = {
     changelog = "https://github.com/python-trio/trio-asyncio/blob/v${version}/docs/source/history.rst";
     description = "Re-implementation of the asyncio mainloop on top of Trio";
     homepage = "https://github.com/python-trio/trio-asyncio";
-    license = with licenses; [ asl20 /* or */ mit ];
-    maintainers = with maintainers; [ dotlambda ];
+    license = with lib.licenses; [
+      asl20 # or
+      mit
+    ];
+    maintainers = with lib.maintainers; [ dotlambda ];
   };
 }

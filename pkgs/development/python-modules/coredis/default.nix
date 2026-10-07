@@ -1,53 +1,71 @@
-{ lib
-, async-timeout
-, buildPythonPackage
-, deprecated
-, fetchFromGitHub
-, pympler
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, redis
-, wrapt
+{
+  lib,
+  anyio,
+  beartype,
+  buildPythonPackage,
+  hatchling,
+  hatch-mypyc,
+  hatch-vcs,
+  types-deprecated,
+  deprecated,
+  exceptiongroup,
+  fetchFromGitHub,
+  packaging,
+  pytest-asyncio,
+  pytest-lazy-fixtures,
+  pytest-mock,
+  pytestCheckHook,
+  redis,
+  typing-extensions,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "coredis";
-  version = "4.16.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.8";
+  version = "6.7.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "alisaifee";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-7qpoNc5/z8/EKtGWULrPPwfH9swYe9TqqUL+zxrFQSk=";
+    repo = "coredis";
+    tag = finalAttrs.version;
+    hash = "sha256-1Ks8rfOaz7rZruzp1k3V7UHCtckzomvA76+QRS7RlZo=";
   };
 
   postPatch = ''
-    substituteInPlace pytest.ini \
-      --replace "-K" ""
+    sed -i '/mypy==/d' pyproject.toml
+    sed -i '/hatch-mypy/d' pyproject.toml
+    sed -i '/opentelemetry-sdk/d' pyproject.toml
+    substituteInPlace pyproject.toml \
+      --replace-fail '"-K"' ""
   '';
 
-  propagatedBuildInputs = [
-    async-timeout
+  build-system = [
+    hatchling
+    hatch-mypyc
+    hatch-vcs
+    types-deprecated
+  ];
+
+  dependencies = [
+    anyio
+    beartype
     deprecated
-    pympler
-    wrapt
+    exceptiongroup
+    packaging
+    typing-extensions
   ];
 
   nativeCheckInputs = [
     pytestCheckHook
     redis
     pytest-asyncio
+    pytest-lazy-fixtures
+    pytest-mock
   ];
 
-  pythonImportsCheck = [
-    "coredis"
-  ];
+  pythonImportsCheck = [ "coredis" ];
 
-  pytestFlagsArray = [
+  enabledTestPaths = [
     # All other tests require Docker
     "tests/test_lru_cache.py"
     "tests/test_parsers.py"
@@ -55,11 +73,10 @@ buildPythonPackage rec {
     "tests/test_utils.py"
   ];
 
-  meta = with lib; {
-    description = "An async redis client with support for redis server, cluster & sentinel";
+  meta = {
+    description = "Async redis client with support for redis server, cluster & sentinel";
     homepage = "https://github.com/alisaifee/coredis";
-    changelog = "https://github.com/alisaifee/coredis/blob/${src.rev}/HISTORY.rst";
-    license = licenses.mit;
-    maintainers = teams.wdz.members;
+    changelog = "https://github.com/alisaifee/coredis/blob/${finalAttrs.src.tag}/HISTORY.rst";
+    license = lib.licenses.mit;
   };
-}
+})

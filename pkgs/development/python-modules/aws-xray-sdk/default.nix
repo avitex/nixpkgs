@@ -1,50 +1,43 @@
-{ lib
-, aiohttp
-, botocore
-, bottle
-, buildPythonPackage
-, django
-, fetchFromGitHub
-, httpx
-, importlib-metadata
-, jsonpickle
-, pymysql
-, pytest-asyncio
-, pynamodb
-, pytestCheckHook
-, pythonOlder
-, requests
-, setuptools
-, sqlalchemy
-, webtest
-, wrapt
+{
+  lib,
+  aiohttp,
+  botocore,
+  bottle,
+  buildPythonPackage,
+  django,
+  fetchFromGitHub,
+  httpx,
+  jsonpickle,
+  pymysql,
+  pytest-asyncio_0,
+  pynamodb,
+  pytestCheckHook,
+  requests,
+  setuptools,
+  sqlalchemy,
+  webtest,
+  wrapt,
 }:
 
 buildPythonPackage rec {
   pname = "aws-xray-sdk";
-  version = "2.12.1";
+  version = "2.15.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "aws";
     repo = "aws-xray-sdk-python";
-    rev = "refs/tags/${version}";
-    hash = "sha256-NLFNst4Yqsz2u5IXwe8OdJPW77irLRO5tWWn1uV3tMg=";
+    tag = version;
+    hash = "sha256-Zu2+awB6Ynxp6hkY1bB1f6u+KpDvCcoGxDWanSH+yBY=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
   propagatedBuildInputs = [
     botocore
     jsonpickle
     requests
     wrapt
-  ] ++ lib.optionals (pythonOlder "3.8") [
-    importlib-metadata
   ];
 
   nativeCheckInputs = [
@@ -54,7 +47,7 @@ buildPythonPackage rec {
     httpx
     pymysql
     pynamodb
-    pytest-asyncio
+    pytest-asyncio_0
     pytestCheckHook
     sqlalchemy
     webtest
@@ -66,17 +59,17 @@ buildPythonPackage rec {
     # We don't care about benchmarks
     "tests/test_local_sampling_benchmark.py"
     "tests/test_patcher.py"
+    # async def functions are not natively supported.
+    "tests/test_async_recorder.py"
   ];
 
-  pythonImportsCheck = [
-    "aws_xray_sdk"
-  ];
+  pythonImportsCheck = [ "aws_xray_sdk" ];
 
-  meta = with lib; {
+  meta = {
     description = "AWS X-Ray SDK for the Python programming language";
     homepage = "https://github.com/aws/aws-xray-sdk-python";
-    changelog = "https://github.com/aws/aws-xray-sdk-python/blob/${version}/CHANGELOG.rst";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/aws/aws-xray-sdk-python/blob/${src.tag}/CHANGELOG.rst";
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
 }

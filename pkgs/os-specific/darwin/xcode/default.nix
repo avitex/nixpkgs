@@ -1,46 +1,71 @@
-{ stdenv, requireFile, lib }:
+{
+  stdenv,
+  requireFile,
+  lib,
+}:
 
-let requireXcode = version: sha256:
-  let
-    xip = "Xcode_" + version +  ".xip";
-    # TODO(alexfmpe): Find out how to validate the .xip signature in Linux
-    unxip = if stdenv.buildPlatform.isDarwin
-            then ''
-              open -W ${xip}
-              rm -rf ${xip}
-            ''
-            else ''
-              xar -xf ${xip}
-              rm -rf ${xip}
-              pbzx -n Content | cpio -i
-              rm Content Metadata
-            '';
-    app = requireFile rec {
-      name     = "Xcode.app";
-      url      = "https://developer.apple.com/services-account/download?path=/Developer_Tools/Xcode_${version}/${xip}";
-      hashMode = "recursive";
-      inherit sha256;
-      message  = ''
-        Unfortunately, we cannot download ${name} automatically.
-        Please go to ${url}
-        to download it yourself, and add it to the Nix store by running the following commands.
-        Note: download (~ 5GB), extraction and storing of Xcode will take a while
+let
+  requireXcode =
+    release: sha256:
+    let
+      xip = "Xcode_" + release + ".xip";
+      version = lib.removeSuffix "_Universal" (lib.removeSuffix "_Apple_silicon" release);
 
-        ${unxip}
-        nix-store --add-fixed --recursive sha256 Xcode.app
-        rm -rf Xcode.app
-      '';
-    };
-    meta = with lib; {
-      homepage = "https://developer.apple.com/downloads/";
-      description = "Apple's XCode SDK";
-      license = licenses.unfree;
-      platforms = platforms.darwin ++ platforms.linux;
-    };
+      unxip =
+        if stdenv.buildPlatform.isDarwin then
+          ''
+            open -W ${xip}
+            rm -rf ${xip}
+          ''
+        else
+          ''
+            xar -xf ${xip}
+            rm -rf ${xip}
+            pbzx -n Content | cpio -i
+            rm Content Metadata
+            rcodesign verify Xcode.app/Contents/MacOS/Xcode
+          '';
 
-  in app.overrideAttrs ( oldAttrs: oldAttrs // { inherit meta; });
+      app = requireFile rec {
+        name = "Xcode.app";
+        url = "https://developer.apple.com/services-account/download?path=/Developer_Tools/Xcode_${version}/${xip}";
+        hashMode = "recursive";
+        inherit sha256;
+        message = ''
+          Unfortunately, we cannot download ${name} automatically.
+          Please go to ${url}
+          to download it yourself, and add it to the Nix store by running the following commands.
+          Note: download (~ 5GB), extraction and storing of Xcode will take a while
 
-in lib.makeExtensible (self: {
+          ${unxip}
+          nix-store --add-fixed --recursive sha256 Xcode.app
+          rm -rf Xcode.app
+        '';
+      };
+      meta = {
+        homepage = "https://developer.apple.com/xcode/";
+        description = "Apple's Xcode developer tools";
+        maintainers = with lib.maintainers; [ DimitarNestorov ];
+        license = lib.licenses.unfree;
+        platforms = lib.platforms.darwin ++ lib.platforms.linux;
+        hydraPlatforms = [ ];
+        sourceProvenance = [ lib.sourceTypes.binaryNativeCode ];
+      };
+
+    in
+    app.overrideAttrs (
+      oldAttrs:
+      oldAttrs
+      // {
+        pname = "xcode";
+        inherit version;
+        inherit meta;
+      }
+    );
+
+in
+lib.makeExtensible (self: {
+  inherit requireXcode;
   xcode_8_1 = requireXcode "8.1" "sha256-VuAovU/b4rcLh+xMtcsZmbTWwTk35VGfMSp+fqPbsqM=";
   xcode_8_2 = requireXcode "8.2" "sha256-ohqgGD7JEEmXEvmfn/N9Ga2lM8jNwhIuh+ky7PQPzY4=";
   xcode_9_1 = requireXcode "9.1" "sha256-LG7pVMh1rNh5uP/bASvV9sKvGDrSGWH90J4gzwcgYSk=";
@@ -80,7 +105,41 @@ in lib.makeExtensible (self: {
   xcode_14 = requireXcode "14" "sha256-E+wjPgQx/lbYAsauksdmGsygL5VPBA8R9pHB93eA7T0=";
   xcode_14_1 = requireXcode "14.1" "sha256-QJGAUVIhuDYyzDNttBPv5lIGOfvkYqdOFSUAr5tlkfs=";
   xcode_15 = requireXcode "15" "sha256-ffqISt2Ayccln5BArKIjSdzbEgoSoNwq8TPLGysAE0c=";
+  xcode_15_0_1 = requireXcode "15.0.1" "sha256-ZJFCA2HUNmw8NxW3wyIyIsMr8k6z50BHqu9IE2VjuOg=";
   xcode_15_1 = requireXcode "15.1" "sha256-0djqoSamU87rCpjo50Un3cFg9wKf+pSczRko6uumGM0=";
-  xcode = self."xcode_${lib.replaceStrings ["."] ["_"] (if (stdenv.targetPlatform ? xcodeVer) then stdenv.targetPlatform.xcodeVer else "12.3")}";
+  xcode_15_2 = requireXcode "15.2" "sha256-9B/4Tdyb3QGAzm579QGn5Iq/hA2hscD8OcoSJ5BFFXs=";
+  xcode_15_3 = requireXcode "15.3" "sha256-FyVA8EEPCI12Z4sJ4RQRZlMMpFmi7S8VYLcyvad3swM=";
+  xcode_15_4 = requireXcode "15.4" "sha256-yeo+sf6bBIJy9/1sQiMuPEMPniwGXMB6/FXXL0UrI5U=";
+  xcode_16 = requireXcode "16" "sha256-i/MMcEi5wCpe5+nGo6gUTsFFCoorORydAn7D/GClEdo=";
+  xcode_16_1 = requireXcode "16.1" "sha256-yYg6NRRnYM/5X3hhVMfcXcdoiOV36fIongJNQ5nviD8=";
+  xcode_16_2 = requireXcode "16.2" "sha256-wQjNuFZu/cN82mEEQbC1MaQt39jLLDsntsbnDidJFEs=";
+  xcode_16_3 = requireXcode "16.3" "sha256-hkIlRYUc1SD2lBwhRtqBGJapUIa+tdOyPKG19Su5OUU=";
+  xcode_16_4 = requireXcode "16.4" "sha256-voCEZlKrp9NYGmXAsf1FHxO69EgWZHDIWtQZ2qEzElA=";
+  xcode_26 = requireXcode "26_Universal" "sha256-p4INqf85CSIzd7xHRCS9tCigQkOQPKnS/+D5nue3PsY=";
+  xcode_26_Apple_silicon = requireXcode "26_Apple_silicon" "sha256-dlfZ2sM6a9pUPdukoMoqvQAj7EEUyj0a/VkXKwkkFT8=";
+  xcode_26_0_1 = requireXcode "26.0.1_Universal" "sha256-PsEIjrzxgXFqCWeHs/bsvrlxy8aN899jMhesczMbPfE=";
+  xcode_26_0_1_Apple_silicon = requireXcode "26.0.1_Apple_silicon" "sha256-UBDey19uBljjRw84bY4rzxetFEkHiXLEj39Q578jYL8=";
+  xcode_26_1 = requireXcode "26.1_Universal" "sha256-SLIn1xAjaYhKGN6EEKslzmVZv+Zoq7QNGdtNreWJ5L8=";
+  xcode_26_1_Apple_silicon = requireXcode "26.1_Apple_silicon" "sha256-xFMknk3RxxJi/5IOb2mmw7vyC1xOaY5ZwCZ09AARtJU=";
+  xcode_26_1_1 = requireXcode "26.1.1_Universal" "sha256-IkmrerBysM4eqMf/wCQHCBcEL0go/ivFlMpJ4SYQmOU=";
+  xcode_26_1_1_Apple_silicon = requireXcode "26.1.1_Apple_silicon" "sha256-5dZ1O7iD2CF8R4TBeBLkaKLe/WOi8CMJJ1/Bg+uitCw=";
+  xcode_26_2 = requireXcode "26.2_Universal" "sha256-uCw71PjAuvtKTIpcYsiFSjUZQnIBIpIoOm1QaaYHD7k=";
+  xcode_26_2_Apple_silicon = requireXcode "26.2_Apple_silicon" "sha256-YxMVppJwRzTA6xWOILxVjLdl0bNmtZSifG/KQx6inRE=";
+  xcode_26_3 = requireXcode "26.3_Universal" "sha256-qrPSc036x3tW1TWWfX10+IS2c08dRCa6KFc+++35ueM=";
+  xcode_26_3_Apple_silicon = requireXcode "26.3_Apple_silicon" "sha256-q2p45zqAZUH6Z1Q3DHbZgpuuFTjZoMPhEfFdeIUvclw=";
+  xcode_26_4 = requireXcode "26.4_Universal" "sha256-0Cg4Ytu2+JOLEqw1ZZoB6hxFXNA2KriTLwLpT8bmA7I=";
+  xcode_26_4_Apple_silicon = requireXcode "26.4_Apple_silicon" "sha256-urkJVqUY6+5z0YiEqCru9M/OneDLAMzdGfOt7i3d1WI=";
+  xcode_26_4_1 = requireXcode "26.4.1_Universal" "sha256-N9QgPKfZV64gJPlr4r/0gPS0yAgJd3a+qlr0YbzMCU4=";
+  xcode_26_4_1_Apple_silicon = requireXcode "26.4.1_Apple_silicon" "sha256-8MtGX97e/2+zvY2Et9Jm9eXqVmyr+U02UqsKmffh9hs=";
+  xcode_26_5 = requireXcode "26.5_Universal" "sha256-hQ1I7CuVOmkCcVLo1AUV25PJGL33fT3MuWR+DJZ84aQ=";
+  xcode_26_5_Apple_silicon = requireXcode "26.5_Apple_silicon" "sha256-lavdscO0z4Tyf22vV8QMooOt5yYFwnTi1oe3yA+wTdA=";
+  xcode_26_6 = requireXcode "26.6_Universal" "sha256-D2xuCXVhTLJLScQ1sxaVH8nANfgkm7/+9iYdi7/FCLI=";
+  xcode_26_6_Apple_silicon = requireXcode "26.6_Apple_silicon" "sha256-UOtZRrSPNhwCLGgpNJTPrdOrVKq+7UHnUJjlxakZmOA=";
+  xcode_27 = requireXcode "27" "sha256-k0YuMjPbP5Adnnx6KhQXGRi8kRLPpXJN+EUxpqYHwOE=";
+  xcode =
+    self."xcode_${
+      lib.replaceStrings [ "." ] [ "_" ] (
+        if (stdenv.targetPlatform ? xcodeVer) then stdenv.targetPlatform.xcodeVer else "12.3"
+      )
+    }";
 })
-

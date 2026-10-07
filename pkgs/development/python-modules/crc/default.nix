@@ -1,46 +1,37 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "crc";
-  version = "6.1.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "7.1.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "Nicoretti";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-NfJGiVxvFPlecDB72/Dfe0yafBH9dghGQh/TAnbPzOA=";
+    repo = "crc";
+    tag = version;
+    hash = "sha256-Oa2VSzNT+8O/rWZurIr7RnP8m3xAEVOQLs+ObT4xIa0=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ poetry-core ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "crc"
-  ];
+  pythonImportsCheck = [ "crc" ];
 
-  disabledTestPaths = [
-    "test/bench"
-  ];
+  disabledTestPaths = [ "test/bench" ];
 
-  meta = with lib; {
-    changelog = "https://github.com/Nicoretti/crc/releases/tag/${version}";
+  meta = {
     description = "Python module for calculating and verifying predefined & custom CRC's";
     homepage = "https://nicoretti.github.io/crc/";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ jleightcap ];
+    changelog = "https://github.com/Nicoretti/crc/releases/tag/${version}";
+    license = lib.licenses.bsd2;
+    maintainers = with lib.maintainers; [ jleightcap ];
+    mainProgram = "crc";
   };
 }

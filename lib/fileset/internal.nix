@@ -1,4 +1,6 @@
-{ lib ? import ../. }:
+{
+  lib ? import ../.,
+}:
 let
 
   inherit (builtins)
@@ -17,6 +19,7 @@ let
     attrNames
     attrValues
     mapAttrs
+    mapAttrsToList
     zipAttrsWith
     ;
 
@@ -27,6 +30,8 @@ let
   inherit (lib.lists)
     all
     commonPrefix
+    commonPrefixLength
+    concatLists
     elemAt
     filter
     findFirst
@@ -42,7 +47,6 @@ let
     append
     splitRoot
     hasStorePathPrefix
-    splitStorePath
     ;
 
   inherit (lib.path.subpath)
@@ -56,10 +60,6 @@ let
     substring
     stringLength
     hasSuffix
-    ;
-
-  inherit (lib.trivial)
-    inPureEvalMode
     ;
 in
 # Rare case of justified usage of rec:
@@ -82,7 +82,8 @@ rec {
       let
         parts = splitRoot filesetV0._internalBase;
       in
-      filesetV0 // {
+      filesetV0
+      // {
         _internalVersion = 1;
         _internalBaseRoot = parts.root;
         _internalBaseComponents = components parts.subpath;
@@ -93,7 +94,8 @@ rec {
     (
       filesetV1:
       # This change is backwards compatible (but not forwards compatible, so we still need a new version)
-      filesetV1 // {
+      filesetV1
+      // {
         _internalVersion = 2;
       }
     )
@@ -101,7 +103,8 @@ rec {
     # Convert v2 into v3: filesetTree's now have a representation for an empty file set without a base path
     (
       filesetV2:
-      filesetV2 // {
+      filesetV2
+      // {
         # All v1 file sets are not the new empty file set
         _internalIsEmptyWithoutBase = false;
         _internalVersion = 3;
@@ -129,9 +132,17 @@ rec {
     _noEval = throw _noEvalMessage;
   };
 
-  # Create a fileset, see ./README.md#fileset
-  # Type: path -> filesetTree -> fileset
-  _create = base: tree:
+  /**
+    Create a fileset, see ./README.md#fileset
+
+    # Type
+
+    ```
+    _create :: Path -> FileSetTree -> FileSet
+    ```
+  */
+  _create =
+    base: tree:
     let
       # Decompose the base into its components
       # See ../path/README.md for why we're not just using `toString`
@@ -154,13 +165,33 @@ rec {
       _noEval = throw _noEvalMessage;
     };
 
-  # Coerce a value to a fileset, erroring when the value cannot be coerced.
-  # The string gives the context for error messages.
-  # Type: String -> (fileset | Path) -> fileset
-  _coerce = context: value:
+  /**
+    Coerce a value to a fileset. Return a set containing the attribute `success`
+    indicating whether coercing succeeded, and either `value` when `success ==
+    true`, or an error `message` when `success == false`. The string gives the
+    context for error messages.
+
+    # Type
+
+    ```
+    _coerceResult :: String -> (FileSet | Path) -> ({ success :: Bool; value :: FileSet; } | { success :: Bool; message :: String; })
+    ```
+  */
+  _coerceResult =
+    let
+      ok = value: {
+        success = true;
+        inherit value;
+      };
+      error = message: {
+        success = false;
+        inherit message;
+      };
+    in
+    context: value:
     if value._type or "" == "fileset" then
       if value._internalVersion > _currentVersion then
-        throw ''
+        error ''
           ${context} is a file set created from a future version of the file set library with a different internal representation:
               - Internal version of the file set: ${toString value._internalVersion}
               - Internal version of the library: ${toString _currentVersion}
@@ -168,50 +199,74 @@ rec {
       else if value._internalVersion < _currentVersion then
         let
           # Get all the migration functions necessary to convert from the old to the current version
-          migrationsToApply = sublist value._internalVersion (_currentVersion - value._internalVersion) migrations;
+          migrationsToApply = sublist value._internalVersion (
+            _currentVersion - value._internalVersion
+          ) migrations;
         in
-        foldl' (value: migration: migration value) value migrationsToApply
+        ok (foldl' (value: migration: migration value) value migrationsToApply)
       else
-        value
-    else if ! isPath value then
+        ok value
+    else if !isPath value then
       if value ? _isLibCleanSourceWith then
-        throw ''
+        error ''
           ${context} is a `lib.sources`-based value, but it should be a file set or a path instead.
               To convert a `lib.sources`-based value to a file set you can use `lib.fileset.fromSource`.
               Note that this only works for sources created from paths.''
       else if isStringLike value then
-        throw ''
+        error ''
           ${context} ("${toString value}") is a string-like value, but it should be a file set or a path instead.
               Paths represented as strings are not supported by `lib.fileset`, use `lib.sources` or derivations instead.''
       else
-        throw ''
-          ${context} is of type ${typeOf value}, but it should be a file set or a path instead.''
-    else if ! pathExists value then
-      throw ''
+        error "${context} is of type ${typeOf value}, but it should be a file set or a path instead."
+    else if !pathExists value then
+      error ''
         ${context} (${toString value}) is a path that does not exist.
             To create a file set from a path that may not exist, use `lib.fileset.maybeMissing`.''
     else
-      _singleton value;
+      ok (_singleton value);
 
-  # Coerce many values to filesets, erroring when any value cannot be coerced,
-  # or if the filesystem root of the values doesn't match.
-  # Type: String -> [ { context :: String, value :: fileset | Path } ] -> [ fileset ]
-  _coerceMany = functionContext: list:
+  /**
+    Coerce a value to a fileset, erroring when the value cannot be coerced.
+    The string gives the context for error messages.
+
+    # Type
+
+    ```
+    _coerce :: String -> (FileSet | Path) -> FileSet
+    ```
+  */
+  _coerce =
+    context: value:
     let
-      filesets = map ({ context, value }:
-        _coerce "${functionContext}: ${context}" value
-      ) list;
+      result = _coerceResult context value;
+    in
+    if result.success then result.value else throw result.message;
+
+  /**
+    Coerce many values to filesets, erroring when any value cannot be coerced,
+    or if the filesystem root of the values doesn't match.
+
+    # Type
+
+    ```
+    _coerceMany :: String -> [{ context :: String; value :: FileSet | Path; }] -> [FileSet]
+    ```
+  */
+  _coerceMany =
+    functionContext: list:
+    let
+      filesets = map ({ context, value }: _coerce "${functionContext}: ${context}" value) list;
 
       # Find the first value with a base, there may be none!
-      firstWithBase = findFirst (fileset: ! fileset._internalIsEmptyWithoutBase) null filesets;
+      firstWithBase = findFirst (fileset: !fileset._internalIsEmptyWithoutBase) null filesets;
       # This value is only accessed if first != null
       firstBaseRoot = firstWithBase._internalBaseRoot;
 
       # Finds the first element with a filesystem root different than the first element, if any
-      differentIndex = findFirstIndex (fileset:
+      differentIndex = findFirstIndex (
+        fileset:
         # The empty value without a base doesn't have a base path
-        ! fileset._internalIsEmptyWithoutBase
-        && firstBaseRoot != fileset._internalBaseRoot
+        !fileset._internalIsEmptyWithoutBase && firstBaseRoot != fileset._internalBaseRoot
       ) null filesets;
     in
     # Only evaluates `differentIndex` if there are any elements with a base
@@ -224,9 +279,17 @@ rec {
     else
       filesets;
 
-  # Create a file set from a path.
-  # Type: Path -> fileset
-  _singleton = path:
+  /**
+    Create a file set from a path.
+
+    # Type
+
+    ```
+    _singleton :: Path -> FileSet
+    ```
+  */
+  _singleton =
+    path:
     let
       type = pathType path;
     in
@@ -239,23 +302,29 @@ rec {
       #     "default.nix" = <type>;
       #   }
       # See ./README.md#single-files
-      _create (dirOf path)
-        {
-          ${baseNameOf path} = type;
-        };
+      _create (dirOf path) {
+        ${baseNameOf path} = type;
+      };
 
-  # Expand a directory representation to an equivalent one in attribute set form.
-  # All directory entries are included in the result.
-  # Type: Path -> filesetTree -> { <name> = filesetTree; }
-  _directoryEntries = path: value:
+  /**
+    Expand a directory representation to an equivalent one in attribute set form.
+    All directory entries are included in the result.
+
+    # Type
+
+    ```
+    _directoryEntries :: Path -> FileSetTree -> { [String] :: FileSetTree }
+    ```
+  */
+  _directoryEntries =
+    path: value:
     if value == "directory" then
       readDir path
     else
       # Set all entries not present to null
-      mapAttrs (name: value: null) (readDir path)
-      // value;
+      mapAttrs (name: value: null) (readDir path) // value;
 
-  /*
+  /**
     A normalisation of a filesetTree suitable filtering with `builtins.path`:
     - Replace all directories that have no files with `null`.
       This removes directories that would be empty
@@ -264,28 +333,52 @@ rec {
 
     Note that this function is strict, it evaluates the entire tree
 
-    Type: Path -> filesetTree -> filesetTree
-  */
-  _normaliseTreeFilter = path: tree:
-    if tree == "directory" || isAttrs tree then
-      let
-        entries = _directoryEntries path tree;
-        normalisedSubtrees = mapAttrs (name: _normaliseTreeFilter (path + "/${name}")) entries;
-        subtreeValues = attrValues normalisedSubtrees;
-      in
-      # This triggers either when all files in a directory are filtered out
-      # Or when the directory doesn't contain any files at all
-      if all isNull subtreeValues then
-        null
-      # Triggers when we have the same as a `readDir path`, so we can turn it back into an equivalent "directory".
-      else if all isString subtreeValues then
-        "directory"
-      else
-        normalisedSubtrees
-    else
-      tree;
+    # Inputs
 
-  /*
+    `path`
+
+    : 1\. Function argument
+
+    `tree`
+
+    : 2\. Function argument
+
+    # Type
+
+    ```
+    _normaliseTreeFilter :: Path -> FileSetTree -> FileSetTree
+    ```
+  */
+  _normaliseTreeFilter =
+    let
+      # Recurses into a tree that's already known to be a directory (either a "directory" or an attrset).
+      #
+      # Only directories need to be recursed into:
+      # Files are either null (excluded) or a file type string (included), which are already normalised.
+      #
+      # Checking this in the caller instead of here also avoids the thunk allocation for the path concatenation below.
+      recurse =
+        path: tree:
+        let
+          normalisedSubtrees = mapAttrs (
+            name: subtree:
+            if subtree == "directory" || isAttrs subtree then recurse (path + "/${name}") subtree else subtree
+          ) (_directoryEntries path tree);
+          subtreeValues = attrValues normalisedSubtrees;
+        in
+        # This triggers either when all files in a directory are filtered out
+        # Or when the directory doesn't contain any files at all
+        if all isNull subtreeValues then
+          null
+        # Triggers when we have the same as a `readDir path`, so we can turn it back into an equivalent "directory".
+        else if all isString subtreeValues then
+          "directory"
+        else
+          normalisedSubtrees;
+    in
+    path: tree: if tree == "directory" || isAttrs tree then recurse path tree else tree;
+
+  /**
     A minimal normalisation of a filesetTree, intended for pretty-printing:
     - If all children of a path are recursively included or empty directories, the path itself is also recursively included
     - If all children of a path are fully excluded or empty directories, the path itself is an empty directory
@@ -294,9 +387,24 @@ rec {
 
     Note that this function is partially lazy.
 
-    Type: Path -> filesetTree -> filesetTree (with "emptyDir"'s)
+    # Inputs
+
+    `path`
+
+    : 1\. Function argument
+
+    `tree`
+
+    : 2\. Function argument
+
+    # Type
+
+    ```
+    _normaliseTreeMinimal :: Path -> FileSetTree -> FileSetTree (with "emptyDir"'s)
+    ```
   */
-  _normaliseTreeMinimal = path: tree:
+  _normaliseTreeMinimal =
+    path: tree:
     if tree == "directory" || isAttrs tree then
       let
         entries = _directoryEntries path tree;
@@ -326,12 +434,21 @@ rec {
     else
       tree;
 
-  # Trace a filesetTree in a pretty way when the resulting value is evaluated.
-  # This can handle both normal filesetTree's, and ones returned from _normaliseTreeMinimal
-  # Type: Path -> filesetTree (with "emptyDir"'s) -> Null
-  _printMinimalTree = base: tree:
+  /**
+    Trace a filesetTree in a pretty way when the resulting value is evaluated.
+    This can handle both normal filesetTree's, and ones returned from _normaliseTreeMinimal
+
+    # Type
+
+    ```
+    _printMinimalTree :: Path -> FileSetTree (with "emptyDir"'s) -> Null
+    ```
+  */
+  _printMinimalTree =
+    base: tree:
     let
-      treeSuffix = tree:
+      treeSuffix =
+        tree:
         if isAttrs tree then
           ""
         else if tree == "directory" then
@@ -344,14 +461,15 @@ rec {
           " (${tree})";
 
       # Only for attribute set trees
-      traceTreeAttrs = prevLine: indent: tree:
-        foldl' (prevLine: name:
+      traceTreeAttrs =
+        prevLine: indent: tree:
+        foldl' (
+          prevLine: name:
           let
             subtree = tree.${name};
 
             # Evaluating this prints the line for this subtree
-            thisLine =
-              trace "${indent}- ${name}${treeSuffix subtree}" prevLine;
+            thisLine = trace "${indent}- ${name}${treeSuffix subtree}" prevLine;
           in
           if subtree == null || subtree == "emptyDir" then
             # Don't print anything at all if this subtree is empty
@@ -373,24 +491,38 @@ rec {
         else
           trace "${toString base}${treeSuffix tree}" null;
     in
-    if isAttrs tree then
-      traceTreeAttrs firstLine "" tree
-    else
-      firstLine;
+    if isAttrs tree then traceTreeAttrs firstLine "" tree else firstLine;
 
-  # Pretty-print a file set in a pretty way when the resulting value is evaluated
-  # Type: fileset -> Null
-  _printFileset = fileset:
+  /**
+    Pretty-print a file set in a pretty way when the resulting value is evaluated
+
+    # Type
+
+    ```
+    _printFileset :: FileSet -> Null
+    ```
+  */
+  _printFileset =
+    fileset:
     if fileset._internalIsEmptyWithoutBase then
       trace "(empty)" null
     else
-      _printMinimalTree fileset._internalBase
-        (_normaliseTreeMinimal fileset._internalBase fileset._internalTree);
+      _printMinimalTree fileset._internalBase (
+        _normaliseTreeMinimal fileset._internalBase fileset._internalTree
+      );
 
-  # Turn a fileset into a source filter function suitable for `builtins.path`
-  # Only directories recursively containing at least one files are recursed into
-  # Type: fileset -> (String -> String -> Bool)
-  _toSourceFilter = fileset:
+  /**
+    Turn a fileset into a source filter function suitable for `builtins.path`
+    Only directories recursively containing at least one files are recursed into
+
+    # Type
+
+    ```
+    _toSourceFilter :: FileSet -> (String -> String -> Bool)
+    ```
+  */
+  _toSourceFilter =
+    fileset:
     let
       # Simplify the tree, necessary to make sure all empty directories are null
       # which has the effect that they aren't included in the result
@@ -398,20 +530,25 @@ rec {
 
       # The base path as a string with a single trailing slash
       baseString =
-        if fileset._internalBaseComponents == [] then
+        if fileset._internalBaseComponents == [ ] then
           # Need to handle the filesystem root specially
           "/"
         else
           "/" + concatStringsSep "/" fileset._internalBaseComponents + "/";
 
+      getBaseStringPrefix = substring 0 baseLength;
+      removeBaseStringPrefix = substring baseLength (-1);
+
       baseLength = stringLength baseString;
 
       # Check whether a list of path components under the base path exists in the tree.
       # This function is called often, so it should be fast.
-      # Type: [ String ] -> Bool
-      inTree = components:
+      # Type: [String] -> Bool
+      inTree =
+        components:
         let
-          recurse = index: localTree:
+          recurse =
+            index: localTree:
             if isAttrs localTree then
               # We have an attribute set, meaning this is a directory with at least one file
               if index >= length components then
@@ -426,7 +563,13 @@ rec {
               # If it's not an attribute set it can only be either null (in which case it's not included)
               # or a string ("directory" or "regular", etc.) in which case it's included
               localTree != null;
-        in recurse 0 tree;
+        in
+        # Start by recursing into the first element. This is guaranteed to be
+        # safe. components will never be empty (builtins.split can't make an
+        # empty list). Tree can be something other than an attrset, but if so,
+        # the isAttrs check will fail when being passed `or tree`, and the index
+        # being ahead doesn't matter.
+        recurse 2 (tree.${head components} or tree);
 
       # Filter suited when there's no files
       empty = _: _: false;
@@ -444,25 +587,34 @@ rec {
           pathSlash = path + "/";
         in
         (
+          # Same as `hasPrefix baseString pathSlash`, but more efficient.
+          # The path is either the base itself or underneath it,
+          # but only on the few paths above it, so its checked first.
+          # With base /foo/bar this matches /foo/bar and /foo/bar/baz
+          # hasPrefix "/foo/bar/" "/foo/bar/baz/"
+          if getBaseStringPrefix pathSlash == baseString then
+            if pathSlash == baseString then
+              # The path is the base directory itself, which is always included
+              true
+            else
+              # Same as `removePrefix baseString path`, but more efficient.
+              # From the above code we know that hasPrefix baseString pathSlash holds, so this is safe.
+              # We don't use pathSlash here because we only needed the trailing slash for the prefix matching.
+              # With base /foo and path /foo/bar/baz this gives
+              # inTree (split "/" (removePrefix "/foo/" "/foo/bar/baz"))
+              # == inTree (split "/" "bar/baz")
+              # == inTree [ "bar" "baz" ]
+              inTree (split "/" (removeBaseStringPrefix path))
           # Same as `hasPrefix pathSlash baseString`, but more efficient.
+          # The path is a proper ancestor of the base, which needs to be included for the base to be reachable:
           # With base /foo/bar we need to include /foo:
           # hasPrefix "/foo/" "/foo/bar/"
-          if substring 0 (stringLength pathSlash) baseString == pathSlash then
+          else if substring 0 (stringLength pathSlash) baseString == pathSlash then
             true
-          # Same as `! hasPrefix baseString pathSlash`, but more efficient.
-          # With base /foo/bar we need to exclude /baz
-          # ! hasPrefix "/baz/" "/foo/bar/"
-          else if substring 0 baseLength pathSlash != baseString then
-            false
           else
-            # Same as `removePrefix baseString path`, but more efficient.
-            # From the above code we know that hasPrefix baseString pathSlash holds, so this is safe.
-            # We don't use pathSlash here because we only needed the trailing slash for the prefix matching.
-            # With base /foo and path /foo/bar/baz this gives
-            # inTree (split "/" (removePrefix "/foo/" "/foo/bar/baz"))
-            # == inTree (split "/" "bar/baz")
-            # == inTree [ "bar" "baz" ]
-            inTree (split "/" (substring baseLength (-1) path))
+            # The path is unrelated to the base, so nothing from it is included
+            # With base /foo/bar this matches e.g. /baz
+            false
         )
         # This is a way have an additional check in case the above is true without any significant performance cost
         && (
@@ -478,16 +630,21 @@ rec {
     # Special case because the code below assumes that the _internalBase is always included in the result
     # which shouldn't be done when we have no files at all in the base
     # This also forces the tree before returning the filter, leads to earlier error messages
-    if fileset._internalIsEmptyWithoutBase || tree == null then
-      empty
-    else
-      nonEmpty;
+    if fileset._internalIsEmptyWithoutBase || tree == null then empty else nonEmpty;
 
-  # Turn a builtins.filterSource-based source filter on a root path into a file set
-  # containing only files included by the filter.
-  # The filter is lazily called as necessary to determine whether paths are included
-  # Type: Path -> (String -> String -> Bool) -> fileset
-  _fromSourceFilter = root: sourceFilter:
+  /**
+    Turn a builtins.filterSource-based source filter on a root path into a file set
+    containing only files included by the filter.
+    The filter is lazily called as necessary to determine whether paths are included
+
+    # Type
+
+    ```
+    _fromSourceFilter :: Path -> (String -> String -> Bool) -> FileSet
+    ```
+  */
+  _fromSourceFilter =
+    root: sourceFilter:
     let
       # During the recursion we need to track both:
       # - The path value such that we can safely call `readDir` on it
@@ -498,9 +655,10 @@ rec {
       # which is a fairly expensive operation
 
       # Create a file set from a directory entry
-      fromDirEntry = path: pathString: type:
+      fromDirEntry =
+        path: pathString: type:
         # The filter needs to run on the path as a string
-        if ! sourceFilter pathString type then
+        if !sourceFilter pathString type then
           null
         else if type == "directory" then
           fromDir path pathString
@@ -508,7 +666,8 @@ rec {
           type;
 
       # Create a file set from a directory
-      fromDir = path: pathString:
+      fromDir =
+        path: pathString:
         mapAttrs
           # This looks a bit funny, but we need both the path-based and the path string-based values
           (name: fromDirEntry (path + "/${name}") (pathString + "/${name}"))
@@ -531,17 +690,46 @@ rec {
     else
       # Direct files are always included by builtins.path without calling the filter
       # But we need to lift up the base path to its parent to satisfy the base path invariant
-      _create (dirOf root)
-        {
-          ${baseNameOf root} = rootPathType;
-        };
+      _create (dirOf root) {
+        ${baseNameOf root} = rootPathType;
+      };
+
+  /**
+    Turns a file set into the list of file paths it includes.
+
+    # Type
+
+    ```
+    _toList :: FileSet -> [Path]
+    ```
+  */
+  _toList =
+    fileset:
+    let
+      recurse =
+        path: tree:
+        if isAttrs tree then
+          concatLists (mapAttrsToList (name: value: recurse (path + "/${name}") value) tree)
+        else if tree == "directory" then
+          recurse path (readDir path)
+        else if tree == null then
+          [ ]
+        else
+          [ path ];
+    in
+    if fileset._internalIsEmptyWithoutBase then
+      [ ]
+    else
+      recurse fileset._internalBase fileset._internalTree;
 
   # Transforms the filesetTree of a file set to a shorter base path, e.g.
   # _shortenTreeBase [ "foo" ] (_create /foo/bar null)
   # => { bar = null; }
-  _shortenTreeBase = targetBaseComponents: fileset:
+  _shortenTreeBase =
+    targetBaseComponents: fileset:
     let
-      recurse = index:
+      recurse =
+        index:
         # If we haven't reached the required depth yet
         if index < length fileset._internalBaseComponents then
           # Create an attribute set and recurse as the value, this can be lazily evaluated this way
@@ -555,9 +743,11 @@ rec {
   # Transforms the filesetTree of a file set to a longer base path, e.g.
   # _lengthenTreeBase [ "foo" "bar" ] (_create /foo { bar.baz = "regular"; })
   # => { baz = "regular"; }
-  _lengthenTreeBase = targetBaseComponents: fileset:
+  _lengthenTreeBase =
+    targetBaseComponents: fileset:
     let
-      recurse = index: tree:
+      recurse =
+        index: tree:
         # If the filesetTree is an attribute set and we haven't reached the required depth yet
         if isAttrs tree && index < length targetBaseComponents then
           # Recurse with the tree under the right component (which might not exist)
@@ -573,13 +763,21 @@ rec {
     in
     recurse (length fileset._internalBaseComponents) fileset._internalTree;
 
-  # Computes the union of a list of filesets.
-  # The filesets must already be coerced and validated to be in the same filesystem root
-  # Type: [ Fileset ] -> Fileset
-  _unionMany = filesets:
+  /**
+    Computes the union of a list of filesets.
+    The filesets must already be coerced and validated to be in the same filesystem root
+
+    # Type
+
+    ```
+    _unionMany :: [FileSet] -> FileSet
+    ```
+  */
+  _unionMany =
+    filesets:
     let
       # All filesets that have a base, aka not the ones that are the empty value without a base
-      filesetsWithBase = filter (fileset: ! fileset._internalIsEmptyWithoutBase) filesets;
+      filesetsWithBase = filter (fileset: !fileset._internalIsEmptyWithoutBase) filesets;
 
       # The first fileset that has a base.
       # This value is only accessed if there are at all.
@@ -592,13 +790,13 @@ rec {
       # A list of path components common to all base paths.
       # Note that commonPrefix can only be fully evaluated,
       # so this cannot cause a stack overflow due to a build-up of unevaluated thunks.
-      commonBaseComponents = foldl'
-        (components: el: commonPrefix components el._internalBaseComponents)
-        firstWithBase._internalBaseComponents
-        # We could also not do the `tail` here to avoid a list allocation,
-        # but then we'd have to pay for a potentially expensive
-        # but unnecessary `commonPrefix` call
-        (tail filesetsWithBase);
+      commonBaseComponents =
+        foldl' (components: el: commonPrefix components el._internalBaseComponents)
+          firstWithBase._internalBaseComponents
+          # We could also not do the `tail` here to avoid a list allocation,
+          # but then we'd have to pay for a potentially expensive
+          # but unnecessary `commonPrefix` call
+          (tail filesetsWithBase);
 
       # The common base path assembled from a filesystem root and the common components
       commonBase = append firstWithBase._internalBaseRoot (join commonBaseComponents);
@@ -617,46 +815,66 @@ rec {
       resultTree = _unionTrees trees;
     in
     # If there's no values with a base, we have no files
-    if filesetsWithBase == [ ] then
-      _emptyWithoutBase
-    else
-      _create commonBase resultTree;
+    if filesetsWithBase == [ ] then _emptyWithoutBase else _create commonBase resultTree;
 
-  # The union of multiple filesetTree's with the same base path.
-  # Later elements are only evaluated if necessary.
-  # Type: [ filesetTree ] -> filesetTree
-  _unionTrees = trees:
-    let
-      stringIndex = findFirstIndex isString null trees;
-      withoutNull = filter (tree: tree != null) trees;
-    in
-    if stringIndex != null then
+  /**
+    The union of multiple filesetTree's with the same base path.
+    Later elements are only evaluated if necessary.
+
+    # Type
+
+    ```
+    _unionTrees :: [FileSetTree] -> FileSetTree
+    ```
+  */
+  _unionTrees =
+    trees:
+    if length trees == 1 then
+      # The union of a single tree simply returns the first element
+      head trees
+    else
+      let
+        # Like lib.findFirstIndex but without indexing.
+        # This is a hot path so the indexing arithmetic adds up.
+        firstStr = foldl' (
+          found: tree:
+          if found != null then
+            found
+          else if isString tree then
+            tree
+          else
+            found # null
+        ) null trees;
+        nonNulls = filter (tree: tree != null) trees;
+      in
       # If there's a string, it's always a fully included tree (dir or file),
       # no need to look at other elements
-      elemAt trees stringIndex
-    else if withoutNull == [ ] then
-      # If all trees are null, then the resulting tree is also null
-      null
-    else
-      # The non-null elements have to be attribute sets representing partial trees
-      # We need to recurse into those
-      zipAttrsWith (name: _unionTrees) withoutNull;
+      if firstStr != null then
+        firstStr
+      else if nonNulls == [ ] then
+        null
+      else
+        # The non-null elements have to be attribute sets representing partial trees
+        # We need to recurse into those
+        zipAttrsWith (name: _unionTrees) nonNulls;
 
-  # Computes the intersection of a list of filesets.
-  # The filesets must already be coerced and validated to be in the same filesystem root
-  # Type: Fileset -> Fileset -> Fileset
-  _intersection = fileset1: fileset2:
+  /**
+    Computes the intersection of two filesets.
+    The filesets must already be coerced and validated to be in the same filesystem root
+
+    # Type
+
+    ```
+    _intersection :: FileSet -> FileSet -> FileSet
+    ```
+  */
+  _intersection =
+    fileset1: fileset2:
     let
       # The common base components prefix, e.g.
       # (/foo/bar, /foo/bar/baz) -> /foo/bar
       # (/foo/bar, /foo/baz) -> /foo
-      commonBaseComponentsLength =
-        # TODO: Have a `lib.lists.commonPrefixLength` function such that we don't need the list allocation from commonPrefix here
-        length (
-          commonPrefix
-            fileset1._internalBaseComponents
-            fileset2._internalBaseComponents
-        );
+      commonBaseComponentsLength = commonPrefixLength fileset1._internalBaseComponents fileset2._internalBaseComponents;
 
       # To be able to intersect filesetTree's together, they need to have the same base path.
       # Base paths can be intersected by taking the longest one (if any)
@@ -696,15 +914,21 @@ rec {
     else
       _create longestBaseFileset._internalBase resultTree;
 
-  # The intersection of two filesetTree's with the same base path
-  # The second element is only evaluated as much as necessary.
-  # Type: filesetTree -> filesetTree -> filesetTree
-  _intersectTree = lhs: rhs:
+  /**
+    The intersection of two filesetTree's with the same base path
+    The second element is only evaluated as much as necessary.
+
+    # Type
+
+    ```
+    _intersectTree :: FileSetTree -> FileSetTree -> FileSetTree
+    ```
+  */
+  _intersectTree =
+    lhs: rhs:
     if isAttrs lhs && isAttrs rhs then
       # Both sides are attribute sets, we can recurse for the attributes existing on both sides
-      mapAttrs
-        (name: _intersectTree lhs.${name})
-        (builtins.intersectAttrs lhs rhs)
+      mapAttrs (name: _intersectTree lhs.${name}) (builtins.intersectAttrs lhs rhs)
     else if lhs == null || isString rhs then
       # If the lhs is null, the result should also be null
       # And if the rhs is the identity element
@@ -714,21 +938,23 @@ rec {
       # In all other cases it's the rhs
       rhs;
 
-  # Compute the set difference between two file sets.
-  # The filesets must already be coerced and validated to be in the same filesystem root.
-  # Type: Fileset -> Fileset -> Fileset
-  _difference = positive: negative:
+  /**
+    Compute the set difference between two file sets.
+    The filesets must already be coerced and validated to be in the same filesystem root.
+
+    # Type
+
+    ```
+    _difference :: FileSet -> FileSet -> FileSet
+    ```
+  */
+  _difference =
+    positive: negative:
     let
       # The common base components prefix, e.g.
       # (/foo/bar, /foo/bar/baz) -> /foo/bar
       # (/foo/bar, /foo/baz) -> /foo
-      commonBaseComponentsLength =
-        # TODO: Have a `lib.lists.commonPrefixLength` function such that we don't need the list allocation from commonPrefix here
-        length (
-          commonPrefix
-            positive._internalBaseComponents
-            negative._internalBaseComponents
-        );
+      commonBaseComponentsLength = commonPrefixLength positive._internalBaseComponents negative._internalBaseComponents;
 
       # We need filesetTree's with the same base to be able to compute the difference between them
       # This here is the filesetTree from the negative file set, but for a base path that matches the positive file set.
@@ -760,9 +986,7 @@ rec {
           null;
 
       resultingTree =
-        _differenceTree
-          positive._internalBase
-          positive._internalTree
+        _differenceTree positive._internalBase positive._internalTree
           negativeTreeWithPositiveBase;
     in
     # If the first file set is empty, we can never have any files in the result
@@ -777,9 +1001,17 @@ rec {
       # which is what base path is for
       _create positive._internalBase resultingTree;
 
-  # Computes the set difference of two filesetTree's
-  # Type: Path -> filesetTree -> filesetTree
-  _differenceTree = path: lhs: rhs:
+  /**
+    Computes the set difference of two filesetTree's
+
+    # Type
+
+    ```
+    _differenceTree :: Path -> FileSetTree -> FileSetTree -> FileSetTree
+    ```
+  */
+  _differenceTree =
+    path: lhs: rhs:
     # If the lhs doesn't have any files, or the right hand side includes all files
     if lhs == null || isString rhs then
       # The result will always be empty
@@ -790,17 +1022,26 @@ rec {
       lhs
     else
       # Otherwise we always have two attribute sets to recurse into
-      mapAttrs (name: lhsValue:
-        _differenceTree (path + "/${name}") lhsValue (rhs.${name} or null)
-      ) (_directoryEntries path lhs);
+      mapAttrs (name: lhsValue: _differenceTree (path + "/${name}") lhsValue (rhs.${name} or null)) (
+        _directoryEntries path lhs
+      );
 
-  # Filters all files in a path based on a predicate
-  # Type: ({ name, type, ... } -> Bool) -> Path -> FileSet
-  _fileFilter = predicate: root:
+  /**
+    Filters all files in a path based on a predicate
+
+    # Type
+
+    ```
+    _fileFilter :: ({ name :: String; type :: String; hasExt :: String -> Bool; ... } -> Bool) -> Path -> FileSet
+    ```
+  */
+  _fileFilter =
+    predicate: root:
     let
       # Check the predicate for a single file
-      # Type: String -> String -> filesetTree
-      fromFile = name: type:
+      # Type: String -> String -> FileSetTree
+      fromFile =
+        name: type:
         if
           predicate {
             inherit name type;
@@ -808,7 +1049,8 @@ rec {
 
             # To ensure forwards compatibility with more arguments being added in the future,
             # adding an attribute which can't be deconstructed :)
-            "lib.fileset.fileFilter: The predicate function passed as the first argument must be able to handle extra attributes for future compatibility. If you're using `{ name, file, hasExt }:`, use `{ name, file, hasExt, ... }:` instead." = null;
+            "lib.fileset.fileFilter: The predicate function passed as the first argument must be able to handle extra attributes for future compatibility. If you're using `{ name, file, hasExt }:`, use `{ name, file, hasExt, ... }:` instead." =
+              null;
           }
         then
           type
@@ -816,13 +1058,11 @@ rec {
           null;
 
       # Check the predicate for all files in a directory
-      # Type: Path -> filesetTree
-      fromDir = path:
-        mapAttrs (name: type:
-          if type == "directory" then
-            fromDir (path + "/${name}")
-          else
-            fromFile name type
+      # Type: Path -> FileSetTree
+      fromDir =
+        path:
+        mapAttrs (
+          name: type: if type == "directory" then fromDir (path + "/${name}") else fromFile name type
         ) (readDir path);
 
       rootType = pathType root;
@@ -832,36 +1072,43 @@ rec {
     else
       # Single files are turned into a directory containing that file or nothing.
       _create (dirOf root) {
-        ${baseNameOf root} =
-          fromFile (baseNameOf root) rootType;
+        ${baseNameOf root} = fromFile (baseNameOf root) rootType;
       };
 
-  # Support for `builtins.fetchGit` with `submodules = true` was introduced in 2.4
-  # https://github.com/NixOS/nix/commit/55cefd41d63368d4286568e2956afd535cb44018
-  _fetchGitSubmodulesMinver = "2.4";
+  /**
+    Mirrors the contents of a Nix store path relative to a local path as a file set.
+    Some notes:
+    - The store path is read at evaluation time.
+    - The store path must not include files that don't exist in the respective local path.
 
-  # Mirrors the contents of a Nix store path relative to a local path as a file set.
-  # Some notes:
-  # - The store path is read at evaluation time.
-  # - The store path must not include files that don't exist in the respective local path.
-  #
-  # Type: Path -> String -> FileSet
-  _mirrorStorePath = localPath: storePath:
+    # Type
+
+    ```
+    _mirrorStorePath :: Path -> String -> FileSet
+    ```
+  */
+  _mirrorStorePath =
+    localPath: storePath:
     let
-      recurse = focusedStorePath:
-        mapAttrs (name: type:
-          if type == "directory" then
-            recurse (focusedStorePath + "/${name}")
-          else
-            type
+      recurse =
+        focusedStorePath:
+        mapAttrs (
+          name: type: if type == "directory" then recurse (focusedStorePath + "/${name}") else type
         ) (builtins.readDir focusedStorePath);
     in
-    _create localPath
-      (recurse storePath);
+    _create localPath (recurse storePath);
 
-  # Create a file set from the files included in the result of a fetchGit call
-  # Type: String -> String -> Path -> Attrs -> FileSet
-  _fromFetchGit = function: argument: path: extraFetchGitAttrs:
+  /**
+    Create a file set from the files included in the result of a fetchGit call
+
+    # Type
+
+    ```
+    _fromFetchGit :: String -> String -> Path -> AttrSet -> FileSet
+    ```
+  */
+  _fromFetchGit =
+    function: argument: path: extraFetchGitAttrs:
     let
       # The code path for when isStorePath is true
       tryStorePath =
@@ -892,21 +1139,25 @@ rec {
           # With the [lazy trees PR](https://github.com/NixOS/nix/pull/6530),
           # the unnecessarily import could be avoided.
           # However a simpler alternative still would be [a builtins.gitLsFiles](https://github.com/NixOS/nix/issues/2944).
-          fetchResult = fetchGit ({
-            url = path;
-          } // extraFetchGitAttrs);
+          fetchResult = fetchGit (
+            {
+              url = path;
+              shallow = true;
+            }
+            // extraFetchGitAttrs
+          );
         in
         # We can identify local working directories by checking for .git,
         # see https://git-scm.com/docs/gitrepository-layout#_description.
         # Note that `builtins.fetchGit` _does_ work for bare repositories (where there's no `.git`),
         # even though `git ls-files` wouldn't return any files in that case.
-        if ! pathExists (path + "/.git") then
+        if !pathExists (path + "/.git") then
           throw "lib.fileset.${function}: Expected the ${argument} (${toString path}) to point to a local working tree of a Git repository, but it's not."
         else
           _mirrorStorePath path fetchResult.outPath;
 
     in
-    if ! isPath path then
+    if !isPath path then
       throw "lib.fileset.${function}: Expected the ${argument} to be a path, but it's a ${typeOf path} instead."
     else if pathType path != "directory" then
       throw "lib.fileset.${function}: Expected the ${argument} (${toString path}) to be a directory, but it's a file instead."

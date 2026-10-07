@@ -1,19 +1,21 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools
-, wheel
-, scipy
-, numpy
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  wheel,
+  scipy,
+  numpy,
 }:
 
 buildPythonPackage rec {
-  pname = "pyDOE";
+  pname = "pydoe";
   version = "0.3.8";
   pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
+    pname = "pyDOE";
+    inherit version;
     hash = "sha256-y9bxSuJtPJ9zYBMgX1PqEZGt1FZwM8Pud7fdNWVmxLY=";
     extension = "zip";
   };
@@ -29,10 +31,10 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "pyDOE" ];
 
-  meta = with lib; {
+  meta = {
     description = "Design of experiments for Python";
     homepage = "https://github.com/tisimst/pyDOE";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ doronbehar ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ doronbehar ];
   };
 }

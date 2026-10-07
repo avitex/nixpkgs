@@ -1,53 +1,48 @@
-{ lib
-, buildPythonPackage
-, ddt
-, fetchFromGitHub
-, gitdb
-, pkgs
-, pythonOlder
-, substituteAll
-, typing-extensions
+{
+  lib,
+  buildPythonPackage,
+  ddt,
+  fetchFromGitHub,
+  gitdb,
+  pkgs,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "gitpython";
-  version = "3.1.40";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "3.1.58";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "gitpython-developers";
     repo = "GitPython";
-    rev = "refs/tags/${version}";
-    hash = "sha256-a5Ez6SuSqrJE306FrFjEnSoVhALVvubF1pLW4awK4gM=";
+    tag = finalAttrs.version;
+    hash = "sha256-C6hrN7SRWngwkD/NYvsoEVQUagdurkxzWbnn42EJOHE=";
   };
-
-  propagatedBuildInputs = [
-    ddt
-    gitdb
-    pkgs.gitMinimal
-  ] ++ lib.optionals (pythonOlder "3.10") [
-    typing-extensions
-  ];
 
   postPatch = ''
     substituteInPlace git/cmd.py \
       --replace 'git_exec_name = "git"' 'git_exec_name = "${pkgs.gitMinimal}/bin/git"'
   '';
 
+  build-system = [ setuptools ];
+
+  dependencies = [
+    ddt
+    gitdb
+    pkgs.gitMinimal
+  ];
+
   # Tests require a git repo
   doCheck = false;
 
-  pythonImportsCheck = [
-    "git"
-  ];
+  pythonImportsCheck = [ "git" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python Git Library";
     homepage = "https://github.com/gitpython-developers/GitPython";
-    changelog = "https://github.com/gitpython-developers/GitPython/blob/${version}/doc/source/changes.rst";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/gitpython-developers/GitPython/blob/${finalAttrs.src.tag}/doc/source/changes.rst";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

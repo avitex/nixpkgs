@@ -1,31 +1,28 @@
-{ stdenv
-, lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, pythonOlder
-, rustPlatform
-, libiconv
+{
+  stdenv,
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  rustPlatform,
+  libiconv,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "evtx";
-  version = "0.8.2";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "0.13.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "omerbenamram";
     repo = "pyevtx-rs";
-    rev = "refs/tags/${version}";
-    hash = "sha256-t//oNvD+7wnv5KkriKBX4xgGS8pQpZgCsKxAEXsj0X8=";
+    tag = finalAttrs.version;
+    hash = "sha256-5szp+yh2RCUFWbd44nr5dfnu6o6tyaF/vT5MyzwN4iY=";
   };
 
-  cargoDeps = rustPlatform.fetchCargoTarball {
-    inherit src;
-    name = "${pname}-${version}";
-    hash = "sha256-DPEL36cYNV5v4iW3+Fg1eEeuBuK9S7Qe78xOzZs8aJw=";
+  cargoDeps = rustPlatform.fetchCargoVendor {
+    inherit (finalAttrs) pname version src;
+    hash = "sha256-y4QIjbGN1rVJmCvHq3KSKiwZvMOvQI9I/sdGgizYxMw=";
   };
 
   nativeBuildInputs = with rustPlatform; [
@@ -33,23 +30,17 @@ buildPythonPackage rec {
     maturinBuildHook
   ];
 
-  buildInputs = lib.optionals stdenv.isDarwin [
-    libiconv
-  ];
+  buildInputs = lib.optionals stdenv.hostPlatform.isDarwin [ libiconv ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "evtx"
-  ];
+  pythonImportsCheck = [ "evtx" ];
 
-  meta = with lib; {
+  meta = {
     description = "Bindings for evtx";
     homepage = "https://github.com/omerbenamram/pyevtx-rs";
-    changelog = "https://github.com/omerbenamram/pyevtx-rs/releases/tag/${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/omerbenamram/pyevtx-rs/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

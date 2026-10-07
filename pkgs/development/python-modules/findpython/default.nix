@@ -1,54 +1,49 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
 
-# build time
-, pdm-backend
+  # build time
+  pdm-backend,
 
-# runtime
-, packaging
+  # runtime
+  packaging,
+  platformdirs,
 
-# tests
-, pytestCheckHook
+  # tests
+  pytestCheckHook,
 }:
 
 let
   pname = "findpython";
-  version = "0.4.1";
+  version = "0.8.0";
 in
 buildPythonPackage {
   inherit pname version;
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-19AUVYaBs3YdV6WyNCpxOovzAvbB/J2Z+Budi9FoGwQ=";
+    hash = "sha256-U7MiZIdN+lmQvQnXF4GThtjbMUnYn+IPiP4QeN4oa64=";
   };
 
-  nativeBuildInputs = [
-    pdm-backend
-  ];
+  build-system = [ pdm-backend ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     packaging
+    platformdirs
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "findpython"
-  ];
+  pythonImportsCheck = [ "findpython" ];
 
-  meta = with lib; {
-    description = "A utility to find python versions on your system";
+  meta = {
+    description = "Utility to find python versions on your system";
+    mainProgram = "findpython";
     homepage = "https://github.com/frostming/findpython";
     changelog = "https://github.com/frostming/findpython/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ hexa ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ hexa ];
   };
 }

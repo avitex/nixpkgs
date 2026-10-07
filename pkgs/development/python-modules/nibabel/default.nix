@@ -1,91 +1,88 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, hatchling
-, hatch-vcs
-, numpy
-, packaging
-, importlib-resources
-, pydicom
-, pillow
-, h5py
-, scipy
-, git
-, pytest-doctestplus
-, pytest-httpserver
-, pytest-xdist
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonOlder,
+
+  # build-system
+  hatch-vcs,
+  hatchling,
+
+  # dependencies
+  numpy,
+  packaging,
+  importlib-resources,
+  typing-extensions,
+
+  # optional-dependencies
+  backports-zstd,
+  indexed-gzip,
+  matplotlib,
+  pydicom,
+  pillow,
+  h5py,
+  scipy,
+
+  addBinToPathHook,
+  gitMinimal,
+  pytest-doctestplus,
+  pytest-httpserver,
+  pytest-xdist,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "nibabel";
-  version = "5.1.0";
-  format = "pyproject";
+  version = "5.4.2";
+  pyproject = true;
 
-  disabled = pythonOlder "3.8";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-znPKXpVyCechmiI8tx93I1yd8qz00/J/hhujjpSBrFM=";
+  src = fetchFromGitHub {
+    owner = "nipy";
+    repo = "nibabel";
+    tag = finalAttrs.version;
+    hash = "sha256-QzkmSI0JGdIXLc3XSPZrGrBYSq98tLFrozNNopR/ytg=";
   };
 
-  nativeBuildInputs = [
-    hatchling
+  build-system = [
     hatch-vcs
+    hatchling
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     numpy
     packaging
-  ] ++ lib.optionals (pythonOlder "3.9") [
-    importlib-resources
-  ];
+  ]
+  ++ lib.optionals (pythonOlder "3.12") [ importlib-resources ]
+  ++ lib.optionals (pythonOlder "3.13") [ typing-extensions ];
 
-  passthru.optional-dependencies = rec {
-    all = dicom
-      ++ dicomfs
-      ++ minc2
-      ++ spm
-      ++ zstd;
-    dicom = [
-      pydicom
-    ];
-    dicomfs = [
-      pillow
-    ] ++ dicom;
-    minc2 = [
-      h5py
-    ];
-    spm = [
-      scipy
-    ];
-    zstd = [
-      # TODO: pyzstd
-    ];
-  };
+  optional-dependencies = lib.fix (self: {
+    all = self.dicomfs ++ self.indexed_gzip ++ self.minc2 ++ self.spm ++ self.zstd;
+    dicom = [ pydicom ];
+    dicomfs = [ pillow ] ++ self.dicom;
+    indexed_gzip = [ indexed-gzip ];
+    minc2 = [ h5py ];
+    spm = [ scipy ];
+    viewers = [ matplotlib ];
+    zstd = lib.optionals (pythonOlder "3.14") [ backports-zstd ];
+  });
 
   nativeCheckInputs = [
-    git
+    addBinToPathHook
+    gitMinimal
     pytest-doctestplus
     pytest-httpserver
     pytest-xdist
     pytestCheckHook
-  ] ++ passthru.optional-dependencies.all;
+  ]
+  ++ finalAttrs.passthru.optional-dependencies.all;
 
-  preCheck = ''
-    export PATH=$out/bin:$PATH
-  '';
+  pythonImportsCheck = [ "nibabel" ];
 
-  disabledTests = [
-    # https://github.com/nipy/nibabel/issues/951
-    "test_filenames"
-  ];
-
-  meta = with lib; {
+  meta = {
     homepage = "https://nipy.org/nibabel";
+    changelog = "https://github.com/nipy/nibabel/blob/${finalAttrs.version}/Changelog";
     description = "Access a multitude of neuroimaging data formats";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ashgillman ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ ashgillman ];
   };
-}
+})

@@ -6,9 +6,19 @@
 # };
 # Make additional configurations on demand:
 # wine.override { wineBuild = "wine32"; wineRelease = "staging"; };
-{ lib, stdenv, callPackage, darwin,
+args@{
+  lib,
+  stdenv,
+  callPackage,
+  darwin,
   wineRelease ? "stable",
-  wineBuild ? if stdenv.hostPlatform.system == "x86_64-linux" then "wineWow" else "wine32",
+  wineBuild ?
+    if stdenv.hostPlatform.system == "x86_64-linux" then
+      "wineWow"
+    else if stdenv.hostPlatform.isAarch64 then
+      "wine64"
+    else
+      "wine32",
   gettextSupport ? false,
   fontconfigSupport ? false,
   alsaSupport ? false,
@@ -35,33 +45,65 @@
   vulkanSupport ? false,
   sdlSupport ? false,
   usbSupport ? false,
-  mingwSupport ? wineRelease != "stable",
-  waylandSupport ? stdenv.isLinux,
-  x11Support ? stdenv.isLinux,
+  mingwSupport ? stdenv.hostPlatform.isDarwin || stdenv.hostPlatform.isAarch64,
+  waylandSupport ? false,
+  x11Support ? false,
+  ffmpegSupport ? false,
   embedInstallers ? false, # The Mono and Gecko MSI installers
-  moltenvk ? darwin.moltenvk # Allow users to override MoltenVK easily
+  moltenvk, # Allow users to override MoltenVK easily
+  smartcardSupport ? false,
 }:
 
-let wine-build = build: release:
-      lib.getAttr build (callPackage ./packages.nix {
-        wineRelease = release;
-        supportFlags = {
-          inherit
-            alsaSupport cairoSupport cupsSupport cursesSupport dbusSupport
-            embedInstallers fontconfigSupport gettextSupport gphoto2Support
-            gstreamerSupport gtkSupport krb5Support mingwSupport netapiSupport
-            odbcSupport openclSupport openglSupport pcapSupport
-            pulseaudioSupport saneSupport sdlSupport tlsSupport udevSupport
-            usbSupport v4lSupport vaSupport vulkanSupport waylandSupport
-            x11Support xineramaSupport
-          ;
-        };
-        inherit moltenvk;
-      });
+let
+  sources = callPackage ./sources.nix { };
 
-in if wineRelease == "staging" then
-  callPackage ./staging.nix {
-    wineUnstable = wine-build wineBuild "unstable";
-  }
+  supportFlags = lib.filterAttrs (
+    name: _:
+    !builtins.elem name [
+      "lib"
+      "stdenv"
+      "callPackage"
+      "darwin"
+      "wineRelease"
+      "wineBuild"
+    ]
+  ) args;
+
+  # Map user-facing release names to sources, pname suffix, and staging flag
+  releaseInfo = {
+    stable = {
+      src = sources.stable;
+      useStaging = false;
+    };
+    unstable = {
+      src = sources.unstable;
+      useStaging = false;
+    };
+    # Many versions have a "staging" variant, but when we say "staging",
+    # the version we want to use is "unstable".
+    staging = {
+      src = sources.unstable;
+      pnameSuffix = "-staging";
+      useStaging = true;
+    };
+    # "yabridge" enables staging too --- we are not interested in
+    # yabridge without the staging patches applied.
+    yabridge = {
+      src = sources.yabridge;
+      pnameSuffix = "-yabridge";
+      useStaging = true;
+    };
+  };
+
+  baseWine = lib.getAttr wineBuild (
+    callPackage ./packages.nix (releaseInfo.${wineRelease} // supportFlags)
+  );
+in
+if wineRelease == "yabridge" then
+  baseWine.overrideAttrs (old: {
+    env = old.env // {
+      NIX_CFLAGS_COMPILE = "-std=gnu17";
+    };
+  })
 else
-  wine-build wineBuild wineRelease
+  baseWine

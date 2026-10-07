@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   cfg = config.hardware.glasgow;
@@ -9,7 +14,7 @@ in
     enable = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = lib.mdDoc ''
+      description = ''
         Enables Glasgow udev rules and ensures 'plugdev' group exists.
         This is a prerequisite to using Glasgow without being root.
       '';
@@ -17,6 +22,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    environment.systemPackages = [ pkgs.glasgow ];
     services.udev.packages = [ pkgs.glasgow ];
     users.groups.plugdev = { };
   };

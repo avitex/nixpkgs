@@ -1,21 +1,19 @@
-{ lib
-, buildPythonPackage
-, cogapp
-, fetchPypi
-, mock
-, nose
-, pytestCheckHook
-, pythonOlder
-, six
-, virtualenv
+{
+  lib,
+  buildPythonPackage,
+  cogapp,
+  fetchPypi,
+  mock,
+  setuptools,
+  pytestCheckHook,
+  six,
+  virtualenv,
 }:
 
 buildPythonPackage rec {
   pname = "paver";
   version = "1.3.4";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  pyproject = true;
 
   src = fetchPypi {
     pname = "Paver";
@@ -23,31 +21,31 @@ buildPythonPackage rec {
     hash = "sha256-0+ZJiIFIWrdQ7+QMUniYKpNDvGJ+E3sRrc7WJ3GTCMc=";
   };
 
-  propagatedBuildInputs = [
-    six
-  ];
+  build-system = [ setuptools ];
+
+  dependencies = [ six ];
 
   checkInputs = [
     cogapp
     mock
-    nose
     pytestCheckHook
     virtualenv
   ];
 
-  pythonImportsCheck = [
-    "paver"
-  ];
+  pythonImportsCheck = [ "paver" ];
 
   disabledTestPaths = [
-    # Test depends on distutils
+    # Tests depend on distutils
     "paver/tests/test_setuputils.py"
+    "paver/tests/test_doctools.py"
+    "paver/tests/test_tasks.py"
   ];
 
-  meta = with lib; {
-    description = "A Python-based build/distribution/deployment scripting tool";
+  meta = {
+    description = "Python-based build/distribution/deployment scripting tool";
+    mainProgram = "paver";
     homepage = "https://github.com/paver/paver";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ lovek323 ];
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
 }

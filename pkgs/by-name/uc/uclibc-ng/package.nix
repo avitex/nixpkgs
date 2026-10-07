@@ -1,13 +1,16 @@
-{ lib
-, stdenv
-, buildPackages
-, fetchurl
-, linuxHeaders
-, libiconvReal
-, extraConfig ? ""
+{
+  lib,
+  stdenvNoLibc,
+  buildPackages,
+  fetchurl,
+  gitUpdater,
+  linuxHeaders,
+  libiconvReal,
+  extraConfig ? "",
 }:
 
 let
+  stdenv = stdenvNoLibc;
   isCross = (stdenv.buildPlatform != stdenv.hostPlatform);
   configParser = ''
     function parseconfig {
@@ -23,16 +26,15 @@ let
             echo "parseconfig: removing $NAME"
             sed -i /^$NAME=/d .config
 
-            #if test "$OPTION" != n; then
-                echo "parseconfig: setting $NAME=$OPTION"
-                echo "$NAME=$OPTION" >> .config
-            #fi
+            echo "parseconfig: setting $NAME=$OPTION"
+            echo "$NAME=$OPTION" >> .config
         done
         set +x
     }
   '';
 
   # UCLIBC_SUSV4_LEGACY defines 'tmpnam', needed for gcc libstdc++ builds.
+  # 'ftw' needed to build acl, a coreutils dependency
   nixConfig = ''
     RUNTIME_PREFIX "/"
     DEVEL_PREFIX "/"
@@ -45,29 +47,37 @@ let
     UCLIBC_SUSV4_LEGACY y
     UCLIBC_HAS_THREADS_NATIVE y
     KERNEL_HEADERS "${linuxHeaders}/include"
-  '' + lib.optionalString (stdenv.hostPlatform.gcc.float or "" == "soft") ''
+  ''
+  + lib.optionalString (stdenv.hostPlatform.gcc.float or "" == "soft") ''
     UCLIBC_HAS_FPU n
-  '' + lib.optionalString (stdenv.isAarch32 && isCross) ''
+  ''
+  + lib.optionalString stdenv.hostPlatform.isEabi ''
     CONFIG_ARM_EABI y
+  ''
+  + lib.optionalString stdenv.hostPlatform.isLittleEndian ''
     ARCH_WANTS_BIG_ENDIAN n
     ARCH_BIG_ENDIAN n
     ARCH_WANTS_LITTLE_ENDIAN y
     ARCH_LITTLE_ENDIAN y
-    UCLIBC_HAS_FPU n
+  ''
+  + lib.optionalString stdenv.hostPlatform.isBigEndian ''
+    ARCH_WANTS_BIG_ENDIAN y
+    ARCH_BIG_ENDIAN y
+    ARCH_WANTS_LITTLE_ENDIAN n
+    ARCH_LITTLE_ENDIAN n
   '';
 in
 stdenv.mkDerivation (finalAttrs: {
   pname = "uclibc-ng";
-  version = "1.0.44";
+  version = "1.0.59";
 
   src = fetchurl {
     url = "https://downloads.uclibc-ng.org/releases/${finalAttrs.version}/uClibc-ng-${finalAttrs.version}.tar.xz";
-    sha256 = "sha256-ffnZh5VYJzgvHCQA2lE0Vr7Ltvhovf03c3Jl8cvuyZQ=";
+    hash = "sha256-hsbxWXG/sUFWhQ8uNpBtrFpp33s+aIIW0a6gnS21QXQ=";
   };
 
-  # 'ftw' needed to build acl, a coreutils dependency
   configurePhase = ''
-    make defconfig
+    make defconfig ARCH=${stdenv.hostPlatform.linuxArch}
     ${configParser}
     cat << EOF | parseconfig
     ${nixConfig}
@@ -87,8 +97,9 @@ stdenv.mkDerivation (finalAttrs: {
   makeFlags = [
     "ARCH=${stdenv.hostPlatform.linuxArch}"
     "TARGET_ARCH=${stdenv.hostPlatform.linuxArch}"
-    "VERBOSE=1"
-  ] ++ lib.optionals (isCross) [
+    "V=1"
+  ]
+  ++ lib.optionals isCross [
     "CROSS=${stdenv.cc.targetPrefix}"
   ];
 
@@ -109,9 +120,14 @@ stdenv.mkDerivation (finalAttrs: {
   '';
 
   passthru = {
-    # Derivations may check for the existance of this attribute, to know what to
+    # Derivations may check for the existence of this attribute, to know what to
     # link to.
     libiconv = libiconvReal;
+
+    updateScript = gitUpdater {
+      url = "https://git.uclibc-ng.org/git/uclibc-ng.git";
+      rev-prefix = "v";
+    };
   };
 
   meta = {
@@ -133,7 +149,7 @@ stdenv.mkDerivation (finalAttrs: {
       experimental and need more testing.
     '';
     license = lib.licenses.lgpl2Plus;
-    maintainers = with lib.maintainers; [ rasendubi AndersonTorres ];
+    maintainers = with lib.maintainers; [ aleclearmind ];
     platforms = lib.platforms.linux;
     badPlatforms = lib.platforms.aarch64;
   };

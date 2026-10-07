@@ -1,64 +1,56 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, importlib-metadata
-, jinja2
-, markdown
-, markupsafe
-, mkdocs
-, mkdocs-autorefs
-, pdm-backend
-, pymdown-extensions
-, pytestCheckHook
-, pythonOlder
-, typing-extensions
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  jinja2,
+  markdown,
+  markupsafe,
+  mkdocs,
+  mkdocs-autorefs,
+  pdm-backend,
+  pymdown-extensions,
+  pytestCheckHook,
+  dirty-equals,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "mkdocstrings";
-  version = "0.24.0";
+  version = "1.0.4";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "mkdocstrings";
     repo = "mkdocstrings";
-    rev = "refs/tags/${version}";
-    hash = "sha256-UqX2jNNYwDNhb71qGdjHNoo2MmSxjf/bZiUoSxlE2XQ=";
+    tag = finalAttrs.version;
+    hash = "sha256-FBDzTArJGKoJOmOLiYNTA9kshHWqD7zV1nR3sG4sOMk=";
   };
 
   postPatch = ''
     substituteInPlace pyproject.toml \
-      --replace 'dynamic = ["version"]' 'version = "${version}"'
+      --replace-fail 'dynamic = ["version"]' 'version = "${finalAttrs.version}"'
   '';
 
-  nativeBuildInputs = [
-    pdm-backend
-  ];
+  build-system = [ pdm-backend ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     jinja2
     markdown
     markupsafe
     mkdocs
     mkdocs-autorefs
     pymdown-extensions
-  ] ++ lib.optionals (pythonOlder "3.10") [
-    importlib-metadata
-    typing-extensions
   ];
 
   nativeCheckInputs = [
     pytestCheckHook
+    dirty-equals
   ];
 
-  pythonImportsCheck = [
-    "mkdocstrings"
-  ];
+  pythonImportsCheck = [ "mkdocstrings" ];
 
   disabledTestPaths = [
     # Circular dependencies
+    "tests/test_api.py"
     "tests/test_extension.py"
   ];
 
@@ -67,13 +59,14 @@ buildPythonPackage rec {
     "test_disabling_plugin"
     # Circular dependency on mkdocstrings-python
     "test_extended_templates"
+    "test_nested_autodoc[ext_markdown0]"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Automatic documentation from sources for MkDocs";
     homepage = "https://github.com/mkdocstrings/mkdocstrings";
-    changelog = "https://github.com/mkdocstrings/mkdocstrings/blob/${version}/CHANGELOG.md";
-    license = licenses.isc;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/mkdocstrings/mkdocstrings/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.isc;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

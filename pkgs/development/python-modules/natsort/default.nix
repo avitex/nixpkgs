@@ -1,21 +1,19 @@
-{ lib
-, buildPythonPackage
-, fastnumbers
-, fetchPypi
-, glibcLocales
-, hypothesis
-, pyicu
-, pytest-mock
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fastnumbers,
+  fetchPypi,
+  glibcLocales,
+  hypothesis,
+  pyicu,
+  pytest-mock,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "natsort";
   version = "8.4.0";
   format = "setuptools";
-
-  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
@@ -40,15 +38,14 @@ buildPythonPackage rec {
     "test_string_component_transform_factory"
   ];
 
-  pythonImportsCheck = [
-    "natsort"
-  ];
+  pythonImportsCheck = [ "natsort" ];
 
-  meta = with lib; {
+  meta = {
     description = "Natural sorting for Python";
+    mainProgram = "natsort";
     homepage = "https://github.com/SethMMorton/natsort";
     changelog = "https://github.com/SethMMorton/natsort/blob/${version}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

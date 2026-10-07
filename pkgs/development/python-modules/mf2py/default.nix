@@ -1,33 +1,29 @@
-{ lib
-, beautifulsoup4
-, buildPythonPackage
-, fetchFromGitHub
-, html5lib
-, lxml
-, mock
-, poetry-core
-, pytestCheckHook
-, pythonOlder
-, requests
+{
+  lib,
+  beautifulsoup4,
+  buildPythonPackage,
+  fetchFromGitHub,
+  html5lib,
+  lxml,
+  mock,
+  poetry-core,
+  pytestCheckHook,
+  requests,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "mf2py";
   version = "2.0.1";
   pyproject = true;
 
-  disabled = pythonOlder "3.8";
-
   src = fetchFromGitHub {
     owner = "microformats";
     repo = "mf2py";
-    rev = "refs/tags/v${version}";
+    tag = "v${finalAttrs.version}";
     hash = "sha256-mhJ+s1rtXEJ6DqVmiyWNEK+3cdDLpR63Q4QGmD9wVio=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  nativeBuildInputs = [ poetry-core ];
 
   propagatedBuildInputs = [
     beautifulsoup4
@@ -41,15 +37,13 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "mf2py"
-  ];
+  pythonImportsCheck = [ "mf2py" ];
 
-  meta = with lib; {
+  meta = {
     description = "Microformats2 parser written in Python";
     homepage = "https://microformats.org/wiki/mf2py";
-    changelog = "https://github.com/microformats/mf2py/blob/v${version}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ambroisie ];
+    changelog = "https://github.com/microformats/mf2py/blob/v${finalAttrs.version}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ ambroisie ];
   };
-}
+})

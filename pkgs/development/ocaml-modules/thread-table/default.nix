@@ -1,8 +1,9 @@
-{ lib
-, fetchurl
-, buildDunePackage
-, alcotest
-, mdx
+{
+  lib,
+  fetchurl,
+  buildDunePackage,
+  alcotest,
+  mdx,
 }:
 
 buildDunePackage rec {
@@ -30,8 +31,8 @@ buildDunePackage rec {
   meta = {
     homepage = "https://github.com/ocaml-multicore/ocaml-${pname}";
     changelog = "https://github.com/ocaml-multicore/ocaml-${pname}/raw/${version}/CHANGES.md";
-    description = "A lock-free thread-safe integer keyed hash table";
-    license = with lib.licenses; [ isc ];
+    description = "Lock-free thread-safe integer keyed hash table";
+    license = lib.licenses.isc;
     maintainers = with lib.maintainers; [ toastal ];
   };
 }

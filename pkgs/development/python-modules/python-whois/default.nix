@@ -1,42 +1,49 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, future
-, nose
-, pytestCheckHook
-, simplejson
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pytestCheckHook,
+  python-dateutil,
+  setuptools,
+  simplejson,
 }:
 
 buildPythonPackage rec {
   pname = "python-whois";
-  version = "0.8.0";
-  format = "setuptools";
+  version = "0.9.6";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-3TNtNRfqzip2iUBtt7uWraPF50MnQjFRru4+ZCJfYiA=";
+    pname = "python_whois";
+    inherit version;
+    hash = "sha256-Lm3nttcOMFqF9IWc0XeB7j8No6AqjpTyPLTNzS5AC/o=";
   };
 
-  propagatedBuildInputs = [ future ];
+  build-system = [ setuptools ];
+
+  dependencies = [ python-dateutil ];
 
   nativeCheckInputs = [
-    nose
     pytestCheckHook
     simplejson
   ];
 
-  # Exclude tests that require network access
   disabledTests = [
+    # Exclude tests that require network access
     "test_dk_parse"
     "test_ipv4"
     "test_ipv6"
+    "test_choose_server"
+    "test_simple_ascii_domain"
+    "test_simple_unicode_domain"
   ];
+
   pythonImportsCheck = [ "whois" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python module to produce parsed WHOIS data";
     homepage = "https://github.com/richardpenman/whois";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

@@ -1,30 +1,31 @@
-{ lib
-, buildPythonPackage
-, dnspython
-, fetchFromGitHub
-, ldap3
-, pyasn1
-, pycryptodome
-, pythonOlder
-, pytz
-, six
+{
+  lib,
+  buildPythonPackage,
+  dnspython,
+  fetchFromGitHub,
+  ldap3,
+  pyasn1,
+  pycryptodome,
+  pytz,
+  setuptools,
+  six,
 }:
 
 buildPythonPackage rec {
   pname = "ms-active-directory";
-  version = "1.13.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.8";
+  version = "1.14.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "zorn96";
     repo = "ms_active_directory";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-+wfhtEGuC1R5jbEnWm4mDHIR096KKEcG/K8SuItwjGk=";
+    tag = "v${version}";
+    hash = "sha256-ZFIeG95+G9ofk54bYZpqu8uVfzjqsOrwWlIZvQgIWRI=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     dnspython
     ldap3
     pyasn1
@@ -36,15 +37,13 @@ buildPythonPackage rec {
   # Module has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "ms_active_directory"
-  ];
+  pythonImportsCheck = [ "ms_active_directory" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python module for integrating with Microsoft Active Directory domains";
     homepage = "https://github.com/zorn96/ms_active_directory/";
     changelog = "https://github.com/zorn96/ms_active_directory/releases/tag/v${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

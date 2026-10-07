@@ -1,53 +1,74 @@
-{ lib
-, buildPythonPackage
-, defusedxml
-, fetchFromGitHub
-, marshmallow
-, pytest-datafiles
-, pytest-vcr
-, pytestCheckHook
-, python-box
-, python-dateutil
-, pythonOlder
-, requests
-, requests-pkcs12
-, responses
-, restfly
-, semver
-, setuptools
-, typing-extensions
+{
+  lib,
+  arrow,
+  buildPythonPackage,
+  cryptography,
+  defusedxml,
+  fetchFromGitHub,
+  gql,
+  graphql-core,
+  marshmallow,
+  pydantic-extra-types,
+  pydantic,
+  pyprojectVersionPatchHook,
+  pytest-cov-stub,
+  pytest-datafiles,
+  pytest-vcr,
+  pytestCheckHook,
+  python-box,
+  python-dateutil,
+  requests-pkcs12,
+  requests-toolbelt,
+  requests,
+  responses,
+  restfly,
+  semver,
+  setuptools,
+  typing-extensions,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pytenable";
-  version = "1.4.18";
+  version = "26.8.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "tenable";
     repo = "pyTenable";
-    rev = "refs/tags/${version}";
-    hash = "sha256-JAS+C1MeO/B8ZQ2BYsRwpVW08E9hGoJcvv9zOJZD3Gg=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-KRZbrJgIxdNAnlmP7Ww/JasoDJqJZkBkd0qXm9gfXp4=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  postPatch = ''
+    # pytest 9 rejects marks on fixtures, where they never had any effect
+    substituteInPlace tests/sc/conftest.py \
+      --replace-fail "@pytest.mark.filterwarnings('ignore::DeprecationWarning')" ""
+  '';
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  nativeBuildInputs = [ pyprojectVersionPatchHook ];
+
+  dependencies = [
+    arrow
+    cryptography
     defusedxml
+    gql
+    graphql-core
     marshmallow
+    pydantic
+    pydantic-extra-types
     python-box
     python-dateutil
     requests
+    requests-toolbelt
     restfly
     semver
     typing-extensions
   ];
 
   nativeCheckInputs = [
+    pytest-cov-stub
     pytest-datafiles
     pytest-vcr
     pytestCheckHook
@@ -61,25 +82,19 @@ buildPythonPackage rec {
   ];
 
   disabledTests = [
-    # Disable tests that requires a Docker container
-    "test_uploads_docker_push_name_typeerror"
-    "test_uploads_docker_push_tag_typeerror"
-    "test_uploads_docker_push_cs_name_typeerror"
-    "test_uploads_docker_push_cs_tag_typeerror"
     # Test requires network access
     "test_assets_list_vcr"
     "test_events_list_vcr"
+    "test_session_ssl_error"
   ];
 
-  pythonImportsCheck = [
-    "tenable"
-  ];
+  pythonImportsCheck = [ "tenable" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python library for the Tenable.io and TenableSC API";
     homepage = "https://github.com/tenable/pyTenable";
-    changelog = "https://github.com/tenable/pyTenable/releases/tag/${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/tenable/pyTenable/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

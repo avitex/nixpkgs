@@ -1,38 +1,42 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, python
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  python,
+  setuptools,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "bashlex";
   version = "0.18";
 
-  format = "setuptools";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "idank";
-    repo = pname;
-    rev = version;
+    repo = "bashlex";
+    tag = finalAttrs.version;
     hash = "sha256-ddZN91H95RiTLXx4lpES1Dmz7nNsSVUeuFuOEpJ7LQI=";
   };
+
+  build-system = [ setuptools ];
 
   # workaround https://github.com/idank/bashlex/issues/51
   preBuild = ''
     ${python.pythonOnBuildForHost.interpreter} -c 'import bashlex'
   '';
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   pythonImportsCheck = [ "bashlex" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python parser for bash";
-    license = licenses.gpl3Plus;
+    license = lib.licenses.gpl3Plus;
     homepage = "https://github.com/idank/bashlex";
-    maintainers = with maintainers; [ multun ];
+    maintainers = with lib.maintainers; [ multun ];
   };
-}
+})

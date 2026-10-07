@@ -1,53 +1,63 @@
-{ lib
-, stdenv
-, fetchurl
-, alsa-lib
-, boost
-, curl
-, ffmpeg_4
-, icoutils
-, libGLU
-, libmad
-, libogg
-, libpng
-, libsndfile
-, libvorbis
-, lua
-, makeDesktopItem
-, makeWrapper
-, miniupnpc
-, openal
-, pkg-config
-, SDL2
-, SDL2_image
-, SDL2_net
-, SDL2_ttf
-, speex
-, unzip
-, zlib
-, zziplib
-, alephone
+{
+  lib,
+  stdenv,
+  fetchurl,
+  alsa-lib,
+  boost,
+  curl,
+  ffmpeg_6,
+  icoutils,
+  libGLU,
+  libmad,
+  libogg,
+  libpng,
+  libsndfile,
+  libvorbis,
+  lua,
+  makeDesktopItem,
+  makeWrapper,
+  miniupnpc,
+  openal,
+  pkg-config,
+  SDL2,
+  SDL2_image,
+  SDL2_net,
+  SDL2_ttf,
+  speex,
+  unzip,
+  zlib,
+  zziplib,
+  testers,
+  asio,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
-  outputs = [ "out" "icons" ];
+  outputs = [
+    "out"
+    "icons"
+  ];
   pname = "alephone";
-  version = "1.7";
+  version = "1.11";
 
   src = fetchurl {
     url =
-      let date = "20231125";
-      in "https://github.com/Aleph-One-Marathon/alephone/releases/download/release-${date}/AlephOne-${date}.tar.bz2";
-    sha256 = "sha256-qRHmtkzPi6PKeAzoMPdSbboiilG+L2fCXvXXu3vIchs=";
+      let
+        date = "20250829";
+      in
+      "https://github.com/Aleph-One-Marathon/alephone/releases/download/release-${date}/AlephOne-${date}.tar.bz2";
+    hash = "sha256-58RHA0qjXdhcpoNt2DZwNMT0USqg0U6XgdcDOUYJiAY=";
   };
 
-  nativeBuildInputs = [ pkg-config icoutils ];
+  nativeBuildInputs = [
+    pkg-config
+    icoutils
+  ];
 
   buildInputs = [
     alsa-lib
     boost
     curl
-    ffmpeg_4
+    ffmpeg_6
     libGLU
     libmad
     libogg
@@ -64,6 +74,7 @@ stdenv.mkDerivation (finalAttrs: {
     speex
     zlib
     zziplib
+    asio
   ];
 
   configureFlags = [ "--with-boost-libdir=${boost.out}/lib" ];
@@ -81,55 +92,68 @@ stdenv.mkDerivation (finalAttrs: {
     popd
   '';
 
+  passthru.tests.version =
+    # test that the version is correct
+    testers.testVersion { package = finalAttrs.finalPackage; };
+
   meta = {
-    description =
-      "Aleph One is the open source continuation of Bungie’s Marathon 2 game engine";
+    description = "Aleph One is the open source continuation of Bungie’s Marathon 2 game engine";
+    mainProgram = "alephone";
     homepage = "https://alephone.lhowon.org/";
-    license = [ lib.licenses.gpl3 ];
-    maintainers = with lib.maintainers; [ ehmry ];
+    license = lib.licenses.gpl3;
     platforms = lib.platforms.linux;
   };
 
   passthru.makeWrapper =
-    { pname
-    , desktopName
-    , version
-    , zip
-    , meta
-    , icon ? alephone.icons + "/alephone.png"
-    , ...
+    {
+      desktopName,
+      version,
+      zip,
+      meta,
+      icon ? finalAttrs.finalPackage.icons + "/alephone.png",
+      ...
     }@extraArgs:
-    stdenv.mkDerivation ({
-      inherit pname version;
+    stdenv.mkDerivation (
+      {
+        inherit version;
 
-      desktopItem = makeDesktopItem {
-        name = desktopName;
-        exec = pname;
-        genericName = pname;
-        categories = [ "Game" ];
-        comment = meta.description;
-        inherit desktopName icon;
-      };
+        desktopItem = makeDesktopItem {
+          name = desktopName;
+          exec = "alephone";
+          genericName = "alephone";
+          categories = [ "Game" ];
+          comment = meta.description;
+          inherit desktopName icon;
+        };
 
-      src = zip;
+        src = zip;
 
-      nativeBuildInputs = [ makeWrapper unzip ];
+        nativeBuildInputs = [
+          makeWrapper
+          unzip
+        ];
 
-      dontConfigure = true;
-      dontBuild = true;
+        dontConfigure = true;
+        dontBuild = true;
 
-      installPhase = ''
-        mkdir -p $out/bin $out/data/$pname $out/share/applications
-        cp -a * $out/data/$pname
-        cp $desktopItem/share/applications/* $out/share/applications
-        makeWrapper ${alephone}/bin/alephone $out/bin/$pname \
-          --add-flags $out/data/$pname
-      '';
-    } // extraArgs // {
-      meta = alephone.meta // {
-        license = lib.licenses.free;
-        mainProgram = pname;
-        hydraPlatforms = [ ];
-      } // meta;
-    });
+        installPhase = ''
+          mkdir -p $out/bin $out/data/alephone $out/share/applications
+          cp -a * $out/data/alephone
+          cp $desktopItem/share/applications/* $out/share/applications
+          makeWrapper ${finalAttrs.finalPackage}/bin/alephone $out/bin/alephone \
+            --add-flags $out/data/alephone
+        '';
+      }
+      // extraArgs
+      // {
+        meta =
+          finalAttrs.finalPackage.meta
+          // {
+            license = lib.licenses.free;
+            mainProgram = "alephone";
+            hydraPlatforms = [ ];
+          }
+          // meta;
+      }
+    );
 })

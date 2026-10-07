@@ -1,27 +1,53 @@
-{ lib, stdenv, fetchurl, perl, ... }:
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  autoreconfHook,
+  perl,
+}:
 
-let
-  version = "2.8.8";
-  folder = with builtins;
-    let parts = splitVersion version;
-    in concatStringsSep "." [ (elemAt parts 0) (elemAt parts 1) ];
-in stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "hyphen";
-  inherit version;
+  version = "2.8.9";
 
-  nativeBuildInputs = [ perl ];
+  nativeBuildInputs = [
+    autoreconfHook
+    perl
+  ];
 
-  src = fetchurl {
-    url =
-      "https://sourceforge.net/projects/hunspell/files/Hyphen/${folder}/${pname}-${version}.tar.gz";
-    sha256 = "01ap9pr6zzzbp4ky0vy7i1983fwyqy27pl0ld55s30fdxka3ciih";
+  strictDeps = true;
+
+  src = fetchFromGitHub {
+    owner = "hunspell";
+    repo = "hyphen";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-F7PJQjEiE5t5i1gi5B8wzrwAJQl8FWzopRA8uDsaZBc=";
   };
 
-  meta = with lib; {
-    description = "A text hyphenation library";
-    homepage = "https://sourceforge.net/projects/hunspell/files/Hyphen/";
-    platforms = platforms.all;
-    license = with licenses; [ gpl2 lgpl21 mpl11 ];
-    maintainers = with maintainers; [ Br1ght0ne ];
+  enableParallelBuilding = true;
+
+  # Do not install the en_US dictionary.
+  installPhase = ''
+    runHook preInstall
+    make install-libLTLIBRARIES
+    make install-binSCRIPTS
+    make install-includeHEADERS
+
+    # license
+    install -D -m644 COPYING "$out/share/licenses/hyphen/LICENSE"
+    runHook postInstall
+  '';
+
+  meta = {
+    changelog = "https://github.com/hunspell/hyphen/blob/${finalAttrs.src.tag}/NEWS";
+    description = "Text hyphenation library";
+    mainProgram = "substrings.pl";
+    homepage = "https://github.com/hunspell/hyphen";
+    platforms = lib.platforms.all;
+    license = with lib.licenses; [
+      gpl2
+      lgpl21
+      mpl11
+    ];
   };
-}
+})

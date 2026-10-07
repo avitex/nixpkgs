@@ -1,54 +1,48 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pandoc
-, pytestCheckHook
-, pythonOlder
-, requests
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pandoc,
+  pytestCheckHook,
+  requests,
+  setuptools,
+  publicsuffix-list,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "publicsuffixlist";
-  version = "0.10.0.20240125";
+  version = "1.0.2.20261003";
   pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-lxyUgACsRULzQLNyU2TFrLdRzdSbQzvECTRaYQP8O04=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-2IM51HUthmpb5mykI0JXyh6Cd1QchRj25mFdWBqNiwM=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  postPatch = ''
+    rm publicsuffixlist/public_suffix_list.dat
+    ln -s ${publicsuffix-list}/share/publicsuffix/public_suffix_list.dat publicsuffixlist/public_suffix_list.dat
+  '';
 
-  passthru.optional-dependencies = {
-    update = [
-      requests
-    ];
-    readme = [
-      pandoc
-    ];
+  build-system = [ setuptools ];
+
+  optional-dependencies = {
+    update = [ requests ];
+    readme = [ pandoc ];
   };
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "publicsuffixlist"
-  ];
+  pythonImportsCheck = [ "publicsuffixlist" ];
 
-  pytestFlagsArray = [
-    "publicsuffixlist/test.py"
-  ];
+  enabledTestPaths = [ "publicsuffixlist/test.py" ];
 
-  meta = with lib; {
+  meta = {
     description = "Public Suffix List parser implementation";
     homepage = "https://github.com/ko-zu/psl";
-    license = licenses.mpl20;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/ko-zu/psl/blob/v${finalAttrs.version}-gha/CHANGES.md";
+    license = lib.licenses.mpl20;
+    maintainers = with lib.maintainers; [ fab ];
+    mainProgram = "publicsuffixlist-download";
   };
-}
+})

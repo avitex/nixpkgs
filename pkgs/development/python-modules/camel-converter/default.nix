@@ -1,59 +1,49 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, pydantic
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  pydantic,
+  pytestCheckHook,
+  pytest-cov-stub,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "camel-converter";
-  version = "3.1.1";
+  version = "5.1.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "sanders41";
     repo = "camel-converter";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-xrdk5Y3H8KlQaGtJYdJNHq16Qfos2p+93uIAfIl098c=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-JsNlXeik/u0OBgErUJK4Pc45WmW1QLsiIP3BaSP0maA=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace "--cov=camel_converter --cov-report term-missing --no-cov-on-fail" ""
-  '';
+  build-system = [ hatchling ];
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
-
-  passthru.optional-dependencies = {
-    pydantic = [
-      pydantic
-    ];
+  optional-dependencies = {
+    pydantic = [ pydantic ];
   };
 
   nativeCheckInputs = [
     pytestCheckHook
-  ] ++ passthru.optional-dependencies.pydantic;
+    pytest-cov-stub
+  ]
+  ++ lib.flatten (builtins.attrValues finalAttrs.passthru.optional-dependencies);
 
-  pythonImportsCheck = [
-    "camel_converter"
-  ];
+  pythonImportsCheck = [ "camel_converter" ];
 
   disabledTests = [
     # AttributeError: 'Test' object has no attribute 'model_dump'
     "test_camel_config"
   ];
 
-  meta = with lib; {
-    description = "Client for the Meilisearch API";
+  meta = {
+    description = "Module to convert strings from snake case to camel case or camel case to snake case";
     homepage = "https://github.com/sanders41/camel-converter";
-    changelog = "https://github.com/sanders41/camel-converter/releases/tag/v${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/sanders41/camel-converter/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

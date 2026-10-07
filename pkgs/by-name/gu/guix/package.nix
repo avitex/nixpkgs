@@ -1,46 +1,51 @@
-{ lib
-, stdenv
-, fetchurl
-, autoreconfHook
-, disarchive
-, git
-, glibcLocales
-, guile
-, guile-avahi
-, guile-gcrypt
-, guile-git
-, guile-gnutls
-, guile-json
-, guile-lib
-, guile-lzlib
-, guile-lzma
-, guile-semver
-, guile-ssh
-, guile-sqlite3
-, guile-zlib
-, guile-zstd
-, help2man
-, makeWrapper
-, pkg-config
-, po4a
-, scheme-bytestructures
-, texinfo
-, bzip2
-, libgcrypt
-, sqlite
+{
+  lib,
+  stdenv,
+  fetchgit,
+  graphviz,
+  gettext,
+  autoreconfHook,
+  disarchive,
+  git,
+  glibcLocales,
+  guile,
+  guile-avahi,
+  guile-gcrypt,
+  guile-git,
+  guile-gnutls,
+  guile-json,
+  guile-lib,
+  guile-lzlib,
+  guile-lzma,
+  guile-semver,
+  guile-ssh,
+  guile-sqlite3,
+  guile-zlib,
+  guile-zstd,
+  help2man,
+  makeWrapper,
+  pkg-config,
+  po4a,
+  scheme-bytestructures,
+  slirp4netns,
+  texinfo,
+  bzip2,
+  libgcrypt,
+  sqlite,
+  nixosTests,
 
-, stateDir ? "/var"
-, storeDir ? "/gnu/store"
-, confDir ? "/etc"
+  stateDir ? "/var",
+  storeDir ? "/gnu/store",
+  confDir ? "/etc",
 }:
-
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "guix";
-  version = "1.4.0";
+  version = "1.5.0-unstable-2026-08-23";
 
-  src = fetchurl {
-    url = "mirror://gnu/guix/guix-${version}.tar.gz";
-    hash = "sha256-Q8dpy/Yy7wVEmsH6SMG6FSwzSUxqvH5HE3u6eyFJ+KQ=";
+  src = fetchgit {
+    url = "https://codeberg.org/guix/guix.git";
+    rev = "bf8a5bce1bdbddc2a0097e153ef06210d637e398";
+    hash = "sha256-Emd26l9buF1P7Dj14ulT6W6lrNC3PSTY4steU1I7T84=";
   };
 
   postPatch = ''
@@ -55,6 +60,8 @@ stdenv.mkDerivation rec {
     autoreconfHook
     disarchive
     git
+    graphviz
+    gettext
     glibcLocales
     guile
     guile-avahi
@@ -75,6 +82,7 @@ stdenv.mkDerivation rec {
     pkg-config
     po4a
     scheme-bytestructures
+    slirp4netns
     texinfo
   ];
 
@@ -101,6 +109,7 @@ stdenv.mkDerivation rec {
     guile-zlib
     guile-zstd
     scheme-bytestructures
+    slirp4netns
   ];
 
   configureFlags = [
@@ -108,7 +117,15 @@ stdenv.mkDerivation rec {
     "--localstatedir=${stateDir}"
     "--sysconfdir=${confDir}"
     "--with-bash-completion-dir=$(out)/etc/bash_completion.d"
+    "--with-zsh-completion-dir=$(out)/share/zsh/site-functions"
+    "--with-fish-completion-dir=$(out)/share/fish/vendor_completions.d"
+    "--with-apparmor-profile-dir=$(out)/etc/apparmor.d"
   ];
+
+  preAutoreconf = ''
+    echo ${finalAttrs.version} > .tarball-version
+    ./bootstrap
+  '';
 
   enableParallelBuilding = true;
 
@@ -116,11 +133,16 @@ stdenv.mkDerivation rec {
     for f in $out/bin/*; do
       wrapProgram $f \
         --prefix GUILE_LOAD_PATH : "$out/${guile.siteDir}:$GUILE_LOAD_PATH" \
-        --prefix GUILE_LOAD_COMPILED_PATH : "$out/${guile.siteCcacheDir}:$GUILE_LOAD_COMPILED_PATH"
+        --prefix GUILE_LOAD_COMPILED_PATH : "$out/${guile.siteCcacheDir}:$GUILE_LOAD_COMPILED_PATH" \
+        --prefix GUILE_EXTENSIONS_PATH : "${guile-ssh}/lib/guile/3.0/extensions"
     done
   '';
 
-  meta = with lib; {
+  passthru.tests = {
+    inherit (nixosTests) guix;
+  };
+
+  meta = {
     description = "Functional package manager with a Scheme interface";
     longDescription = ''
       GNU Guix is a purely functional package manager for the GNU system, and a distribution thereof.
@@ -134,10 +156,15 @@ stdenv.mkDerivation rec {
       Guix.
       Guix is based on the Nix package manager.
     '';
-    homepage = "http://www.gnu.org/software/guix";
-    license = licenses.gpl3Plus;
+    homepage = "https://guix.gnu.org/";
+    donationPage = "https://guix.gnu.org/donate/";
+    changelog = "https://codeberg.org/guix/guix/raw/commit/${finalAttrs.src.rev}/NEWS";
+    license = lib.licenses.gpl3Plus;
     mainProgram = "guix";
-    maintainers = with maintainers; [ cafkafk foo-dogsquared ];
-    platforms = platforms.linux;
+    maintainers = with lib.maintainers; [
+      cafkafk
+      hpfr
+    ];
+    platforms = lib.platforms.linux;
   };
-}
+})

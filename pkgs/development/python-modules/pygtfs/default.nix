@@ -1,56 +1,48 @@
-{ lib
-, buildPythonPackage
-, docopt
-, fetchPypi
-, nose
-, pytz
-, pythonOlder
-, setuptools-scm
-, six
-, sqlalchemy
+{
+  lib,
+  buildPythonPackage,
+  docopt,
+  fetchPypi,
+  pytz,
+  setuptools,
+  setuptools-scm,
+  sqlalchemy,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pygtfs";
-  version = "0.1.9";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.1.11";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-J5vu51OOMabWd8h60PpvvBiCnwQlhEnBywNXxy9hOuA=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-NaSGjzBBFK3mqHibcKV2gQIQoWn+qZay7KJasjcwxW4=";
   };
 
-  postPatch = ''
-    # https://github.com/jarondl/pygtfs/pull/72
-    substituteInPlace setup.py \
-      --replace "pytz>=2012d" "pytz"
-  '';
-
-  nativeBuildInputs = [
+  build-system = [
+    setuptools
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     docopt
     pytz
-    six
     sqlalchemy
   ];
 
-  nativeCheckInputs = [
-    nose
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "pygtfs"
-  ];
+  enabledTestPaths = [ "pygtfs/test/test.py" ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "pygtfs" ];
+
+  meta = {
     description = "Python module for GTFS";
     homepage = "https://github.com/jarondl/pygtfs";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/jarondl/pygtfs/releases/tag/${finalAttrs.version}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
+    mainProgram = "gtfs2db";
   };
-}
+})

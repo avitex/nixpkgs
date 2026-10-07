@@ -1,54 +1,51 @@
-{ lib
-, fetchFromGitHub
-, buildGoModule
-, oath-toolkit
-, openldap
+{
+  lib,
+  fetchFromGitHub,
+  buildGoModule,
+  versionCheckHook,
 }:
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "glauth";
-  version = "2.3.0";
+  version = "2.5.4";
 
   src = fetchFromGitHub {
     owner = "glauth";
     repo = "glauth";
-    rev = "v${version}";
-    hash = "sha256-XYNNR3bVLNtAl+vbGRv0VhbLf+em8Ay983jqcW7KDFU=";
+    tag = "GLAuth-v${finalAttrs.version}";
+    hash = "sha256-b5R3aXrvHyKDoRhNIXIZncnkIV5DuWr4pPQCv0I36JU=";
   };
 
-  vendorHash = "sha256-SFmGgxDokIbVl3ANDPMCqrB0ck8Wyva2kSV2mgNRogo=";
+  vendorHash = "sha256-T0nzmnnM7Cps9nmt4Rfzn4nl2+i/1baP0AwIrjk4hXk=";
 
-  nativeCheckInputs = [
-    oath-toolkit
-    openldap
-  ];
+  # Builds without go workspace fail with mysterious errors
+  overrideModAttrs = _: {
+    buildPhase = ''
+      go work vendor -e -v
+    '';
+  };
 
-  modRoot = "v2";
-
-  # Disable go workspaces to fix build.
-  env.GOWORK = "off";
-
-  # Fix this build error:
-  #   main module (github.com/glauth/glauth/v2) does not contain package github.com/glauth/glauth/v2/vendored/toml
-  excludedPackages = [ "vendored/toml" ];
-
-  # Based on ldflags in <glauth>/Makefile.
   ldflags = [
     "-s"
     "-w"
-    "-X main.GitClean=1"
-    "-X main.LastGitTag=v${version}"
-    "-X main.GitTagIsCommit=1"
   ];
 
   # Tests fail in the sandbox.
   doCheck = false;
 
-  meta = with lib; {
-    description = "A lightweight LDAP server for development, home use, or CI";
+  nativeInstallCheckInputs = [ versionCheckHook ];
+  doInstallCheck = true;
+
+  meta = {
+    description = "Lightweight LDAP server for development, home use, or CI";
     homepage = "https://github.com/glauth/glauth";
-    license = licenses.mit;
-    maintainers = with maintainers; [ bjornfor christoph-heiss ];
+    changelog = "https://github.com/glauth/glauth/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [
+      bjornfor
+      christoph-heiss
+      xddxdd
+    ];
     mainProgram = "glauth";
   };
-}
+})

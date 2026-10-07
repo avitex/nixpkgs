@@ -1,39 +1,44 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, google-api-core
-, google-cloud-access-context-manager
-, google-cloud-org-policy
-, google-cloud-os-config
-, google-cloud-testutils
-, grpc-google-iam-v1
-, libcst
-, mock
-, proto-plus
-, protobuf
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  google-api-core,
+  google-cloud-access-context-manager,
+  google-cloud-org-policy,
+  google-cloud-os-config,
+  google-cloud-testutils,
+  grpc-google-iam-v1,
+  libcst,
+  mock,
+  nix-update-script,
+  proto-plus,
+  protobuf,
+  pytest-asyncio,
+  pytestCheckHook,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "google-cloud-asset";
-  version = "3.23.0";
+  version = "4.4.0";
   pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-ILg5PCstA6KwOsQZYkkE8xvFAbs6na24uUx8B5T7w1M=";
+  src = fetchFromGitHub {
+    owner = "googleapis";
+    repo = "google-cloud-python";
+    tag = "google-cloud-asset-v${finalAttrs.version}";
+    sha256 = "sha256-M/7uDWWz4YCfxa4gyM9BaAo10iyTMvtR2MhNpdFYnis=";
   };
 
-  nativeBuildInputs = [
-    setuptools
+  sourceRoot = "${finalAttrs.src.name}/packages/google-cloud-asset";
+
+  build-system = [ setuptools ];
+
+  pythonRelaxDeps = [
+    "protobuf"
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     grpc-google-iam-v1
     google-api-core
     google-cloud-access-context-manager
@@ -42,12 +47,11 @@ buildPythonPackage rec {
     libcst
     proto-plus
     protobuf
-  ] ++ google-api-core.optional-dependencies.grpc;
+  ]
+  ++ google-api-core.optional-dependencies.grpc;
 
-  passthru.optional-dependencies = {
-    libcst = [
-      libcst
-    ];
+  optional-dependencies = {
+    libcst = [ libcst ];
   };
 
   nativeCheckInputs = [
@@ -62,15 +66,25 @@ buildPythonPackage rec {
     "google.cloud.asset_v1"
     "google.cloud.asset_v1p1beta1"
     "google.cloud.asset_v1p2beta1"
-    "google.cloud.asset_v1p4beta1"
     "google.cloud.asset_v1p5beta1"
   ];
 
-  meta = with lib; {
+  passthru = {
+    # python updater script sets the wrong tag
+    skipBulkUpdate = true;
+    updateScript = nix-update-script {
+      extraArgs = [
+        "--version-regex"
+        "^google-cloud-asset: v([0-9.]+)"
+      ];
+    };
+  };
+
+  meta = {
     description = "Python Client for Google Cloud Asset API";
     homepage = "https://github.com/googleapis/google-cloud-python/tree/main/packages/google-cloud-asset";
-    changelog = "https://github.com/googleapis/google-cloud-python/blob/google-cloud-asset-v${version}/packages/google-cloud-asset/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/googleapis/google-cloud-python/blob/${finalAttrs.src.tag}/packages/google-cloud-asset/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = [ lib.maintainers.sarahec ];
   };
-}
+})

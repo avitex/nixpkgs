@@ -1,17 +1,21 @@
-{ buildGoModule, fetchFromGitHub, lib }:
+{
+  buildGoModule,
+  fetchFromGitHub,
+  lib,
+}:
 
 buildGoModule rec {
   pname = "helm-s3";
-  version = "0.15.1";
+  version = "0.17.2";
 
   src = fetchFromGitHub {
     owner = "hypnoglow";
-    repo = pname;
+    repo = "helm-s3";
     rev = "v${version}";
-    hash = "sha256-D79nUIueOV2FC3I2LreHMzl/xOpzNa+OsfL5wcnyY78=";
+    hash = "sha256-ivaREH6IiNNfgah45jITzl50miDJ34BlzWwMEdKAbjg=";
   };
 
-  vendorHash = "sha256-dKKggD/VlBiopt2ygh07+6bTBbRgQfWbiY/1qJSSx/0=";
+  vendorHash = "sha256-F01BWnCAZ9IJgbHgnmlB2f/MTqu0mWcidCPDdTqzhUg=";
 
   # NOTE: Remove the install and upgrade hooks.
   postPatch = ''
@@ -23,20 +27,24 @@ buildGoModule rec {
     go test $(go list ./... | grep -vE '(awsutil|e2e)')
   '';
 
-  ldflags = [ "-s" "-w" "-X main.version=${version}" ];
+  ldflags = [
+    "-s"
+    "-w"
+    "-X main.version=${version}"
+  ];
 
   subPackages = [ "cmd/helm-s3" ];
 
   postInstall = ''
-    install -dm755 $out/${pname}
-    mv $out/bin $out/${pname}/
-    install -m644 -Dt $out/${pname} plugin.yaml
+    install -dm755 $out/helm-s3
+    mv $out/bin $out/helm-s3/
+    install -m644 -Dt $out/helm-s3 plugin.yaml
   '';
 
-  meta = with lib; {
-    description = "A Helm plugin that allows to set up a chart repository using AWS S3";
+  meta = {
+    description = "Helm plugin that allows to set up a chart repository using AWS S3";
     homepage = "https://github.com/hypnoglow/helm-s3";
-    license = licenses.mit;
-    maintainers = with maintainers; [ yurrriq ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ yurrriq ];
   };
 }

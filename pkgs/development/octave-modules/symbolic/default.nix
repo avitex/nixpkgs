@@ -1,8 +1,13 @@
-{ buildOctavePackage
-, lib
-, fetchFromGitHub
+{
+  buildOctavePackage,
+  lib,
+  fetchFromGitHub,
   # Octave's Python (Python 3)
-, python
+  python,
+  gnuplot,
+  writableTmpDirAsHomeHook,
+  makeFontsConf,
+  texinfo,
 }:
 
 let
@@ -12,23 +17,33 @@ let
   ]);
 
 in
-buildOctavePackage rec {
+buildOctavePackage {
   pname = "symbolic";
-  version = "3.1.1";
+  version = "3.2.2";
 
   src = fetchFromGitHub {
     owner = "cbm755";
     repo = "octsympy";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-6LmLzTwcBhvMDBE7u/lIkSUP97qFMPRHkxfbAyvas6M=";
+    rev = "0206197f77f6663720a0510c761110abeb2041cd";
+    hash = "sha256-P9E0ZgB06Y/bvYCWD7W9kYZVWfZPWyBKnXw+X5H4yLI=";
   };
 
   propagatedBuildInputs = [ pythonEnv ];
 
-  meta = with lib; {
-    homepage = "https://octave.sourceforge.io/symbolic/index.html";
-    license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ KarlJoad ];
+  nativeOctavePkgTestInputs = [
+    gnuplot
+    writableTmpDirAsHomeHook
+    texinfo
+  ];
+
+  octavePkgTestEnv.FONTCONFIG_FILE = makeFontsConf { fontDirectories = [ ]; };
+
+  __structuredAttrs = true;
+
+  meta = {
+    homepage = "https://gnu-octave.github.io/packages/symbolic/";
+    license = lib.licenses.gpl3Plus;
+    maintainers = with lib.maintainers; [ ravenjoad ];
     description = "Adds symbolic calculation features to GNU Octave";
   };
 }

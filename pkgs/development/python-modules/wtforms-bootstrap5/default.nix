@@ -1,16 +1,17 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, wtforms
-, poetry-core
-, pytestCheckHook
-, lxml
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  wtforms,
+  poetry-core,
+  pytestCheckHook,
+  lxml,
 }:
 
 buildPythonPackage rec {
   pname = "wtforms-bootstrap5";
   version = "0.3.0";
-  format = "pyproject";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "LaunchPlatform";
@@ -19,24 +20,19 @@ buildPythonPackage rec {
     hash = "sha256-TJJ3KOeC9JXnxK0YpnfeBNq1KHwaAZ4+t9CXbc+85Ro=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  nativeBuildInputs = [ poetry-core ];
 
-  propagatedBuildInputs = [
-    wtforms
-  ];
+  propagatedBuildInputs = [ wtforms ];
 
   nativeCheckInputs = [
     pytestCheckHook
     lxml
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Simple library for rendering WTForms in HTML as Bootstrap 5 form controls";
     homepage = "https://github.com/LaunchPlatform/wtforms-bootstrap5";
     changelog = "https://github.com/LaunchPlatform/wtforms-bootstrap5/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = teams.wdz.members;
+    license = lib.licenses.mit;
   };
 }

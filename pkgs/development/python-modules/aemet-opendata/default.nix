@@ -1,53 +1,41 @@
-{ lib
-, aiohttp
-, buildPythonPackage
-, fetchFromGitHub
-, geopy
-, pythonOlder
-, requests
-, setuptools
-, urllib3
-, wheel
+{
+  lib,
+  aiohttp,
+  buildPythonPackage,
+  fetchFromGitHub,
+  geopy,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "aemet-opendata";
-  version = "0.4.7";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.11";
+  version = "0.6.4";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "Noltari";
     repo = "AEMET-OpenData";
-    rev = "refs/tags/${version}";
-    hash = "sha256-kmU2HtNyYhfwWQv6asOtDpLZ6+O+eEICzBNLxUhAwaY=";
+    tag = version;
+    hash = "sha256-xxpB5JFPkTwd7dxba9pXRvcont/i3wXBdJh5NfLnZTM=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-    wheel
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
     geopy
-    requests
-    urllib3
   ];
 
   # no tests implemented
   doCheck = false;
 
-  pythonImportsCheck = [
-    "aemet_opendata.interface"
-  ];
+  pythonImportsCheck = [ "aemet_opendata.interface" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python client for AEMET OpenData Rest API";
     homepage = "https://github.com/Noltari/AEMET-OpenData";
     changelog = "https://github.com/Noltari/AEMET-OpenData/releases/tag/${version}";
-    license = licenses.gpl2Only;
-    maintainers = with maintainers; [ dotlambda ];
+    license = lib.licenses.gpl2Only;
+    maintainers = with lib.maintainers; [ dotlambda ];
   };
 }

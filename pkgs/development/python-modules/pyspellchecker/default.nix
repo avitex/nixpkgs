@@ -1,34 +1,31 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "pyspellchecker";
-  version = "0.8.1";
-  format = "pyproject";
+  version = "0.9.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "barrust";
     repo = "pyspellchecker";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-8IwTMj/RqMc9UqhzyvmrirPGuMEwj3iMr+FmF+8312U=";
+    tag = "v${version}";
+    hash = "sha256-Ui1IPqvVqf7scMg+B1KmI5jWrHSsuaW6sCoWeiF2oMI=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  meta = with lib; {
+  meta = {
     description = "Pure python spell checking";
     homepage = "https://github.com/barrust/pyspellchecker";
-    license = licenses.mit;
-    maintainers = with maintainers; [ zendo ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ zendo ];
   };
 }

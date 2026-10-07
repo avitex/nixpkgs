@@ -1,32 +1,30 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, flit-core
-, installShellFiles
-, pytestCheckHook
-, isPy3k
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  hatchling,
+  installShellFiles,
+  pytestCheckHook,
 
-# for passthru.tests
-, django
-, django_4
-, django-silk
-, pgadmin4
+  # for passthru.tests
+  django,
+  django-silk,
+  pgadmin4,
 }:
 
 buildPythonPackage rec {
   pname = "sqlparse";
-  version = "0.4.4";
-
-  disabled = !isPy3k;
+  version = "0.5.5";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-1EYYPoS4NJ+jBh8P5/BsqUumW0JpRv/r5uPoKVMyQgw=";
+    hash = "sha256-4g1KmwuFhf32OxDTAGbHyUxden7EfIiaLYOjyqk/8o4=";
   };
 
-  format = "pyproject";
+  build-system = [ hatchling ];
 
-  nativeBuildInputs = [ flit-core installShellFiles ];
+  nativeBuildInputs = [ installShellFiles ];
 
   nativeCheckInputs = [ pytestCheckHook ];
 
@@ -35,15 +33,21 @@ buildPythonPackage rec {
   '';
 
   passthru.tests = {
-    inherit django django_4 django-silk pgadmin4;
+    inherit
+      django
+      django-silk
+      pgadmin4
+      ;
   };
 
-  meta = with lib; {
+  meta = {
     description = "Non-validating SQL parser for Python";
     longDescription = ''
       Provides support for parsing, splitting and formatting SQL statements.
     '';
     homepage = "https://github.com/andialbrecht/sqlparse";
-    license = licenses.bsd3;
+    changelog = "https://github.com/andialbrecht/sqlparse/blob/${version}/CHANGELOG";
+    license = lib.licenses.bsd3;
+    mainProgram = "sqlformat";
   };
 }

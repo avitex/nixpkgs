@@ -1,26 +1,34 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, pytestCheckHook
-, mock
-, jinja2
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  mock,
+  jinja2,
+  pygments, # for Erlang support
+  pathspec, # for .gitignore support
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "lizard";
-  version = "1.17.10";
-  format = "setuptools";
-  disabled = pythonOlder "3.7";
+  version = "1.24.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "terryyin";
     repo = "lizard";
-    rev = version;
-    hash = "sha256-4jq6gXpI1hFtX7ka2c/qQ+S6vZCThKOGhQwJ2FOYItY=";
+    tag = finalAttrs.version;
+    hash = "sha256-npxnl9QrsAMLgrSDGsmWTb17VLwJ9sYCi9dhROCblhg=";
   };
 
-  propagatedBuildInputs = [ jinja2 ];
+  build-system = [ setuptools ];
+
+  dependencies = [
+    jinja2
+    pygments
+    pathspec
+  ];
 
   nativeCheckInputs = [
     pytestCheckHook
@@ -32,17 +40,15 @@ buildPythonPackage rec {
     "test/test_languages/testFortran.py"
   ];
 
-  pythonImportsCheck = [
-    "lizard"
-  ];
+  pythonImportsCheck = [ "lizard" ];
 
-  meta = with lib; {
-    changelog = "https://github.com/terryyin/lizard/blob/${version}/CHANGELOG.md";
+  meta = {
+    changelog = "https://github.com/terryyin/lizard/blob/${finalAttrs.src.tag}/CHANGELOG.md";
     description = "Code analyzer without caring the C/C++ header files";
+    mainProgram = "lizard";
     downloadPage = "https://github.com/terryyin/lizard";
     homepage = "http://www.lizard.ws";
-    license = licenses.mit;
-    maintainers = with maintainers; [ jpetrucciani ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ jpetrucciani ];
   };
-}
-
+})

@@ -1,48 +1,59 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, numpy
-, laszip
-, setuptools
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  hatchling,
+
+  # dependencies
+  laszip,
+  lazrs,
+  numpy,
+
+  # tests
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "laspy";
-  version = "2.5.3";
-  format = "pyproject";
+  version = "2.7.0";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-StaYkUNY6loJbaUuabzszTINnd+zZ0gKXCteCG24Erc=";
+  src = fetchFromGitHub {
+    owner = "laspy";
+    repo = "laspy";
+    tag = finalAttrs.version;
+    hash = "sha256-/wvwUE+lzBgAZVtLB05Fpuq0ElajMxWqCIa1Y3sjB5k=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     numpy
     laszip
+    lazrs # much faster laz reading, see https://laspy.readthedocs.io/en/latest/installation.html#laz-support
+  ];
+
+  pythonImportsCheck = [
+    "laspy"
+    # `laspy` supports multiple backends and detects them dynamically.
+    # We check their importability to make sure they are all working.
+    "laszip"
+    "lazrs"
   ];
 
   nativeCheckInputs = [
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "laspy"
-    "laszip"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Interface for reading/modifying/creating .LAS LIDAR files";
+    mainProgram = "laspy";
     homepage = "https://github.com/laspy/laspy";
-    changelog = "https://github.com/laspy/laspy/blob/${version}/CHANGELOG.md";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ matthewcroughan ];
+    changelog = "https://github.com/laspy/laspy/blob/${finalAttrs.version}/CHANGELOG.md";
+    license = lib.licenses.bsd2;
+    maintainers = with lib.maintainers; [ matthewcroughan ];
+    teams = [ lib.teams.geospatial ];
   };
-}
+})

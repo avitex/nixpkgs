@@ -1,27 +1,28 @@
-{ lib
-, rustPlatform
-, fetchFromGitHub
+{
+  lib,
+  rustPlatform,
+  fetchFromGitHub,
 }:
 
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "paper-age";
-  version = "1.2.0";
+  version = "1.5.0";
 
   src = fetchFromGitHub {
     owner = "matiaskorhonen";
     repo = "paper-age";
-    rev = "v${version}";
-    hash = "sha256-7dd1R41CDgkpFI8fUWCJfgz3lr22IjWQYW6vRYEFidc=";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-Du5GYk2iWMuUGQ1F6pubDNyMngXpO2ZSk/KpZvHqpcI=";
   };
 
-  cargoHash = "sha256-IJDV0dmOsA9gbVKGfPsN3TKJbox3JTNxldArQK6GPt8=";
+  cargoHash = "sha256-Ba0Hp3g3aKr7f6RidxFcES2DExuq/jHH5Gg3bcIoH8k=";
 
-  meta = with lib; {
+  meta = {
     description = "Easy and secure paper backups of secrets";
     homepage = "https://github.com/matiaskorhonen/paper-age";
-    changelog = "https://github.com/matiaskorhonen/paper-age/blob/${src.rev}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ tomfitzhenry ];
+    changelog = "https://github.com/matiaskorhonen/paper-age/blob/${finalAttrs.src.rev}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = [ ];
     mainProgram = "paper-age";
   };
-}
+})

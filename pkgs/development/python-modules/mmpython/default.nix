@@ -1,8 +1,9 @@
-{ lib
-, buildPythonPackage
-, fetchurl
-, isPyPy
-, isPy3k
+{
+  lib,
+  buildPythonPackage,
+  fetchurl,
+  isPyPy,
+  isPy3k,
 }:
 
 buildPythonPackage rec {
@@ -18,10 +19,9 @@ buildPythonPackage rec {
 
   disabled = isPyPy || isPy3k;
 
-  meta = with lib; {
+  meta = {
     description = "Media Meta Data retrieval framework";
     homepage = "https://sourceforge.net/projects/mmpython/";
-    license = licenses.gpl2;
+    license = lib.licenses.gpl2;
   };
-
 }

@@ -1,56 +1,64 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, hatch-nodejs-version
-, hatchling
-, importlib-metadata
-, pycrdt
-, pytestCheckHook
-, websockets
-, ypy-websocket
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  hatch-nodejs-version,
+  hatchling,
+
+  # dependencies
+  anyio,
+  pycrdt,
+
+  # tests
+  pycrdt-websocket,
+  pytestCheckHook,
+  websockets,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "jupyter-ydoc";
-  version = "2.0.1";
+  version = "4.1.1";
   pyproject = true;
+  __structuredAttrs = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    pname = "jupyter_ydoc";
-    inherit version;
-    hash = "sha256-cW3ajLiviB/sL7yIrqP7DTuyS764Cpmor/LgHQidWw0=";
+  src = fetchFromGitHub {
+    owner = "jupyter-server";
+    repo = "jupyter_ydoc";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-8hGe8a4kA8fAqsR9hN5NK7BKhtw0HnsN14uWcc1239M=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     hatch-nodejs-version
     hatchling
   ];
 
-  propagatedBuildInputs = [
+  pythonRelaxDeps = [
+    "pycrdt"
+  ];
+  dependencies = [
+    anyio
     pycrdt
-  ] ++ lib.optionals (pythonOlder "3.10") [
-    importlib-metadata
   ];
 
   pythonImportsCheck = [ "jupyter_ydoc" ];
 
   nativeCheckInputs = [
     pytestCheckHook
+    pycrdt-websocket
     websockets
-    ypy-websocket
   ];
 
   # requires a Node.js environment
   doCheck = false;
 
   meta = {
-    changelog = "https://github.com/jupyter-server/jupyter_ydoc/blob/v${version}/CHANGELOG.md";
-    description = "Document structures for collaborative editing using Ypy";
+    changelog = "https://github.com/jupyter-server/jupyter_ydoc/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    description = "Document structures for collaborative editing using Yjs/pycrdt";
     homepage = "https://github.com/jupyter-server/jupyter_ydoc";
     license = lib.licenses.bsd3;
-    maintainers = lib.teams.jupyter.members;
+    teams = [ lib.teams.jupyter ];
   };
-}
+})

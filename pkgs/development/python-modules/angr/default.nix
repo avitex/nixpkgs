@@ -1,50 +1,57 @@
-{ lib
-, stdenv
-, ailment
-, archinfo
-, buildPythonPackage
-, cachetools
-, capstone
-, cffi
-, claripy
-, cle
-, cppheaderparser
-, dpkt
-, fetchFromGitHub
-, gitpython
-, itanium-demangler
-, mulpyplexer
-, nampa
-, networkx
-, progressbar2
-, protobuf
-, psutil
-, pycparser
-, pythonOlder
-, pyvex
-, rich
-, rpyc
-, sortedcontainers
-, sqlalchemy
-, sympy
-, unicorn
+{
+  lib,
+  stdenv,
+  ailment,
+  archinfo,
+  buildPythonPackage,
+  cachetools,
+  capstone,
+  cffi,
+  claripy,
+  cle,
+  cppheaderparser,
+  cxxheaderparser,
+  dpkt,
+  fetchFromGitHub,
+  gitpython,
+  itanium-demangler,
+  mulpyplexer,
+  nampa,
+  networkx,
+  progressbar2,
+  protobuf,
+  psutil,
+  pycparser,
+  pyformlang,
+  pydemumble,
+  pyvex,
+  rich,
+  rpyc,
+  setuptools,
+  sortedcontainers,
+  sqlalchemy,
+  sympy,
+  unicorn-angr,
+  unique-log-filter,
 }:
 
 buildPythonPackage rec {
   pname = "angr";
-  version = "9.2.84";
+  version = "9.2.193";
   pyproject = true;
-
-  disabled = pythonOlder "3.11";
 
   src = fetchFromGitHub {
     owner = "angr";
     repo = "angr";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-qav9SUvQtcEad9lvgyrMhOcFhPAhzU/9s7ekTfohqRc=";
+    tag = "v${version}";
+    hash = "sha256-7wBfxHWD5FRin8pfKup4izJBQzFN5N5dQZqIto5y83k=";
   };
 
-  propagatedBuildInputs = [
+  pythonRelaxDeps = [ "capstone" ];
+
+  build-system = [ setuptools ];
+
+  dependencies = [
     ailment
     archinfo
     cachetools
@@ -53,6 +60,7 @@ buildPythonPackage rec {
     claripy
     cle
     cppheaderparser
+    cxxheaderparser
     dpkt
     gitpython
     itanium-demangler
@@ -63,16 +71,22 @@ buildPythonPackage rec {
     protobuf
     psutil
     pycparser
+    pyformlang
+    pydemumble
     pyvex
     rich
     rpyc
     sortedcontainers
-    sqlalchemy
     sympy
-    unicorn
+    unique-log-filter
   ];
 
-  setupPyBuildFlags = lib.optionals stdenv.isLinux [
+  optional-dependencies = {
+    angrdb = [ sqlalchemy ];
+    unicorn = [ unicorn-angr ];
+  };
+
+  setupPyBuildFlags = lib.optionals stdenv.hostPlatform.isLinux [
     "--plat-name"
     "linux"
   ];
@@ -89,10 +103,10 @@ buildPythonPackage rec {
     "archinfo"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Powerful and user-friendly binary analysis platform";
     homepage = "https://angr.io/";
-    license = with licenses; [ bsd2 ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.bsd2;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

@@ -1,54 +1,77 @@
-{ lib
-, appdirs
-, buildPythonPackage
-, cryptography
-, fetchFromGitHub
-, flit-core
-, id
-, importlib-resources
-, pretend
-, pydantic
-, pyjwt
-, pyopenssl
-, pytestCheckHook
-, requests
-, rich
-, securesystemslib
-, sigstore-protobuf-specs
-, sigstore-rekor-types
-, tuf
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  flit-core,
+
+  # dependencies
+  appdirs,
+  cryptography,
+  id,
+  importlib-resources,
+  platformdirs,
+  pyasn1,
+  pydantic,
+  pyjwt,
+  pyopenssl,
+  requests,
+  rfc3161-client,
+  rfc8785,
+  rich,
+  securesystemslib,
+  sigstore-models,
+  sigstore-protobuf-specs,
+  sigstore-rekor-types,
+  tuf,
+
+  # tests
+  pretend,
+  pytestCheckHook,
+  writableTmpDirAsHomeHook,
+
+  # passthru
+  nix-update-script,
 }:
 
-buildPythonPackage rec {
-  pname = "sigstore-python";
-  version = "2.1.0";
+buildPythonPackage (finalAttrs: {
+  pname = "sigstore";
+  version = "4.2.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "sigstore";
     repo = "sigstore-python";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-WH6Pme8ZbfW5xqBT056eVJ3HZP1D/lAULtyN6k0uMaA=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-33JjQdYH/FptFUo0CecWItm9qH1wGQPHdk/JSdX8QfQ=";
   };
 
-  nativeBuildInputs = [
-    flit-core
+  build-system = [ flit-core ];
+
+  pythonRelaxDeps = [
+    "cryptography"
+    "rich"
+    "sigstore-models"
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     appdirs
     cryptography
     id
     importlib-resources
+    platformdirs
+    pyasn1
     pydantic
     pyjwt
     pyopenssl
     requests
+    rfc3161-client
+    rfc8785
     rich
     securesystemslib
+    sigstore-models
     sigstore-protobuf-specs
     sigstore-rekor-types
     tuf
@@ -57,14 +80,18 @@ buildPythonPackage rec {
   nativeCheckInputs = [
     pretend
     pytestCheckHook
+    writableTmpDirAsHomeHook
   ];
 
-  preCheck = ''
-    export HOME=$(mktemp -d)
-  '';
+  pythonImportsCheck = [ "sigstore" ];
 
-  pythonImportsCheck = [
-    "sigstore"
+  disabledTestPaths = [
+    # AttributeError: module 'cryptography.hazmat.primitives.asymmetric.ec' has no attribute 'SECT163K1'
+    #
+    # Uses ec.SECT163K1 which cryptography 48 removed entirely.
+    # Upstream considers this over-testing (sigstore itself never uses this curve at runtime):
+    # https://github.com/sigstore/sigstore-python/issues/1603
+    "test/unit/internal/test_key_details.py"
   ];
 
   disabledTests = [
@@ -78,13 +105,21 @@ buildPythonPackage rec {
     "test_sign_rekor_entry_consistent"
     "test_verification_materials_retrieves_rekor_entry"
     "test_verifier"
+    "test_fix_bundle_fixes_missing_checkpoint"
+    "test_trust_root_bundled_get"
+    "test_fix_bundle_upgrades_bundle"
+    "test_trust_root_tuf_caches_and_requests"
+    "test_regression_verify_legacy_bundle"
   ];
 
-  meta = with lib; {
-    description = "A codesigning tool for Python packages";
+  passthru.updateScript = nix-update-script { };
+
+  meta = {
+    description = "Codesigning tool for Python packages";
     homepage = "https://github.com/sigstore/sigstore-python";
-    changelog = "https://github.com/sigstore/sigstore-python/blob/${version}/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/sigstore/sigstore-python/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ bot-wxt1221 ];
+    mainProgram = "sigstore";
   };
-}
+})

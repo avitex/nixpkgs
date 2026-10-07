@@ -1,118 +1,84 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# build-system
-, setuptools
+  # build-system
+  setuptools,
 
-# dependencies
-, greenlet
+  # dependencies
+  greenlet,
 
-# optionals
-, aiomysql
-, aiosqlite
-, asyncmy
-, asyncpg
-, cx-oracle
-, mariadb
-, mypy
-, mysql-connector
-, mysqlclient
-, pg8000
-, psycopg2
-, psycopg2cffi
-# TODO: pymssql
-, pymysql
-, pyodbc
-# TODO: sqlcipher3
-, typing-extensions
+  # optionals
+  aiomysql,
+  aiosqlite,
+  asyncmy,
+  asyncpg,
+  cx-oracle,
+  mariadb,
+  mypy,
+  mysql-connector-python,
+  mysqlclient,
+  pg8000,
+  psycopg2,
+  psycopg2cffi,
+  # TODO: pymssql
+  pymysql,
+  pyodbc,
+  # TODO: sqlcipher3
+  typing-extensions,
 
-# tests
-, mock
-, pytest-xdist
-, pytestCheckHook
+  # tests
+  mock,
+  pytest-xdist,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "sqlalchemy";
-  version = "1.4.51";
+  version = "1.4.54-unstable-2025-08-16";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "sqlalchemy";
     repo = "sqlalchemy";
-    rev = "rel_${lib.replaceStrings [ "." ] [ "_" ] version}";
-    hash = "sha256-KhLSKlQ4xfSh1nsAt+cRO+adh2aj/h/iqV6YmDbz39k=";
+    rev = "1712b81a5b8d9d3abd5a85fbb089470f0bc38cdd";
+    hash = "sha256-BqhH6CqvWQvUllCh0JAIM/K+W3KtLIRe30WGJrqafoI=";
   };
 
   postPatch = ''
     sed -i '/tag_build = dev/d' setup.cfg
   '';
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
-  propagatedBuildInputs = [
-    greenlet
-  ];
+  propagatedBuildInputs = [ greenlet ];
 
-  passthru.optional-dependencies = lib.fix (self: {
-    asyncio = [
-      greenlet
-    ];
-    mypy = [
-      mypy
-    ];
-    mssql = [
-      pyodbc
-    ];
+  optional-dependencies = lib.fix (self: {
+    asyncio = [ greenlet ];
+    mypy = [ mypy ];
+    mssql = [ pyodbc ];
     mssql_pymysql = [
       # TODO: pymssql
     ];
-    mssql_pyodbc = [
-      pyodbc
-    ];
-    mysql = [
-      mysqlclient
-    ];
-    mysql_connector = [
-      mysql-connector
-    ];
-    mariadb_connector = [
-      mariadb
-    ];
-    oracle = [
-      cx-oracle
-    ];
-    postgresql = [
-      psycopg2
-    ];
-    postgresql_pg8000 = [
-      pg8000
-    ];
-    postgresql_asyncpg = [
-      asyncpg
-    ] ++ self.asyncio;
-    postgresql_psycopg2binary = [
-      psycopg2
-    ];
-    postgresql_psycopg2cffi = [
-      psycopg2cffi
-    ];
-    pymysql = [
-      pymysql
-    ];
-    aiomysql = [
-      aiomysql
-    ] ++ self.asyncio;
-    asyncmy = [
-      asyncmy
-    ] ++ self.asyncio;
+    mssql_pyodbc = [ pyodbc ];
+    mysql = [ mysqlclient ];
+    mysql_connector = [ mysql-connector-python ];
+    mariadb_connector = [ mariadb ];
+    oracle = [ cx-oracle ];
+    postgresql = [ psycopg2 ];
+    postgresql_pg8000 = [ pg8000 ];
+    postgresql_asyncpg = [ asyncpg ] ++ self.asyncio;
+    postgresql_psycopg2binary = [ psycopg2 ];
+    postgresql_psycopg2cffi = [ psycopg2cffi ];
+    pymysql = [ pymysql ];
+    aiomysql = [ aiomysql ] ++ self.asyncio;
+    asyncmy = [ asyncmy ] ++ self.asyncio;
     aiosqlite = [
       aiosqlite
       typing-extensions
-    ] ++ self.asyncio;
+    ]
+    ++ self.asyncio;
     sqlcipher = [
       # TODO: sqlcipher3
     ];
@@ -131,14 +97,16 @@ buildPythonPackage rec {
     "test/aaa_profiling"
   ];
 
-  pythonImportsCheck = [
-    "sqlalchemy"
-  ];
+  pythonImportsCheck = [ "sqlalchemy" ];
 
-  meta = with lib; {
-    changelog = "https://github.com/sqlalchemy/sqlalchemy/releases/tag/rel_${builtins.replaceStrings [ "." ] [ "_" ] version}";
-    description = "The Database Toolkit for Python";
+  meta = {
+    changelog =
+      let
+        shortVersion = lib.replaceString "." "" (lib.versions.majorMinor version);
+      in
+      "https://github.com/sqlalchemy/sqlalchemy/blob/${src.rev}/doc/build/changelog/changelog_${shortVersion}.rst";
+    description = "Database Toolkit for Python";
     homepage = "https://github.com/sqlalchemy/sqlalchemy";
-    license = licenses.mit;
+    license = lib.licenses.mit;
   };
 }

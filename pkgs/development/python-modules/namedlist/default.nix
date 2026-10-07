@@ -1,9 +1,9 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, fetchpatch
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  fetchpatch,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
@@ -11,16 +11,12 @@ buildPythonPackage rec {
   version = "1.8";
   format = "setuptools";
 
-  disabled = pythonOlder "3.7";
-
   src = fetchPypi {
     inherit pname version;
     hash = "sha256-NPifyZJZLICzmnCeE27c9B6hfyS6Mer4SjFKAsi5vO8=";
   };
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   patches = [
     # Deprecation warning using collections.abc, https://gitlab.com/ericvsmith/namedlist/-/merge_requests/1
@@ -36,19 +32,17 @@ buildPythonPackage rec {
     substituteInPlace test/test_namedlist.py --replace "unittest.main()" ""
   '';
 
-  pythonImportsCheck = [
-    "namedlist"
-  ];
+  pythonImportsCheck = [ "namedlist" ];
 
   disabledTests = [
     # AttributeError: module 'collections' has no attribute 'Container'
     "test_ABC"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Similar to namedtuple, but instances are mutable";
     homepage = "https://gitlab.com/ericvsmith/namedlist";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ivan ];
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
 }

@@ -18,13 +18,38 @@ around Matrix.
 
 [Synapse](https://github.com/element-hq/synapse) is
 the reference homeserver implementation of Matrix from the core development
-team at matrix.org. The following configuration example will set up a
+team at matrix.org.
+
+Before deploying synapse server, a postgresql database must be set up.
+For that, please make sure that postgresql is running and the following
+SQL statements to create a user & database called `matrix-synapse` were
+executed before synapse starts up:
+
+```sql
+CREATE ROLE "matrix-synapse";
+CREATE DATABASE "matrix-synapse" WITH OWNER "matrix-synapse"
+  TEMPLATE template0
+  LC_COLLATE = "C"
+  LC_CTYPE = "C";
+```
+
+Usually, it's sufficient to do this once manually before
+continuing with the installation.
+
+Please make sure to set a different password.
+
+The following configuration example will set up a
 synapse server for the `example.org` domain, served from
 the host `myhostname.example.org`. For more information,
 please refer to the
 [installation instructions of Synapse](https://element-hq.github.io/synapse/latest/setup/installation.html) .
-```
-{ pkgs, lib, config, ... }:
+```nix
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 let
   fqdn = "${config.networking.hostName}.${config.networking.domain}";
   baseUrl = "https://${fqdn}";
@@ -35,19 +60,16 @@ let
     add_header Access-Control-Allow-Origin *;
     return 200 '${builtins.toJSON data}';
   '';
-in {
+in
+{
   networking.hostName = "myhostname";
   networking.domain = "example.org";
-  networking.firewall.allowedTCPPorts = [ 80 443 ];
+  networking.firewall.allowedTCPPorts = [
+    80
+    443
+  ];
 
   services.postgresql.enable = true;
-  services.postgresql.initialScript = pkgs.writeText "synapse-init.sql" ''
-    CREATE ROLE "matrix-synapse" WITH LOGIN PASSWORD 'synapse';
-    CREATE DATABASE "matrix-synapse" WITH OWNER "matrix-synapse"
-      TEMPLATE template0
-      LC_COLLATE = "C"
-      LC_CTYPE = "C";
-  '';
 
   services.nginx = {
     enable = true;
@@ -104,15 +126,21 @@ in {
     # in client applications.
     settings.public_baseurl = baseUrl;
     settings.listeners = [
-      { port = 8008;
+      {
+        port = 8008;
         bind_addresses = [ "::1" ];
         type = "http";
         tls = false;
         x_forwarded = true;
-        resources = [ {
-          names = [ "client" "federation" ];
-          compress = true;
-        } ];
+        resources = [
+          {
+            names = [
+              "client"
+              "federation"
+            ];
+            compress = true;
+          }
+        ];
       }
     ];
   };
@@ -126,8 +154,9 @@ then enable `services.matrix-synapse.settings.enable_registration = true;`.
 Otherwise, or you can generate a registration secret with
 {command}`pwgen -s 64 1` and set it with
 [](#opt-services.matrix-synapse.settings.registration_shared_secret).
-To create a new user or admin, run the following after you have set the secret
-and have rebuilt NixOS:
+To create a new user or admin from the terminal your client listener
+must be configured to use TCP sockets. Then you can run the following
+after you have set the secret and have rebuilt NixOS:
 ```ShellSession
 $ nix-shell -p matrix-synapse
 $ register_new_matrix_user -k your-registration-shared-secret http://localhost:8008
@@ -157,11 +186,9 @@ in an additional file like this:
     by `matrix-synapse`.
   - Include the file like this in your configuration:
 
-    ```
+    ```nix
     {
-      services.matrix-synapse.extraConfigFiles = [
-        "/run/secrets/matrix-shared-secret"
-      ];
+      services.matrix-synapse.extraConfigFiles = [ "/run/secrets/matrix-shared-secret" ];
     }
     ```
 :::
@@ -174,7 +201,7 @@ or [OpenID](https://element-hq.github.io/synapse/latest/openid.html).
 
 ## Element (formerly known as Riot) Web Client {#module-services-matrix-element-web}
 
-[Element Web](https://github.com/vector-im/riot-web/) is
+[Element Web](https://github.com/element-hq/element-web) is
 the reference web client for Matrix and developed by the core team at
 matrix.org. Element was formerly known as Riot.im, see the
 [Element introductory blog post](https://element.io/blog/welcome-to-element/)
@@ -189,14 +216,12 @@ fill in the required connection details automatically when you enter your
 Matrix Identifier. See
 [Try Matrix Now!](https://matrix.org/docs/projects/try-matrix-now.html)
 for a list of existing clients and their supported featureset.
-```
+```nix
 {
   services.nginx.virtualHosts."element.${fqdn}" = {
     enableACME = true;
     forceSSL = true;
-    serverAliases = [
-      "element.${config.networking.domain}"
-    ];
+    serverAliases = [ "element.${config.networking.domain}" ];
 
     root = pkgs.element-web.override {
       conf = {
@@ -214,6 +239,6 @@ the example, this means that you should not reuse the
 `myhostname.example.org` virtualHost to also serve Element,
 but instead serve it on a different subdomain, like
 `element.example.org` in the example. See the
-[Element Important Security Notes](https://github.com/vector-im/element-web/tree/v1.10.0#important-security-notes)
+[Element Important Security Notes](https://github.com/element-hq/element-web/tree/v1.10.0#important-security-notes)
 for more information on this subject.
 :::

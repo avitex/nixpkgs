@@ -1,31 +1,38 @@
-{ lib, mkDerivation, fetchFromGitHub }:
+{
+  lib,
+  mkDerivation,
+  fetchFromGitHub,
+  unstableGitUpdater,
+}:
 
-mkDerivation rec {
+mkDerivation {
   pname = "1lab";
-  version = "unstable-2023-12-04";
+  version = "0-unstable-2025-07-01";
 
   src = fetchFromGitHub {
-    owner = "plt-amy";
-    repo = pname;
-    rev = "47c2a96220b4d14419e5ddb973bc1fa06933e723";
-    hash = "sha256-0U6s6sXdynk2IWRBDXBJCf7Gc+gE8AhR1PXZl0DS4yU=";
+    owner = "the1lab";
+    repo = "1lab";
+    rev = "e9c2ad2b3ba9cefad36e72cb9d732117c68ac862";
+    hash = "sha256-wKh77+xCdfMtnq9jMlpdnEptGO+/WVNlQFa1TDbdUGs=";
   };
 
-  # We don't need anything in support; avoid installing LICENSE.agda
   postPatch = ''
+    # We don't need anything in support; avoid installing LICENSE.agda
     rm -rf support
+
+    # Remove verbosity options as they make Agda take longer and use more memory.
+    shopt -s globstar extglob
+    files=(src/**/*.@(agda|lagda.md))
+    sed -Ei '/OPTIONS/s/ -v ?[^ #]+//g' "''${files[@]}"
   '';
 
-  libraryName = "1lab";
-  libraryFile = "1lab.agda-lib";
-  everythingFile = "src/index.lagda.md";
+  passthru.updateScript = unstableGitUpdater { };
 
-  meta = with lib; {
-    description =
-      "A formalised, cross-linked reference resource for mathematics done in Homotopy Type Theory ";
-    homepage = src.meta.homepage;
-    license = licenses.agpl3;
-    platforms = platforms.unix;
-    maintainers = with maintainers; [ ncfavier ];
+  meta = {
+    description = "Formalised, cross-linked reference resource for mathematics done in Homotopy Type Theory ";
+    homepage = "https://github.com/the1lab/1lab";
+    license = lib.licenses.agpl3Only;
+    platforms = lib.platforms.unix;
+    maintainers = with lib.maintainers; [ ncfavier ];
   };
 }

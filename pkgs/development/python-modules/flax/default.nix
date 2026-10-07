@@ -1,75 +1,84 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, jaxlib
-, pythonRelaxDepsHook
-, setuptools-scm
-, jax
-, msgpack
-, numpy
-, optax
-, pyyaml
-, rich
-, tensorstore
-, typing-extensions
-, matplotlib
-, cloudpickle
-, einops
-, keras
-, pytest-xdist
-, pytestCheckHook
-, tensorflow
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+  setuptools-scm,
+
+  # dependencies
+  jax,
+  msgpack,
+  numpy,
+  optax,
+  orbax-checkpoint,
+  pyyaml,
+  rich,
+  tensorstore,
+  treescope,
+  typing-extensions,
+
+  # tests
+  cloudpickle,
+  keras,
+  einops,
+  flaxlib,
+  pytestCheckHook,
+  pytest-xdist,
+  sphinx,
+  tensorflow,
+  torch,
+
+  writeScript,
+  tomlq,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "flax";
-  version = "0.7.5";
+  version = "0.12.10";
   pyproject = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "google";
     repo = "flax";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-NDah0ayQbiO1/sTU1DDf/crPq5oLTnSuosV7cFHlTM8=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-cgtRncxqT6ZKBUR3NpN08+c7zddxU3EoeIF5Xt9omc0=";
   };
 
-  nativeBuildInputs = [
-    jaxlib
-    pythonRelaxDepsHook
+  build-system = [
+    setuptools
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
+    flaxlib
     jax
     msgpack
     numpy
     optax
+    orbax-checkpoint
     pyyaml
     rich
     tensorstore
+    treescope
     typing-extensions
   ];
 
-  passthru.optional-dependencies = {
-    all = [ matplotlib ];
-  };
-
-  pythonImportsCheck = [
-    "flax"
-  ];
+  pythonImportsCheck = [ "flax" ];
 
   nativeCheckInputs = [
     cloudpickle
     einops
-    keras
-    pytest-xdist
     pytestCheckHook
+    pytest-xdist
+    sphinx
+    torch
+  ]
+  ++ lib.optionals tensorflow.meta.available [
+    keras
     tensorflow
-  ];
-
-  pytestFlagsArray = [
-    "-W ignore::FutureWarning"
-    "-W ignore::DeprecationWarning"
   ];
 
   disabledTestPaths = [
@@ -83,19 +92,45 @@ buildPythonPackage rec {
     # `tensorflow_datasets`, `vocabulary`) so the benefits of trying to run them
     # would be limited anyway.
     "examples/*"
-
-    # See https://github.com/google/flax/issues/3232.
-    "tests/jax_utils_test.py"
-
-    # Requires orbax which is not packaged as of 2023-07-27.
-    "tests/checkpoints_test.py"
+  ]
+  ++ lib.optionals (!tensorflow.meta.available) [
+    "tests/io_test.py"
+    "tests/tensorboard_test.py"
   ];
 
-  meta = with lib; {
+  disabledTests = [
+    # AssertionError: [Chex] Function 'add' is traced > 1 times!
+    "PadShardUnpadTest"
+
+    # AssertionError: nnx_model.kernel.value.sharding = NamedSharding(...
+    "test_linen_to_nnx_metadata"
+
+    # AssertionError: 'Linear_0' not found in State({})
+    "test_compact_basic"
+    # KeyError: 'intermediates'
+    "test_linen_submodule"
+    "test_pure_nnx_submodule"
+    # KeyError: 'counts
+    "test_mutable_state"
+    # AttributeError: 'Top' object has no attribute '_pytree__state'. Did you mean: '_pytree__flatten'?
+    "test_shared_modules"
+    # AttributeError: 'MLP' object has no attribute 'scope
+    "test_transforms"
+  ];
+
+  passthru = {
+    updateScript = writeScript "update.sh" ''
+      nix-update flax # does not --build by default
+      nix-build . -A flax.src # src is essentially a passthru
+      nix-update flaxlib --version="$(${lib.getExe tomlq} <result/Cargo.toml .something.version)" --commit
+    '';
+  };
+
+  meta = {
     description = "Neural network library for JAX";
     homepage = "https://github.com/google/flax";
-    changelog = "https://github.com/google/flax/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ndl ];
+    changelog = "https://github.com/google/flax/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ ndl ];
   };
-}
+})

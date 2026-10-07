@@ -1,22 +1,27 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonRelaxDepsHook
-, bleach
-, bokeh
-, param
-, pyviz-comms
-, markdown
-, pyct
-, requests
-, setuptools
-, tqdm
-, typing-extensions
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  bleach,
+  bokeh,
+  linkify-it-py,
+  markdown,
+  markdown-it-py,
+  mdit-py-plugins,
+  narwhals,
+  pandas,
+  param,
+  pyviz-comms,
+  pyct,
+  requests,
+  setuptools,
+  tqdm,
+  typing-extensions,
 }:
 
 buildPythonPackage rec {
   pname = "panel";
-  version = "1.3.4";
+  version = "1.8.5";
 
   format = "wheel";
 
@@ -24,22 +29,24 @@ buildPythonPackage rec {
   # artifacts using npm, the bundling invoked in setup.py
   # tries to fetch even more artifacts
   src = fetchPypi {
-    inherit pname version format;
-    hash = "sha256-FK/ekqXCtTHyzLeFs0tHEeH0VXk0yFcns1lOLa5z0KU=";
+    inherit pname version;
+    format = "wheel";
+    hash = "sha256-srrwEPz6xMku7/5x9GmQey9/rc/9025C+HxUHLtIw7M=";
+    dist = "py3";
+    python = "py3";
   };
 
-  nativeBuildInputs = [
-    pythonRelaxDepsHook
-  ];
-
-  pythonRelaxDeps = [
-    "bokeh"
-  ];
+  pythonRelaxDeps = [ "bokeh" ];
 
   propagatedBuildInputs = [
     bleach
     bokeh
+    linkify-it-py
     markdown
+    markdown-it-py
+    mdit-py-plugins
+    narwhals
+    pandas
     param
     pyct
     pyviz-comms
@@ -49,18 +56,17 @@ buildPythonPackage rec {
     typing-extensions
   ];
 
-  pythonImportsCheck = [
-    "panel"
-  ];
+  pythonImportsCheck = [ "panel" ];
 
   # infinite recursion in test dependencies (hvplot)
   doCheck = false;
 
-  meta = with lib; {
-    description = "A high level dashboarding library for python visualization libraries";
+  meta = {
+    description = "High level dashboarding library for python visualization libraries";
+    mainProgram = "panel";
     homepage = "https://github.com/holoviz/panel";
     changelog = "https://github.com/holoviz/panel/releases/tag/v${version}";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ locnide ];
   };
 }

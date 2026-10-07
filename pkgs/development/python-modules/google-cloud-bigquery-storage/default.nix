@@ -1,44 +1,45 @@
-{ lib
-, buildPythonPackage
-, fastavro
-, fetchPypi
-, google-api-core
-, google-auth
-, google-cloud-bigquery
-, pandas
-, protobuf
-, pyarrow
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fastavro,
+  fetchPypi,
+  google-api-core,
+  google-auth,
+  google-cloud-bigquery,
+  pandas,
+  protobuf,
+  pyarrow,
+  pytestCheckHook,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "google-cloud-bigquery-storage";
-  version = "2.24.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "2.36.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-tK9bmqzYOWuEB9G4d2AaN22O6m0ZKCOop4gb0v3Ads4=";
+    pname = "google_cloud_bigquery_storage";
+    inherit version;
+    hash = "sha256-08HOnS06TXEWJZiJ3L48fHBQb3H2zmu+VKoKaLu6j48=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  pythonRelaxDeps = [
+    "protobuf"
+  ];
+
+  dependencies = [
     google-api-core
     protobuf
-  ] ++ google-api-core.optional-dependencies.grpc;
+  ]
+  ++ google-api-core.optional-dependencies.grpc;
 
-  passthru.optional-dependencies = {
-    fastavro = [
-      fastavro
-    ];
-    pandas = [
-      pandas
-    ];
-    pyarrow = [
-      pyarrow
-    ];
+  optional-dependencies = {
+    fastavro = [ fastavro ];
+    pandas = [ pandas ];
+    pyarrow = [ pyarrow ];
   };
 
   nativeCheckInputs = [
@@ -60,11 +61,12 @@ buildPythonPackage rec {
     "google.cloud.bigquery_storage_v1beta2"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "BigQuery Storage API API client library";
-    homepage = "https://github.com/googleapis/python-bigquery-storage";
-    changelog = "https://github.com/googleapis/python-bigquery-storage/blob/v${version}/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    homepage = "https://docs.cloud.google.com/bigquery/docs/reference/storage";
+    changelog = "https://github.com/googleapis/google-cloud-python/blob/google-cloud-bigquery-storage-v${version}/packages/google-cloud-bigquery-storage/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = [ ];
+    mainProgram = "fixup_bigquery_storage_v1_keywords.py";
   };
 }

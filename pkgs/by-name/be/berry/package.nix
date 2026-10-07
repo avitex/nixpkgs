@@ -1,27 +1,28 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, copyDesktopItems
-, fontconfig
-, freetype
-, libX11
-, libXext
-, libXft
-, libXinerama
-, makeDesktopItem
-, pkg-config
-, which
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  copyDesktopItems,
+  fontconfig,
+  freetype,
+  libx11,
+  libxext,
+  libxft,
+  libxinerama,
+  makeDesktopItem,
+  pkg-config,
+  which,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "berry";
-  version = "0.1.12";
+  version = "0.1.13";
 
   src = fetchFromGitHub {
     owner = "JLErvin";
     repo = "berry";
     rev = finalAttrs.version;
-    hash = "sha256-xMJRiLNtwVRQf9HiCF3ClLKEmdDNxcY35IYxe+L7+Hk=";
+    hash = "sha256-BMK5kZVoYTUA7AFZc/IVv4rpbn893b/QYXySuPAz2Z8=";
   };
 
   nativeBuildInputs = [
@@ -30,16 +31,19 @@ stdenv.mkDerivation (finalAttrs: {
     which
   ];
 
-  buildInputs =[
-    libX11
-    libXext
-    libXft
-    libXinerama
+  buildInputs = [
+    libx11
+    libxext
+    libxft
+    libxinerama
     fontconfig
     freetype
   ];
 
-  outputs = [ "out" "man" ];
+  outputs = [
+    "out"
+    "man"
+  ];
 
   strictDeps = true;
 
@@ -50,6 +54,8 @@ stdenv.mkDerivation (finalAttrs: {
   preConfigure = ''
     patchShebangs configure
   '';
+
+  env.NIX_CFLAGS_COMPILE = lib.optionalString stdenv.hostPlatform.isDarwin "-D_C99_SOURCE";
 
   desktopItems = [
     (makeDesktopItem {
@@ -64,7 +70,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   meta = {
     homepage = "https://berrywm.org/";
-    description = "A healthy, bite-sized window manager";
+    description = "Healthy, bite-sized window manager";
     longDescription = ''
       berry is a healthy, bite-sized window manager written in C for unix
       systems. Its main features include:
@@ -73,14 +79,14 @@ stdenv.mkDerivation (finalAttrs: {
         windows via a hotkey daemon such as sxhkd or expand functionality via
         shell scripts.
       - Small, hackable source code.
-      - Extensible themeing options with double borders, title bars, and window
+      - Extensible theming options with double borders, title bars, and window
         text.
       - Intuitively place new windows in unoccupied spaces.
       - Virtual desktops.
     '';
     license = lib.licenses.mit;
     mainProgram = "berry";
-    maintainers = [ lib.maintainers.AndersonTorres ];
-    inherit (libX11.meta) platforms;
+    maintainers = [ ];
+    inherit (libx11.meta) platforms;
   };
 })

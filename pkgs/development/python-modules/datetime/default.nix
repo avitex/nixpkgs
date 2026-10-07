@@ -1,23 +1,21 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, pytz
-, zope-interface
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytz,
+  zope-interface,
 }:
 
 buildPythonPackage rec {
   pname = "datetime";
-  version = "5.4";
+  version = "6.0";
   format = "setuptools";
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "zopefoundation";
     repo = "datetime";
-    rev = "refs/tags/${version}";
-    hash = "sha256-k4q9n3uikz+B9CUyqQTgl61OTKDWMsyhAt2gB1HWGRw=";
+    tag = version;
+    hash = "sha256-bxFdj9B0LUbnn/q5RcO3tBwqAMMl3Ovom036y0yfUbE=";
   };
 
   propagatedBuildInputs = [
@@ -25,15 +23,13 @@ buildPythonPackage rec {
     zope-interface
   ];
 
-  pythonImportsCheck = [
-    "DateTime"
-  ];
+  pythonImportsCheck = [ "DateTime" ];
 
-  meta = with lib; {
+  meta = {
     description = "DateTime data type, as known from Zope";
     homepage = "https://github.com/zopefoundation/DateTime";
     changelog = "https://github.com/zopefoundation/DateTime/blob/${version}/CHANGES.rst";
-    license = licenses.zpl21;
-    maintainers = with maintainers; [ icyrockcom ];
+    license = lib.licenses.zpl21;
+    maintainers = with lib.maintainers; [ icyrockcom ];
   };
 }

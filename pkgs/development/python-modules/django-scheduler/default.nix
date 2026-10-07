@@ -1,52 +1,56 @@
-{ lib
-, buildPythonPackage
-, django
-, fetchFromGitHub
-, icalendar
-, pytest
-, pytest-django
-, python
-, python-dateutil
-, pythonOlder
-, pytz
+{
+  lib,
+  buildPythonPackage,
+  django,
+  fetchFromGitHub,
+  icalendar,
+  pytestCheckHook,
+  pytest-django,
+  python-dateutil,
+  pytz,
+  setuptools,
+  pyprojectVersionPatchHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "django-scheduler";
-  version = "0.10.1";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.11.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "llazzaro";
     repo = "django-scheduler";
-    rev = "refs/tags/${version}";
-    hash = "sha256-dY2TPo15RRWrv7LheUNJSQl4d/HeptSMM/wQirRSI5w=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-VdnKXyXGNPlOH50s8vPmF1A6BinntC1i+8v5gup7mts=";
   };
 
-  propagatedBuildInputs = [
+  nativeBuildInputs = [ pyprojectVersionPatchHook ];
+
+  build-system = [ setuptools ];
+
+  dependencies = [
     django
+    icalendar
     python-dateutil
     pytz
-    icalendar
   ];
 
-  checkPhase = ''
-    runHook preCheck
-    ${python.interpreter} -m django check --settings=tests.settings
-    runHook postCheck
+  nativeCheckInputs = [
+    pytestCheckHook
+    pytest-django
+  ];
+
+  preCheck = ''
+    export DJANGO_SETTINGS_MODULE=tests.settings
   '';
 
-  pythonImportsCheck = [
-    "schedule"
-  ];
+  pythonImportsCheck = [ "schedule" ];
 
-  meta = with lib; {
-    description = "A calendar app for Django";
+  meta = {
+    description = "Calendar app for Django";
     homepage = "https://github.com/llazzaro/django-scheduler";
-    changelog = "https://github.com/llazzaro/django-scheduler/releases/tag/${version}";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ derdennisop ];
+    changelog = "https://github.com/llazzaro/django-scheduler/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ derdennisop ];
   };
-}
+})

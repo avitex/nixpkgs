@@ -1,46 +1,68 @@
-{ lib
-, fetchFromGitHub
-, nixosTests
-, rustPlatform
+{
+  lib,
+  fetchFromGitHub,
+  nixosTests,
+  rustPlatform,
+  fetchNextcloudApp,
 }:
 
 rustPlatform.buildRustPackage rec {
   pname = "notify_push";
-  version = "0.6.7";
+
+  # NOTE: make sure this is compatible with all Nextcloud versions
+  # in nixpkgs!
+  # For that, check the `<dependencies>` section of `appinfo/info.xml`
+  # in the app (https://github.com/nextcloud/notify_push/blob/main/appinfo/info.xml)
+  version = "1.4.1";
 
   src = fetchFromGitHub {
     owner = "nextcloud";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-kcdrKrad5kHYOg/1+L72c9Y3GwFA4wS2C9xQ0JOqcOQ=";
+    repo = "notify_push";
+    tag = "v${version}";
+    hash = "sha256-lg/gffgfUJHLCL1TOPdYAw7DtRZeGDH+jO9deQSUbEY=";
   };
 
-  cargoHash = "sha256-jMSPBoLVUe4I+CI8nKOjgTxUUarUa4/KLl+LmehKOzg=";
+  cargoHash = "sha256-skKOCJBtpvtdc594eOxbvSIl+SucaH0jl1gFv9kfvNA=";
 
   passthru = rec {
+    app = fetchNextcloudApp {
+      appName = "notify_push";
+      appVersion = version;
+      hash = "sha256-C/2jXLpuIbxjWO3kMb3nkLA5762uVLuzk1YPz/YSfjY=";
+      license = "agpl3Plus";
+      homepage = "https://github.com/nextcloud/notify_push";
+      url = "https://github.com/nextcloud-releases/notify_push/releases/download/v${version}/notify_push-v${version}.tar.gz";
+      description = "Push update support for desktop app";
+    };
+
     test_client = rustPlatform.buildRustPackage {
       pname = "${pname}-test_client";
       inherit src version;
 
       buildAndTestSubdir = "test_client";
 
-      cargoHash = "sha256-0Vs05DToSeKWQJlTwtETedJV2GQ3LYJYIsxM/xZ6dt4=";
+      cargoHash = "sha256-skKOCJBtpvtdc594eOxbvSIl+SucaH0jl1gFv9kfvNA=";
+
+      meta = meta // {
+        mainProgram = "test_client";
+      };
     };
-    tests = {
-      inherit (nixosTests.nextcloud)
-        with-postgresql-and-redis26
-        with-postgresql-and-redis27
-        with-postgresql-and-redis28;
-      inherit test_client;
-    };
+    tests =
+      lib.filterAttrs (
+        key: lib.const (lib.hasPrefix "with-postgresql-and-redis" key)
+      ) nixosTests.nextcloud
+      // {
+        inherit test_client;
+      };
   };
 
-  meta = with lib; {
+  meta = {
     changelog = "https://github.com/nextcloud/notify_push/releases/tag/v${version}";
     description = "Update notifications for nextcloud clients";
+    mainProgram = "notify_push";
     homepage = "https://github.com/nextcloud/notify_push";
-    license = licenses.agpl3Plus;
-    platforms = platforms.linux;
-    maintainers = teams.helsinki-systems.members;
+    license = lib.licenses.agpl3Plus;
+    platforms = lib.platforms.linux;
+    maintainers = with lib.maintainers; [ helsinki-Jo ];
   };
 }

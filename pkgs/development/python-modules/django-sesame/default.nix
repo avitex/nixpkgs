@@ -1,39 +1,33 @@
-{ lib
-, buildPythonPackage
-, django
-, fetchFromGitHub
-, poetry-core
-, python
-, pythonOlder
-, ua-parser
+{
+  lib,
+  buildPythonPackage,
+  django,
+  fetchFromGitHub,
+  poetry-core,
+  python,
+  ua-parser,
 }:
 
 buildPythonPackage rec {
   pname = "django-sesame";
-  version = "3.2.2";
+  version = "3.2.4";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "aaugustin";
     repo = "django-sesame";
-    rev = "refs/tags/${version}";
-    hash = "sha256-8jbYhD/PfPnutJZonmdrqLIQdXiUHF12w0M9tuyyDz0=";
+    tag = version;
+    hash = "sha256-q9LvsPyFEbaE/TEOlQ5WodVvzAiv4x7C4vaiz1RJLu4=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  nativeBuildInputs = [ poetry-core ];
 
   nativeCheckInputs = [
     django
     ua-parser
   ];
 
-  pythonImportsCheck = [
-    "sesame"
-  ];
+  pythonImportsCheck = [ "sesame" ];
 
   checkPhase = ''
     runHook preCheck
@@ -43,11 +37,10 @@ buildPythonPackage rec {
     runHook postCheck
   '';
 
-  meta = with lib; {
+  meta = {
     description = "URLs with authentication tokens for automatic login";
     homepage = "https://github.com/aaugustin/django-sesame";
     changelog = "https://github.com/aaugustin/django-sesame/blob/${version}/docs/changelog.rst";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ elohmeier ];
+    license = lib.licenses.bsd3;
   };
 }

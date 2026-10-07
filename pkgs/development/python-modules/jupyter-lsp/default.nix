@@ -1,37 +1,34 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools
-, jupyter-server
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  jupyter-server,
 }:
 
 buildPythonPackage rec {
   pname = "jupyter-lsp";
-  version = "2.2.1";
+  version = "2.3.0";
   pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-sX+rbXD+g8iJawz/WSN2QAOCR8GWBWtDaEoJArap4Ps=";
+    pname = "jupyter_lsp";
+    inherit version;
+    hash = "sha256-RYqlkzncho+3hNczZPF9vOiDbpBs11/UcaMly6AuAkU=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
-  propagatedBuildInputs = [
-    jupyter-server
-  ];
+  propagatedBuildInputs = [ jupyter-server ];
   # tests require network
   doCheck = false;
   pythonImportsCheck = [ "jupyter_lsp" ];
 
-  meta = with lib; {
+  meta = {
     description = "Multi-Language Server WebSocket proxy for your Jupyter notebook or lab server";
     homepage = "https://jupyterlab-lsp.readthedocs.io/en/latest/";
-    license = licenses.bsd3;
-    platforms = platforms.all;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.bsd3;
+    platforms = lib.platforms.all;
+    maintainers = [ ];
   };
 }
-

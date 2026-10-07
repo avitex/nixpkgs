@@ -1,86 +1,90 @@
-{ stdenv, writeText, erlang, rebar3WithPlugins, openssl, libyaml, lib }:
+{
+  erlang,
+  beamCopySourceHook,
+  beamModuleInstallHook,
+  rebar3CompileHook,
+  rebar3WithPlugins,
+  rebarDevendorPatchHook,
 
-{ name
-, version
-, src
-, setupHook ? null
-, buildInputs ? [ ]
-, beamDeps ? [ ]
-, buildPlugins ? [ ]
-, postPatch ? ""
-, installPhase ? null
-, buildPhase ? null
-, configurePhase ? null
-, meta ? { }
-, enableDebugInfo ? false
-, ...
-}@attrs:
+  libyaml,
+  openssl,
 
-let
-  debugInfoFlag = lib.optionalString (enableDebugInfo || erlang.debugInfo) "debug-info";
+  lib,
+  stdenv,
+  writeText,
+}:
 
-  rebar3 = rebar3WithPlugins {
-    plugins = buildPlugins;
-  };
+lib.extendMkDerivation {
+  constructDrv = stdenv.mkDerivation;
+  excludeDrvArgNames = [
+    "beamDeps"
+    "buildPlugins"
+  ];
+  extendDrvArgs =
+    finalAttrs:
+    {
+      beamDeps ? [ ],
+      buildPlugins ? [ ],
 
-  shell = drv: stdenv.mkDerivation {
-    name = "interactive-shell-${drv.name}";
-    buildInputs = [ drv ];
-  };
+      enableDebugInfo ? false,
+      erlangCompilerOptions ? [ ],
+      # Deterministic Erlang builds remove full system paths from debug information
+      # among other things to keep builds more reproducible. See their docs for more:
+      # https://www.erlang.org/doc/man/compile
+      erlangDeterministicBuilds ? true,
+      ...
+    }@args:
+    let
+      rebar3Custom = rebar3WithPlugins {
+        plugins = buildPlugins;
+      };
+    in
+    {
+      pname = args.name;
+      name = "erlang${erlang.version}-${args.name}-${finalAttrs.version}";
 
-  customPhases = lib.filterAttrs
-    (_: v: v != null)
-    { inherit setupHook configurePhase buildPhase installPhase; };
+      nativeBuildInputs = (args.nativeBuildInputs or [ ]) ++ [
+        erlang
+        rebar3Custom
 
-  pkg = self: stdenv.mkDerivation (attrs // {
+        rebarDevendorPatchHook
+        beamCopySourceHook
+        beamModuleInstallHook
+        rebar3CompileHook
+      ];
 
-    name = "${name}-${version}";
-    inherit version;
+      buildInputs = (args.buildInputs or [ ]) ++ [
+        openssl
+        libyaml
+      ];
 
-    buildInputs = buildInputs ++ [ erlang rebar3 openssl libyaml ];
-    propagatedBuildInputs = lib.unique beamDeps;
+      propagatedBuildInputs = lib.unique beamDeps;
 
-    inherit src;
+      __structuredAttrs = true;
+      strictDeps = true;
 
-    # stripping does not have any effect on beam files
-    # it is however needed for dependencies with NIFs
-    # false is the default but we keep this for readability
-    dontStrip = false;
+      env = {
+        ERL_COMPILER_OPTIONS =
+          let
+            options = erlangCompilerOptions ++ lib.optionals erlangDeterministicBuilds [ "deterministic" ];
+          in
+          "[${lib.concatStringsSep "," options}]";
 
-    setupHook = writeText "setupHook.sh" ''
-      addToSearchPath ERL_LIBS "$1/lib/erlang/lib/"
-    '';
+        beamModuleName = args.name;
+      }
+      // (args.env or { });
 
-    postPatch = ''
-      rm -f rebar rebar3
-    '' + postPatch;
+      setupHook = writeText "setupHook.sh" ''
+        addToSearchPath ERL_LIBS "$1/lib/erlang/lib/"
+      '';
 
-    buildPhase = ''
-      runHook preBuild
-      HOME=. rebar3 bare compile -path ""
-      runHook postBuild
-    '';
+      meta = {
+        inherit (erlang.meta) platforms;
+      }
+      // (args.meta or { });
 
-    installPhase = ''
-      runHook preInstall
-      mkdir -p "$out/lib/erlang/lib/${name}-${version}"
-      for reldir in src ebin priv include; do
-        [ -d "$reldir" ] || continue
-        # $out/lib/erlang/lib is a convention used in nixpkgs for compiled BEAM packages
-        cp -Hrt "$out/lib/erlang/lib/${name}-${version}" "$reldir"
-      done
-      runHook postInstall
-    '';
-
-    meta = {
-      inherit (erlang.meta) platforms;
-    } // meta;
-
-    passthru = {
-      packageName = name;
-      env = shell self;
-      inherit beamDeps;
+      passthru = {
+        inherit beamDeps;
+      };
     };
-  } // customPhases);
-in
-lib.fix pkg
+}

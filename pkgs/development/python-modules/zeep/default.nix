@@ -1,48 +1,51 @@
-{ lib
-, aiohttp
-, aioresponses
-, attrs
-, buildPythonPackage
-, defusedxml
-, fetchFromGitHub
-, freezegun
-, httpx
-, isodate
-, lxml
-, mock
-, platformdirs
-, pretend
-, pytest-asyncio
-, pytest-httpx
-, pytestCheckHook
-, pythonOlder
-, pytz
-, requests
-, requests-toolbelt
-, requests-file
-, requests-mock
-, xmlsec
+{
+  lib,
+  aiohttp,
+  aioresponses,
+  attrs,
+  buildPythonPackage,
+  defusedxml,
+  fetchFromGitHub,
+  freezegun,
+  httpx,
+  isodate,
+  lxml,
+  mock,
+  packaging,
+  platformdirs,
+  pretend,
+  pytest-asyncio,
+  pytest-httpx,
+  pytestCheckHook,
+  pytz,
+  requests,
+  requests-toolbelt,
+  requests-file,
+  requests-mock,
+  setuptools,
+  xmlsec,
 }:
 
 buildPythonPackage rec {
   pname = "zeep";
-  version = "4.2.1";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.6";
+  version = "4.3.3";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "mvantellingen";
     repo = "python-zeep";
-    rev = "refs/tags/${version}";
-    hash = "sha256-8f6kS231gbaZ8qyE8BKMcbnZsm8o2+iBoTlQrs5X+jY=";
+    tag = version;
+    hash = "sha256-0Mzvb86f1r07PCJqTy9CGUq9Zk2PtAsFfd3SmFlOayk=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     attrs
     defusedxml
     isodate
     lxml
+    packaging
     platformdirs
     pytz
     requests
@@ -50,18 +53,12 @@ buildPythonPackage rec {
     requests-toolbelt
   ];
 
-  passthru.optional-dependencies = {
-    async_require = [
-      httpx
-    ];
-    xmlsec_require = [
-      xmlsec
-    ];
+  optional-dependencies = {
+    async = [ httpx ];
+    xmlsec = [ xmlsec ];
   };
 
-  pythonImportsCheck = [
-    "zeep"
-  ];
+  pythonImportsCheck = [ "zeep" ];
 
   nativeCheckInputs = [
     aiohttp
@@ -74,7 +71,7 @@ buildPythonPackage rec {
     pytestCheckHook
     requests-mock
   ]
-  ++ lib.flatten (builtins.attrValues passthru.optional-dependencies);
+  ++ lib.concatAttrValues optional-dependencies;
 
   disabledTests = [
     # Failed: External connections not allowed during tests.
@@ -89,10 +86,10 @@ buildPythonPackage rec {
     export HOME=$TMPDIR
   '';
 
-  meta = with lib; {
-    changelog = "https://github.com/mvantellingen/python-zeep/releases/tag/${version}";
+  meta = {
+    changelog = "https://github.com/mvantellingen/python-zeep/releases/tag/${src.tag}";
     description = "Python SOAP client";
     homepage = "http://docs.python-zeep.org";
-    license = licenses.mit;
+    license = lib.licenses.mit;
   };
 }

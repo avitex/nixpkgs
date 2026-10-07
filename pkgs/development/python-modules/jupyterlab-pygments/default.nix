@@ -1,19 +1,17 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, hatch-jupyter-builder
-, hatch-nodejs-version
-, hatchling
-, pygments
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  hatch-jupyter-builder,
+  hatch-nodejs-version,
+  hatchling,
+  pygments,
 }:
 
 buildPythonPackage rec {
   pname = "jupyterlab-pygments";
   version = "0.3.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchPypi {
     pname = "jupyterlab_pygments";
@@ -40,10 +38,10 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "jupyterlab_pygments" ];
 
-  meta = with lib; {
+  meta = {
     description = "Jupyterlab syntax coloring theme for pygments";
     homepage = "https://github.com/jupyterlab/jupyterlab_pygments";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ jonringer ];
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
 }

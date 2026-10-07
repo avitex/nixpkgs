@@ -1,30 +1,31 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, fetchpatch
-, runtimeShell
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fetchpatch,
+  runtimeShell,
 
-# build
-, poetry-core
+  # build
+  poetry-core,
 
-# propagates
-, docutils
+  # propagates
+  docutils,
 
-# tests
-, pytestCheckHook
-, readme-renderer
-, textile
+  # tests
+  pytestCheckHook,
+  readme-renderer,
+  textile,
 }:
 
 buildPythonPackage rec {
   pname = "python-creole";
   version = "1.4.10";
-  format = "pyproject";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "jedie";
     repo = "python-creole";
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     hash = "sha256-8pXOnLNjhIv0d+BqjW8wlb6BT6CmFHSsxn5wLOv3LBQ=";
   };
 
@@ -37,9 +38,7 @@ buildPythonPackage rec {
     })
   ];
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  nativeBuildInputs = [ poetry-core ];
 
   postPatch = ''
     substituteInPlace Makefile \
@@ -48,13 +47,9 @@ buildPythonPackage rec {
     sed -i "/-cov/d" pytest.ini
   '';
 
-  propagatedBuildInputs = [
-    docutils
-  ];
+  propagatedBuildInputs = [ docutils ];
 
-  pythonImportsCheck = [
-    "creole"
-  ];
+  pythonImportsCheck = [ "creole" ];
 
   nativeCheckInputs = [
     pytestCheckHook
@@ -73,6 +68,9 @@ buildPythonPackage rec {
     # rendering mismatches, likely docutils version mismatch
     "test_headlines1"
     "test_simple_table"
+    # - <string>:5: (ERROR/3) Document or section may not begin with a transition.
+    # + <string>:5: (WARNING/2) Document or section may not begin with a transition.
+    "test_non_valid_readme"
   ];
 
   disabledTestPaths = [
@@ -84,13 +82,19 @@ buildPythonPackage rec {
     # rendering differencenes, likely docutils version mismatch
     "creole/tests/test_cross_compare_rest.py"
     "creole/tests/test_rest2html.py"
+    # fixture mismatch after docutils update
+    "creole/rest_tools/clean_writer.py::creole.rest_tools.clean_writer.rest2html"
+    "creole/tests/test_cross_compare_all.py::CrossCompareTests::test_link"
+    "creole/tests/test_cross_compare_all.py::CrossCompareTests::test_link_with_at_sign"
+    "creole/tests/test_cross_compare_all.py::CrossCompareTests::test_link_with_unknown_protocol"
+    "creole/tests/test_cross_compare_all.py::CrossCompareTests::test_link_without_title"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Creole markup tools written in Python";
     homepage = "https://github.com/jedie/python-creole";
     changelog = "https://github.com/jedie/python-creole/releases/tag/v${version}";
-    license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ hexa ];
+    license = lib.licenses.gpl3Plus;
+    maintainers = with lib.maintainers; [ hexa ];
   };
 }

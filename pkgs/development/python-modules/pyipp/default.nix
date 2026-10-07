@@ -1,43 +1,40 @@
-{ lib
-, aiohttp
-, aresponses
-, awesomeversion
-, backoff
-, buildPythonPackage
-, deepmerge
-, fetchFromGitHub
-, poetry-core
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, yarl
+{
+  lib,
+  aiohttp,
+  aresponses,
+  awesomeversion,
+  backoff,
+  buildPythonPackage,
+  deepmerge,
+  fetchFromGitHub,
+  poetry-core,
+  pytest-asyncio,
+  pytest-cov-stub,
+  pytestCheckHook,
+  syrupy,
+  yarl,
 }:
 
 buildPythonPackage rec {
   pname = "pyipp";
-  version = "0.14.4";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.9";
+  version = "0.17.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
-   owner = "ctalkington";
-   repo = "python-ipp";
-   rev = version;
-   hash = "sha256-xE0fdT+Ffdf4iOHWZzRa7YWtHt92lFdA/sbwjblMR40=";
+    owner = "ctalkington";
+    repo = "python-ipp";
+    tag = version;
+    hash = "sha256-YlIc/FNM3SdYQj0DN0if3R7h0383V5CHGpD7FHErWhA=";
   };
 
   postPatch = ''
     substituteInPlace pyproject.toml \
-      --replace 'version = "0.0.0"' 'version = "${version}"' \
-      --replace "--cov" ""
+      --replace-fail 'version = "0.0.0"' 'version = "${version}"'
   '';
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
     awesomeversion
     backoff
@@ -48,20 +45,20 @@ buildPythonPackage rec {
   nativeCheckInputs = [
     aresponses
     pytest-asyncio
+    pytest-cov-stub
     pytestCheckHook
+    syrupy
   ];
 
   __darwinAllowLocalNetworking = true;
 
-  pythonImportsCheck = [
-    "pyipp"
-  ];
+  pythonImportsCheck = [ "pyipp" ];
 
-  meta = with lib; {
+  meta = {
     changelog = "https://github.com/ctalkington/python-ipp/releases/tag/${version}";
     description = "Asynchronous Python client for Internet Printing Protocol (IPP)";
     homepage = "https://github.com/ctalkington/python-ipp";
-    license = licenses.mit;
-    maintainers = with maintainers; [ hexa ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ hexa ];
   };
 }

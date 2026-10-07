@@ -4,12 +4,15 @@
 # for every Qt version. Qt applications are called from `all-packages.nix` via
 # this file.
 
-{ lib
-, __splicedPackages
-, makeScopeWithSplicing'
-, generateSplicesForMkScope
-, stdenv
-, pkgsHostTarget
+{
+  lib,
+  config,
+  __splicedPackages,
+  makeScopeWithSplicing',
+  generateSplicesForMkScope,
+  stdenv,
+  pkgsHostTarget,
+  kdePackages,
 }:
 
 let
@@ -22,72 +25,151 @@ in
 
 makeScopeWithSplicing' {
   otherSplices = generateSplicesForMkScope "qt6Packages";
-  f = (self: let
-    inherit (self) callPackage;
-    noExtraAttrs = set: lib.attrsets.removeAttrs set [ "extend" "override" "overrideScope" "overrideScope'" "overrideDerivation" ];
-  in (noExtraAttrs qt6) // {
-  inherit stdenv;
+  f = (
+    self:
+    let
+      inherit (self) callPackage;
+      noExtraAttrs =
+        set:
+        lib.attrsets.removeAttrs set [
+          "extend"
+          "override"
+          "overrideScope"
+          "overrideDerivation"
+        ];
+    in
+    (noExtraAttrs qt6)
+    // {
 
-  # LIBRARIES
-  appstream-qt = callPackage ../development/libraries/appstream/qt.nix { };
+      # LIBRARIES
+      accounts-qml-module = callPackage ../development/libraries/accounts-qml-module { };
+      accounts-qt = callPackage ../development/libraries/accounts-qt { };
+      appstream-qt = callPackage ../development/libraries/appstream/qt.nix { };
 
-  kdsoap = callPackage ../development/libraries/kdsoap { };
+      drumstick = callPackage ../development/libraries/drumstick { };
 
-  futuresql = callPackage ../development/libraries/futuresql { };
-  kquickimageedit = callPackage ../development/libraries/kquickimageedit { };
-  libqaccessibilityclient = callPackage ../development/libraries/libqaccessibilityclient { };
-  libquotient = callPackage ../development/libraries/libquotient { };
-  mlt = pkgs.mlt.override {
-    qt = qt6;
-  };
+      fcitx5-chinese-addons = callPackage ../tools/inputmethods/fcitx5/fcitx5-chinese-addons.nix { };
 
-  qca = pkgs.darwin.apple_sdk_11_0.callPackage ../development/libraries/qca {
-    inherit (qt6) qtbase qt5compat;
-  };
-  qcoro = callPackage ../development/libraries/qcoro { };
-  qgpgme = callPackage ../development/libraries/gpgme { };
-  packagekit-qt = callPackage ../tools/package-management/packagekit/qt.nix { };
+      fcitx5-configtool = kdePackages.callPackage ../tools/inputmethods/fcitx5/fcitx5-configtool.nix { };
 
-  qt6ct = callPackage ../tools/misc/qt6ct { };
+      fcitx5-qt = callPackage ../tools/inputmethods/fcitx5/fcitx5-qt.nix { };
 
-  qt6gtk2 = callPackage ../tools/misc/qt6gtk2 { };
+      fcitx5-skk-qt = pkgs.fcitx5-skk.override { enableQt = true; };
 
-  qtforkawesome = callPackage ../development/libraries/qtforkawesome { };
+      fcitx5-unikey = callPackage ../tools/inputmethods/fcitx5/fcitx5-unikey.nix { };
 
-  qtkeychain = callPackage ../development/libraries/qtkeychain {
-    inherit (pkgs.darwin.apple_sdk.frameworks) CoreFoundation Security;
-  };
+      fcitx5-with-addons = callPackage ../tools/inputmethods/fcitx5/with-addons.nix { };
 
-  qtpbfimageplugin = callPackage ../development/libraries/qtpbfimageplugin { };
+      kdsoap = callPackage ../development/libraries/kdsoap { };
 
-  qtstyleplugin-kvantum = callPackage ../development/libraries/qtstyleplugin-kvantum {
-    qt5Kvantum = pkgs.libsForQt5.qtstyleplugin-kvantum;
-  };
+      kcolorpicker = callPackage ../development/libraries/kcolorpicker { };
+      kimageannotator = callPackage ../development/libraries/kimageannotator { };
 
-  qtutilities = callPackage ../development/libraries/qtutilities { };
+      futuresql = callPackage ../development/libraries/futuresql { };
+      kquickimageedit = callPackage ../development/libraries/kquickimageedit { };
 
-  quazip = callPackage ../development/libraries/quazip { };
+      ktactilefeedback = kdePackages.callPackage ../development/libraries/ktactilefeedback { };
 
-  qscintilla = callPackage ../development/libraries/qscintilla { };
+      libiodata = callPackage ../development/libraries/libiodata { };
 
-  qxlsx = callPackage ../development/libraries/qxlsx { };
+      libqaccessibilityclient = callPackage ../development/libraries/libqaccessibilityclient { };
 
-  qzxing = callPackage ../development/libraries/qzxing { };
+      libqglviewer = callPackage ../development/libraries/libqglviewer { };
 
-  poppler = callPackage ../development/libraries/poppler {
-    lcms = pkgs.lcms2;
-    qt6Support = true;
-    suffix = "qt6";
-  };
+      libqtpas = callPackage ../development/compilers/fpc/libqtpas.nix { };
 
-  # Not a library, but we do want it to be built for every qt version there
-  # is, to allow users to choose the right build if needed.
-  sddm = callPackage ../applications/display-managers/sddm {};
+      libqtdbusmock = callPackage ../development/libraries/libqtdbusmock {
+        inherit (pkgs.lomiri-qt6) cmake-extras;
+      };
 
-  } // lib.optionalAttrs pkgs.config.allowAliases {
-    # Convert to a throw on 01-01-2023.
-    # Warnings show up in various cli tool outputs, throws do not.
-    # Remove completely before 24.05
-    overrideScope' = lib.warn "qt6Packages now uses makeScopeWithSplicing which does not have \"overrideScope'\", use \"overrideScope\"." self.overrideScope;
-  });
+      libqtdbustest = callPackage ../development/libraries/libqtdbustest {
+        inherit (pkgs.lomiri-qt6) cmake-extras;
+      };
+
+      libquotient = callPackage ../development/libraries/libquotient { };
+      mlt = callPackage ../by-name/ml/mlt/package.nix { };
+
+      mapbox-gl-qml = callPackage ../development/libraries/mapbox-gl-qml { };
+
+      maplibre-native-qt = callPackage ../development/libraries/maplibre-native-qt { };
+
+      pyotherside = callPackage ../development/libraries/pyotherside { };
+
+      qca = callPackage ../development/libraries/qca { };
+      qcoro = callPackage ../development/libraries/qcoro { };
+      qcustomplot = callPackage ../development/libraries/qcustomplot { };
+      qgpgme = callPackage ../development/libraries/qgpgme { };
+      qhotkey = callPackage ../development/libraries/qhotkey { };
+      qmlbox2d = callPackage ../development/libraries/qmlbox2d { };
+      packagekit-qt = callPackage ../tools/package-management/packagekit/qt.nix { };
+
+      qmenumodel = callPackage ../development/libraries/qmenumodel {
+        inherit (pkgs.lomiri-qt6) cmake-extras;
+      };
+
+      qodeassist-plugin = callPackage ../development/libraries/qodeassist-plugin { };
+
+      qt6ct = callPackage ../tools/misc/qt6ct { };
+
+      qt-color-widgets = callPackage ../development/libraries/qt-color-widgets { };
+
+      qtforkawesome = callPackage ../development/libraries/qtforkawesome { };
+
+      qtkeychain = callPackage ../development/libraries/qtkeychain { };
+
+      qtpbfimageplugin = callPackage ../development/libraries/qtpbfimageplugin { };
+
+      qtstyleplugin-kvantum = kdePackages.callPackage ../development/libraries/qtstyleplugin-kvantum { };
+
+      qtutilities = callPackage ../development/libraries/qtutilities { };
+
+      qt-jdenticon = callPackage ../development/libraries/qt-jdenticon { };
+
+      quazip = callPackage ../development/libraries/quazip { };
+
+      qscintilla = callPackage ../development/libraries/qscintilla { };
+
+      qtspell = callPackage ../development/libraries/qtspell { };
+
+      qwt = callPackage ../development/libraries/qwt/default.nix { };
+
+      qxlsx = callPackage ../development/libraries/qxlsx { };
+
+      qzxing = callPackage ../development/libraries/qzxing { };
+
+      poppler = callPackage ../development/libraries/poppler {
+        lcms = pkgs.lcms2;
+        qt6Support = true;
+        suffix = "qt6";
+      };
+
+      sailfish-access-control-plugin =
+        callPackage ../development/libraries/sailfish-access-control-plugin
+          { };
+
+      sddm-unwrapped = callPackage ../applications/display-managers/sddm/unwrapped.nix { };
+      sddm = callPackage ../applications/display-managers/sddm { };
+
+      sierra-breeze-enhanced =
+        kdePackages.callPackage ../data/themes/kwin-decorations/sierra-breeze-enhanced
+          { };
+
+      signond = callPackage ../development/libraries/signond { };
+
+      timed = callPackage ../applications/system/timed { };
+
+      wayqt = callPackage ../development/libraries/wayqt { };
+    }
+    // lib.optionalAttrs config.allowAliases {
+      qt6gtk2 = throw "'qt6Packages.qt6gtk2' has been removed, as it relies on gtk2 libraries"; # Added 2026-09-21
+      qwlroots = throw ''
+        'qt6Packages.qwlroots' has been removed because it has been merged into treeland upstream.
+        The upstream no longer provides it as a standalone development library.
+      ''; # Added 2025-02-07
+      waylib = throw ''
+        'qt6Packages.waylib' has been removed because it has been merged into treeland upstream.
+        The upstream no longer provides it as a standalone development library.
+      ''; # Added 2025-02-07
+    }
+  );
 }

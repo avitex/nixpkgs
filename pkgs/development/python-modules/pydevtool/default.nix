@@ -1,37 +1,31 @@
-{ lib
-, fetchPypi
-, setuptools
-, buildPythonPackage
-, doit
+{
+  lib,
+  fetchPypi,
+  setuptools,
+  buildPythonPackage,
+  doit,
 }:
 
 buildPythonPackage rec {
   pname = "pydevtool";
   version = "0.3.0";
-  format = "pyproject";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
     hash = "sha256-JeO6Tz0zzKwz7iuXdZlYSNSemzGLehRkd/tdUveG/Io=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
-  propagatedBuildInputs = [
-    doit
-  ];
+  propagatedBuildInputs = [ doit ];
 
-  pythonImportsCheck = [
-    "pydevtool"
-  ];
+  pythonImportsCheck = [ "pydevtool" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/pydoit/pydevtool";
     description = "CLI dev tools powered by pydoit";
-    license = licenses.mit;
-    maintainers = with maintainers; [ doronbehar ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ doronbehar ];
   };
-
 }

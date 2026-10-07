@@ -2,17 +2,18 @@
 
 let
   common = opts: callPackage (import ./common.nix opts);
-in {
+in
+{
   sublime-merge = common {
-    buildVersion = "2091";
-    aarch64sha256 = "dkPKuuzQQtL3eZlaAPeL7e2p5PCxroFRSp6Rw5wHODc=";
-    x64sha256 = "T5g6gHgl9xGytEOsh3VuB08IrbDvMu24o/1edCGmfd4=";
-  } {};
+    buildVersion = "2132";
+    aarch64sha256 = "70KdQ9lqkhFSfWU9fkhuawJpEkj6bkeU+XlLJIGKK54=";
+    x64sha256 = "As7Nj3vrEE6JmN/oZ8e4EzhY+qLpPYja7/FJUjDRs9g=";
+  } { };
 
   sublime-merge-dev = common {
-    buildVersion = "2092";
-    aarch64sha256 = "3QMDynXMVB4QVtM8EPbZ8I4m+5sEjzs8XN+jEoMaktM=";
-    x64sha256 = "S9E+wRvO41Eq+PLA/J+sjBIAn6yz715Wg9bKRW2Eobg=";
+    buildVersion = "2126";
     dev = true;
-  } {};
+    aarch64sha256 = "sqrcGszq1Vi0DDbPds7ABsM7i1/6EEErTAC/Og3wwhc=";
+    x64sha256 = "2Jia6Ep6iVz8PI6G2L52CEMnYpOK+MPZiwC/YVn3O9I=";
+  } { };
 }

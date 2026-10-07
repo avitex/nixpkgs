@@ -1,54 +1,45 @@
-{ lib
-, buildPythonPackage
-, environs
-, fetchFromGitHub
-, poetry-core
-, pytest-mock
-, pytest-vcr
-, pytestCheckHook
-, pythonOlder
-, requests
-, tornado
+{
+  lib,
+  buildPythonPackage,
+  environs,
+  fetchFromGitHub,
+  httpx,
+  setuptools,
+  pytest-asyncio,
+  pytest-cov-stub,
+  pytest-mock,
+  pytest-vcr,
+  pytestCheckHook,
+  tornado,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "deezer-python";
-  version = "6.1.1";
+  version = "7.4.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "browniebroke";
     repo = "deezer-python";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-pzEXiWKMP2Wqme/pqfTMHxWH/4YcCS6u865wslHrUqI=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-i9zq96imTNWF43DQoTkXCgNusfdVDNOKEN5ELS6R5YU=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace " --cov=deezer" ""
-  '';
+  build-system = [ setuptools ];
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  dependencies = [ httpx ];
 
   nativeCheckInputs = [
     environs
+    pytest-asyncio
+    pytest-cov-stub
     pytest-mock
     pytest-vcr
     pytestCheckHook
-  ];
-
-  propagatedBuildInputs = [
-    requests
     tornado
   ];
 
-  pythonImportsCheck = [
-    "deezer"
-  ];
+  pythonImportsCheck = [ "deezer" ];
 
   disabledTests = [
     # JSONDecodeError issue
@@ -56,11 +47,11 @@ buildPythonPackage rec {
     "test_with_language_header"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Python wrapper around the Deezer API";
     homepage = "https://github.com/browniebroke/deezer-python";
-    changelog = "https://github.com/browniebroke/deezer-python/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ synthetica ];
+    changelog = "https://github.com/browniebroke/deezer-python/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
-}
+})

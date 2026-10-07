@@ -1,50 +1,104 @@
-{ lib
-, fetchPypi
-, buildPythonPackage
-, pytestCheckHook
-, libxslt
-, libxml2
-, libtool
-, pkg-config
-, xmlsec
-, pkgconfig
-, setuptools-scm
-, lxml
-, hypothesis
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fetchpatch,
+
+  # build-system
+  pkgconfig,
+  setuptools-scm,
+
+  # nativeBuildInputs
+  pkg-config,
+  # pkgconfig,
+
+  # buildInputs
+  libtool,
+  libxml2,
+  libxslt,
+  xmlsec,
+
+  # dependencies
+  lxml,
+
+  # tests
+  hypothesis,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "xmlsec";
-  version = "1.3.13";
-  format = "pyproject";
+  version = "1.3.17";
+  pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-kW9deOgEH2zZORq7plnajJSk/vcZbRJtQK8f9Bfyz4Y=";
+  src = fetchFromGitHub {
+    owner = "xmlsec";
+    repo = "python-xmlsec";
+    tag = finalAttrs.version;
+    hash = "sha256-p3V75DLUI2PKdharP3/0HrKOgma9Kh3lAOZLRAQjo80=";
   };
 
-  nativeBuildInputs = [ pkg-config pkgconfig setuptools-scm ];
+  patches = [
+    # https://github.com/lsh123/xmlsec/issues/1148
+    # https://github.com/xmlsec/python-xmlsec/pull/422
+    (fetchpatch {
+      name = "xmlsec-1.3.11-test-compatibility.patch";
+      url = "https://github.com/xmlsec/python-xmlsec/commit/5e8b4e6aa133c358b8aaf8e17ceb5b3b7fea78e8.patch";
+      includes = [
+        "src/*"
+        "tests/*"
+      ];
+      hash = "sha256-+J2L6oq802/534qIDvFqsWYfn9LExRlXXIeDvVqZEYk=";
+    })
+  ];
 
-  buildInputs = [ xmlsec libxslt libxml2 libtool ];
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail "lxml==" "lxml>=" \
+      --replace-fail "setuptools==" "setuptools>="
+  '';
 
-  propagatedBuildInputs = [ lxml ];
+  build-system = [
+    pkgconfig
+    setuptools-scm
+  ];
 
-  nativeCheckInputs = [ pytestCheckHook hypothesis ];
+  nativeBuildInputs = [
+    pkg-config
+  ];
+
+  buildInputs = [
+    libtool
+    libxml2
+    libxslt
+    xmlsec
+  ];
+
+  dependencies = [ lxml ];
+
+  nativeCheckInputs = [
+    hypothesis
+    pytestCheckHook
+  ];
 
   disabledTestPaths = [
     # Full git clone required for test_doc_examples
     "tests/test_doc_examples.py"
-    # test_reinitialize_module segfaults python
-    # https://github.com/mehcode/python-xmlsec/issues/203
-    "tests/test_xmlsec.py"
+  ];
+
+  disabledTests = lib.optionals (stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isx86_64) [
+    # AssertionError: memory leak detected
+    "test_reinitialize_module"
   ];
 
   pythonImportsCheck = [ "xmlsec" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python bindings for the XML Security Library";
-    homepage = "https://github.com/mehcode/python-xmlsec";
-    license = licenses.mit;
-    maintainers = with maintainers; [ zhaofengli ];
+    homepage = "https://github.com/xmlsec/python-xmlsec";
+    changelog = "https://github.com/xmlsec/python-xmlsec/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ zhaofengli ];
   };
-}
+})

@@ -1,30 +1,35 @@
-{ lib
-, php
-, runCommand
+{
+  lib,
+  php,
+  runCommand,
+  stdenv,
+  stdenvAdapters,
 }:
 
 let
-  runTest = name: body: runCommand name { } ''
-    testFailed=
-    checking() {
-      echo -n "Checking $1... " > /dev/stderr
-    }
-    ok() {
-      echo ok > /dev/stderr
-    }
-    nok() {
-      echo fail > /dev/stderr
-      testFailed=1
-    }
+  runTest =
+    name: body:
+    runCommand name { } ''
+      testFailed=
+      checking() {
+        echo -n "Checking $1... " > /dev/stderr
+      }
+      ok() {
+        echo ok > /dev/stderr
+      }
+      nok() {
+        echo fail > /dev/stderr
+        testFailed=1
+      }
 
-    ${body}
+      ${body}
 
-    if test -n "$testFailed"; then
-      exit 1
-    fi
+      if test -n "$testFailed"; then
+        exit 1
+      fi
 
-    touch $out
-  '';
+      touch $out
+    '';
 
   check = cond: if cond then "ok" else "nok";
 in
@@ -42,12 +47,11 @@ in
 
   overrideAttrs-preserves-enabled-extensions =
     let
-      customPhp =
-        (php.withExtensions ({ all, ... }: [ all.imagick ])).overrideAttrs (attrs: {
-          postInstall = attrs.postInstall or "" + ''
-            touch "$out/oApee-was-here"
-          '';
-        });
+      customPhp = (php.withExtensions ({ all, ... }: [ all.imagick ])).overrideAttrs (attrs: {
+        postInstall = attrs.postInstall or "" + ''
+          touch "$out/oApee-was-here"
+        '';
+      });
     in
     runTest "php-test-overrideAttrs-preserves-enabled-extensions" ''
       php="${customPhp}"
@@ -66,20 +70,25 @@ in
 
   unwrapped-overrideAttrs-stacks =
     let
-      customPhp =
-        lib.pipe php.unwrapped [
-          (pkg: pkg.overrideAttrs (attrs: {
+      customPhp = lib.pipe php.unwrapped [
+        (
+          pkg:
+          pkg.overrideAttrs (attrs: {
             postInstall = attrs.postInstall or "" + ''
               touch "$out/oAs-first"
             '';
-          }))
+          })
+        )
 
-          (pkg: pkg.overrideAttrs (attrs: {
+        (
+          pkg:
+          pkg.overrideAttrs (attrs: {
             postInstall = attrs.postInstall or "" + ''
               touch "$out/oAs-second"
             '';
-          }))
-        ];
+          })
+        )
+      ];
     in
     runTest "php-test-unwrapped-overrideAttrs-stacks" ''
       checking "if first override remained"
@@ -89,22 +98,47 @@ in
       ${check (builtins.match ".*oAs-second.*" customPhp.postInstall != null)}
     '';
 
+  # Regression test for https://github.com/NixOS/nixpkgs/issues/509863:
+  # wrapping php's stdenv with an adapter that uses `extendMkDerivationArgs`
+  # (e.g. `keepDebugInfo`) used to trigger an infinite recursion via the
+  # custom `passthru.overrideAttrs` defined for unwrapped php. Forcing the
+  # derivation here would stack-overflow before the fix; checking
+  # `dontStrip` also confirms the adapter actually applied.
+  stdenvAdapter-keepDebugInfo-does-not-recurse =
+    let
+      customPhp = php.override {
+        stdenv = stdenvAdapters.keepDebugInfo stdenv;
+      };
+    in
+    runTest "php-test-stdenvAdapter-keepDebugInfo-does-not-recurse" ''
+      checking "if the override evaluates without infinite recursion"
+      ${check (builtins.isString customPhp.unwrapped.drvPath)}
+
+      checking "if keepDebugInfo's dontStrip propagated to the unwrapped derivation"
+      ${check (customPhp.unwrapped.dontStrip or false)}
+    '';
+
   wrapped-overrideAttrs-stacks =
     let
-      customPhp =
-        lib.pipe php [
-          (pkg: pkg.overrideAttrs (attrs: {
+      customPhp = lib.pipe php [
+        (
+          pkg:
+          pkg.overrideAttrs (attrs: {
             postInstall = attrs.postInstall or "" + ''
               touch "$out/oAs-first"
             '';
-          }))
+          })
+        )
 
-          (pkg: pkg.overrideAttrs (attrs: {
+        (
+          pkg:
+          pkg.overrideAttrs (attrs: {
             postInstall = attrs.postInstall or "" + ''
               touch "$out/oAs-second"
             '';
-          }))
-        ];
+          })
+        )
+      ];
     in
     runTest "php-test-wrapped-overrideAttrs-stacks" ''
       checking "if first override remained"

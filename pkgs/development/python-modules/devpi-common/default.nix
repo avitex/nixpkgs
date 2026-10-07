@@ -1,49 +1,66 @@
-{ lib, buildPythonPackage, fetchPypi
-, pythonOlder
-, setuptools
-, setuptools-changelog-shortener
-, requests
-, tomli
-, pytestCheckHook
-, lazy
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+
+  # dependencies
+  lazy,
+  requests,
+  tomli,
+
+  # tests
+  packaging-legacy,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "devpi-common";
-  version = "4.0.3";
+  version = "4.1.1";
   pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-+OAbT23wgPYihMzljFuxzh6GmwwjSqx60TVgl0X8Fz0=";
+  src = fetchFromGitHub {
+    owner = "devpi";
+    repo = "devpi";
+    tag = "common-${finalAttrs.version}";
+    hash = "sha256-YFY2iLnORzFxnfGYU2kCpJL8CZi+lALIkL1bRpfd4NE=";
   };
 
-  nativeBuildInputs = [
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail '"setuptools_changelog_shortener",' ""
+  '';
+
+  sourceRoot = "${finalAttrs.src.name}/common";
+
+  build-system = [
     setuptools
-    setuptools-changelog-shortener
   ];
 
-  propagatedBuildInputs = [
-    requests
+  dependencies = [
     lazy
+    requests
     tomli
   ];
 
   nativeCheckInputs = [
     pytestCheckHook
+    packaging-legacy
   ];
 
-  pythonImportsCheck = [
-    "devpi_common"
-  ];
+  pythonImportsCheck = [ "devpi_common" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/devpi/devpi";
     description = "Utilities jointly used by devpi-server and devpi-client";
-    changelog = "https://github.com/devpi/devpi/blob/common-${version}/common/CHANGELOG";
-    license = licenses.mit;
-    maintainers = with maintainers; [ lewo makefu ];
+    changelog = "https://github.com/devpi/devpi/blob/common-${finalAttrs.version}/common/CHANGELOG";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [
+      confus
+      lewo
+      makefu
+    ];
   };
-}
+})

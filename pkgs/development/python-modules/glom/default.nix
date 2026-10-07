@@ -1,69 +1,73 @@
-{ lib
-, attrs
-, boltons
-, buildPythonPackage
-, face
-, fetchPypi
-, pytestCheckHook
-, pythonAtLeast
-, pythonOlder
-, pyyaml
+{
+  lib,
+  attrs,
+  boltons,
+  buildPythonPackage,
+  face,
+  fetchPypi,
+  pytestCheckHook,
+  pythonAtLeast,
+  pyyaml,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "glom";
-  version = "23.5.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "25.12.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-Bq9eNIaqzFk4K6NOU+vqvXqTRdePfby+4m8DuqS4O6w=";
+    hash = "sha256-GufaiL42k99ArSe99Xp2WlXAdchslxvN3WeSdAPrAGk=";
   };
 
-  postPatch = ''
-    substituteInPlace setup.py \
-      --replace "face==20.1.1" "face"
-  '';
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     boltons
     attrs
     face
   ];
 
+  optional-dependencies = {
+    yaml = [ pyyaml ];
+  };
+
   nativeCheckInputs = [
     pytestCheckHook
-    pyyaml
-  ];
+  ]
+  ++ lib.concatAttrValues optional-dependencies;
 
   preCheck = ''
     # test_cli.py checks the output of running "glom"
     export PATH=$out/bin:$PATH
   '';
 
-  disabledTests = [
-    # Test is outdated (was made for PyYAML 3.x)
-    "test_main_yaml_target"
-  ] ++ lib.optionals (pythonAtLeast "3.11") [
+  disabledTests = lib.optionals (pythonAtLeast "3.11") [
     "test_regular_error_stack"
     "test_long_target_repr"
+    "test_glom_error_stack"
+    "test_glom_error_double_stack"
+    "test_branching_stack"
+    "test_midway_branch"
+    "test_partially_failing_branch"
+    "test_coalesce_stack"
+    "test_nesting_stack"
+    "test_3_11_byte_code_caret"
   ];
 
-  pythonImportsCheck = [
-    "glom"
-  ];
+  pythonImportsCheck = [ "glom" ];
 
-  meta = with lib; {
-    description = "Restructuring data, the Python way";
+  meta = {
+    description = "Module for restructuring data";
     longDescription = ''
       glom helps pull together objects from other objects in a
       declarative, dynamic, and downright simple way.
     '';
     homepage = "https://github.com/mahmoud/glom";
     changelog = "https://github.com/mahmoud/glom/blob/v${version}/CHANGELOG.md";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ twey ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ twey ];
+    mainProgram = "glom";
   };
 }

@@ -1,28 +1,30 @@
-{ lib
-, desktop-file-utils
-, fetchFromGitLab
-, gobject-introspection
-, gsound
-, gtk4
-, libadwaita
-, meson
-, ninja
-, pkg-config
-, python3
-, stdenv
-, wrapGAppsHook4
+{
+  lib,
+  desktop-file-utils,
+  fetchFromGitLab,
+  gobject-introspection,
+  gsound,
+  gtk4,
+  libadwaita,
+  meson,
+  ninja,
+  nix-update-script,
+  pkg-config,
+  python3,
+  stdenv,
+  wrapGAppsHook4,
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "chess-clock";
-  version = "0.6.0";
+  version = "0.6.2";
 
   src = fetchFromGitLab {
     domain = "gitlab.gnome.org";
     owner = "World";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-wwNOop2V84vZO3JV0+VZ+52cKPx8xJg2rLkjfgc/+n4=";
+    repo = "chess-clock";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-jqWZI37ewkPmY+37dwJUJnBZcsBO1sn04r2qp8PIWTs=";
   };
 
   nativeBuildInputs = [
@@ -38,16 +40,22 @@ stdenv.mkDerivation rec {
     gsound
     gtk4
     libadwaita
-    (python3.withPackages (ps: with ps; [
-      pygobject3
-    ]))
+    (python3.withPackages (
+      ps: with ps; [
+        pygobject3
+      ]
+    ))
   ];
 
-  meta = with lib; {
+  passthru = {
+    updateScript = nix-update-script { };
+  };
+
+  meta = {
     description = "Time games of over-the-board chess";
     homepage = "https://gitlab.gnome.org/World/chess-clock";
-    changelog = "https://gitlab.gnome.org/World/chess-clock/-/releases/v${version}";
-    license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ michaelgrahamevans ];
+    license = lib.licenses.gpl3Plus;
+    mainProgram = "chess-clock";
+    teams = [ lib.teams.gnome-circle ];
   };
-}
+})

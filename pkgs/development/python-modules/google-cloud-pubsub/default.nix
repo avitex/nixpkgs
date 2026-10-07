@@ -1,45 +1,53 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, google-api-core
-, google-cloud-testutils
-, grpc-google-iam-v1
-, grpcio
-, grpcio-status
-, libcst
-, proto-plus
-, protobuf
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  google-api-core,
+  google-auth,
+  google-cloud-testutils,
+  grpc-google-iam-v1,
+  grpcio-status,
+  grpcio,
+  libcst,
+  opentelemetry-api,
+  opentelemetry-sdk,
+  proto-plus,
+  protobuf,
+  pytest-asyncio,
+  pytestCheckHook,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "google-cloud-pubsub";
-  version = "2.19.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "2.41.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-apjDP361994q5S76BZsrX3WyzNnw8R8u3O/dqNFOQlw=";
+    pname = "google_cloud_pubsub";
+    inherit version;
+    hash = "sha256-THtCwjwUV1Q2ZewWLXXguhsdTJitzJx1PzUXFk95N9c=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     google-api-core
+    google-auth
     grpc-google-iam-v1
     grpcio
     grpcio-status
-    libcst
+    opentelemetry-api
+    opentelemetry-sdk
     proto-plus
     protobuf
-  ] ++ google-api-core.optional-dependencies.grpc;
+  ]
+  ++ google-api-core.optional-dependencies.grpc;
 
-  passthru.optional-dependencies = {
-    libcst = [
-      libcst
-    ];
+  pythonRelaxDeps = [ "protobuf" ];
+
+  optional-dependencies = {
+    libcst = [ libcst ];
   };
 
   nativeCheckInputs = [
@@ -58,15 +66,14 @@ buildPythonPackage rec {
     "tests/unit/pubsub_v1"
   ];
 
-  pythonImportsCheck = [
-    "google.cloud.pubsub"
-  ];
+  pythonImportsCheck = [ "google.cloud.pubsub" ];
 
-  meta = with lib; {
+  meta = {
     description = "Google Cloud Pub/Sub API client library";
-    homepage = "https://github.com/googleapis/python-pubsub";
-    changelog = "https://github.com/googleapis/python-pubsub/blob/v${version}/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    homepage = "https://github.com/googleapis/google-cloud-python/tree/main/packages/google-cloud-pubsub";
+    changelog = "https://github.com/googleapis/google-cloud-python/blob/google-cloud-pubsub-v${version}/packages/google-cloud-pubsub/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = [ ];
+    mainProgram = "fixup_pubsub_v1_keywords.py";
   };
 }

@@ -1,34 +1,36 @@
-{ lib
-, buildPythonPackage
-, docutils
-, fetchFromGitHub
-, geographiclib
-, pytestCheckHook
-, pythonAtLeast
-, pythonOlder
-, pytz
+{
+  lib,
+  buildPythonPackage,
+  docutils,
+  fetchFromGitHub,
+  setuptools,
+  geographiclib,
+  pytest7CheckHook,
+  pythonAtLeast,
+  pytz,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "geopy";
-  version = "2.4.1";
-  format = "setuptools";
-  disabled = pythonOlder "3.7";
+  version = "2.5.0";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
-    owner = pname;
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-mlOXDEtYry1IUAZWrP2FuY/CGliUnCPYLULnLNN0n4Y=";
+    owner = "geopy";
+    repo = "geopy";
+    tag = finalAttrs.version;
+    hash = "sha256-I+t8RnpC1hurL+fcwRssREzsSx9yGHEqVjzxqKX0efc=";
   };
 
-  propagatedBuildInputs = [
-    geographiclib
-  ];
+  build-system = [ setuptools ];
+
+  dependencies = [ geographiclib ];
 
   nativeCheckInputs = [
     docutils
-    pytestCheckHook
+    pytest7CheckHook
     pytz
   ];
 
@@ -37,21 +39,19 @@ buildPythonPackage rec {
     "test_user_agent_default"
   ];
 
-  disabledTestPaths = lib.optionals (pythonAtLeast "3.12") [
-    "test/test_init.py"
-  ];
+  disabledTestPaths = lib.optionals (pythonAtLeast "3.12") [ "test/test_init.py" ];
 
-  pytestFlagsArray = [ "--skip-tests-requiring-internet" ];
+  pytestFlags = [ "--skip-tests-requiring-internet" ];
 
   pythonImportsCheck = [ "geopy" ];
 
   __darwinAllowLocalNetworking = true;
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/geopy/geopy";
     description = "Python Geocoding Toolbox";
-    changelog = "https://github.com/geopy/geopy/releases/tag/${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ GuillaumeDesforges ];
+    changelog = "https://github.com/geopy/geopy/releases/tag/${finalAttrs.version}";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
-}
+})

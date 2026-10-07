@@ -1,4 +1,9 @@
-{ lib, buildPythonPackage, fetchPypi, six }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  six,
+}:
 
 buildPythonPackage rec {
   pname = "scour";
@@ -15,10 +20,11 @@ buildPythonPackage rec {
   # No tests included in archive
   doCheck = false;
 
-  meta = with lib; {
-    description = "An SVG Optimizer / Cleaner ";
-    homepage    = "https://github.com/scour-project/scour";
-    license     = licenses.asl20;
-    maintainers = with maintainers; [ worldofpeace ];
+  meta = {
+    description = "SVG Optimizer / Cleaner";
+    mainProgram = "scour";
+    homepage = "https://github.com/scour-project/scour";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ worldofpeace ];
   };
 }

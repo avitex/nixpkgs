@@ -1,27 +1,45 @@
-{ buildPythonPackage, fetchFromGitHub, lib, pytest, cryptography, transitions }:
+{
+  buildPythonPackage,
+  fetchFromGitHub,
+  lib,
+  setuptools,
+  pytestCheckHook,
+  writableTmpDirAsHomeHook,
+  cryptography,
+  transitions,
+}:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "dissononce";
   version = "0.34.3";
-  format = "setuptools";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "tgalal";
     repo = "dissononce";
-    rev = version;
-    sha256 = "0hn64qfr0d5npmza6rjyxwwp12k2z2y1ma40zpl104ghac6g3mbs";
+    tag = finalAttrs.version;
+    hash = "sha256-etXxDFPwERDo/YCoGrz4YopwOe9eZqN+vbY0kB0mxkI=";
   };
 
-  nativeCheckInputs = [ pytest ];
-  checkPhase = ''
-    HOME=$(mktemp -d) py.test tests/
-  '';
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [ cryptography transitions ];
+  dependencies = [
+    cryptography
+    transitions
+  ];
 
-  meta = with lib; {
+  nativeCheckInputs = [
+    pytestCheckHook
+    writableTmpDirAsHomeHook
+  ];
+
+  pythonImportsCheck = [ "dissononce" ];
+
+  meta = {
     homepage = "https://pypi.org/project/dissononce/";
-    license = licenses.mit;
-    description = "A python implementation for Noise Protocol Framework";
+    license = lib.licenses.mit;
+    description = "Python implementation for Noise Protocol Framework";
   };
-}
+})

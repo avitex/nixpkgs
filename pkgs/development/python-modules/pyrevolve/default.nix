@@ -1,27 +1,25 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, contexttimer
-, setuptools
-, versioneer
-, cython
-, numpy
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  contexttimer,
+  setuptools,
+  versioneer,
+  cython_0,
+  numpy,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "pyrevolve";
-  version = "2.2.3";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "2.2.7";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "devitocodes";
     repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-z1G8DXG06Capd87x02zqrtYyBrX4xmJP94t4bgaR2PE=";
+    tag = "v${version}";
+    hash = "sha256-JNK/+9Fl9CKmRSdkmvN6XENrldFuX1ybIwYOMbGO7uI=";
   };
 
   postPatch = ''
@@ -30,7 +28,7 @@ buildPythonPackage rec {
   '';
 
   nativeBuildInputs = [
-    cython
+    cython_0
     setuptools
     versioneer
   ];
@@ -40,23 +38,19 @@ buildPythonPackage rec {
     numpy
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   preCheck = ''
     rm -rf pyrevolve
   '';
 
-  pythonImportsCheck = [
-    "pyrevolve"
-  ];
+  pythonImportsCheck = [ "pyrevolve" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/devitocodes/pyrevolve";
-    changelog = "https://github.com/devitocodes/pyrevolve/releases/tag/v${version}";
+    changelog = "https://github.com/devitocodes/pyrevolve/releases/tag/${src.tag}";
     description = "Python library to manage checkpointing for adjoints";
-    license = licenses.epl10;
-    maintainers = with maintainers; [ atila ];
+    license = lib.licenses.epl10;
+    maintainers = [ ];
   };
 }

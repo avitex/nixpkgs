@@ -1,27 +1,27 @@
-{ lib
-, fetchFromGitHub
-, fetchurl
-, buildDunePackage
-, bos
-, bwd
-, cmdliner
-, containers
-, ezjsonm
-, findlib
-, menhir
-, menhirLib
-, ppx_deriving
-, ppxlib
-, uuseg
-, uutf
-, yuujinchou
-, ounit2
-, qcheck
-, qcheck-core
+{
+  lib,
+  fetchFromGitHub,
+  buildDunePackage,
+  bos,
+  bwd,
+  cmdliner,
+  containers,
+  ezjsonm,
+  findlib,
+  menhir,
+  menhirLib,
+  ppx_deriving,
+  ppxlib,
+  uuseg,
+  uutf,
+  yuujinchou,
+  ounit2,
+  qcheck,
+  qcheck-core,
 }:
 
 let
-  bantorra = buildDunePackage rec {
+  bantorra = buildDunePackage {
     pname = "bantorra";
     version = "unstable-2022-05-08";
     src = fetchFromGitHub {
@@ -31,7 +31,11 @@ let
       hash = "sha256-s6lUTs3VRl6YhLAn3PO4aniANhFp8ytoTsFAgcOlee4=";
     };
 
-    propagatedBuildInputs = [ bos ezjsonm findlib ];
+    propagatedBuildInputs = [
+      bos
+      ezjsonm
+      findlib
+    ];
 
     meta = {
       description = "Extensible Library Management and Path Resolution";
@@ -39,7 +43,7 @@ let
       license = lib.licenses.asl20;
     };
   };
-  kado = buildDunePackage rec {
+  kado = buildDunePackage {
     pname = "kado";
     version = "unstable-2023-10-03";
     src = fetchFromGitHub {
@@ -102,10 +106,10 @@ buildDunePackage {
     qcheck
   ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/RedPRL/cooltt";
-    description = "A cool implementation of normalization by evaluation (nbe) & elaboration for Cartesian cubical type theory";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ moni ];
+    description = "Cool implementation of normalization by evaluation (nbe) & elaboration for Cartesian cubical type theory";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ moni ];
   };
 }

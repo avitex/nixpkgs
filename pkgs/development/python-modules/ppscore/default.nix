@@ -1,25 +1,23 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools
-, pandas
-, pytestCheckHook
-, pythonOlder
-, scikit-learn
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  pandas,
+  pytestCheckHook,
+  scikit-learn,
 }:
 
 buildPythonPackage rec {
   pname = "ppscore";
-  version = "1.3.0";
+  version = "1.3.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.6";
 
   src = fetchFromGitHub {
     owner = "8080labs";
     repo = "ppscore";
-    rev = "refs/tags/${version}";
-    hash = "sha256-gJStsL8fN17kvXO8EH/NHGIBelPknJzYw5WEvHsFooU=";
+    tag = version;
+    hash = "sha256-GhmyVWNWpEMNqXW808UhBHk1r6vOVibxKHVv5wWshLE=";
   };
 
   nativeBuildInputs = [
@@ -31,19 +29,17 @@ buildPythonPackage rec {
     scikit-learn
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "ppscore"
-  ];
+  pythonRelaxDeps = [ "pandas" ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "ppscore" ];
+
+  meta = {
     description = "Python implementation of the Predictive Power Score (PPS)";
     homepage = "https://github.com/8080labs/ppscore/";
     changelog = "https://github.com/8080labs/ppscore/blob/${src.rev}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ evax ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ evax ];
   };
 }

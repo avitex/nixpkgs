@@ -1,19 +1,18 @@
-{ lib
-, buildPythonPackage
-, docutils
-, fetchFromGitHub
-, packaging
-, pdm-backend
-, platformdirs
-, pydantic
-, pytestCheckHook
-, pythonOlder
-, sphinx
-, sphinx-autodoc-typehints
-, sphinx-rtd-theme
-, sphinxHook
-, tabulate
-, tomli
+{
+  lib,
+  buildPythonPackage,
+  docutils,
+  fetchFromGitHub,
+  packaging,
+  pdm-backend,
+  platformdirs,
+  pydantic,
+  pytestCheckHook,
+  sphinx,
+  sphinx-autodoc-typehints,
+  sphinx-rtd-theme,
+  sphinxHook,
+  tabulate,
 }:
 
 buildPythonPackage rec {
@@ -21,12 +20,10 @@ buildPythonPackage rec {
   version = "1.3.1";
   pyproject = true;
 
-  disabled = pythonOlder "3.8";
-
   src = fetchFromGitHub {
     owner = "bagel897";
     repo = "pytoolconfig";
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     hash = "sha256-h21SDgVsnCDZQf5GS7sFE19L/p+OlAFZGEYKc0RHn30=";
   };
 
@@ -35,7 +32,7 @@ buildPythonPackage rec {
     "doc"
   ];
 
-  PDM_PEP517_SCM_VERSION = version;
+  env.PDM_PEP517_SCM_VERSION = version;
 
   nativeBuildInputs = [
     pdm-backend
@@ -45,40 +42,35 @@ buildPythonPackage rec {
     sphinx-autodoc-typehints
     sphinx-rtd-theme
     sphinxHook
-  ] ++ passthru.optional-dependencies.doc;
+  ]
+  ++ optional-dependencies.doc;
 
-  propagatedBuildInputs = [
-    packaging
-  ] ++ lib.optionals (pythonOlder "3.11") [
-    tomli
-  ];
+  propagatedBuildInputs = [ packaging ];
 
-  passthru.optional-dependencies = {
-    validation = [
-      pydantic
-    ];
-    global = [
-      platformdirs
-    ];
+  optional-dependencies = {
+    validation = [ pydantic ];
+    global = [ platformdirs ];
     doc = [
       sphinx
       tabulate
     ];
   };
 
-  pythonImportsCheck = [
-    "pytoolconfig"
-  ];
+  pythonImportsCheck = [ "pytoolconfig" ];
 
   nativeCheckInputs = [
     pytestCheckHook
-  ] ++ lib.flatten (builtins.attrValues passthru.optional-dependencies);
+  ]
+  ++ lib.concatAttrValues optional-dependencies;
 
-  meta = with lib; {
+  meta = {
     description = "Python tool configuration";
     homepage = "https://github.com/bagel897/pytoolconfig";
     changelog = "https://github.com/bagel897/pytoolconfig/releases/tag/v${version}";
-    license = licenses.lgpl3Plus;
-    maintainers = with maintainers; [ fab hexa ];
+    license = lib.licenses.lgpl3Plus;
+    maintainers = with lib.maintainers; [
+      fab
+      hexa
+    ];
   };
 }

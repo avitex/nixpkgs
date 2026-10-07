@@ -1,80 +1,64 @@
-{ lib
-, asn1crypto
-, buildPythonPackage
-, pythonRelaxDepsHook
-, certifi
-, cffi
-, charset-normalizer
-, fetchPypi
-, filelock
-, idna
-, keyring
-, oscrypto
-, packaging
-, platformdirs
-, pycryptodomex
-, pyjwt
-, pyopenssl
-, pythonOlder
-, pytz
-, requests
-, setuptools
-, sortedcontainers
-, tomlkit
-, typing-extensions
-, wheel
+{
+  lib,
+  aioboto3,
+  aiohttp,
+  asn1crypto,
+  buildPythonPackage,
+  boto3,
+  botocore,
+  certifi,
+  charset-normalizer,
+  cryptography,
+  cython,
+  fetchFromGitHub,
+  filelock,
+  idna,
+  keyring,
+  numpy,
+  packaging,
+  pandas,
+  platformdirs,
+  pyarrow,
+  pyjwt,
+  pyopenssl,
+  pytest-asyncio,
+  pytest-xdist,
+  pytestCheckHook,
+  pytz,
+  requests,
+  responses,
+  setuptools,
+  sortedcontainers,
+  tomlkit,
+  typing-extensions,
 }:
 
 buildPythonPackage rec {
   pname = "snowflake-connector-python";
-  version = "3.6.0";
-  format = "pyproject";
+  version = "4.3.0";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-FWZ6kYeA152nVeamC79pGAUYVJUej1bM31aSKD6ahHk=";
+  src = fetchFromGitHub {
+    owner = "snowflakedb";
+    repo = "snowflake-connector-python";
+    tag = "v${version}";
+    hash = "sha256-bJK6U5lomcPMGeKEmv+9m+uM5+3GJKKUA3dEwP/ynVo=";
   };
 
-  # snowflake-connector-python requires arrow 10.0.1, which we don't have in
-  # nixpkgs, so we cannot build the C extensions that use it. thus, patch out
-  # cython and pyarrow from the build dependencies
-  #
-  # keep an eye on following issue for improvements to this situation:
-  #
-  #   https://github.com/snowflakedb/snowflake-connector-python/issues/1144
-  #
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace '"cython",' "" \
-      --replace '"pyarrow>=10.0.1,<10.1.0",' ""
-  '';
-
-  nativeBuildInputs = [
-    pythonRelaxDepsHook
+  build-system = [
+    cython
     setuptools
-    wheel
   ];
 
-  pythonRelaxDeps = [
-    "pyOpenSSL"
-    "charset-normalizer"
-    "cryptography"
-    "platformdirs"
-  ];
-
-  propagatedBuildInputs = [
+  dependencies = [
     asn1crypto
     certifi
-    cffi
     charset-normalizer
+    cryptography
     filelock
     idna
-    oscrypto
     packaging
     platformdirs
-    pycryptodomex
     pyjwt
     pyopenssl
     pytz
@@ -84,24 +68,90 @@ buildPythonPackage rec {
     typing-extensions
   ];
 
-  passthru.optional-dependencies = {
+  pythonRelaxDeps = [
+    "pyopenssl"
+  ];
+
+  optional-dependencies = {
+    boto = [
+      boto3
+      botocore
+    ];
+    pandas = [
+      pandas
+      pyarrow
+    ];
     secure-local-storage = [ keyring ];
   };
 
-  # Tests require encrypted secrets, see
-  # https://github.com/snowflakedb/snowflake-connector-python/tree/master/.github/workflows/parameters
-  doCheck = false;
+  preCheck = ''
+    export HOME=$(mktemp -d)
+  '';
+
+  nativeCheckInputs = [
+    aioboto3
+    aiohttp
+    numpy
+    pytest-asyncio
+    pytest-xdist
+    pytestCheckHook
+    responses
+  ]
+  ++ lib.concatAttrValues optional-dependencies;
+
+  disabledTestPaths = [
+    # Tests require encrypted secrets, see
+    # https://github.com/snowflakedb/snowflake-connector-python/tree/master/.github/workflows/parameters
+    "test/extras/simple_select1.py"
+    "test/integ"
+    # error getting schema from stream, error code: 0, error info: Expected to
+    # be able to read 19504 bytes for message body but got 19503
+    "test/unit/test_connection.py"
+    "test/unit/test_cursor.py"
+    "test/unit/test_error_arrow_stream.py"
+    "test/unit/test_ocsp.py"
+    "test/unit/test_retry_network.py"
+    "test/unit/test_s3_util.py"
+    # AssertionError: /build/source/.wiremock/wiremock-standalone.jar does not exist
+    "test/unit/test_programmatic_access_token.py"
+    "test/unit/test_oauth_token.py"
+    "test/unit/test_proxies.py"
+    "test/unit/aio/test_programmatic_access_token_async.py"
+    "test/unit/aio/test_oauth_token_async.py"
+    "test/unit/aio/test_proxies_async.py"
+    # aio tests that connect to the internet
+    "test/unit/aio/test_connection_async_unit.py::test_invalid_backoff_policy"
+    "test/unit/aio/test_ocsp.py"
+    "test/unit/aio/test_s3_util_async.py::test_download_retry_exceeded_error"
+    "test/unit/aio/test_s3_util_async.py::test_accelerate_in_china_endpoint"
+    "test/unit/aio/test_s3_util_async.py::test_get_header_expiry_error"
+    "test/unit/aio/test_s3_util_async.py::test_upload_expiry_error"
+    "test/unit/aio/test_s3_util_async.py::test_download_expiry_error"
+    # snowflake.connector.errors.ProgrammingError: 251008: 251008: Failed to load private key:
+    # argument 'password': Cannot convert "<class 'int'>" instance to a buffer.
+    "test/unit/aio/test_auth_keypair_async.py::test_auth_keypair"
+  ];
+
+  disabledTests = [
+    # Tests connect to the internet
+    "test_status_when_num_of_chunks_is_zero"
+    "test_test_socket_get_cert"
+    # Missing .wiremock/wiremock-standalone.jar
+    "test_wiremock"
+  ];
+
+  __darwinAllowLocalNetworking = true;
 
   pythonImportsCheck = [
     "snowflake"
     "snowflake.connector"
   ];
 
-  meta = with lib; {
-    changelog = "https://github.com/snowflakedb/snowflake-connector-python/blob/v${version}/DESCRIPTION.md";
+  meta = {
     description = "Snowflake Connector for Python";
     homepage = "https://github.com/snowflakedb/snowflake-connector-python";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/snowflakedb/snowflake-connector-python/blob/${src.tag}/DESCRIPTION.md";
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
 }

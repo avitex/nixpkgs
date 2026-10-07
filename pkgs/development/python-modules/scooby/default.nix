@@ -1,36 +1,42 @@
-{ lib
-, beautifulsoup4
-, buildPythonPackage
-, fetchFromGitHub
-, numpy
-, pytest-console-scripts
-, pytestCheckHook
-, pythonOlder
-, pyvips
-, scipy
-, setuptools-scm
+{
+  lib,
+  beautifulsoup4,
+  buildPythonPackage,
+  fetchFromGitHub,
+  iniconfig,
+  numpy,
+  psutil,
+  pytest-console-scripts,
+  pytestCheckHook,
+  pyvips,
+  scipy,
+  setuptools-scm,
 }:
 
 buildPythonPackage rec {
   pname = "scooby";
-  version = "0.9.2";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.12.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "banesullivan";
     repo = "scooby";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-x6GPRo0OuXJtN41urviY0joZKzq0SQjUdRBpIylgcXY=";
+    tag = "v${version}";
+    hash = "sha256-NFl0bfSv+AHT031gbGpY6G1zoZrtR85uYH2+1IsceBc=";
   };
 
-  nativeBuildInputs = [
-    setuptools-scm
-  ];
+  build-system = [ setuptools-scm ];
+
+  optional-dependencies = {
+    cpu = [
+      psutil
+      # mkl
+    ];
+  };
 
   nativeCheckInputs = [
     beautifulsoup4
+    iniconfig
     numpy
     pytest-console-scripts
     pytestCheckHook
@@ -42,9 +48,7 @@ buildPythonPackage rec {
     export PATH="$PATH:$out/bin";
   '';
 
-  pythonImportsCheck = [
-    "scooby"
-  ];
+  pythonImportsCheck = [ "scooby" ];
 
   disabledTests = [
     # Tests have additions requirements (e.g., time and module)
@@ -54,13 +58,16 @@ buildPythonPackage rec {
     "test_import_time"
     # TypeError: expected str, bytes or os.PathLike object, not list
     "test_cli"
+    # Fails to find iniconfig in environment
+    "test_auto_report"
   ];
 
-  meta = with lib; {
+  meta = {
     changelog = "https://github.com/banesullivan/scooby/releases/tag/v${version}";
-    description = "A lightweight tool for reporting Python package versions and hardware resources";
+    description = "Lightweight tool for reporting Python package versions and hardware resources";
+    mainProgram = "scooby";
     homepage = "https://github.com/banesullivan/scooby";
-    license = licenses.mit;
-    maintainers = with maintainers; [ wegank ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ wegank ];
   };
 }

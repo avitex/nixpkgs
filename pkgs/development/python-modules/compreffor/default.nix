@@ -1,58 +1,50 @@
-{ lib
-, buildPythonPackage
-, cython
-, fetchpatch
-, fetchPypi
-, setuptools-scm
-, fonttools
-, pytestCheckHook
-, wheel
+{
+  lib,
+  buildPythonPackage,
+  cython,
+  fetchPypi,
+  setuptools-scm,
+  fonttools,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "compreffor";
-  version = "0.5.5";
-  format = "pyproject";
+  version = "0.6.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-9NMmIJC8Q4hRC/H2S7OrgoWSQ9SRIPHxHvZpPrPCvHo=";
+    hash = "sha256-fqA0pQxZzHhzLxSABA6sK7Nvgmzi62B8MCm104qxG6g=";
   };
 
-  patches = [
-    # https://github.com/googlefonts/compreffor/pull/153
-    (fetchpatch {
-      name = "remove-setuptools-git-ls-files.patch";
-      url = "https://github.com/googlefonts/compreffor/commit/10f563564390568febb3ed1d0f293371cbd86953.patch";
-      hash = "sha256-wNQMJFJXTFILGzAgzUXzz/rnK67/RU+exYP6MhEQAkA=";
-    })
-  ];
+  postPatch = ''
+    sed -i "/setuptools_git_ls_files/d" pyproject.toml
+  '';
 
-  nativeBuildInputs = [
+  build-system = [
     cython
     setuptools-scm
-    wheel
   ];
 
-  propagatedBuildInputs = [
-    fonttools
-  ];
+  dependencies = [ fonttools ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  # Tests cannot seem to open the cpython module.
-  doCheck = false;
+  preCheck = ''
+    # import from $out
+    mv src/python/compreffor/test .
+    rm -r src tools
+  '';
 
-  pythonImportsCheck = [
-    "compreffor"
-  ];
+  pythonImportsCheck = [ "compreffor" ];
 
-  meta = with lib; {
+  meta = {
+    changelog = "https://github.com/googlefonts/compreffor/releases/tag/v${version}";
     description = "CFF table subroutinizer for FontTools";
+    mainProgram = "compreffor";
     homepage = "https://github.com/googlefonts/compreffor";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
 }

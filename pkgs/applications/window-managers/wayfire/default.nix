@@ -1,40 +1,57 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, cmake
-, meson
-, ninja
-, pkg-config
-, wf-config
-, cairo
-, doctest
-, libGL
-, libdrm
-, libexecinfo
-, libevdev
-, libinput
-, libjpeg
-, libxkbcommon
-, wayland
-, wayland-protocols
-, wayland-scanner
-, wlroots
-, pango
-, nlohmann_json
-, xorg
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  nixosTests,
+  cmake,
+  meson,
+  ninja,
+  pkg-config,
+  wf-config,
+  cairo,
+  doctest,
+  libGL,
+  libdrm,
+  libexecinfo,
+  libevdev,
+  libinput,
+  libjpeg,
+  libxkbcommon,
+  libxml2,
+  vulkan-headers,
+  wayland,
+  wayland-protocols,
+  wayland-scanner,
+  wlroots_0_19,
+  pango,
+  libxcb-wm,
+  yyjson,
 }:
+let
+  wlroots = wlroots_0_19;
+in
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "wayfire";
-  version = "0.8.0";
+  version = "0.10.1";
+
+  outputs = [
+    "out"
+    "man"
+  ];
 
   src = fetchFromGitHub {
     owner = "WayfireWM";
     repo = "wayfire";
     rev = "v${finalAttrs.version}";
     fetchSubmodules = true;
-    hash = "sha256-YI8N1rY71b2ulv7tAdah7sibG4qq3kY0/hyS0cls5to=";
+    hash = "sha256-yiqtnsXxvC7vk22ZQ5OFt5uX40FCRGWpfZrax9GItAg=";
   };
+
+  postPatch = ''
+    substituteInPlace plugins/common/wayfire/plugins/common/cairo-util.hpp \
+      --replace "<drm_fourcc.h>" "<libdrm/drm_fourcc.h>"
+  '';
 
   nativeBuildInputs = [
     meson
@@ -44,7 +61,6 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   buildInputs = [
-    wf-config
     libGL
     libdrm
     libexecinfo
@@ -52,16 +68,19 @@ stdenv.mkDerivation (finalAttrs: {
     libinput
     libjpeg
     libxkbcommon
+    libxml2
+    vulkan-headers
     wayland-protocols
-    xorg.xcbutilwm
-    wayland
-    cairo
-    pango
-    nlohmann_json
+    libxcb-wm
+    yyjson
   ];
 
   propagatedBuildInputs = [
+    wf-config
     wlroots
+    wayland
+    cairo
+    pango
   ];
 
   nativeCheckInputs = [
@@ -83,11 +102,17 @@ stdenv.mkDerivation (finalAttrs: {
 
   passthru.providedSessions = [ "wayfire" ];
 
+  passthru.tests.mate = nixosTests.mate-wayland;
+
   meta = {
     homepage = "https://wayfire.org/";
     description = "3D Wayland compositor";
     license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ qyliss wucke13 rewine ];
+    maintainers = with lib.maintainers; [
+      teatwig
+      wucke13
+      wineee
+    ];
     platforms = lib.platforms.unix;
     mainProgram = "wayfire";
   };

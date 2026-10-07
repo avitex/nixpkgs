@@ -1,77 +1,73 @@
-{ lib
-, buildPythonPackage
-, exceptiongroup
-, fetchFromGitHub
-, glibcLocales
-, pygobject3
-, pyserial
-, pytestCheckHook
-, pythonOlder
-, pyzmq
-, setuptools
-, setuptools-scm
-, tornado
-, trio
-, twisted
+{
+  lib,
+  buildPythonPackage,
+  exceptiongroup,
+  fetchFromGitHub,
+  glibcLocales,
+  pygobject3,
+  pyserial,
+  pytestCheckHook,
+  pythonOlder,
+  pyzmq,
+  setuptools,
+  setuptools-scm,
+  tornado,
+  trio,
+  twisted,
+  typing-extensions,
+  wcwidth,
 }:
 
 buildPythonPackage rec {
   pname = "urwid";
-  version = "2.4.3";
+  version = "3.0.5";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "urwid";
     repo = "urwid";
-    rev = "refs/tags/${version}";
-    hash = "sha256-raDsUZaXBC4s/48KNH8Thrpm8Bq8wj9+Rahk+LkxcDo=";
+    tag = version;
+    hash = "sha256-9ajcpyQTSASz8A4eM78vPjL+9Rk07Q30JmIrSx0Crpo=";
   };
 
   postPatch = ''
     sed -i '/addopts =/d' pyproject.toml
   '';
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     setuptools-scm
   ];
 
-  passthru.optional-dependencies = {
-    glib = [
-      pygobject3
-    ];
-    tornado = [
-      tornado
-    ];
-    trio = [
-      exceptiongroup
-      trio
-    ];
-    twisted = [
-      twisted
-    ];
-    zmq = [
-      pyzmq
-    ];
-    serial = [
-      pyserial
-    ];
-    lcd = [
-      pyserial
-    ];
+  dependencies = [
+    typing-extensions
+    wcwidth
+  ];
+
+  optional-dependencies = {
+    curses = [ ];
+    glib = [ pygobject3 ];
+    tornado = [ tornado ];
+    trio = [ trio ] ++ lib.optionals (pythonOlder "3.11") [ exceptiongroup ];
+    twisted = [ twisted ];
+    zmq = [ pyzmq ];
+    serial = [ pyserial ];
+    lcd = [ pyserial ];
   };
 
   nativeCheckInputs = [
     glibcLocales
     pytestCheckHook
-  ] ++ lib.flatten (builtins.attrValues passthru.optional-dependencies);
+  ]
+  ++ lib.concatAttrValues optional-dependencies;
 
   env.LC_ALL = "en_US.UTF8";
 
-  pytestFlagsArray = [
-    "tests"
+  enabledTestPaths = [ "tests" ];
+
+  disabledTests = [
+    # Flaky tests
+    "TwistedEventLoopTest"
   ];
 
   disabledTestPaths = [
@@ -79,16 +75,14 @@ buildPythonPackage rec {
     "tests/test_vterm.py"
   ];
 
-  pythonImportsCheck = [
-    "urwid"
-  ];
+  pythonImportsCheck = [ "urwid" ];
 
-  meta = with lib; {
-    description = "A full-featured console (xterm et al.) user interface library";
-    changelog = "https://github.com/urwid/urwid/releases/tag/${version}";
+  meta = {
+    description = "Full-featured console (xterm et al.) user interface library";
+    changelog = "https://github.com/urwid/urwid/releases/tag/${src.tag}";
     downloadPage = "https://github.com/urwid/urwid";
     homepage = "https://urwid.org/";
-    license = licenses.lgpl21Plus;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.lgpl21Plus;
+    maintainers = [ ];
   };
 }

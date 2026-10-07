@@ -1,17 +1,18 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools
-, babel
-, translationstring
-, iso8601
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  babel,
+  translationstring,
+  iso8601,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "colander";
   version = "2.0";
-  format = "pyproject";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
@@ -28,18 +29,14 @@ buildPythonPackage rec {
     iso8601
   ];
 
-  pythonImportsCheck = [
-    "colander"
-  ];
+  pythonImportsCheck = [ "colander" ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  meta = with lib; {
-    description = "A simple schema-based serialization and deserialization library";
+  meta = {
+    description = "Simple schema-based serialization and deserialization library";
     homepage = "https://github.com/Pylons/colander";
-    license = licenses.free; # http://repoze.org/LICENSE.txt
-    maintainers = with maintainers; [ domenkozar ];
+    license = lib.licenses.free; # http://repoze.org/LICENSE.txt
+    maintainers = [ ];
   };
 }

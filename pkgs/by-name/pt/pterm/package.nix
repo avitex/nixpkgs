@@ -1,19 +1,24 @@
-{ lib
-, stdenv
-, fetchurl
-, libsndfile
-, wxGTK32
-, SDL
+{
+  lib,
+  stdenv,
+  fetchurl,
+  libsndfile,
+  wxwidgets_3_2,
+  SDL,
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "pterm";
   version = "6.0.4";
 
-  buildInputs = [ libsndfile SDL wxGTK32 ];
+  buildInputs = [
+    libsndfile
+    SDL
+    wxwidgets_3_2
+  ];
 
   src = fetchurl {
-    url = "https://www.cyber1.org/download/linux/pterm-${version}.tar.bz2";
+    url = "https://www.cyber1.org/download/linux/pterm-${finalAttrs.version}.tar.bz2";
     hash = "sha256-0OJvoCOGx/a51Ja7n3fOTeQJEcdyn/GhaJ0NtVCyuC8=";
   };
 
@@ -26,7 +31,7 @@ stdenv.mkDerivation rec {
 
   hardeningDisable = [ "format" ];
 
-  env.PTERMVERSION = "${version}";
+  env.PTERMVERSION = "${finalAttrs.version}";
 
   installPhase = ''
     runHook preInstall
@@ -36,13 +41,13 @@ stdenv.mkDerivation rec {
     runHook postInstall
   '';
 
-  meta = with lib; {
-    description = "terminal emulator for the Cyber1 mainframe-based CYBIS system";
+  meta = {
+    description = "Terminal emulator for the Cyber1 mainframe-based CYBIS system";
     homepage = "https://www.cyber1.org/";
-    license = licenses.zlib;
-    maintainers = with maintainers; [ sarcasticadmin ];
+    license = lib.licenses.zlib;
+    maintainers = with lib.maintainers; [ sarcasticadmin ];
     mainProgram = "pterm";
-    platforms = platforms.unix;
-    broken = stdenv.isDarwin;
+    platforms = lib.platforms.unix;
+    broken = stdenv.hostPlatform.isDarwin;
   };
-}
+})

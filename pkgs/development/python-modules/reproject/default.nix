@@ -1,82 +1,91 @@
-{ lib
-, astropy
-, astropy-extension-helpers
-, astropy-healpix
-, buildPythonPackage
-, cloudpickle
-, cython_3
-, dask
-, fetchPypi
-, fsspec
-, numpy
-, oldest-supported-numpy
-, pytest-astropy
-, pytestCheckHook
-, pythonOlder
-, scipy
-, setuptools-scm
-, zarr
+{
+  lib,
+  asdf,
+  astropy,
+  astropy-healpix,
+  buildPythonPackage,
+  cython,
+  dask,
+  dask-image,
+  extension-helpers,
+  fetchFromGitHub,
+  fsspec,
+  gwcs,
+  numpy,
+  pillow,
+  pyavm,
+  pytest-astropy,
+  pytest-xdist,
+  pytestCheckHook,
+  scipy,
+  setuptools,
+  setuptools-scm,
+  shapely,
+  tqdm,
+  zarr,
 }:
 
 buildPythonPackage rec {
   pname = "reproject";
-  version = "0.13.0";
+  version = "0.21.0";
   pyproject = true;
 
-  disabled = pythonOlder "3.9";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-lL6MkKVSWmV6KPkG/9fjc2c2dFQ14i9fiJAr3VFfcuI=";
+  src = fetchFromGitHub {
+    owner = "astropy";
+    repo = "reproject";
+    tag = "v${version}";
+    hash = "sha256-IuGVipAb4x63U2k9tNHhps5Gbk+3Hi/1ZkeMTZ/vaiU=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace "cython==" "cython>="
-  '';
-
-  nativeBuildInputs = [
-    astropy-extension-helpers
-    cython_3
-    numpy
-    oldest-supported-numpy
+  build-system = [
+    setuptools
     setuptools-scm
+    cython
+    extension-helpers
+    numpy
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     astropy
     astropy-healpix
-    cloudpickle
     dask
+    dask-image
     fsspec
     numpy
+    pillow
+    pyavm
     scipy
     zarr
-  ] ++ dask.optional-dependencies.array;
+  ]
+  ++ dask.optional-dependencies.array;
 
   nativeCheckInputs = [
-    pytest-astropy
     pytestCheckHook
+    pytest-astropy
+    pytest-xdist
+    asdf
+    gwcs
+    shapely
+    tqdm
   ];
 
-  pytestFlagsArray = [
+  enabledTestPaths = [
     "build/lib*"
-    # Avoid failure due to user warning: Distutils was imported before Setuptools
-    "-p no:warnings"
+  ];
+
+  disabledTestPaths = [
     # Uses network
-    "--ignore build/lib*/reproject/interpolation/"
+    "build/lib*/reproject/interpolation/"
   ];
 
-  pythonImportsCheck = [
-    "reproject"
-  ];
+  pythonImportsCheck = [ "reproject" ];
 
-  meta = with lib; {
+  meta = {
     description = "Reproject astronomical images";
     downloadPage = "https://github.com/astropy/reproject";
     homepage = "https://reproject.readthedocs.io";
-    changelog = "https://github.com/astropy/reproject/releases/tag/v${version}";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ smaret ];
+    changelog = "https://github.com/astropy/reproject/releases/tag/${src.tag}";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ smaret ];
   };
 }

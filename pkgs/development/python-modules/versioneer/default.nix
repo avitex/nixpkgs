@@ -1,49 +1,35 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, setuptools
-, tomli
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "versioneer";
   version = "0.29";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "python-versioneer";
     repo = "python-versioneer";
-    rev = "refs/tags/${version}";
+    tag = version;
     hash = "sha256-3b7Wfhd24Vym5XCeN/M1832Q1VzvlWi3quTRaZrID2s=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ] ++ lib.optionals (pythonOlder "3.11") [
-    tomli
-  ];
-
-  passthru.optional-dependencies = {
-    toml = lib.optionals (pythonOlder "3.11") [
-      tomli
-    ];
-  };
+  nativeBuildInputs = [ setuptools ];
 
   # Couldn't get tests to work because, for instance, they used virtualenv and pip
   doCheck = false;
 
-  pythonImportsCheck = [
-    "versioneer"
-  ];
+  pythonImportsCheck = [ "versioneer" ];
 
-  meta = with lib; {
+  meta = {
     description = "Version-string management for VCS-controlled trees";
+    mainProgram = "versioneer";
     homepage = "https://github.com/python-versioneer/python-versioneer";
     changelog = "https://github.com/python-versioneer/python-versioneer/blob/${version}/NEWS.md";
-    license = licenses.publicDomain;
-    maintainers = with maintainers; [ jluttine ];
+    license = lib.licenses.publicDomain;
+    maintainers = with lib.maintainers; [ jluttine ];
   };
 }

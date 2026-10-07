@@ -1,9 +1,9 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
@@ -11,12 +11,10 @@ buildPythonPackage rec {
   version = "2.2.2";
   pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
   src = fetchFromGitHub {
     owner = "Lucretiel";
     repo = "autocommand";
-    rev = "refs/tags/${version}";
+    tag = version;
     hash = "sha256-9bv9Agj4RpeyNJvTLUaMwygQld2iZZkoLb81rkXOd3E=";
   };
 
@@ -25,25 +23,19 @@ buildPythonPackage rec {
     rm setup.py
   '';
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
   # fails with: SyntaxError: invalid syntax
   doCheck = false;
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "autocommand"
-  ];
+  pythonImportsCheck = [ "autocommand" ];
 
-  meta = with lib; {
+  meta = {
     description = "Autocommand turns a python function into a CLI program";
     homepage = "https://github.com/Lucretiel/autocommand";
-    license = licenses.lgpl3Only;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.lgpl3Only;
+    maintainers = [ ];
   };
 }

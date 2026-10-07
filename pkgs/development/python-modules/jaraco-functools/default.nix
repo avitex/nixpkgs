@@ -1,37 +1,54 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, more-itertools
-, setuptools-scm
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchPypi,
+  jaraco-classes,
+  more-itertools,
+  pytestCheckHook,
+  setuptools-scm,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "jaraco-functools";
-  version = "4.0.0";
-  format = "pyproject";
+  version = "4.4.0";
+  pyproject = true;
 
   src = fetchPypi {
-    pname = "jaraco.functools";
+    pname = "jaraco_functools";
     inherit version;
-    hash = "sha256-wnnLJMk9aU73Jw+XDUmcq004E/TggnP5U5hlGmNPCSU=";
+    hash = "sha256-2iGTOwQXuJUVViZWVHp3tJMfmBdusXNkTA01Ayoz1rs=";
   };
 
-  nativeBuildInputs = [ setuptools-scm ];
+  postPatch = ''
+    sed -i "/coherent\.licensed/d" pyproject.toml
+  '';
 
-  propagatedBuildInputs = [
-    more-itertools
+  build-system = [
+    setuptools
+    setuptools-scm
   ];
 
-  doCheck = false;
+  dependencies = [ more-itertools ];
+
+  nativeCheckInputs = [
+    jaraco-classes
+    pytestCheckHook
+  ];
+
+  # test is flaky on darwin
+  disabledTests = if stdenv.hostPlatform.isDarwin then [ "test_function_throttled" ] else null;
 
   pythonNamespaces = [ "jaraco" ];
 
   pythonImportsCheck = [ "jaraco.functools" ];
 
-  meta = with lib; {
+  meta = {
     description = "Additional functools in the spirit of stdlib's functools";
     homepage = "https://github.com/jaraco/jaraco.functools";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/jaraco/jaraco.functools/blob/v${version}/NEWS.rst";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

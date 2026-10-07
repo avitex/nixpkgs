@@ -1,6 +1,19 @@
-{ lib, version, }:
+{
+  lib,
+  version,
+  targetPrefix,
+}:
 
-with lib; {
+let
+  inherit (lib)
+    licenses
+    maintainers
+    platforms
+    teams
+    versionOlder
+    ;
+in
+{
   homepage = "https://gcc.gnu.org/";
   license = licenses.gpl3Plus; # runtime support libraries are typically LGPLv3+
   description = "GNU Compiler Collection, version ${version}";
@@ -14,6 +27,11 @@ with lib; {
   '';
 
   platforms = platforms.unix;
-  maintainers = if versionOlder version "5" then [ maintainers.veprbl ] else teams.gcc.members;
+  teams = [
+    teams.gcc
+    teams.security-review
+  ];
+  mainProgram = "${targetPrefix}gcc";
 
+  identifiers.cpeParts = lib.meta.cpeFullVersionWithVendor "gnu" version;
 }

@@ -1,61 +1,48 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools
-, pytestCheckHook
-, pythonOlder
-, yara
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  pytestCheckHook,
+  yara,
 }:
 
 buildPythonPackage rec {
   pname = "yara-python";
-  version = "4.4.0";
+  version = "4.5.5";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "VirusTotal";
     repo = "yara-python";
-    rev = "v${version}";
-    hash = "sha256-Fl/0ordXDKC1CBBmPx0fEwZZjqSiMxnwNvQqD98MjRo=";
+    tag = "v${version}";
+    hash = "sha256-3MElqZALdwmyUA7xTWp6mG8mhRJuUZbYTkvvQc4UfVc=";
   };
 
   # undefined symbol: yr_finalize
   # https://github.com/VirusTotal/yara-python/issues/7
   postPatch = ''
     substituteInPlace setup.py \
-      --replace "include_dirs=['yara/libyara/include', 'yara/libyara/', '.']" "libraries = ['yara']"
+      --replace-fail "include_dirs=['yara/libyara/include', 'yara/libyara/', '.']" "libraries = ['yara']"
   '';
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  buildInputs = [
-    yara
-  ];
+  buildInputs = [ yara ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  setupPyBuildFlags = [
-    "--dynamic-linking"
-  ];
+  setupPyBuildFlags = [ "--dynamic-linking" ];
 
-  pytestFlagsArray = [
-    "tests.py"
-  ];
+  enabledTestPaths = [ "tests.py" ];
 
-  pythonImportsCheck = [
-    "yara"
-  ];
+  pythonImportsCheck = [ "yara" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python interface for YARA";
     homepage = "https://github.com/VirusTotal/yara-python";
-    license = with licenses; [ asl20 ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/VirusTotal/yara-python/releases/tag/v${version}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

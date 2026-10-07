@@ -1,53 +1,62 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, cython
-, decorator
-, fetchPypi
-, numpy
-, pytestCheckHook
-, pythonOlder
-, scipy
-, six
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  cython,
+  pytestCheckHook,
+  setuptools,
+  decorator,
+  numpy,
+  scipy,
+  standard-pkg-resources,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pysptk";
-  version = "0.2.2";
-  format = "setuptools";
+  version = "1.0.1";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-QUgBA/bchWTaJ54u/ubcRfoVcDeV77wSnHOjkgfVauE=";
+    inherit (finalAttrs) version;
+    pname = "pysptk";
+    hash = "sha256-eLHJM4v3laQc3D/wP81GmcQBwyP1RjC7caGXEAeNCz8=";
   };
 
-  PYSPTK_BUILD_VERSION = 0;
-
-  nativeBuildInputs = [
+  build-system = [
     cython
+    setuptools
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     decorator
     numpy
     scipy
-    six
+    standard-pkg-resources
   ];
 
-  # Tests are not part of the PyPI releases
-  doCheck = false;
-
-  pythonImportsCheck = [
-    "pysptk"
+  nativeCheckInputs = [
+    pytestCheckHook
   ];
 
-  meta = with lib; {
-    broken = stdenv.isDarwin;
+  # Remove source to prevent the tests from trying to import it
+  preCheck = ''
+    rm -r pysptk
+  '';
+
+  disabledTests = [
+    # These tests rely on test data not present in the pypi release
+    "test_rapt_regression"
+    "test_swipe_regression"
+  ];
+
+  pythonImportsCheck = [ "pysptk" ];
+
+  meta = {
     description = "Wrapper for Speech Signal Processing Toolkit (SPTK)";
     homepage = "https://pysptk.readthedocs.io/";
-    license = licenses.mit;
-    maintainers = with maintainers; [ hyphon81 ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
-}
+})

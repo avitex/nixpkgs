@@ -1,12 +1,12 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchPypi
-, setuptools-scm
-, sphinx
-, wavedrom
-, xcffib
-, cairosvg
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools-scm,
+  sphinx,
+  wavedrom,
+  xcffib,
+  cairosvg,
 }:
 
 buildPythonPackage rec {
@@ -35,10 +35,10 @@ buildPythonPackage rec {
 
   pythonNamespaces = [ "sphinxcontrib" ];
 
-  meta = with lib; {
-    description = "A sphinx extension that allows including wavedrom diagrams by using its text-based representation";
+  meta = {
+    description = "Sphinx extension that allows including wavedrom diagrams by using its text-based representation";
     homepage = "https://github.com/bavovanachte/sphinx-wavedrom";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fsagbuya ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fsagbuya ];
   };
 }

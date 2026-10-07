@@ -1,7 +1,17 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
-  inherit (lib) literalExpression mkIf mkOption singleton types mkPackageOption;
+  inherit (lib)
+    mkIf
+    mkOption
+    types
+    mkPackageOption
+    ;
   inherit (pkgs) coreutils;
   cfg = config.services.exim;
 in
@@ -17,13 +27,13 @@ in
       enable = mkOption {
         type = types.bool;
         default = false;
-        description = lib.mdDoc "Whether to enable the Exim mail transfer agent.";
+        description = "Whether to enable the Exim mail transfer agent.";
       };
 
       config = mkOption {
         type = types.lines;
         default = "";
-        description = lib.mdDoc ''
+        description = ''
           Verbatim Exim configuration.  This should not contain exim_user,
           exim_group, exim_path, or spool_directory.
         '';
@@ -32,7 +42,7 @@ in
       user = mkOption {
         type = types.str;
         default = "exim";
-        description = lib.mdDoc ''
+        description = ''
           User to use when no root privileges are required.
           In particular, this applies when receiving messages and when doing
           remote deliveries.  (Local deliveries run as various non-root users,
@@ -44,7 +54,7 @@ in
       group = mkOption {
         type = types.str;
         default = "exim";
-        description = lib.mdDoc ''
+        description = ''
           Group to use when no root privileges are required.
         '';
       };
@@ -52,7 +62,7 @@ in
       spoolDir = mkOption {
         type = types.path;
         default = "/var/spool/exim";
-        description = lib.mdDoc ''
+        description = ''
           Location of the spool directory of exim.
         '';
       };
@@ -66,14 +76,13 @@ in
       queueRunnerInterval = mkOption {
         type = types.str;
         default = "5m";
-        description = lib.mdDoc ''
+        description = ''
           How often to spawn a new queue runner.
         '';
       };
     };
 
   };
-
 
   ###### implementation
 
@@ -100,30 +109,23 @@ in
       gid = config.ids.gids.exim;
     };
 
-    security.wrappers.exim =
-      { setuid = true;
-        owner = "root";
-        group = "root";
-        source = "${cfg.package}/bin/exim";
-      };
+    security.wrappers.exim = {
+      setuid = true;
+      owner = "root";
+      group = "root";
+      source = "${cfg.package}/bin/exim";
+    };
 
     systemd.services.exim = {
       description = "Exim Mail Daemon";
       wantedBy = [ "multi-user.target" ];
       restartTriggers = [ config.environment.etc."exim.conf".source ];
       serviceConfig = {
-        ExecStart   = "!${cfg.package}/bin/exim -bdf -q${cfg.queueRunnerInterval}";
-        ExecReload  = "!${coreutils}/bin/kill -HUP $MAINPID";
-        User        = cfg.user;
+        ExecStartPre = "+${coreutils}/bin/install --group=${cfg.group} --owner=${cfg.user} --mode=0700 --directory ${cfg.spoolDir}";
+        ExecStart = "!${cfg.package}/bin/exim -bdf -q${cfg.queueRunnerInterval}";
+        ExecReload = "!${coreutils}/bin/kill -HUP $MAINPID";
+        User = cfg.user;
       };
-      preStart = ''
-        if ! test -d ${cfg.spoolDir}; then
-          ${coreutils}/bin/mkdir -p ${cfg.spoolDir}
-          ${coreutils}/bin/chown ${cfg.user}:${cfg.group} ${cfg.spoolDir}
-        fi
-      '';
     };
-
   };
-
 }

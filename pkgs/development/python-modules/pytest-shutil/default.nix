@@ -1,69 +1,54 @@
-{ lib
-, isPyPy
-, buildPythonPackage
-, fetchPypi
+{
+  lib,
+  isPyPy,
+  buildPythonPackage,
+  pytest-fixture-config,
 
-# build
-, pytest
+  # build-time
+  setuptools,
 
-# runtime
-, setuptools-git
-, mock
-, path
-, execnet
-, termcolor
-, six
+  # runtime
+  pytest,
+  execnet,
+  termcolor,
+  six,
 
-# tests
-, cmdline
-, pytestCheckHook
- }:
+  # tests
+  pytestCheckHook,
+}:
 
-buildPythonPackage rec {
+buildPythonPackage {
   pname = "pytest-shutil";
-  version = "1.7.0";
-  format = "setuptools";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-2BZSYd5251CFBcNB2UwCsRPclj8nRUOrynTb+r0CEmE=";
-  };
+  inherit (pytest-fixture-config) version src patches;
+  pyproject = true;
 
   postPatch = ''
-    substituteInPlace setup.py \
-      --replace "contextlib2" 'contextlib2;python_version<"3"' \
-      --replace "path.py" "path"
+    cd pytest-shutil
   '';
 
-  buildInputs = [
-    pytest
+  build-system = [
+    setuptools
   ];
 
-  propagatedBuildInputs = [
-    setuptools-git
-    mock
-    path
+  buildInputs = [ pytest ];
+
+  dependencies = [
     execnet
     termcolor
     six
   ];
 
-  nativeCheckInputs = [
-    cmdline
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  disabledTests = [
-    "test_pretty_formatter"
-  ] ++ lib.optionals isPyPy [
+  disabledTests = lib.optionals isPyPy [
     "test_run"
     "test_run_integration"
   ];
 
-  meta = with lib; {
-    description = "A goodie-bag of unix shell and environment tools for py.test";
+  meta = {
+    description = "Goodie-bag of unix shell and environment tools for py.test";
     homepage = "https://github.com/manahl/pytest-plugins";
-    maintainers = with maintainers; [ ryansydnor ];
-    license = licenses.mit;
+    maintainers = with lib.maintainers; [ ryansydnor ];
+    license = lib.licenses.mit;
   };
 }

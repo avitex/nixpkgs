@@ -1,79 +1,92 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, pythonOlder
-, isPyPy
-, fetchFromGitHub
-, setuptools-scm
-, fs
-, lxml
-, brotli
-, brotlicffi
-, zopfli
-, unicodedata2
-, lz4
-, scipy
-, munkres
-, matplotlib
-, sympy
-, xattr
-, skia-pathops
-, uharfbuzz
-, pytestCheckHook
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  pythonOlder,
+  isPyPy,
+  fetchFromGitHub,
+  setuptools,
+  setuptools-scm,
+  lxml,
+  brotli,
+  brotlicffi,
+  zopfli,
+  unicodedata2,
+  lz4,
+  scipy,
+  munkres,
+  pycairo,
+  matplotlib,
+  sympy,
+  xattr,
+  skia-pathops,
+  uharfbuzz,
+  addBinToPathHook,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "fonttools";
-  version = "4.46.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "4.63.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
-    owner  = pname;
-    repo   = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-QpC1OWpqhJpzS59OG8A/nndWDoeYyAFUTIcsppLzM8Y=";
+    owner = "fonttools";
+    repo = "fonttools";
+    tag = finalAttrs.version;
+    hash = "sha256-XTE18TKpIa4MpbJ5tcHwCyLk3Q6CV/ElzMtddG86HJA=";
   };
 
-  nativeBuildInputs = [ setuptools-scm ];
+  build-system = [
+    setuptools
+    setuptools-scm
+  ];
 
-  passthru.optional-dependencies = let
-    extras = {
-      ufo = [ fs ];
-      lxml = [ lxml ];
-      woff = [ (if isPyPy then brotlicffi else brotli) zopfli ];
-      unicode = lib.optional (pythonOlder "3.11") unicodedata2;
-      graphite = [ lz4 ];
-      interpolatable = [ (if isPyPy then munkres else scipy) ];
-      plot = [ matplotlib ];
-      symfont = [ sympy ];
-      type1 = lib.optional stdenv.isDarwin xattr;
-      pathops = [ skia-pathops ];
-      repacker = [ uharfbuzz ];
-    };
-  in extras // {
-    all = lib.concatLists (lib.attrValues extras);
-  };
+  optional-dependencies =
+    let
+      extras = {
+        ufo = [ ];
+        lxml = [ lxml ];
+        woff = [
+          (if isPyPy then brotlicffi else brotli)
+          zopfli
+        ];
+        unicode = lib.optional (pythonOlder "3.15") unicodedata2;
+        graphite = [ lz4 ];
+        interpolatable = [
+          pycairo
+          (if isPyPy then munkres else scipy)
+        ];
+        plot = [ matplotlib ];
+        symfont = [ sympy ];
+        type1 = lib.optional stdenv.hostPlatform.isDarwin xattr;
+        pathops = [ skia-pathops ];
+        repacker = [ uharfbuzz ];
+      };
+    in
+    extras // { all = lib.concatLists (lib.attrValues extras); };
 
   nativeCheckInputs = [
+    addBinToPathHook
     pytestCheckHook
-  ] ++ lib.concatLists (lib.attrVals ([
-    "woff"
-    # "interpolatable" is not included because it only contains 2 tests at the time of writing but adds 270 extra dependencies
-    "ufo"
-  ] ++ lib.optionals (!skia-pathops.meta.broken) [
-    "pathops" # broken
-  ] ++ [
-    "repacker"
-  ]) passthru.optional-dependencies);
+  ]
+  ++ lib.concatLists (
+    lib.attrVals (
+      [
+        "woff"
+        # "interpolatable" is not included because it only contains 2 tests at the time of writing but adds 270 extra dependencies
+        "ufo"
+      ]
+      ++
+        lib.optionals (lib.meta.availableOn stdenv.hostPlatform skia-pathops && !skia-pathops.meta.broken)
+          [
+            "pathops" # broken
+          ]
+      ++ [ "repacker" ]
+    ) finalAttrs.passthru.optional-dependencies
+  );
 
   pythonImportsCheck = [ "fontTools" ];
-
-  preCheck = ''
-    # tests want to execute the "fonttools" executable from $PATH
-    export PATH="$out/bin:$PATH"
-  '';
 
   # Timestamp tests have timing issues probably related
   # to our file timestamp normalization
@@ -83,18 +96,11 @@ buildPythonPackage rec {
     "test_ttcompile_timestamp_calcs"
   ];
 
-  disabledTestPaths = [
-    # avoid test which depend on fs and matplotlib
-    # fs and matplotlib were removed to prevent strong cyclic dependencies
-    "Tests/misc/plistlib_test.py"
-    "Tests/pens"
-    "Tests/ufoLib"
-  ];
-
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/fonttools/fonttools";
-    description = "A library to manipulate font files from Python";
-    license = licenses.mit;
-    maintainers = [ maintainers.sternenseemann ];
+    description = "Library to manipulate font files from Python";
+    changelog = "https://github.com/fonttools/fonttools/blob/${finalAttrs.src.tag}/NEWS.rst";
+    license = lib.licenses.mit;
+    maintainers = [ lib.maintainers.sternenseemann ];
   };
-}
+})

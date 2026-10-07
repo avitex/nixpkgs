@@ -1,2 +1,4 @@
-with import ../../.. {};
-pkgs.callPackage ./default.nix {}
+{
+  pkgs ? import ../../.. { },
+}:
+pkgs.python3Packages.callPackage ./default.nix { }

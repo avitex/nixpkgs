@@ -1,50 +1,51 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, pythonOlder
-, pythonRelaxDepsHook
+{
+  lib,
+  buildPythonPackage,
+  callPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
 
-, build
-, coloredlogs
-, packaging
-, pip
-, toml
-, twine
-, wheel
+  setuptools,
+  build,
+  coloredlogs,
+  homf,
+  packaging,
+  pip,
+  pydantic,
+  urllib3,
+  writableTmpDirAsHomeHook,
 }:
 
 buildPythonPackage rec {
   pname = "bork";
-  version = "7.0.2";
+  version = "11.0.0";
   pyproject = true;
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "duckinator";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-sHCPT6nTenE6mbTifNPtg0OMNIJCs7LRcF8Xuk+MwLs=";
+    repo = "bork";
+    tag = "v${version}";
+    hash = "sha256-VashMByAdoRa/uWBGgtsJtd4LcG8hwq/naDXxW+nSg8=";
   };
 
-  nativeBuildInputs = [
-    pythonRelaxDepsHook
+  build-system = [
+    setuptools
   ];
 
   pythonRelaxDeps = [
+    "build"
     "packaging"
-    "twine"
-    "wheel"
+    "urllib3"
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     build
     coloredlogs
+    homf
     packaging
     pip
-    toml
-    twine
-    wheel
+    pydantic
+    urllib3
   ];
 
   pythonImportsCheck = [
@@ -56,14 +57,24 @@ buildPythonPackage rec {
   nativeCheckInputs = [
     pytestCheckHook
   ];
-  pytestFlagsArray = [
-    "-m 'not network'"
+
+  disabledTestMarks = [ "network" ];
+
+  disabledTests = [
+    # tries to call python -m bork
+    "test_repo"
+    # Attempt to install packages via pip
+    "test_builder_cwd"
+    "test_builder_order"
   ];
 
-  meta = with lib; {
+  passthru.tests = callPackage ./tests.nix { };
+
+  meta = {
     description = "Python build and release management tool";
+    mainProgram = "bork";
     homepage = "https://github.com/duckinator/bork";
-    maintainers = with maintainers; [ nicoo ];
-    platforms = platforms.all;
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ nicoo ];
   };
 }

@@ -1,51 +1,54 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, CoreFoundation
-, fetchPypi
-, IOKit
-, pytestCheckHook
-, python
-, pythonOlder
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  pytestCheckHook,
+  pytest-instafail,
+  pytest-xdist,
+  gitUpdater,
 }:
 
 buildPythonPackage rec {
   pname = "psutil";
-  version = "5.9.6";
-  format = "setuptools";
+  version = "7.2.2";
+  pyproject = true;
 
-  inherit stdenv;
-
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-5Lkt3NfdTN0/kAGA6h4QSTLHvOI0+4iXbio7KWRBIlo=";
+  src = fetchFromGitHub {
+    owner = "giampaolo";
+    repo = "psutil";
+    tag = "release-${version}";
+    hash = "sha256-plBv24QgNzmVMV2lFxCbNwHKtd620thJayWdjs4estw=";
   };
 
-  buildInputs =
-    # workaround for https://github.com/NixOS/nixpkgs/issues/146760
-    lib.optionals (stdenv.isDarwin && stdenv.isx86_64) [
-      CoreFoundation
-    ] ++ lib.optionals stdenv.isDarwin [
-      IOKit
-  ];
+  postPatch = ''
+    # stick to the old SDK name for now
+    # https://developer.apple.com/documentation/iokit/kiomasterportdefault/
+    # https://developer.apple.com/documentation/iokit/kiomainportdefault/
+    substituteInPlace psutil/arch/osx/cpu.c \
+      --replace-fail kIOMainPortDefault kIOMasterPortDefault
+  '';
+
+  build-system = [ setuptools ];
 
   nativeCheckInputs = [
     pytestCheckHook
+    pytest-instafail
+    pytest-xdist
   ];
 
   # Segfaults on darwin:
   # https://github.com/giampaolo/psutil/issues/1715
-  doCheck = !stdenv.isDarwin;
+  doCheck = !stdenv.hostPlatform.isDarwin;
 
-  # In addition to the issues listed above there are some that occure due to
+  # In addition to the issues listed above there are some that occur due to
   # our sandboxing which we can work around by disabling some tests:
   # - cpu_times was flaky on darwin
-  # - the other disabled tests are likely due to sanboxing (missing specific errors)
-  pytestFlagsArray = [
+  # - the other disabled tests are likely due to sandboxing (missing specific errors)
+  enabledTestPaths = [
     # Note: $out must be referenced as test import paths are relative
-    "$out/${python.sitePackages}/psutil/tests/test_system.py"
+    "tests/test_system.py"
   ];
 
   disabledTests = [
@@ -61,15 +64,21 @@ buildPythonPackage rec {
     "test_disk_partitions" # problematic on Hydra's Linux builders, apparently
   ];
 
-  pythonImportsCheck = [
-    "psutil"
-  ];
+  preCheck = ''
+    rm -rf psutil
+  '';
 
-  meta = with lib; {
+  pythonImportsCheck = [ "psutil" ];
+
+  passthru.updateScript = gitUpdater {
+    rev-prefix = "release-";
+  };
+
+  meta = {
     description = "Process and system utilization information interface";
     homepage = "https://github.com/giampaolo/psutil";
-    changelog = "https://github.com/giampaolo/psutil/blob/release-${version}/HISTORY.rst";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ jonringer ];
+    changelog = "https://github.com/giampaolo/psutil/blob/${src.tag}/HISTORY.rst";
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
 }

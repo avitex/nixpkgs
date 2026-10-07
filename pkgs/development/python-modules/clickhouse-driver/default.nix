@@ -1,52 +1,61 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools
-, pytz
-, tzlocal
-, clickhouse-cityhash
-, zstd
-, lz4
-, freezegun
-, mock
-, nose
-, pytestCheckHook
-, pytest-xdist
+{
+  lib,
+  buildPythonPackage,
+  clickhouse-cityhash,
+  cython,
+  fetchFromGitHub,
+  freezegun,
+  lz4,
+  mock,
+  pytestCheckHook,
+  pytest-xdist,
+  pytz,
+  setuptools,
+  tzlocal,
+  zstd,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "clickhouse-driver";
-  version = "0.2.5";
-  format = "setuptools";
+  version = "0.2.11";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   # pypi source doesn't contain tests
   src = fetchFromGitHub {
     owner = "mymarilyn";
     repo = "clickhouse-driver";
-    rev = version;
-    hash = "sha256-o5v37jPKmvUW4GFVD742nHSdO0g0z2FA4FkacbaRfNA=";
+    tag = finalAttrs.version;
+    hash = "sha256-wXWKTmkzK2UDbNPPzO4yQdAGDILtddE/bQGxznqPANI=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [
     setuptools
+  ];
+
+  nativeBuildInputs = [
+    cython
+  ];
+
+  dependencies = [
+    clickhouse-cityhash
+    lz4
     pytz
     tzlocal
-    clickhouse-cityhash
     zstd
-    lz4
   ];
 
   nativeCheckInputs = [
     freezegun
     mock
-    nose
     pytest-xdist
     pytestCheckHook
   ];
 
   postPatch = ''
     substituteInPlace setup.py \
-      --replace "lz4<=3.0.1" "lz4<=4"
+      --replace-fail "lz4<=3.0.1" "lz4<=4"
   '';
 
   # remove source to prevent pytest testing source instead of the build artifacts
@@ -64,10 +73,10 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "clickhouse_driver" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python driver with native interface for ClickHouse";
     homepage = "https://github.com/mymarilyn/clickhouse-driver";
-    license = licenses.mit;
-    maintainers = with maintainers; [ breakds ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ breakds ];
   };
-}
+})

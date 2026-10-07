@@ -1,16 +1,17 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, hypothesis
-, pytestCheckHook
-, ochre
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  hypothesis,
+  pytestCheckHook,
+  ochre,
 }:
 
 buildPythonPackage rec {
   pname = "stransi";
   version = "0.3.0";
-  format = "pyproject";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "getcuia";
@@ -19,26 +20,22 @@ buildPythonPackage rec {
     hash = "sha256-PDMel6emra5bzX+FwHvUVpFu2YkRKy31UwkCL4sGJ14=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  nativeBuildInputs = [ poetry-core ];
 
   nativeCheckInputs = [
     hypothesis
     pytestCheckHook
   ];
 
-  propagatedBuildInputs = [
-    ochre
-  ];
+  propagatedBuildInputs = [ ochre ];
 
   pythonImportsCheck = [ "stransi" ];
 
-  meta = with lib; {
-    description = "A lightweight Python parser library for ANSI escape code sequences";
+  meta = {
+    description = "Lightweight Python parser library for ANSI escape code sequences";
     homepage = "https://github.com/getcuia/stransi";
     changelog = "https://github.com/getcuia/stransi/releases/tag/${src.rev}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ figsoda ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

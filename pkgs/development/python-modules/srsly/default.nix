@@ -1,38 +1,42 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, cython
-, catalogue
-, mock
-, numpy
-, psutil
-, pytest
-, ruamel-yaml
-, setuptools
-, tornado
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  cython,
+  setuptools,
+
+  # dependencies
+  catalogue,
+
+  # tests
+  mock,
+  numpy,
+  psutil,
+  pytest,
+  ruamel-yaml,
+  tornado,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "srsly";
-  version = "2.4.8";
-  format = "pyproject";
+  version = "2.5.3";
+  pyproject = true;
 
-  disabled = pythonOlder "3.6";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-sk2VplAJwkR+C0nNoEOsU/7PTwnjWNh6V0RkWPkbipE=";
+  src = fetchFromGitHub {
+    owner = "explosion";
+    repo = "srsly";
+    tag = "release-v${finalAttrs.version}";
+    hash = "sha256-dZuw0+tNIMseznGBQwIS6uICZEozkBWzF7FMQIo0Tbo=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     cython
     setuptools
   ];
 
-  propagatedBuildInputs = [
-    catalogue
-  ];
+  dependencies = [ catalogue ];
 
   nativeCheckInputs = [
     mock
@@ -43,14 +47,12 @@ buildPythonPackage rec {
     tornado
   ];
 
-  pythonImportsCheck = [
-    "srsly"
-  ];
+  pythonImportsCheck = [ "srsly" ];
 
-  meta = with lib; {
-    changelog = "https://github.com/explosion/srsly/releases/tag/v${version}";
+  meta = {
     description = "Modern high-performance serialization utilities for Python";
     homepage = "https://github.com/explosion/srsly";
-    license = licenses.mit;
+    changelog = "https://github.com/explosion/srsly/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
   };
-}
+})

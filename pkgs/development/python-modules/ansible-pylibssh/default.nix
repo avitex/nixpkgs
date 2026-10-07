@@ -1,54 +1,45 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, libssh
-, cython
-, wheel
-, setuptools
-, setuptools-scm
-, toml
-, expandvars
+{
+  lib,
+  buildPythonPackage,
+  cython,
+  expandvars,
+  fetchPypi,
+  libssh,
+  setuptools,
+  setuptools-scm,
+  toml,
+  wheel,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "ansible-pylibssh";
-  version = "1.1.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.6";
+  version = "1.4.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-spaGux6dYvtUtpOdU6oN7SEn8IgBof2NpQSPvr+Zplg=";
+    pname = "ansible_pylibssh";
+    inherit (finalAttrs) version;
+    hash = "sha256-pItebbIQYrxiWFSOaj5DYwQ9QBKPDmt5Z3Slm2p9voI=";
   };
 
-  # remove after https://github.com/ansible/pylibssh/pull/502 is merged
-  postPatch = ''
-    sed -i "/setuptools_scm_git_archive/d" pyproject.toml
-  '';
-
-  nativeBuildInputs = [
+  build-system = [
     cython
-    wheel
+    expandvars
     setuptools
     setuptools-scm
     toml
-    expandvars
+    wheel
   ];
 
-  propagatedBuildInputs = [
-    libssh
-  ];
+  dependencies = [ libssh ];
 
-  pythonImportsCheck = [
-    "pylibsshext"
-  ];
+  pythonImportsCheck = [ "pylibsshext" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python bindings to client functionality of libssh specific to Ansible use case";
     homepage = "https://github.com/ansible/pylibssh";
-    license = licenses.lgpl21Plus;
-    maintainers = with maintainers; [ geluk ];
+    changelog = "https://github.com/ansible/pylibssh/releases/tag/v${finalAttrs.version}";
+    license = lib.licenses.lgpl21Plus;
+    maintainers = with lib.maintainers; [ wfdewith ];
   };
-}
+})

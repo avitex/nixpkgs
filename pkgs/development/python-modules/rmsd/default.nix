@@ -1,28 +1,43 @@
-{ buildPythonPackage
-, lib
-, fetchPypi
-, scipy
+{
+  buildPythonPackage,
+  lib,
+  fetchPypi,
+  numpy,
+  scipy,
+  setuptools,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "rmsd";
-  version = "1.5.1";
-  format = "setuptools";
-
-  propagatedBuildInputs = [ scipy ];
+  version = "1.7.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-wDQoIUMqrBDpgImHeHWizYu/YkFjlxB22TaGpA8Q0Sc=";
+    hash = "sha256-VQz+mnootttCRJEcMA8Yx7VzmWCcdgHHSVkJ3JZXIX0=";
   };
+
+  build-system = [ setuptools ];
+
+  dependencies = [
+    numpy
+    scipy
+  ];
 
   pythonImportsCheck = [ "rmsd" ];
 
-  meta = with lib; {
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  meta = {
     description = "Calculate root-mean-square deviation (RMSD) between two sets of cartesian coordinates";
+    mainProgram = "calculate_rmsd";
     homepage = "https://github.com/charnley/rmsd";
-    license = licenses.bsd2;
-    platforms = platforms.linux;
-    maintainers = with maintainers; [ sheepforce markuskowa ];
+    license = lib.licenses.bsd2;
+    platforms = lib.platforms.linux;
+    maintainers = with lib.maintainers; [
+      sheepforce
+      markuskowa
+    ];
   };
 }

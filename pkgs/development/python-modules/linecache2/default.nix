@@ -1,7 +1,8 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pbr
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pbr,
 }:
 
 buildPythonPackage rec {
@@ -18,9 +19,9 @@ buildPythonPackage rec {
   # circular dependencies for tests
   doCheck = false;
 
-  meta = with lib; {
-    description = "A backport of linecache to older supported Pythons";
+  meta = {
+    description = "Backport of linecache to older supported Pythons";
     homepage = "https://github.com/testing-cabal/linecache2";
-    license = licenses.psfl;
+    license = lib.licenses.psfl;
   };
 }

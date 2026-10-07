@@ -1,51 +1,46 @@
-{ lib
-, aiohttp
-, buildPythonPackage
-, fetchFromGitHub
-, mashumaro
-, poetry-core
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  aiohttp,
+  buildPythonPackage,
+  fetchFromGitHub,
+  mashumaro,
+  poetry-core,
+  pytest-asyncio,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "huum";
-  version = "0.7.10";
+  version = "0.8.3";
   pyproject = true;
-
-  disabled = pythonOlder "3.11";
 
   src = fetchFromGitHub {
     owner = "frwickst";
     repo = "pyhuum";
-    rev = "refs/tags/${version}";
-    hash = "sha256-INW6d/Zc5UZZOgN6wW+Xbm/wH1K/V6bviu3mID1R+BY=";
+    tag = finalAttrs.version;
+    hash = "sha256-f3ijcH9eou1upzBfvXNzrswFVoegSx81JxtlYVSnS6Q=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
     mashumaro
-  ];
+  ]
+  ++ aiohttp.optional-dependencies.speedups;
 
   nativeCheckInputs = [
     pytest-asyncio
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "huum"
-  ];
+  pythonImportsCheck = [ "huum" ];
 
-  meta = with lib; {
+  meta = {
     description = "Library for Huum saunas";
     homepage = "https://github.com/frwickst/pyhuum";
-    changelog = "https://github.com/frwickst/pyhuum/releases/tag/${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/frwickst/pyhuum/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

@@ -1,16 +1,16 @@
-{ lib
-, buildPythonPackage
-, pythonAtLeast
-, fetchFromGitHub
-, fetchpatch
-, libuv
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fetchpatch,
+  setuptools,
+  libuv,
 }:
 
 buildPythonPackage rec {
   pname = "pyuv";
   version = "1.4.0";
-  format = "setuptools";
-  disabled = pythonAtLeast "3.12";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "saghul";
@@ -32,6 +32,8 @@ buildPythonPackage rec {
     })
   ];
 
+  build-system = [ setuptools ];
+
   setupPyBuildFlags = [ "--use-system-libuv" ];
 
   buildInputs = [ libuv ];
@@ -40,10 +42,10 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "pyuv" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python interface for libuv";
     homepage = "https://github.com/saghul/pyuv";
-    license = licenses.mit;
-    maintainers = with maintainers; [ dotlambda ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ dotlambda ];
   };
 }

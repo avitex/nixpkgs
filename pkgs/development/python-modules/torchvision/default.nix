@@ -1,74 +1,103 @@
-{ buildPythonPackage
-, fetchFromGitHub
-, lib
-, libjpeg_turbo
-, libpng
-, ninja
-, numpy
-, pillow
-, pytest
-, scipy
-, torch
-, which
+{
+  lib,
+  torch,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # nativeBuildInputs
+  libpng,
+  ninja,
+  which,
+
+  # buildInputs
+  libjpeg_turbo,
+
+  # dependencies
+  numpy,
+  pillow,
+  scipy,
+
+  # tests
+  pytest,
+  writableTmpDirAsHomeHook,
 }:
 
 let
   inherit (torch) cudaCapabilities cudaPackages cudaSupport;
-  inherit (cudaPackages) backendStdenv;
 
-  pname = "torchvision";
-  version = "0.16.2";
 in
-buildPythonPackage {
-  inherit pname version;
+buildPythonPackage.override { inherit (torch) stdenv; } (finalAttrs: {
+  pname = "torchvision";
+  version = "0.28.0";
+  pyproject = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "pytorch";
     repo = "vision";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-fSFoMZbF0bYqonvgoNAE8ZzwCsjhCdVo2BJ0pOC2zd0=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-rku0QAW7RTkCjD4RorY7DeYfr6PDvqdm+6Yw9wBjGHU=";
   };
 
   nativeBuildInputs = [
     libpng
     ninja
     which
-  ] ++ lib.optionals cudaSupport [
-    cudaPackages.cuda_nvcc
+  ]
+  ++ lib.optionals cudaSupport [ cudaPackages.cuda_nvcc ];
+
+  buildInputs = [
+    libjpeg_turbo
+    libpng
+    torch.cxxdev
+  ]
+  ++ lib.optionals cudaSupport (
+    with cudaPackages;
+    [
+      cuda_cudart # cuda_runtime.h
+      libcublas # cublas_v2.h
+      libcusolver # cusolverDn.h
+      libcusparse # cusparse.h
+    ]
+  );
+
+  dependencies = [
+    numpy
+    pillow
+    torch
+    scipy
   ];
 
-  buildInputs = [ libjpeg_turbo libpng torch.cxxdev ];
+  env = {
+    TORCHVISION_INCLUDE = "${libjpeg_turbo.dev}/include/";
+    TORCHVISION_LIBRARY = "${libjpeg_turbo}/lib/";
+  }
+  // lib.optionalAttrs cudaSupport {
+    TORCH_CUDA_ARCH_LIST = "${lib.concatStringsSep ";" cudaCapabilities}";
+    FORCE_CUDA = 1;
+  };
 
-  propagatedBuildInputs = [ numpy pillow torch scipy ];
-
-  preConfigure = ''
-    export TORCHVISION_INCLUDE="${libjpeg_turbo.dev}/include/"
-    export TORCHVISION_LIBRARY="${libjpeg_turbo}/lib/"
-  ''
-  # NOTE: We essentially override the compilers provided by stdenv because we don't have a hook
-  #   for cudaPackages to swap in compilers supported by NVCC.
-  + lib.optionalString cudaSupport ''
-    export CC=${backendStdenv.cc}/bin/cc
-    export CXX=${backendStdenv.cc}/bin/c++
-    export TORCH_CUDA_ARCH_LIST="${lib.concatStringsSep ";" cudaCapabilities}"
-    export FORCE_CUDA=1
-  '';
-
-  # tries to download many datasets for tests
+  # tests download big datasets, models, require internet connection, etc.
   doCheck = false;
 
   pythonImportsCheck = [ "torchvision" ];
+
+  nativeCheckInputs = [
+    pytest
+    writableTmpDirAsHomeHook
+  ];
+
   checkPhase = ''
-    HOME=$TMPDIR py.test test --ignore=test/test_datasets_download.py
+    py.test test --ignore=test/test_datasets_download.py
   '';
 
-  nativeCheckInputs = [ pytest ];
-
-  meta = with lib; {
+  meta = {
     description = "PyTorch vision library";
-    homepage = "https://pytorch.org/";
-    license = licenses.bsd3;
-    platforms = with platforms; linux ++ lib.optionals (!cudaSupport) darwin;
-    maintainers = with maintainers; [ ericsagnes ];
+    homepage = "https://pytorch.org/vision";
+    downloadPage = "https://github.com/pytorch/vision";
+    changelog = "https://github.com/pytorch/vision/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.bsd3;
+    platforms = with lib.platforms; linux ++ lib.optionals (!cudaSupport) darwin;
+    maintainers = with lib.maintainers; [ GaetanLepage ];
   };
-}
+})

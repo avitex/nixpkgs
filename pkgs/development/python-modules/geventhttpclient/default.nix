@@ -1,67 +1,59 @@
-{ lib
-, brotli
-, buildPythonPackage
-, certifi
-, dpkt
-, fetchPypi
-, gevent
-, pytestCheckHook
-, pythonOlder
-, six
-, stdenv
-, urllib3
+{
+  lib,
+  brotli,
+  buildPythonPackage,
+  certifi,
+  dpkt,
+  fetchFromGitHub,
+  gevent,
+  pytestCheckHook,
+  setuptools,
+  stdenv,
+  urllib3,
 }:
 
 buildPythonPackage rec {
   pname = "geventhttpclient";
-  version = "2.0.11";
-  format = "setuptools";
+  version = "2.5.1";
+  pyproject = true;
 
-  disabled = pythonOlder "3.6";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-VJ0POvCEILmtK+7aIRFTx2BbW6QJsijbfxuByL++xrQ=";
+  src = fetchFromGitHub {
+    owner = "geventhttpclient";
+    repo = "geventhttpclient";
+    tag = version;
+    # TODO: unvendor llhttp
+    fetchSubmodules = true;
+    hash = "sha256-qLWvw7C9TNdaUSLIiDEapBFi7MkJGsCrWsjoJZuX8Pk=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     brotli
     certifi
     gevent
-    six
+    urllib3
   ];
 
   nativeCheckInputs = [
     dpkt
     pytestCheckHook
-    urllib3
   ];
 
   # lots of: [Errno 48] Address already in use: ('127.0.0.1', 54323)
-  doCheck = !stdenv.isDarwin;
+  doCheck = !stdenv.hostPlatform.isDarwin;
 
   __darwinAllowLocalNetworking = true;
 
-  disabledTests = [
-    # socket.gaierror: [Errno -3] Temporary failure in name resolution
-    "test_client_simple"
-    "test_client_without_leading_slas"
-    "test_request_with_headers"
-    "test_response_context_manager"
-    "test_client_ssl"
-    "test_ssl_fail_invalid_certificate"
-    "test_multi_queries_greenlet_safe"
-  ];
+  disabledTestMarks = [ "network" ];
 
-  pythonImportsCheck = [
-    "geventhttpclient"
-  ];
+  pythonImportsCheck = [ "geventhttpclient" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/geventhttpclient/geventhttpclient";
     description = "High performance, concurrent HTTP client library using gevent";
-    changelog = "https://github.com/geventhttpclient/geventhttpclient/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ koral ];
+    changelog = "https://github.com/geventhttpclient/geventhttpclient/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ koral ];
   };
 }

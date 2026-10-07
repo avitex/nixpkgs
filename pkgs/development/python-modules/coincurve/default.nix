@@ -1,73 +1,78 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, asn1crypto
-, autoconf
-, automake
-, cffi
-, libtool
-, pkg-config
-, pytestCheckHook
-, python
-, pythonOlder
-, secp256k1
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fetchpatch,
+
+  # build-system
+  cmake,
+  hatchling,
+  ninja,
+  pkg-config,
+  setuptools,
+  scikit-build-core,
+
+  # dependencies
+  asn1crypto,
+  cffi,
+  secp256k1,
+
+  # checks
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "coincurve";
-  version = "18.0.0";
-  format = "setuptools";
-  disabled = pythonOlder "3.7";
+  version = "21.0.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "ofek";
     repo = "coincurve";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-Z5g6ten8wNICoFu7+aZc6r8ET+RDmFeb93ONjsTzcbw=";
+    tag = "v${version}";
+    hash = "sha256-+8/CsV2BTKZ5O2LIh5/kOKMfFrkt2Jsjuj37oiOgO6Y=";
   };
 
-  postPatch = ''
-    substituteInPlace setup.py \
-      --replace ", 'requests'" ""
-
-    # don't try to load .dll files
-    rm coincurve/_windows_libsecp256k1.py
-    cp -r --no-preserve=mode ${secp256k1.src} libsecp256k1
-    patchShebangs secp256k1/autogen.sh
-  '';
-
-  nativeBuildInputs = [
-    autoconf
-    automake
-    libtool
-    pkg-config
+  patches = [
+    # Build requires cffi LICENSE files
+    (fetchpatch {
+      url = "https://github.com/ofek/coincurve/commit/19597b0869803acfc669d916e43c669e9ffcced7.patch";
+      hash = "sha256-BkUxXjcwk3btcvSVaVZqVTJ+8E8CYtT5cTXLx9lxJ/g=";
+    })
   ];
 
-  propagatedBuildInputs = [
+  build-system = [
+    hatchling
+    cffi
+    cmake
+    ninja
+    pkg-config
+    setuptools
+    scikit-build-core
+  ];
+
+  dontUseCmakeConfigure = true;
+
+  env.COINCURVE_IGNORE_SYSTEM_LIB = "OFF";
+
+  buildInputs = [ secp256k1 ];
+
+  dependencies = [
     asn1crypto
     cffi
   ];
 
-  preCheck = ''
-    # https://github.com/ofek/coincurve/blob/master/tox.ini#L20-L22=
-    rm -rf coincurve
+  nativeCheckInputs = [ pytestCheckHook ];
 
-    # don't run benchmark tests
-    rm tests/test_bench.py
-  '';
+  pythonImportsCheck = [ "coincurve" ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
-
-  pythonImportsCheck = [
-    "coincurve"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Cross-platform bindings for libsecp256k1";
     homepage = "https://github.com/ofek/coincurve";
-    license = with licenses; [ asl20 mit ];
-    maintainers = with maintainers; [ ];
+    license = with lib.licenses; [
+      asl20
+      mit
+    ];
+    maintainers = with lib.maintainers; [ ryand56 ];
   };
 }

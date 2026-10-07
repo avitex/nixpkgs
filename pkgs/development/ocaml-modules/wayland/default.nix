@@ -1,25 +1,26 @@
-{ lib
-, buildDunePackage
-, fetchurl
-, xmlm
-, eio
-, logs
-, fmt
-, cstruct
-, cmdliner
-, alcotest
-, eio_main
+{
+  lib,
+  buildDunePackage,
+  fetchurl,
+  xmlm,
+  eio,
+  logs,
+  fmt,
+  cstruct,
+  cmdliner,
+  alcotest,
+  eio_main,
 }:
 
 buildDunePackage rec {
   pname = "wayland";
-  version = "2.0";
+  version = "2.3";
 
   minimalOCamlVersion = "5.0";
 
   src = fetchurl {
     url = "https://github.com/talex5/ocaml-wayland/releases/download/v${version}/wayland-${version}.tbz";
-    hash = "sha256-iCG1zk1tA7gdGGt78c3sQi0NN9Fh3HsCP4cy7Y3pg0s=";
+    hash = "sha256-EGJ6lPTO+XFHmRUo/NJG+PJ8y/MCbq/ezplbU+6UaKA=";
   };
 
   propagatedBuildInputs = [

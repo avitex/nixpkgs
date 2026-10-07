@@ -1,56 +1,76 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, clarabel
-, cvxopt
-, ecos
-, fetchPypi
-, numpy
-, osqp
-, pytestCheckHook
-, pythonOlder
-, scipy
-, scs
-, setuptools
-, wheel
-, pybind11
-, useOpenmp ? (!stdenv.isDarwin)
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  numpy,
+  pybind11,
+  setuptools,
+
+  # dependencies
+  clarabel,
+  cvxopt,
+  highspy,
+  osqp,
+  qdldl,
+  scipy,
+  scs,
+  sparsediffpy,
+
+  # tests
+  hypothesis,
+  pytestCheckHook,
+
+  useOpenmp ? (!stdenv.hostPlatform.isDarwin),
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "cvxpy";
-  version = "1.4.2";
-  format = "pyproject";
+  version = "1.9.3";
+  pyproject = true;
+  __structuredAttrs = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-CjhqV4jb14t7IN0HFSTsY2yPpys2KOafGrxxTI+YEeU=";
+  src = fetchFromGitHub {
+    owner = "cvxpy";
+    repo = "cvxpy";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-7EBvCt+Qic+lfl8g5MMIJTKCnsfSm8fmUdq6P2SdF5I=";
   };
 
-  # we need to patch out numpy version caps from upstream
-  postPatch = ''
-    sed -i 's/\(numpy>=[0-9.]*\),<[0-9.]*;/\1;/g' pyproject.toml
-  '';
+  postPatch =
+    # too tight tolerance in tests (AssertionError)
+    ''
+      substituteInPlace cvxpy/tests/test_constant_atoms.py \
+        --replace-fail \
+          "CLARABEL: 1e-7," \
+          "CLARABEL: 1e-6,"
+    '';
 
-  nativeBuildInputs = [
-    setuptools
-    wheel
+  build-system = [
+    numpy
     pybind11
+    setuptools
   ];
 
-  propagatedBuildInputs = [
+  pythonRelaxDeps = [
+    "sparsediffpy"
+  ];
+  dependencies = [
     clarabel
     cvxopt
-    ecos
+    highspy
     numpy
     osqp
+    qdldl
     scipy
     scs
+    sparsediffpy
   ];
 
   nativeCheckInputs = [
+    hypothesis
     pytestCheckHook
   ];
 
@@ -60,32 +80,45 @@ buildPythonPackage rec {
     export LDFLAGS="-lgomp"
   '';
 
-  pytestFlagsArray = [
-    "cvxpy"
-  ];
+  enabledTestPaths = [ "cvxpy" ];
 
   disabledTests = [
-   # Disable the slowest benchmarking tests, cuts test time in half
+    # Numerical assertions failing
+    "test_oprelcone_1_m1_k3_real"
+    "test_oprelcone_1_m3_k1_real"
+    "test_oprelcone_1_m4_k4_real"
+
+    # Disable the slowest benchmarking tests, cuts test time in half
     "test_tv_inpainting"
     "test_diffcp_sdp_example"
     "test_huber"
     "test_partial_problem"
-    # https://github.com/cvxpy/cvxpy/issues/2174
-    "test_scipy_mi_time_limit_reached"
-  ] ++ lib.optionals stdenv.isAarch64 [
-    "test_ecos_bb_mi_lp_2" # https://github.com/cvxpy/cvxpy/issues/1241#issuecomment-780912155
+
+    # cvxpy.error.SolverError: Solver 'CVXOPT' failed. Try another solver, or solve with verbose=True for more information.
+    # https://github.com/cvxpy/cvxpy/issues/1588
+    "test_oprelcone_1_m1_k3_complex"
+    "test_oprelcone_1_m3_k1_complex"
+    "test_oprelcone_2"
+
+    # `use_indirect` was dropped from the SCS python bindings in 3.3.0:
+    # https://github.com/bodono/scs-python/pull/189
+    "test_scs_options"
+
+    # Numerical assertions failing with scs 3.3.0.
+    "test_dist_ratio"
+    "test_sdp_problem"
+    "test_variable_name_conflict"
+    "test_vector2norm"
   ];
 
-  pythonImportsCheck = [
-    "cvxpy"
-  ];
+  pythonImportsCheck = [ "cvxpy" ];
 
-  meta = with lib; {
-    description = "A domain-specific language for modeling convex optimization problems in Python";
+  meta = {
+    description = "Domain-specific language for modeling convex optimization problems in Python";
     homepage = "https://www.cvxpy.org/";
     downloadPage = "https://github.com/cvxpy/cvxpy//releases";
-    changelog = "https://github.com/cvxpy/cvxpy/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ drewrisinger ];
+    changelog = "https://github.com/cvxpy/cvxpy/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = [ lib.maintainers.GaetanLepage ];
   };
-}
+})

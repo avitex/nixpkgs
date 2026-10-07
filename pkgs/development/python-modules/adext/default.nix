@@ -1,41 +1,37 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools-scm
-, alarmdecoder
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools-scm,
+  alarmdecoder,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "adext";
-  version = "0.4.2";
-  format = "setuptools";
+  version = "0.4.7";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "ajschmidt8";
-    repo = pname;
-    rev = "v${version}";
-    sha256 = "0h5k9kzms2f0r48pdhsgv8pimk0vsxw8vs0k6880mank8ij914wr";
+    repo = "adext";
+    tag = "v${version}";
+    hash = "sha256-cZMA8/t24xk5b1At2LQWeDWuRfPcXBCXpl2T70YxZeA=";
   };
 
-  nativeBuildInputs = [
-    setuptools-scm
-  ];
+  build-system = [ setuptools-scm ];
 
-  propagatedBuildInputs = [
-    alarmdecoder
-  ];
+  dependencies = [ alarmdecoder ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   pythonImportsCheck = [ "adext" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python extension for AlarmDecoder";
     homepage = "https://github.com/ajschmidt8/adext";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/ajschmidt8/adext/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

@@ -1,43 +1,76 @@
-{ lib
-, buildNpmPackage
-, fetchFromGitHub
-, nix-update-script
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  fetchPnpmDeps,
+  makeWrapper,
+  nodejs,
+  pnpm_11,
+  pnpmConfigHook,
+  python3,
 }:
-
-buildNpmPackage rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "ansible-language-server";
-  version = "1.2.1";
+  version = finalAttrs.vscodeAnsibleVersion; # Language server version from the repo at packages/ansible-language-server/package.json is stuck at 0.0.0
+  vscodeAnsibleVersion = "26.6.0"; # vscode-ansible version
 
   src = fetchFromGitHub {
     owner = "ansible";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-e6cOWoryOxWnl8q62rlGmSgwLVnoxLMwNFoGlUZw2bQ=";
+    repo = "vscode-ansible";
+    tag = "v${finalAttrs.vscodeAnsibleVersion}";
+    hash = "sha256-GmeEVZumm+dfQFYLL8+Lf5usPw17a0vOZIe7ApTzFGI=";
   };
 
-  npmDepsHash = "sha256-Lzwj0/2fxa44DJBsgDPa43AbRxggqh881X/DFnlNLig=";
-  npmBuildScript = "compile";
+  nativeBuildInputs = [
+    makeWrapper
+    nodejs
+    pnpmConfigHook
+    pnpm_11
+  ];
 
-  # We remove/ignore the prepare and prepack scripts because they run the
-  # build script, and therefore are redundant.
-  #
-  # Additionally, the prepack script runs npm ci in addition to the
-  # build script. Directly before npm pack is run, we make npm unaware
-  # of the dependency cache, causing the npm ci invocation to fail,
-  # wiping out node_modules, which causes a mysterious error stating that tsc isn't installed.
-  postPatch = ''
-    sed -i '/"prepare"/d' package.json
-    sed -i '/"prepack"/d' package.json
+  pnpmWorkspaces = [ "@ansible/ansible-language-server" ];
+  pnpmDeps = fetchPnpmDeps {
+    inherit (finalAttrs)
+      pnpmWorkspaces
+      pname
+      version
+      src
+      ;
+    pnpm = pnpm_11;
+    fetcherVersion = 4;
+    hash = "sha256-BJkPE4dNDNIUL6+LeFXTTCWNf5njItHuM/rHMkmxLJk=";
+  };
+
+  buildPhase = ''
+    runHook preBuild
+    pnpm --filter=@ansible/ansible-language-server run build:dist
+    runHook postBuild
   '';
 
-  npmPackFlags = [ "--ignore-scripts" ];
-  passthru.updateScript = nix-update-script { };
+  installPhase = ''
+    runHook preInstall
 
-  meta = with lib; {
-    changelog = "https://github.com/ansible/ansible-language-server/releases/tag/v${version}";
+    mkdir -p $out/lib/node_modules/ansible-language-server
+    mkdir -p $out/bin
+
+    mv packages/ansible-language-server/dist/* $out/lib/node_modules/ansible-language-server/
+
+    makeWrapper ${lib.getExe nodejs} $out/bin/ansible-language-server \
+      --prefix PATH : ${python3}/bin \
+      --add-flags "$out/lib/node_modules/ansible-language-server/server.cjs" \
+      --set NODE_PATH "$out/lib/node_modules/"
+    runHook postInstall
+  '';
+
+  meta = {
+    changelog = "https://github.com/ansible/vscode-ansible/releases/tag/v${finalAttrs.vscodeAnsibleVersion}";
     description = "Ansible Language Server";
-    homepage = "https://github.com/ansible/ansible-language-server";
-    license = licenses.mit;
-    maintainers = with maintainers; [ hexa ];
+    mainProgram = "ansible-language-server";
+    homepage = "https://github.com/ansible/vscode-ansible";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [
+      dtvillafana
+      robsliwi
+    ];
   };
-}
+})

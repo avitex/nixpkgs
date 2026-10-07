@@ -1,69 +1,114 @@
-{ lib
-, stdenv
-, chromium
-, nodejs
-, python3
-, fetchYarnDeps
-, fetchNpmDeps
-, prefetch-yarn-deps
-, npmHooks
-, yarn
-, substituteAll
-, libnotify
-, unzip
-, pkgs
-, pkgsBuildHost
+{
+  lib,
+  stdenv,
+  chromium,
+  fetchNpmDeps,
+  fetchpatch,
 
-, info
+  pkgsBuildHost,
+  gclient2nix,
+  nodejs,
+  npmHooks,
+  yarn-berry_4,
+  unzip,
+  writers,
+  substitute,
+
+  libnotify,
+  libpulseaudio,
+  libsecret,
+  pipewire,
+  speechd-minimal,
+
+  info,
 }:
 
 let
-  fetchdep = dep: let
-    opts = removeAttrs dep ["fetcher"];
-  in pkgs.${dep.fetcher} opts;
+  gclientDeps = gclient2nix.importGclientDeps info.deps;
+  yarn-berry = yarn-berry_4;
+in
 
-in (chromium.override { upstream-info = info.chromium; }).mkDerivation (base: {
+((chromium.override { upstream-info = info.chromium; }).mkDerivation (base: {
   packageName = "electron";
   inherit (info) version;
-  buildTargets = [ "electron:electron_dist_zip" ];
 
-  nativeBuildInputs = base.nativeBuildInputs ++ [ nodejs yarn prefetch-yarn-deps unzip npmHooks.npmConfigHook ];
+  buildTargets = [
+    "electron:copy_node_headers"
+    "electron:electron_dist_zip"
+  ];
+
+  outputs = [
+    "out"
+    "headers"
+  ];
+
+  # don't automatically move the include directory from $headers back into $out
+  moveToDev = false;
+
+  nativeBuildInputs = base.nativeBuildInputs ++ [
+    gclient2nix.gclientUnpackHook
+    nodejs
+    npmHooks.npmConfigHook
+    yarn-berry
+    yarn-berry.yarnBerryConfigHook
+    unzip
+  ];
+
   buildInputs = base.buildInputs ++ [ libnotify ];
 
-  electronOfflineCache = fetchYarnDeps {
-    yarnLock = (fetchdep info.deps."src/electron") + "/yarn.lock";
-    sha256 = info.electron_yarn_hash;
-  };
-  npmDeps = fetchNpmDeps {
-    src = fetchdep info.deps."src";
-    sourceRoot = "source/third_party/node";
+  npmDeps = fetchNpmDeps rec {
+    src = gclientDeps."src".path;
+    # Assume that the fetcher always unpack the source,
+    # based on update.py
+    sourceRoot = "${src.name}/third_party/node";
     hash = info.chromium_npm_hash;
+  };
+
+  npmRoot = "third_party/node";
+
+  missingHashes =
+    if (info.electron_yarn_data ? "missing_hashes") then
+      writers.writeJSON "missing-hashes.json" info.electron_yarn_data.missing_hashes
+    else
+      null;
+  yarnOfflineCache = yarn-berry.fetchYarnBerryDeps {
+    src = gclientDeps."src/electron".path;
+    hash = info.electron_yarn_data.hash;
+    missingHashes =
+      if (info.electron_yarn_data ? "missing_hashes") then
+        writers.writeJSON "missing-hashes.json" info.electron_yarn_data.missing_hashes
+      else
+        null;
+  };
+
+  dontYarnBerryInstallDeps = true; # we'll run the hook manually
+
+  inherit gclientDeps;
+  unpackPhase = null; # prevent chromium's unpackPhase from being used
+  sourceRoot = "src";
+
+  env = base.env // {
+    # Hydra can fail to build electron due to clang spamming deprecation
+    # warnings mid-build, causing the build log to grow beyond the limit
+    # of 64mb and then getting killed by Hydra.
+    # For some reason, the log size limit appears to only be enforced on
+    # aarch64-linux. x86_64-linux happily succeeds to build with ~180mb. To
+    # unbreak the build on h.n.o, we simply disable those warnings for now.
+    # https://hydra.nixos.org/build/283952243
+    NIX_CFLAGS_COMPILE = base.env.NIX_CFLAGS_COMPILE + " -Wno-deprecated";
+    # Needed for header generation in electron 35 and above
+    ELECTRON_OUT_DIR = "Release";
   };
 
   src = null;
 
-  patches = base.patches ++ lib.optional (lib.versionOlder info.version "27")
-    (substituteAll {
-      name = "version.patch";
-      src = ./version.patch;
-      inherit (info) version;
-    })
-  ;
-
-  unpackPhase = ''
-    runHook preUnpack
-  '' + (
-    lib.concatStrings (lib.mapAttrsToList (path: dep: ''
-      mkdir -p ${builtins.dirOf path}
-      cp -r ${fetchdep dep}/. ${path}
-      chmod u+w -R ${path}
-    '') info.deps)
-  ) + ''
-    sourceRoot=src
-    runHook postUnpack
-  '';
-
-  npmRoot = "third_party/node";
+  patches =
+    base.patches
+    ++
+      # Restore fake libGLESv2.so which is patchelf'd by the chromium derivation
+      lib.optional (lib.versionAtLeast info.version "44")
+        ./0001-Revert-build-stop-shipping-dummy-ANGLE-libs-in-Linux.patch
+    ++ lib.optional (lib.versionOlder info.version "43") ./fix-electron42-glibc-2.43.patch;
 
   postPatch = ''
     mkdir -p third_party/jdk/current/bin
@@ -82,14 +127,14 @@ in (chromium.override { upstream-info = info.chromium; }).mkDerivation (base: {
     echo 'cros_boards_with_qemu_images = ""' >> build/config/gclient_args.gni
     echo 'generate_location_tags = true' >> build/config/gclient_args.gni
 
-    echo 'LASTCHANGE=${info.deps."src".rev}-refs/heads/master@{#0}'        > build/util/LASTCHANGE
-    echo "$SOURCE_DATE_EPOCH"                                              > build/util/LASTCHANGE.committime
+    echo 'LASTCHANGE=${info.deps."src".args.tag}-refs/heads/master@{#0}' > build/util/LASTCHANGE
+    echo "$SOURCE_DATE_EPOCH" > build/util/LASTCHANGE.committime
 
     cat << EOF > gpu/config/gpu_lists_version.h
     /* Generated by lastchange.py, do not edit.*/
     #ifndef GPU_CONFIG_GPU_LISTS_VERSION_H_
     #define GPU_CONFIG_GPU_LISTS_VERSION_H_
-    #define GPU_LISTS_VERSION "${info.deps."src".rev}"
+    #define GPU_LISTS_VERSION "${info.deps."src".args.tag}"
     #endif  // GPU_CONFIG_GPU_LISTS_VERSION_H_
     EOF
 
@@ -97,42 +142,58 @@ in (chromium.override { upstream-info = info.chromium; }).mkDerivation (base: {
     /* Generated by lastchange.py, do not edit.*/
     #ifndef SKIA_EXT_SKIA_COMMIT_HASH_H_
     #define SKIA_EXT_SKIA_COMMIT_HASH_H_
-    #define SKIA_COMMIT_HASH "${info.deps."src/third_party/skia".rev}-"
+    #define SKIA_COMMIT_HASH "${info.deps."src/third_party/skia".args.rev}-"
     #endif  // SKIA_EXT_SKIA_COMMIT_HASH_H_
     EOF
 
-    echo -n '${info.deps."src/third_party/dawn".rev}'                     > gpu/webgpu/DAWN_VERSION
-
+    echo -n '${info.deps."src/third_party/dawn".args.rev}' > gpu/webgpu/DAWN_VERSION
+    cat << EOF > gpu/webgpu/dawn_commit_hash.h
+    /* Generated by lastchange.py, do not edit.*/
+    #ifndef GPU_WEBGPU_DAWN_COMMIT_HASH_H_
+    #define GPU_WEBGPU_DAWN_COMMIT_HASH_H_
+    #define DAWN_COMMIT_HASH "${info.deps."src/third_party/dawn".args.rev}"
+    #endif  // GPU_WEBGPU_DAWN_COMMIT_HASH_H_
+    EOF
     (
       cd electron
-      export HOME=$TMPDIR/fake_home
-      yarn config --offline set yarn-offline-mirror $electronOfflineCache
-      fixup-yarn-lock yarn.lock
-      yarn install --offline --frozen-lockfile --ignore-scripts --no-progress --non-interactive
+      YARN_ENABLE_SCRIPTS=0 yarnBerryConfigHook
     )
-
     (
       cd ..
-      PATH=$PATH:${lib.makeBinPath (with pkgsBuildHost; [ jq git ])}
+      PATH=$PATH:${
+        lib.makeBinPath (
+          with pkgsBuildHost;
+          [
+            jq
+            git
+          ]
+        )
+      }
       config=src/electron/patches/config.json
-      for key in $(jq -r "keys[]" $config)
+      for entry in $(cat $config | jq -c ".[]")
       do
-        value=$(jq -r ".\"$key\"" $config)
-        for patch in $(cat $key/.patches)
+        patch_dir=$(echo $entry | jq -r ".patch_dir")
+        repo=$(echo $entry | jq -r ".repo")
+        for patch in $(cat $patch_dir/.patches)
         do
-          echo applying in $value: $patch
-          git apply -p1 --directory=$value --exclude='src/third_party/blink/web_tests/*' $key/$patch
+          echo applying in $repo: $patch
+          git apply -p1 --directory=$repo --exclude='src/third_party/blink/web_tests/*' --exclude='src/content/test/data/*' $patch_dir/$patch
         done
       done
     )
-  '' + base.postPatch;
+    echo 'checkout_glic_e2e_tests = false' >> build/config/gclient_args.gni
+    echo 'checkout_mutter = false' >> build/config/gclient_args.gni
+    echo 'checkout_clusterfuzz_data = false' >> build/config/gclient_args.gni
+  ''
+  + base.postPatch;
 
   preConfigure = ''
     (
       cd third_party/node
       grep patch update_npm_deps | sh
     )
-  '' + (base.preConfigure or "");
+  ''
+  + (base.preConfigure or "");
 
   gnFlags = rec {
     # build/args/release.gn
@@ -144,11 +205,10 @@ in (chromium.override { upstream-info = info.chromium; }).mkDerivation (base: {
     # build/args/all.gn
     is_electron_build = true;
     root_extra_deps = [ "//electron" ];
-    node_module_version = info.modules;
+    node_module_version = lib.toInt info.modules;
     v8_promise_internal_field_count = 1;
     v8_embedder_string = "-electron.0";
     v8_enable_snapshot_native_code_counters = false;
-    v8_scriptormodule_legacy_lifetime = true;
     v8_enable_javascript_promise_hooks = true;
     enable_cdm_host_verification = false;
     proprietary_codecs = true;
@@ -160,12 +220,21 @@ in (chromium.override { upstream-info = info.chromium; }).mkDerivation (base: {
     allow_runtime_configurable_key_storage = true;
     enable_cet_shadow_stack = false;
     is_cfi = false;
-    use_qt = false;
+    enable_dangling_raw_ptr_checks = false;
+    enable_dangling_raw_ptr_feature_flag = false;
+    v8_enable_private_mapping_fork_optimization = true;
+    v8_expose_public_symbols = true;
+    enable_linux_installer = false;
+    enable_pdf_save_to_drive = false;
+    node_openssl_path = "//third_party/boringssl";
+  }
+  // lib.optionalAttrs (lib.versionOlder info.version "43") {
+    enterprise_cloud_content_analysis = false;
+  }
+  // {
 
+    # other
     enable_widevine = false;
-    use_perfetto_client_library = false;
-    enable_check_raw_ptr_fields = false;
-  } // lib.optionalAttrs (lib.versionAtLeast info.version "27")  {
     override_electron_version = info.version;
   };
 
@@ -175,38 +244,57 @@ in (chromium.override { upstream-info = info.chromium; }).mkDerivation (base: {
     mkdir -p $libExecPath
     unzip -d $libExecPath out/Release/dist.zip
 
+    mkdir -p $headers
+    cp -r out/Release/gen/node_headers/* $headers/
+
     runHook postInstall
   '';
+
+  postFixup =
+    let
+      libPath = lib.makeLibraryPath [
+        libnotify
+        pipewire
+        stdenv.cc.cc
+        libsecret
+        libpulseaudio
+        speechd-minimal
+      ];
+    in
+    base.postFixup
+    + ''
+      patchelf \
+        --add-rpath "${libPath}" \
+        $out/libexec/electron/electron
+    '';
 
   requiredSystemFeatures = [ "big-parallel" ];
 
   passthru = {
     inherit info;
-    headers = stdenv.mkDerivation rec {
-      name = "node-v${info.node}-headers.tar.gz";
-      nativeBuildInputs = [ python3 ];
-      src = fetchdep info.deps."src/third_party/electron_node";
-      buildPhase = ''
-        runHook preBuild
-        make tar-headers
-        runHook postBuild
-      '';
-      installPhase = ''
-        runHook preInstall
-        mv ${name} $out
-        runHook postInstall
-      '';
-    };
   };
 
-  meta = with lib; {
+  meta = {
     description = "Cross platform desktop application shell";
     homepage = "https://github.com/electron/electron";
     platforms = lib.platforms.linux;
-    license = licenses.mit;
-    maintainers = with maintainers; [ yuka ];
+    license = lib.licenses.mit;
+    teams = [ lib.teams.electron ];
     mainProgram = "electron";
-    hydraPlatforms = lib.optionals (!(hasInfix "alpha" info.version) && !(hasInfix "beta" info.version)) ["aarch64-linux" "x86_64-linux"];
+    hydraPlatforms =
+      lib.optionals (!(lib.hasInfix "alpha" info.version) && !(lib.hasInfix "beta" info.version))
+        [
+          "aarch64-linux"
+          "x86_64-linux"
+        ];
     timeout = 172800; # 48 hours (increased from the Hydra default of 10h)
   };
-})
+})).overrideAttrs
+  (
+    finalAttrs: prevAttrs: {
+      # this was the only way I could get the package to properly reference itself
+      passthru = prevAttrs.passthru // {
+        dist = finalAttrs.finalPackage + "/libexec/electron";
+      };
+    }
+  )

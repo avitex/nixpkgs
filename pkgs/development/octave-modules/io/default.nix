@@ -1,32 +1,34 @@
-{ buildOctavePackage
-, lib
-, fetchurl
-, enableJava
-, jdk
-, unzip
+{
+  buildOctavePackage,
+  lib,
+  fetchurl,
+  enableJava,
+  jdk,
+  unzip,
 }:
 
 buildOctavePackage rec {
   pname = "io";
-  version = "2.6.4";
+  version = "2.7.2";
 
   src = fetchurl {
     url = "mirror://sourceforge/octave/${pname}-${version}.tar.gz";
-    sha256 = "sha256-p0pAC70ZIn9sB8WFiS3oec165S2CDaH2nxo+PolFL1o=";
+    sha256 = "sha256-vKrKrqDHCa+nQRXwLp1fS2zO3dgS1ajYQ7/F293uYKQ=";
   };
 
-  buildInputs = [
-    (lib.optional enableJava jdk)
-  ];
+  buildInputs = lib.optional enableJava jdk;
 
   propagatedBuildInputs = [
     unzip
   ];
 
-  meta = with lib; {
-    homepage = "https://octave.sourceforge.io/io/index.html";
-    license = with licenses; [ gpl3Plus bsd2 ];
-    maintainers = with maintainers; [ KarlJoad ];
+  meta = {
+    homepage = "https://gnu-octave.github.io/packages/io/";
+    license = with lib.licenses; [
+      gpl3Plus
+      bsd2
+    ];
+    maintainers = with lib.maintainers; [ ravenjoad ];
     description = "Input/Output in external formats";
   };
 }

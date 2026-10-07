@@ -1,38 +1,49 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools-scm
-, pycryptodome
-, requests
-, six
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  setuptools-scm,
+  pycryptodome,
+  requests,
+  six,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "httpsig";
   version = "1.3.0";
-  format = "setuptools";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "1rkc3zwsq53rjsmc47335m4viljiwdbmw3y2zry4z70j8q1dbmki";
+    hash = "sha256-cdbVAkYSnE98/sIPXlfjUdK4SS1jHMKqlnkUrPkfbOY=";
   };
 
-  buildInputs = [
+  patches = [
+    # pkg_resources is gone in setuptools 82
+    ./no-pkg-resources.patch
+  ];
+
+  build-system = [
+    setuptools
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     pycryptodome
     requests
     six
   ];
 
+  nativeCheckInputs = [ pytestCheckHook ];
+
   pythonImportsCheck = [ "httpsig" ];
 
-  meta = with lib; {
+  meta = {
     description = "Sign HTTP requests with secure signatures";
-    license = licenses.mit;
-    maintainers = with maintainers; [ srhb ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ srhb ];
     homepage = "https://github.com/ahknight/httpsig";
   };
 }

@@ -1,20 +1,17 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, msrest
-, msrestazure
-, azure-common
-, azure-mgmt-core
-, azure-mgmt-nspkg
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  msrest,
+  msrestazure,
+  azure-common,
+  azure-mgmt-core,
 }:
 
 buildPythonPackage rec {
   pname = "azure-mgmt-containerinstance";
   version = "10.1.0";
   format = "setuptools";
-
-  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
@@ -32,14 +29,12 @@ buildPythonPackage rec {
   # has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "azure.mgmt.containerinstance"
-  ];
+  pythonImportsCheck = [ "azure.mgmt.containerinstance" ];
 
-  meta = with lib; {
+  meta = {
     description = "This is the Microsoft Azure Container Instance Client Library";
     homepage = "https://github.com/Azure/azure-sdk-for-python";
-    license = licenses.mit;
-    maintainers = with maintainers; [ maxwilson ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ maxwilson ];
   };
 }

@@ -1,47 +1,41 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, requests
-, tabulate
-, pytestCheckHook
-, requests-mock
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  requests,
+  pytestCheckHook,
+  requests-mock,
 }:
 
-buildPythonPackage {
+buildPythonPackage (finalAttrs: {
   pname = "remotezip";
-  version = "0.12.2";
-  format = "setuptools";
+  version = "0.12.5";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "gtsystem";
     repo = "python-remotezip";
-    # upstream does not tag releases, determined with git blame
-    # pypi archive lacks files for tests
-    rev = "3723724d6d877d3166d52f4528ffa7bd5bf6627f";
-    hash = "sha256-iYxHW8RdLFrpjkcEvpfF/NWBnw7Dd5cx2ghpof2XFn4=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-qItxfjzOc0nulqVRnwrE3JGpML2m/sVyKLtKDbLlJkc=";
   };
 
-  propagatedBuildInputs = [
-    requests
-    tabulate
-  ];
+  nativeBuildInputs = [ setuptools ];
+
+  propagatedBuildInputs = [ requests ];
 
   nativeCheckInputs = [
     pytestCheckHook
-  ];
-
-  checkInputs = [
     requests-mock
   ];
 
-  pythonImportsCheck = [
-    "remotezip"
-  ];
+  pythonImportsCheck = [ "remotezip" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python module to access single members of a zip archive without downloading the full content";
+    mainProgram = "remotezip";
     homepage = "https://github.com/gtsystem/python-remotezip";
-    license = licenses.mit;
-    maintainers = with maintainers; [ nickcao ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ nickcao ];
   };
-}
+})

@@ -1,36 +1,43 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, google-api-core
-, libcst
-, mock
-, proto-plus
-, protobuf
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, pytz
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  google-api-core,
+  libcst,
+  mock,
+  proto-plus,
+  protobuf,
+  pytest-asyncio,
+  pytestCheckHook,
+  pytz,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "google-cloud-bigquery-datatransfer";
-  version = "3.13.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "3.24.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-J6hFyyJgWlEsBc4owokNLvl61O38mBevVVpz2AJOw7o=";
+    pname = "google_cloud_bigquery_datatransfer";
+    inherit (finalAttrs) version;
+    hash = "sha256-5X6HMhRX71XKAa6f94vRIRcN8HKHZWjjYcpsofQ5Z98=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  pythonRelaxDeps = [
+    "protobuf"
+  ];
+
+  dependencies = [
     google-api-core
     libcst
     proto-plus
     protobuf
     pytz
-  ] ++ google-api-core.optional-dependencies.grpc;
+  ]
+  ++ google-api-core.optional-dependencies.grpc;
 
   nativeCheckInputs = [
     mock
@@ -48,11 +55,11 @@ buildPythonPackage rec {
     "test_list_data_sources"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "BigQuery Data Transfer API client library";
     homepage = "https://github.com/googleapis/google-cloud-python/tree/main/packages/google-cloud-bigquery-datatransfer";
-    changelog = "https://github.com/googleapis/google-cloud-python/blob/google-cloud-bigquery-datatransfer-v${version}/packages/google-cloud-bigquery-datatransfer/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/googleapis/google-cloud-python/blob/google-cloud-bigquery-datatransfer-v${finalAttrs.version}/packages/google-cloud-bigquery-datatransfer/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
-}
+})

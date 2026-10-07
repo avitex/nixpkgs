@@ -1,112 +1,100 @@
-{ lib
-, alembic
-, buildPythonPackage
-, click
-, cloudpickle
-, databricks-cli
-, docker
-, entrypoints
-, fetchpatch
-, fetchPypi
-, flask
-, gitpython
-, gorilla
-, gunicorn
-, importlib-metadata
-, markdown
-, matplotlib
-, numpy
-, packaging
-, pandas
-, prometheus-flask-exporter
-, protobuf
-, python-dateutil
-, pythonOlder
-, pythonRelaxDepsHook
-, pyarrow
-, pytz
-, pyyaml
-, querystring-parser
-, requests
-, scikit-learn
-, scipy
-, shap
-, simplejson
-, sqlalchemy
-, sqlparse
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+
+  # dependencies
+  aiohttp,
+  alembic,
+  anyio,
+  cryptography,
+  docker,
+  flask,
+  flask-cors,
+  graphene,
+  gunicorn,
+  huey,
+  matplotlib,
+  mlflow-skinny,
+  mlflow-tracing,
+  numpy,
+  pandas,
+  pyarrow,
+  scikit-learn,
+  scipy,
+  skops,
+  sqlalchemy,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "mlflow";
-  version = "2.8.1";
-  format = "setuptools";
+  version = "3.16.1";
+  format = "wheel";
+  __structuredAttrs = true;
 
-  disabled = pythonOlder "3.7";
-
+  # We build from the PyPI wheel rather than fetchFromGitHub, because the mlflow-server
+  # JS UI is absent from GitHub but provided in the wheel.
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-5OW90tnvsLOG7Lzi335D8ExGoyCAIIQU3FO1/XFVlng=";
+    pname = "mlflow";
+    inherit (finalAttrs) version;
+    format = "wheel";
+    dist = "py3";
+    python = "py3";
+    hash = "sha256-5N/mnOrjHfx7hIDnb/5qfzZ1K9+sMOBY5kMK3h+1kgs=";
   };
 
-  postPatch = ''
-    substituteInPlace requirements/core-requirements.txt \
-      --replace "gunicorn<21" "gunicorn"
+  # Nix-wrapped python populates sys.path via NIX_PYTHONPATH/site hooks,
+  # but PYTHONPATH stays unset in os.environ. mlflow spawns the server
+  # in a subprocess with a curated env, so without this patch the child
+  # interpreter cannot import uvicorn / mlflow itself.
+  postInstall = ''
+    patch -p1 -d "$out/lib/python"*/site-packages < ${./subprocess-pythonpath.patch}
   '';
 
-  # Remove currently broken dependency `shap`, a model explainability package.
-  # This seems quite unprincipled especially with tests not being enabled,
-  # but not mlflow has a 'skinny' install option which does not require `shap`.
-  nativeBuildInputs = [ pythonRelaxDepsHook ];
-  pythonRemoveDeps = [ "shap" ];
-  pythonRelaxDeps = [ "pytz" "pyarrow" ];
-
-  propagatedBuildInputs = [
+  dependencies = [
+    aiohttp
     alembic
-    click
-    cloudpickle
-    databricks-cli
+    anyio
+    cryptography
     docker
-    entrypoints
     flask
-    gitpython
-    gorilla
+    flask-cors
+    graphene
     gunicorn
-    importlib-metadata
-    markdown
+    huey
     matplotlib
+    mlflow-skinny
+    mlflow-tracing
     numpy
-    packaging
     pandas
-    prometheus-flask-exporter
-    protobuf
-    python-dateutil
     pyarrow
-    pytz
-    pyyaml
-    querystring-parser
-    requests
     scikit-learn
     scipy
-    #shap
-    simplejson
+    skops
     sqlalchemy
-    sqlparse
   ];
 
-  pythonImportsCheck = [
-    "mlflow"
-  ];
+  pythonImportsCheck = [ "mlflow" ];
 
-  # no tests in PyPI dist
-  # run into https://stackoverflow.com/questions/51203641/attributeerror-module-alembic-context-has-no-attribute-config
-  # also, tests use conda so can't run on NixOS without buildFHSEnv
+  # I (@GaetanLepage) gave up at enabling tests:
+  # - They require a lot of dependencies (some unpackaged);
+  # - Many errors occur at collection time;
+  # - Most (all ?) tests require internet access anyway.
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "Open source platform for the machine learning lifecycle";
+    mainProgram = "mlflow";
     homepage = "https://github.com/mlflow/mlflow";
-    changelog = "https://github.com/mlflow/mlflow/blob/v${version}/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ tbenst ];
+    changelog = "https://github.com/mlflow/mlflow/blob/v${finalAttrs.version}/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    # Build from wheel which contains pure Python and pre-built JS bundle.
+    sourceProvenance = with lib.sourceTypes; [
+      binaryBytecode
+    ];
+    maintainers = with lib.maintainers; [
+      GaetanLepage
+      gquetel
+    ];
   };
-}
+})

@@ -1,34 +1,30 @@
-{ lib
-, callPackage
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, hatchling
+{
+  lib,
+  callPackage,
+  buildPythonPackage,
+  fetchPypi,
+  replaceVars,
+  hatchling,
 }:
 
 buildPythonPackage rec {
   pname = "attrs";
-  version = "23.1.0";
-  disabled = pythonOlder "3.7";
-  format = "pyproject";
+  version = "26.1.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-YnmDbVgVE6JvG/I1+azTM7yRFWg/FPfo+uRsmPxQ4BU=";
+    hash = "sha256-0DzricsyKo/XBtT7kZQHN7ZkKqNpmP4TCpvJbJhe/zI=";
   };
 
   patches = [
-    # hatch-vcs and hatch-fancy-pypi-readme depend on pytest, which depends on attrs
-    ./remove-hatch-plugins.patch
+    (replaceVars ./remove-hatch-plugins.patch {
+      # hatch-vcs and hatch-fancy-pypi-readme depend on pytest, which depends on attrs
+      inherit version;
+    })
   ];
 
-  postPatch = ''
-    substituteAllInPlace pyproject.toml
-  '';
-
-  nativeBuildInputs = [
-    hatchling
-  ];
+  nativeBuildInputs = [ hatchling ];
 
   outputs = [
     "out"
@@ -38,12 +34,10 @@ buildPythonPackage rec {
   postInstall = ''
     # Install tests as the tests output.
     mkdir $testout
-    cp -R conftest.py tests $testout
+    cp -R tests $testout
   '';
 
-  pythonImportsCheck = [
-    "attr"
-  ];
+  pythonImportsCheck = [ "attr" ];
 
   # pytest depends on attrs, so we can't do this out-of-the-box.
   # Instead, we do this as a passthru.tests test.
@@ -53,11 +47,11 @@ buildPythonPackage rec {
     pytest = callPackage ./tests.nix { };
   };
 
-  meta = with lib; {
+  meta = {
     description = "Python attributes without boilerplate";
     homepage = "https://github.com/python-attrs/attrs";
     changelog = "https://github.com/python-attrs/attrs/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ mdaniels5757 ];
   };
 }

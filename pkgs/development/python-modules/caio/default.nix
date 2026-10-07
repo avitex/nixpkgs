@@ -1,41 +1,57 @@
-{ lib
-, aiomisc
-, buildPythonPackage
-, fetchFromGitHub
-, pytest-aiohttp
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+
+  # tests
+  aiomisc-pytest,
+  pytest-rerunfailures,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "caio";
-  version = "0.9.13";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.12.9";
+  pyproject = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "mosquito";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-Q87NuL6yZ5uKImQqqdKTMWNyfUOb4NaZDEvNdqZbHDk=";
+    repo = "caio";
+    tag = finalAttrs.version;
+    hash = "sha256-uP4g9dq+eIG6mYJM+/vJthMFSyuRLjaIYp77hTf9Yog=";
   };
 
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail \
+        'version = "0.10.2"' \
+        'version = "${finalAttrs.version}"'
+  '';
+
+  build-system = [ setuptools ];
+
+  env.NIX_CFLAGS_COMPILE = toString (
+    lib.optionals stdenv.cc.isClang [ "-Wno-error=implicit-function-declaration" ]
+  );
+
+  pythonImportsCheck = [ "caio" ];
+
   nativeCheckInputs = [
-    aiomisc
-    pytest-aiohttp
+    aiomisc-pytest
+    pytest-rerunfailures
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "caio"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "File operations with asyncio support";
     homepage = "https://github.com/mosquito/caio";
-    changelog = "https://github.com/mosquito/caio/releases/tag/${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/mosquito/caio/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

@@ -1,28 +1,25 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, poetry-core
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  pytestCheckHook,
+  nix-update-script,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "xdg-base-dirs";
-  version = "6.0.1";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.10";
+  version = "6.0.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "srstevenson";
     repo = "xdg-base-dirs";
-    rev = version;
-    hash = "sha256-nbdF1tjVqlxwiGW0pySS6HyJbmNuQ7mVdQYfhofO4Dk=";
+    tag = finalAttrs.version;
+    hash = "sha256-iXK9WURTfmpl5vd7RsT0ptwfrb5UQQFqMMCu3+vL+EY=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  nativeBuildInputs = [ poetry-core ];
 
   nativeCheckInputs = [ pytestCheckHook ];
 
@@ -33,11 +30,13 @@ buildPythonPackage rec {
     sed -i /addopts/d pyproject.toml
   '';
 
-  meta = with lib; {
-    description = "An implementation of the XDG Base Directory Specification in Python";
+  passthru.updateScript = nix-update-script { };
+
+  meta = {
+    description = "Implementation of the XDG Base Directory Specification in Python";
     homepage = "https://github.com/srstevenson/xdg-base-dirs";
-    changelog = "https://github.com/srstevenson/xdg-base-dirs/releases/tag/${src.rev}";
-    license = licenses.isc;
-    maintainers = with maintainers; [ figsoda ];
+    changelog = "https://github.com/srstevenson/xdg-base-dirs/releases/tag/${finalAttrs.version}";
+    license = lib.licenses.isc;
+    maintainers = with lib.maintainers; [ sandarukasa ];
   };
-}
+})

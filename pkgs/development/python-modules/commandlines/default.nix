@@ -1,7 +1,8 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
@@ -17,16 +18,12 @@ buildPythonPackage rec {
     hash = "sha256-x3iUeOTAaTKNW5Y5foMPMJcWVxu52uYZoY3Hhe3UvQ4=";
   };
 
-  doCheck = true;
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  meta = with lib; {
+  meta = {
     description = "Python library for command line argument parsing";
     homepage = "https://github.com/chrissimpkins/commandlines";
-    license = licenses.mit;
-    maintainers = with maintainers; [ danc86 ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ danc86 ];
   };
 }
-

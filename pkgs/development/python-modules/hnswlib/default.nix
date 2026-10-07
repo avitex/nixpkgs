@@ -1,15 +1,16 @@
-{ buildPythonPackage
-, hnswlib
-, numpy
-, pybind11
-, setuptools
-, unittestCheckHook
+{
+  buildPythonPackage,
+  hnswlib,
+  numpy,
+  pybind11,
+  setuptools,
+  unittestCheckHook,
 }:
 
 buildPythonPackage {
   pname = "hnswlib";
   inherit (hnswlib) version src meta;
-  format = "pyproject";
+  pyproject = true;
 
   nativeBuildInputs = [
     numpy
@@ -17,16 +18,12 @@ buildPythonPackage {
     pybind11
   ];
 
-  nativeCheckInputs = [
-    unittestCheckHook
-  ];
+  nativeCheckInputs = [ unittestCheckHook ];
 
   unittestFlagsArray = [
     "tests/python"
     "--pattern 'bindings_test*.py'"
   ];
 
-  pythonImportsCheck = [
-    "hnswlib"
-  ];
+  pythonImportsCheck = [ "hnswlib" ];
 }

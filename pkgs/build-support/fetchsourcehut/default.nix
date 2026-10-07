@@ -1,56 +1,97 @@
-{ fetchgit, fetchhg, fetchzip, lib }:
-
-lib.makeOverridable (
-{ owner
-, repo, rev
-, domain ? "sr.ht"
-, vc ? "git"
-, name ? "source"
-, fetchSubmodules ? false
-, ... # For hash agility
-} @ args:
-
-with lib;
-
-assert (lib.assertOneOf "vc" vc [ "hg" "git" ]);
+{
+  lib,
+  repoRevToNameMaybe,
+  fetchgit,
+  fetchhg,
+  fetchzip,
+}:
 
 let
-  urlFor = resource: "https://${resource}.${domain}/${owner}/${repo}";
-  baseUrl = urlFor vc;
-  baseArgs = {
-    inherit name;
-  } // removeAttrs args [
-    "owner" "repo" "rev" "domain" "vc" "name" "fetchSubmodules"
-  ];
-  vcArgs = baseArgs // {
-    inherit rev;
-    url = baseUrl;
-  };
-  fetcher = if fetchSubmodules then vc else "zip";
-  cases = {
-    git = {
-      fetch = fetchgit;
-      arguments = vcArgs // { fetchSubmodules = true; };
+  inherit (lib)
+    assertOneOf
+    makeOverridable
+    optionalString
+    ;
+in
+
+makeOverridable (
+  {
+    owner,
+    repo,
+    rev ? null,
+    tag ? null,
+    name ? repoRevToNameMaybe repo (lib.revOrTag rev tag) "sourcehut",
+    domain ? "sr.ht",
+    vc ? "git",
+    fetchSubmodules ? false,
+    ... # For hash agility
+  }@args:
+
+  assert (
+    lib.xor (tag == null) (rev == null)
+    || throw "fetchFromSourcehut requires one of either `rev` or `tag` to be provided (not both)."
+  );
+
+  assert (
+    assertOneOf "vc" vc [
+      "hg"
+      "git"
+    ]
+  );
+
+  let
+    urlFor = resource: "https://${resource}.${domain}/${owner}/${repo}";
+    rev' = if tag != null then tag else rev;
+    baseUrl = urlFor vc;
+    baseArgs = {
+      inherit name;
+    }
+    // removeAttrs args [
+      "owner"
+      "repo"
+      "rev"
+      "tag"
+      "domain"
+      "vc"
+      "name"
+      "fetchSubmodules"
+    ];
+    vcArgs = baseArgs // {
+      rev = rev';
+      url = baseUrl;
     };
-    hg = {
-      fetch = fetchhg;
-      arguments = vcArgs // { fetchSubrepos = true; };
-    };
-    zip = {
-      fetch = fetchzip;
-      arguments = baseArgs // {
-        url = "${baseUrl}/archive/${rev}.tar.gz";
-        postFetch = optionalString (vc == "hg") ''
-          rm -f "$out/.hg_archival.txt"
-        ''; # impure file; see #12002
-        passthru = {
-          gitRepoUrl = urlFor "git";
+    fetcher = if fetchSubmodules then vc else "zip";
+    cases = {
+      git = {
+        fetch = fetchgit;
+        arguments = vcArgs // {
+          fetchSubmodules = true;
+        };
+      };
+      hg = {
+        fetch = fetchhg;
+        arguments = vcArgs // {
+          fetchSubrepos = true;
+        };
+      };
+      zip = {
+        fetch = fetchzip;
+        arguments = baseArgs // {
+          url = "${baseUrl}/archive/${rev'}.tar.gz";
+          postFetch = optionalString (vc == "hg") ''
+            rm -f "$out/.hg_archival.txt"
+          ''; # impure file; see #12002
+          passthru = (args.passthru or { }) // {
+            gitRepoUrl = urlFor "git";
+          };
         };
       };
     };
-  };
-in cases.${fetcher}.fetch cases.${fetcher}.arguments // {
-  inherit rev;
-  meta.homepage = "${baseUrl}";
-}
+  in
+  cases.${fetcher}.fetch cases.${fetcher}.arguments
+  // {
+    inherit tag;
+    rev = rev';
+    meta.homepage = "${baseUrl}";
+  }
 )

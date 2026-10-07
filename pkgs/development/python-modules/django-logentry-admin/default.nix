@@ -1,4 +1,11 @@
-{ lib, fetchFromGitHub, buildPythonPackage, django, pytest, pytest-django }:
+{
+  lib,
+  fetchFromGitHub,
+  buildPythonPackage,
+  django,
+  pytest,
+  pytest-django,
+}:
 
 buildPythonPackage rec {
   pname = "django-logentry-admin";
@@ -7,12 +14,15 @@ buildPythonPackage rec {
 
   src = fetchFromGitHub {
     owner = "yprez";
-    repo = pname;
+    repo = "django-logentry-admin";
     rev = "v${version}";
     sha256 = "1bndxgvisw8kk52zfdifvly6dl4833wqilxf77pg473172yaf5gq";
   };
 
-  nativeCheckInputs = [ pytest pytest-django ];
+  nativeCheckInputs = [
+    pytest
+    pytest-django
+  ];
   checkPhase = ''
     rm -r logentry_admin __init__.py
     pytest
@@ -20,11 +30,10 @@ buildPythonPackage rec {
 
   propagatedBuildInputs = [ django ];
 
-  meta = with lib; {
+  meta = {
     description = "Show all LogEntry objects in the Django admin site";
     homepage = "https://github.com/yprez/django-logentry-admin";
-    license = licenses.isc;
-    maintainers = with maintainers; [ mrmebelman ];
+    license = lib.licenses.isc;
+    maintainers = with lib.maintainers; [ mrmebelman ];
   };
 }
-

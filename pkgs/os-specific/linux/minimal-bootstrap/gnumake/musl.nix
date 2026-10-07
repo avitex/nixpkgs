@@ -1,18 +1,21 @@
-{ lib
-, buildPlatform
-, hostPlatform
-, fetchurl
-, bash
-, tinycc
-, gnumakeBoot
-, gnupatch
-, gnused
-, gnugrep
-, gawk
-, gnutar
-, gzip
+{
+  lib,
+  buildPlatform,
+  hostPlatform,
+  fetchurl,
+  bash,
+  coreutils,
+  tinycc,
+  gnumakeBoot,
+  gnupatch,
+  gnused,
+  gnugrep,
+  gawk,
+  gnutar,
+  gzip,
 }:
 let
+  inherit (import ./common.nix { inherit lib; }) meta;
   pname = "gnumake-musl";
   version = "4.4.1";
 
@@ -30,53 +33,57 @@ let
     ./0002-remove-impure-dirs.patch
   ];
 in
-bash.runCommand "${pname}-${version}" {
-  inherit pname version;
+bash.runCommand "${pname}-${version}"
+  {
+    inherit pname version meta;
 
-  nativeBuildInputs = [
-    tinycc.compiler
-    gnumakeBoot
-    gnupatch
-    gnused
-    gnugrep
-    gawk
-    gnutar
-    gzip
-  ];
+    nativeBuildInputs = [
+      coreutils
+      tinycc.compiler
+      gnumakeBoot
+      gnupatch
+      gnused
+      gnugrep
+      gawk
+      gnutar
+      gzip
+    ];
 
-  passthru.tests.get-version = result:
-    bash.runCommand "${pname}-get-version-${version}" {} ''
-      ${result}/bin/make --version
-      mkdir $out
-    '';
+    passthru.tests.get-version =
+      result:
+      bash.runCommand "${pname}-get-version-${version}" { } ''
+        ${result}/bin/make --version
+        mkdir $out
+      '';
+  }
+  ''
+    # Unpack
+    tar xzf ${src}
+    cd make-${version}
 
-  meta = with lib; {
-    description = "A tool to control the generation of non-source files from sources";
-    homepage = "https://www.gnu.org/software/make";
-    license = licenses.gpl3Plus;
-    maintainers = teams.minimal-bootstrap.members;
-    mainProgram = "make";
-    platforms = platforms.unix;
-  };
-} ''
-  # Unpack
-  tar xzf ${src}
-  cd make-${version}
+    # Defeat parallel-build automake regen race, see gnused/default.nix.
+    touch Makefile.in Makefile aclocal.m4 config.h.in configure 2>/dev/null || true
+    for f in */Makefile.in; do touch "$f" 2>/dev/null || true; done
+    chmod +x configure config.guess config.sub install-sh missing compile \
+      depcomp mkinstalldirs help2man 2>/dev/null || true
+    [ -d build-aux ] && chmod +x build-aux/* 2>/dev/null || true
 
-  # Patch
-  ${lib.concatMapStringsSep "\n" (f: "patch -Np1 -i ${f}") patches}
+    # Patch
+    ${lib.concatMapStringsSep "\n" (f: "patch -Np1 -i ${f}") patches}
 
-  # Configure
-  export CC="tcc -B ${tinycc.libs}/lib"
-  export LD=tcc
-  bash ./configure \
-    --prefix=$out \
-    --build=${buildPlatform.config} \
-    --host=${hostPlatform.config}
+    # Configure
+    export CC="tcc -B ${tinycc.libs}/lib"
+    export LD=tcc
+    bash ./configure \
+      --prefix=$out \
+      --build=${buildPlatform.config} \
+      --host=${hostPlatform.config} \
+      --disable-dependency-tracking
 
-  # Build
-  make AR="tcc -ar"
+    # Build
+    # NOTE: parallel build (-j) under tcc-musl is unstable; keep serial.
+    make AR="tcc -ar"
 
-  # Install
-  make install
-''
+    # Install
+    make install
+  ''

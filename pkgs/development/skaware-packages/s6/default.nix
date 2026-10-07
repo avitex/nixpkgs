@@ -1,33 +1,49 @@
-{ skawarePackages }:
+{
+  lib,
+  skawarePackages,
+  skalibs,
+  execline,
+}:
 
-with skawarePackages;
-
-buildPackage {
+skawarePackages.buildPackage {
   pname = "s6";
-  version = "2.12.0.3";
-  sha256 = "gA0xIm9sJc3T7AtlJA+AtWzl7BNzQdCo0VTndjjlgQM=";
+  version = "2.15.1.0";
+  sha256 = "sha256-6rnEbiK2axYTX5oF7Gig6ih9kGC4TRDe+qosqtFYq1I=";
 
-  description = "skarnet.org's small & secure supervision software suite";
+  manpages = skawarePackages.buildManPages {
+    pname = "s6-man-pages";
+    version = "2.14.0.1.4";
+    sha256 = "sha256-c77NwS4x5L1nLmtWVz64izzanTfc0hohvFMOi77uMh4=";
+    description = "Port of the documentation for the s6 supervision suite to mdoc";
+    maintainers = [ lib.maintainers.sternenseemann ];
+  };
+
+  meta.description = "skarnet.org's small & secure supervision software suite";
 
   # NOTE lib: cannot split lib from bin at the moment,
   # since some parts of lib depend on executables in bin.
   # (the `*_startf` functions in `libs6`)
-  outputs = [ /*"bin" "lib"*/ "out" "dev" "doc" ];
+  outputs = [
+    # "bin" "lib"
+    "out"
+    "dev"
+    "doc"
+  ];
+
+  buildInputs = [
+    skalibs
+    execline
+  ];
 
   # TODO: nsss support
   configureFlags = [
-    "--libdir=\${out}/lib"
-    "--libexecdir=\${out}/libexec"
-    "--dynlibdir=\${out}/lib"
-    "--bindir=\${out}/bin"
-    "--includedir=\${dev}/include"
+    "--libdir=${placeholder "out"}/lib"
+    "--dynlibdir=${placeholder "out"}/lib"
+    "--libexecdir=${placeholder "out"}/libexec"
+    "--bindir=${placeholder "out"}/bin"
+    "--includedir=${placeholder "dev"}/include"
+    "--pkgconfdir=${placeholder "dev"}/lib/pkgconfig"
     "--with-sysdeps=${skalibs.lib}/lib/skalibs/sysdeps"
-    "--with-include=${skalibs.dev}/include"
-    "--with-include=${execline.dev}/include"
-    "--with-lib=${skalibs.lib}/lib"
-    "--with-lib=${execline.lib}/lib"
-    "--with-dynlib=${skalibs.lib}/lib"
-    "--with-dynlib=${execline.lib}/lib"
   ];
 
   postInstall = ''

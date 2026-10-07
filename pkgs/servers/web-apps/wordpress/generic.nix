@@ -1,11 +1,22 @@
-{ lib, version, hash, stdenv, fetchurl, nixosTests, writeScript }:
+{
+  lib,
+  version,
+  hash,
+  stdenv,
+  fetchurl,
+  nixosTests,
+  writeScript,
+}:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "wordpress";
   inherit version;
 
+  __structuredAttrs = true;
+  strictDeps = true;
+
   src = fetchurl {
-    url = "https://wordpress.org/${pname}-${version}.tar.gz";
+    url = "https://wordpress.org/wordpress-${finalAttrs.version}.tar.gz";
     inherit hash;
   };
 
@@ -36,14 +47,17 @@ stdenv.mkDerivation rec {
     #!nix-shell -i bash -p common-updater-scripts jq
     set -eu -o pipefail
     version=$(curl --globoff "https://api.wordpress.org/core/version-check/1.7/" | jq -r '.offers[0].version')
-    update-source-version wordpress $version
+    update-source-version wordpress $version --file=./pkgs/servers/web-apps/wordpress/default.nix
   '';
 
-  meta = with lib; {
+  meta = {
     homepage = "https://wordpress.org";
-    description = "WordPress is open source software you can use to create a beautiful website, blog, or app";
-    license = [ licenses.gpl2 ];
-    maintainers = [ maintainers.basvandijk ];
-    platforms = platforms.all;
+    description = "Open source software you can use to create a beautiful website, blog, or app";
+    license = lib.licenses.gpl2Plus;
+    maintainers = with lib.maintainers; [
+      bartoostveen
+      basvandijk
+    ];
+    platforms = lib.platforms.all;
   };
-}
+})

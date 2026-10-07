@@ -1,47 +1,50 @@
-{ lib
-, buildPythonPackage
-, dateparser
-, fetchFromGitHub
-, haversine
-, pytestCheckHook
-, pythonOlder
-, requests
-, xmltodict
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+
+  # dependencies
+  haversine,
+  python-dateutil,
+  requests,
+  xmltodict,
+
+  # testing
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "georss-client";
-  version = "0.15";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
-
+  version = "2026.6.1";
+  pyproject = true;
   src = fetchFromGitHub {
     owner = "exxamalte";
     repo = "python-georss-client";
-    rev = "v${version}";
-    hash = "sha256-D1ggfEDU+vlFmi1USwdHj1due0PrCQCpKF4zaarHCFs=";
+    tag = "v${version}";
+    hash = "sha256-3JaFZY6c5wlJs2yE3KJITJIeCgifzurW7chOfQubQ5w=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     haversine
-    xmltodict
+    python-dateutil
     requests
-    dateparser
+    xmltodict
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "georss_client"
-  ];
+  pythonImportsCheck = [ "georss_client" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python library for accessing GeoRSS feeds";
     homepage = "https://github.com/exxamalte/python-georss-client";
-    license = with licenses; [ asl20 ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/exxamalte/python-georss-client/releases/tag/${src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

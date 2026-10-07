@@ -1,22 +1,23 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, oslotest
-, pbr
-, setuptools
-, testscenarios
-, stestr
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  oslotest,
+  pbr,
+  setuptools,
+  testscenarios,
+  stestr,
 }:
 
 buildPythonPackage rec {
   pname = "oslo-i18n";
-  version = "6.2.0";
+  version = "6.9.0";
   pyproject = true;
 
   src = fetchPypi {
-    pname = "oslo.i18n";
+    pname = "oslo_i18n";
     inherit version;
-    hash = "sha256-cPikzphxKRvGCdB+MeblAyZmVWmS/xrlPnjy7SpavoI=";
+    hash = "sha256-V0vPIYc7GFBovOyVHeHsCTFY/9/wWoBV/Rjdy2n2nmU=";
   };
 
   postPatch = ''
@@ -25,7 +26,7 @@ buildPythonPackage rec {
     rm test-requirements.txt
   '';
 
-  nativeBuildInputs = [
+  build-system = [
     pbr
     setuptools
   ];
@@ -39,20 +40,17 @@ buildPythonPackage rec {
   checkPhase = ''
     runHook preCheck
 
-    stestr run -e <(echo "
-    # test counts warnings which no longer matches in python 3.11
-    oslo_i18n.tests.test_message.MessageTestCase.test_translate_message_bad_translation
-    ")
+    stestr run
 
     runHook postCheck
   '';
 
   pythonImportsCheck = [ "oslo_i18n" ];
 
-  meta = with lib; {
+  meta = {
     description = "Oslo i18n library";
     homepage = "https://github.com/openstack/oslo.i18n";
-    license = licenses.asl20;
-    maintainers = teams.openstack.members;
+    license = lib.licenses.asl20;
+    teams = [ lib.teams.openstack ];
   };
 }

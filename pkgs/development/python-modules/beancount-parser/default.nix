@@ -1,47 +1,37 @@
-{ lib
-, fetchFromGitHub
-, buildPythonPackage
-, pythonOlder
-, lark
-, poetry-core
-, pytestCheckHook
+{
+  lib,
+  fetchFromGitHub,
+  buildPythonPackage,
+  lark,
+  poetry-core,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "beancount-parser";
-  version = "0.2.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.9";
+  version = "1.2.3";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "LaunchPlatform";
     repo = "beancount-parser";
-    rev = "refs/tags/${version}";
-    hash = "sha256-VSl+Jde/mDSUpICXjmPKID6qZiKUUaK8ixztP1qaoDM=";
+    tag = finalAttrs.version;
+    hash = "sha256-8YcrsLdSRTixKXU/IM821kNcBo0jB/8DXA1/KiedsBY=";
   };
 
-  buildInputs = [
-    poetry-core
-  ];
+  buildInputs = [ poetry-core ];
 
-  propagatedBuildInputs = [
-    lark
-  ];
+  propagatedBuildInputs = [ lark ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "beancount_parser"
-  ];
+  pythonImportsCheck = [ "beancount_parser" ];
 
-  meta = with lib; {
+  meta = {
     description = "Standalone Lark based Beancount syntax parser";
     homepage = "https://github.com/LaunchPlatform/beancount-parser/";
-    changelog = "https://github.com/LaunchPlatform/beancount-parser/releases/tag/${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ ambroisie ];
+    changelog = "https://github.com/LaunchPlatform/beancount-parser/releases/tag/${finalAttrs.version}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ ambroisie ];
   };
-}
+})

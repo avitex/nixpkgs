@@ -17,117 +17,97 @@
 lib: pkgs: actuallySplice:
 
 let
+  inherit (lib.customisation) mapCrossIndex renameCrossIndexFrom;
+  inherit (lib) mapAttrs;
 
   spliceReal =
-    { pkgsBuildBuild
-    , pkgsBuildHost
-    , pkgsBuildTarget
-    , pkgsHostHost
-    , pkgsHostTarget
-    , pkgsTargetTarget
-    }:
+    inputs:
     let
       mash =
         # Other pkgs sets
-        pkgsBuildBuild // pkgsBuildTarget // pkgsHostHost // pkgsTargetTarget
+        inputs.buildBuild
+        // inputs.buildTarget
+        // inputs.hostHost
+        // inputs.targetTarget
         # The same pkgs sets one probably intends
-        // pkgsBuildHost // pkgsHostTarget;
-      merge = name: {
-        inherit name;
-        value =
-          let
-            defaultValue = mash.${name};
-            # `or {}` is for the non-derivation attsert splicing case, where `{}` is the identity.
-            valueBuildBuild = pkgsBuildBuild.${name} or { };
-            valueBuildHost = pkgsBuildHost.${name} or { };
-            valueBuildTarget = pkgsBuildTarget.${name} or { };
-            valueHostHost = pkgsHostHost.${name} or { };
-            valueHostTarget = pkgsHostTarget.${name} or { };
-            valueTargetTarget = pkgsTargetTarget.${name} or { };
-            augmentedValue = defaultValue
-              // {
-              __spliced =
-                (lib.optionalAttrs (pkgsBuildBuild ? ${name}) { buildBuild = valueBuildBuild; })
-                  // (lib.optionalAttrs (pkgsBuildHost ? ${name}) { buildHost = valueBuildHost; })
-                  // (lib.optionalAttrs (pkgsBuildTarget ? ${name}) { buildTarget = valueBuildTarget; })
-                  // (lib.optionalAttrs (pkgsHostHost ? ${name}) { hostHost = valueHostHost; })
-                  // (lib.optionalAttrs (pkgsHostTarget ? ${name}) { hostTarget = valueHostTarget; })
-                  // (lib.optionalAttrs (pkgsTargetTarget ? ${name}) {
-                  targetTarget = valueTargetTarget;
-                });
-            };
-            # Get the set of outputs of a derivation. If one derivation fails to
-            # evaluate we don't want to diverge the entire splice, so we fall back
-            # on {}
-            tryGetOutputs = value0:
-              let
-                inherit (builtins.tryEval value0) success value;
-              in
-              getOutputs (lib.optionalAttrs success value);
-            getOutputs = value: lib.genAttrs
-              (value.outputs or (lib.optional (value ? out) "out"))
-              (output: value.${output});
-          in
-          # The derivation along with its outputs, which we recur
-            # on to splice them together.
-          if lib.isDerivation defaultValue then augmentedValue // spliceReal {
-            pkgsBuildBuild = tryGetOutputs valueBuildBuild;
-            pkgsBuildHost = tryGetOutputs valueBuildHost;
-            pkgsBuildTarget = tryGetOutputs valueBuildTarget;
-            pkgsHostHost = tryGetOutputs valueHostHost;
-            pkgsHostTarget = getOutputs valueHostTarget;
-            pkgsTargetTarget = tryGetOutputs valueTargetTarget;
-            # Just recur on plain attrsets
-          } else if lib.isAttrs defaultValue then
-            spliceReal
-              {
-                pkgsBuildBuild = valueBuildBuild;
-                pkgsBuildHost = valueBuildHost;
-                pkgsBuildTarget = valueBuildTarget;
-                pkgsHostHost = valueHostHost;
-                pkgsHostTarget = valueHostTarget;
-                pkgsTargetTarget = valueTargetTarget;
-                # Don't be fancy about non-derivations. But we could have used used
-                # `__functor__` for functions instead.
-              } else defaultValue;
-      };
+        // inputs.buildHost
+        // inputs.hostTarget;
+      merge =
+        name: defaultValue:
+        let
+          # `or {}` is for the non-derivation attsert splicing case, where `{}` is the identity.
+          value' = mapCrossIndex (x: x.${name} or { }) inputs;
+
+          augmentedValue = defaultValue // {
+            __spliced = lib.filterAttrs (k: v: inputs.${k} ? ${name}) value';
+          };
+          # Get the set of outputs of a derivation. If one derivation fails to
+          # evaluate we don't want to diverge the entire splice, so we fall back
+          # on {}
+          tryGetOutputs =
+            value0:
+            let
+              inherit (builtins.tryEval value0) success value;
+            in
+            getOutputs (lib.optionalAttrs success value);
+          getOutputs =
+            value: lib.genAttrs (value.outputs or (lib.optional (value ? out) "out")) (output: value.${output});
+          outputNames = defaultValue.outputs or (lib.optional (defaultValue ? out) "out");
+          outputSplice = spliceReal (
+            mapCrossIndex tryGetOutputs value' // { hostTarget = getOutputs value'.hostTarget; }
+          );
+        in
+        # The derivation along with its outputs, which we recur
+        # on to splice them together.
+        if lib.isDerivation defaultValue then
+          augmentedValue // lib.genAttrs outputNames (out: outputSplice.${out})
+        else if lib.isAttrs defaultValue then
+          spliceReal value'
+        else
+          # Don't be fancy about non-derivations. But we could have used used
+          # `__functor__` for functions instead.
+          defaultValue;
     in
-    lib.listToAttrs (map merge (lib.attrNames mash));
+    mapAttrs merge mash;
 
   splicePackages =
-    { pkgsBuildBuild
-    , pkgsBuildHost
-    , pkgsBuildTarget
-    , pkgsHostHost
-    , pkgsHostTarget
-    , pkgsTargetTarget
-    } @ args:
-    if actuallySplice then spliceReal args else pkgsHostTarget;
-
-  splicedPackages = splicePackages
     {
+      pkgsBuildBuild,
+      pkgsBuildHost,
+      pkgsBuildTarget,
+      pkgsHostHost,
+      pkgsHostTarget,
+      pkgsTargetTarget,
+    }@args:
+    if actuallySplice then spliceReal (renameCrossIndexFrom "pkgs" args) else pkgsHostTarget;
+
+  splicedPackages =
+    splicePackages {
       inherit (pkgs)
-        pkgsBuildBuild pkgsBuildHost pkgsBuildTarget
-        pkgsHostHost pkgsHostTarget
+        pkgsBuildBuild
+        pkgsBuildHost
+        pkgsBuildTarget
+        pkgsHostHost
+        pkgsHostTarget
         pkgsTargetTarget
         ;
-    } // {
-    # These should never be spliced under any circumstances
-    inherit (pkgs)
-      pkgsBuildBuild pkgsBuildHost pkgsBuildTarget
-      pkgsHostHost pkgsHostTarget
-      pkgsTargetTarget
-      buildPackages pkgs targetPackages
-      ;
-    inherit (pkgs.stdenv) buildPlatform targetPlatform hostPlatform;
-  };
+    }
+    // {
+      # These should never be spliced under any circumstances
+      inherit (pkgs)
+        pkgsBuildBuild
+        pkgsBuildHost
+        pkgsBuildTarget
+        pkgsHostHost
+        pkgsHostTarget
+        pkgsTargetTarget
+        buildPackages
+        pkgs
+        targetPackages
+        ;
+    };
 
-  splicedPackagesWithXorg = splicedPackages // builtins.removeAttrs splicedPackages.xorg [
-    "callPackage"
-    "newScope"
-    "overrideScope"
-    "packages"
-  ];
+  pkgsForCall = if actuallySplice then splicedPackages else pkgs;
 
 in
 
@@ -135,34 +115,51 @@ in
   inherit splicePackages;
 
   # We use `callPackage' to be able to omit function arguments that can be
-  # obtained `pkgs` or `buildPackages` and their `xorg` package sets. Use
-  # `newScope' for sets of packages in `pkgs' (see e.g. `gnome' below).
+  # obtained from `pkgs` or `buildPackages`.
+  # Use `newScope' for sets of packages in `pkgs' (see e.g. `gnome' below).
   callPackage = pkgs.newScope { };
 
-  callPackages = lib.callPackagesWith splicedPackagesWithXorg;
+  callPackages = lib.callPackagesWith pkgsForCall;
 
-  newScope = extra: lib.callPackageWith (splicedPackagesWithXorg // extra);
+  newScope = extra: lib.callPackageWith (pkgsForCall // extra);
+
+  pkgs = if actuallySplice then splicedPackages // { recurseForDerivations = false; } else pkgs;
 
   # prefill 2 fields of the function for convenience
   makeScopeWithSplicing = lib.makeScopeWithSplicing splicePackages pkgs.newScope;
-  makeScopeWithSplicing' = lib.makeScopeWithSplicing' { inherit splicePackages; inherit (pkgs) newScope; };
+  makeScopeWithSplicing' = lib.makeScopeWithSplicing' {
+    inherit splicePackages;
+    inherit (pkgs) newScope;
+  };
 
   # generate 'otherSplices' for 'makeScopeWithSplicing'
-  generateSplicesForMkScope = attr:
+  generateSplicesForMkScope =
+    attrs:
     let
-      split = X: lib.splitString "." "${X}.${attr}";
+      split =
+        X:
+        [ X ]
+        ++ (
+          if builtins.isList attrs then
+            attrs
+          else if builtins.isString attrs then
+            lib.splitString "." attrs
+          else
+            throw "generateSplicesForMkScope must be passed a list of string or string"
+        );
+      bad = throw "attribute should be found";
     in
     {
-      # nulls should never be reached
-      selfBuildBuild = lib.attrByPath (split "pkgsBuildBuild") null pkgs;
-      selfBuildHost = lib.attrByPath (split "pkgsBuildHost") null pkgs;
-      selfBuildTarget = lib.attrByPath (split "pkgsBuildTarget") null pkgs;
-      selfHostHost = lib.attrByPath (split "pkgsHostHost") null pkgs;
-      selfHostTarget = lib.attrByPath (split "pkgsHostTarget") null pkgs;
+      selfBuildBuild = lib.attrByPath (split "pkgsBuildBuild") bad pkgs;
+      selfBuildHost = lib.attrByPath (split "pkgsBuildHost") bad pkgs;
+      selfBuildTarget = lib.attrByPath (split "pkgsBuildTarget") bad pkgs;
+      selfHostHost = lib.attrByPath (split "pkgsHostHost") bad pkgs;
+      selfHostTarget = lib.attrByPath (split "pkgsHostTarget") bad pkgs;
       selfTargetTarget = lib.attrByPath (split "pkgsTargetTarget") { } pkgs;
     };
 
   # Haskell package sets need this because they reimplement their own
   # `newScope`.
-  __splicedPackages = splicedPackages // { recurseForDerivations = false; };
+  __splicedPackages =
+    if actuallySplice then splicedPackages // { recurseForDerivations = false; } else pkgs;
 }

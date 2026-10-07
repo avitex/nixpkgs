@@ -1,10 +1,11 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, unittestCheckHook
-, pytz
-, pyyaml
-, argparse
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  unittestCheckHook,
+  pytz,
+  pyyaml,
+  argparse,
 }:
 
 buildPythonPackage rec {
@@ -19,9 +20,7 @@ buildPythonPackage rec {
     hash = "sha256-0gy7wfT/uMTmpdIF2OPGVeUh+4yqJSI2Ebif0Lf/DLM=";
   };
 
-  propagatedBuildInputs = [
-    pytz
-  ];
+  propagatedBuildInputs = [ pytz ];
 
   preCheck = "cd dateinfer";
   nativeCheckInputs = [
@@ -31,10 +30,10 @@ buildPythonPackage rec {
   ];
   pythonImportsCheck = [ "dateinfer" ];
 
-  meta = with lib; {
+  meta = {
     description = "Infers date format from examples";
     homepage = "https://pypi.org/project/pydateinfer/";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ mbalatsko ];
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
 }

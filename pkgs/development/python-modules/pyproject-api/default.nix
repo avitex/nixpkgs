@@ -1,42 +1,35 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# build time
-, hatchling
-, hatch-vcs
+  # build time
+  hatchling,
+  hatch-vcs,
 
-# runtime
-, packaging
-, toml
-, tomli
+  # runtime
+  packaging,
 
-# docs
-, sphinxHook
-, furo
-, sphinx-autodoc-typehints
+  # docs
+  sphinxHook,
+  furo,
+  sphinx-autodoc-typehints,
 
-# tests
-, pytest-mock
-, pytestCheckHook
-, setuptools
-, virtualenv
-, wheel
+  # tests
+  pytest-mock,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "pyproject-api";
-  version = "1.6.1";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "1.10.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "tox-dev";
     repo = "pyproject-api";
-    rev = "refs/tags/${version}";
-    hash = "sha256-XQD+36NP2zKUp/QRlgKhwzfMYBh6GVlCYXURXs2qeO8=";
+    tag = version;
+    hash = "sha256-fWlGGVjB43NPfBRFfOWqZUDQuqOdrFP7jsqq9xOfvaw=";
   };
 
   outputs = [
@@ -44,44 +37,32 @@ buildPythonPackage rec {
     "doc"
   ];
 
-  nativeBuildInputs = [
+  build-system = [
     hatchling
     hatch-vcs
+  ];
 
+  nativeBuildInputs = [
     # docs
     sphinxHook
     furo
     sphinx-autodoc-typehints
   ];
 
-  propagatedBuildInputs = [
-    packaging
-  ] ++ lib.optionals (pythonOlder "3.11") [
-    tomli
-  ];
+  dependencies = [ packaging ];
 
   nativeCheckInputs = [
     pytest-mock
     pytestCheckHook
-    setuptools
-    virtualenv
-    wheel
   ];
 
-  disabledTests = [
-    # requires eol python2 interpreter
-    "test_can_build_on_python_2"
-  ];
+  pythonImportsCheck = [ "pyproject_api" ];
 
-  pythonImportsCheck = [
-    "pyproject_api"
-  ];
-
-  meta = with lib; {
+  meta = {
     changelog = "https://github.com/tox-dev/pyproject-api/releases/tag/${version}";
     description = "API to interact with the python pyproject.toml based projects";
     homepage = "https://github.com/tox-dev/pyproject-api";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

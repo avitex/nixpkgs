@@ -1,15 +1,19 @@
-import ./make-test-python.nix ({ pkgs, latestKernel ? false, ... }:
+{
+  latestKernel,
+  lib,
+  ...
+}:
 
 {
   name = "systemd-analyze";
-  meta = with pkgs.lib.maintainers; {
-    maintainers = [ raskin ];
-  };
+  meta.maintainers = with lib.maintainers; [ raskin ];
+
+  _module.args.latestKernel = lib.mkDefault false;
 
   nodes.machine =
     { pkgs, lib, ... }:
-    { boot.kernelPackages = lib.mkIf latestKernel pkgs.linuxPackages_latest;
-      sound.enable = true; # needed for the factl test, /dev/snd/* exists without them but udev doesn't care then
+    {
+      boot.kernelPackages = lib.mkIf latestKernel pkgs.linuxPackages_latest;
     };
 
   testScript = ''
@@ -40,7 +44,7 @@ import ./make-test-python.nix ({ pkgs, latestKernel ? false, ... }:
     # We copy the main graph into the $out (toplevel), and we also copy
     # the entire output directory with additional data
     with subtest("Copying the resulting data into $out"):
-        machine.copy_from_vm("systemd-analyze/", "")
-        machine.copy_from_vm("systemd-analyze/systemd-analyze.svg", "")
+        machine.copy_from_machine("systemd-analyze/", "")
+        machine.copy_from_machine("systemd-analyze/systemd-analyze.svg", "")
   '';
-})
+}

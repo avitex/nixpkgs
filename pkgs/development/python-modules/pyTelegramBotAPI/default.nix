@@ -1,83 +1,60 @@
-{ lib
-, aiohttp
-, aioredis
-, buildPythonPackage
-, coloredlogs
-, fastapi
-, fetchFromGitHub
-, pillow
-, psutil
-, pytestCheckHook
-, pythonOlder
-, redis
-, requests
-, ujson
-, uvicorn
-, watchdog
+{
+  lib,
+  aiohttp,
+  buildPythonPackage,
+  coloredlogs,
+  fastapi,
+  fetchFromGitHub,
+  hatchling,
+  pillow,
+  psutil,
+  pytestCheckHook,
+  redis,
+  requests,
+  ujson,
+  uvicorn,
+  watchdog,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pytelegrambotapi";
-  version = "4.14.1";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "4.36.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "eternnoir";
     repo = "pyTelegramBotAPI";
-    rev = "refs/tags/${version}";
-    hash = "sha256-p31JRojOwoWQZE1w6UXEja0UvloMDbtKw75HHMUzgFU=";
+    tag = finalAttrs.version;
+    hash = "sha256-KPsfKTG7MjBhM5nYlhfVF7wvjZP9KQRVmCjlGcL/OT4=";
   };
 
-  passthru.optional-dependencies = {
-    json = [
-      ujson
-    ];
-    PIL = [
-      pillow
-    ];
-    redis = [
-      redis
-    ];
-    aioredis = [
-      aioredis
-    ];
-    aiohttp = [
-      aiohttp
-    ];
-    fastapi = [
-      fastapi
-    ];
-    uvicorn = [
-      uvicorn
-    ];
-    psutil = [
-      psutil
-    ];
-    coloredlogs = [
-      coloredlogs
-    ];
-    watchdog = [
-      watchdog
-    ];
+  build-system = [ hatchling ];
+
+  optional-dependencies = {
+    json = [ ujson ];
+    PIL = [ pillow ];
+    redis = [ redis ];
+    aiohttp = [ aiohttp ];
+    fastapi = [ fastapi ];
+    uvicorn = [ uvicorn ];
+    psutil = [ psutil ];
+    coloredlogs = [ coloredlogs ];
+    watchdog = [ watchdog ];
   };
 
-  checkInputs = [
+  nativeCheckInputs = [
     pytestCheckHook
     requests
-  ] ++ passthru.optional-dependencies.watchdog
-  ++ passthru.optional-dependencies.aiohttp;
+  ]
+  ++ lib.flatten (builtins.attrValues finalAttrs.passthru.optional-dependencies);
 
-  pythonImportsCheck = [
-    "telebot"
-  ];
+  pythonImportsCheck = [ "telebot" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python implementation for the Telegram Bot API";
     homepage = "https://github.com/eternnoir/pyTelegramBotAPI";
-    changelog = "https://github.com/eternnoir/pyTelegramBotAPI/releases/tag/${version}";
-    license = licenses.gpl2Only;
-    maintainers = with maintainers; [ das_j ];
+    changelog = "https://github.com/eternnoir/pyTelegramBotAPI/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.gpl2Only;
+    maintainers = [ ];
   };
-}
+})

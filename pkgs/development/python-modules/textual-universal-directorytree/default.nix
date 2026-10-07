@@ -1,39 +1,38 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, hatchling
-, textual
-, universal-pathlib
-, adlfs
-, aiohttp
-, gcsfs
-, paramiko
-, requests
-, s3fs
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  textual,
+  universal-pathlib,
+  adlfs,
+  aiohttp,
+  gcsfs,
+  paramiko,
+  requests,
+  s3fs,
 }:
 
 buildPythonPackage rec {
   pname = "textual-universal-directorytree";
-  version = "1.0.2";
-  format = "pyproject";
+  version = "1.7.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "juftin";
     repo = "textual-universal-directorytree";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-FL2bwPGqBmDn33Rhj7+VEpuqB4znEAw+GGAODTs25oo=";
+    tag = "v${version}";
+    hash = "sha256-e9i6P+KQnGbFwCsNiu2eLJFg3fpcR2/vl/FVWOBqWUQ=";
   };
 
-  nativeBuildInputs = [
-    hatchling
-  ];
+  nativeBuildInputs = [ hatchling ];
 
   propagatedBuildInputs = [
     textual
     universal-pathlib
   ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     remote = [
       adlfs
       aiohttp
@@ -46,11 +45,11 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "textual_universal_directorytree" ];
 
-  meta = with lib; {
+  meta = {
     description = "Textual plugin for a DirectoryTree compatible with remote filesystems";
     homepage = "https://github.com/juftin/textual-universal-directorytree";
-    changelog = "https://github.com/juftin/textual-universal-directorytree/releases/tag/${src.rev}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ figsoda ];
+    changelog = "https://github.com/juftin/textual-universal-directorytree/releases/tag/v${version}";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

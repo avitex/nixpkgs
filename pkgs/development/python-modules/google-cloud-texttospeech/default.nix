@@ -1,32 +1,39 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, google-api-core
-, mock
-, proto-plus
-, protobuf
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  google-api-core,
+  mock,
+  proto-plus,
+  protobuf,
+  pytest-asyncio,
+  pytestCheckHook,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "google-cloud-texttospeech";
-  version = "2.15.1";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.8";
+  version = "2.37.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-R4ReOtnO/auvNYlHyxlt3eovqkzfyvhkoBHbghpN6vs=";
+    pname = "google_cloud_texttospeech";
+    inherit (finalAttrs) version;
+    hash = "sha256-23JjgvOTzrazYALDWr1itTxNjhf8LzHfiwf9D6u+T4s=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  pythonRelaxDeps = [
+    "protobuf"
+  ];
+
+  dependencies = [
     google-api-core
     proto-plus
     protobuf
-  ] ++ google-api-core.optional-dependencies.grpc;
+  ]
+  ++ google-api-core.optional-dependencies.grpc;
 
   nativeCheckInputs = [
     mock
@@ -35,7 +42,7 @@ buildPythonPackage rec {
   ];
 
   disabledTests = [
-    # Disable tests that require credentials
+    # Tests that require credentials
     "test_list_voices"
     "test_synthesize_speech"
   ];
@@ -46,11 +53,11 @@ buildPythonPackage rec {
     "google.cloud.texttospeech_v1beta1"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Google Cloud Text-to-Speech API client library";
     homepage = "https://github.com/googleapis/google-cloud-python/tree/main/packages/google-cloud-texttospeech";
-    changelog = "https://github.com/googleapis/google-cloud-python/blob/google-cloud-texttospeech-v${version}/packages/google-cloud-texttospeech/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/googleapis/google-cloud-python/blob/google-cloud-texttospeech-v${finalAttrs.version}/packages/google-cloud-texttospeech/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
-}
+})

@@ -1,43 +1,68 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
-, psycopg
-, click
-, configobj
-, sqlparse
+{
+  lib,
+  buildPythonPackage,
+  click,
+  configobj,
+  fetchPypi,
+  postgresql,
+  postgresqlTestHook,
+  psycopg,
+  pytestCheckHook,
+  setuptools,
+  setuptools-scm,
+  sqlparse,
+  stdenv,
 }:
 
 buildPythonPackage rec {
   pname = "pgspecial";
-  version = "2.1.1";
-  format = "setuptools";
+  version = "2.2.1";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-o4I5zZYfrDPObaNcRm11istvlCkBWY19905bgv5vVjY=";
+    hash = "sha256-2mx/zHvve7ATLcIEb3TsZROx/m8MgOVSjWMNFLfEhJ0=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [
+    setuptools
+    setuptools-scm
+  ];
+
+  dependencies = [
     click
     sqlparse
     psycopg
   ];
 
+  # postgresqlTestHook is not available on Darwin
+  doCheck = stdenv.hostPlatform.isLinux;
+
   nativeCheckInputs = [
     configobj
     pytestCheckHook
+    postgresqlTestHook
+    postgresql
   ];
+
+  pytestFlags = [ "-vvv" ];
+
+  env = {
+    PGDATABASE = "_test_db";
+    PGUSER = "postgres";
+  };
 
   disabledTests = [
-    # requires a postgresql server
-    "test_slash_dp_pattern_schema"
+    "test_slash_d_view_verbose"
+    "test_slash_ddp"
+    "test_slash_ddp_pattern"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Meta-commands handler for Postgres Database";
     homepage = "https://github.com/dbcli/pgspecial";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/dbcli/pgspecial/releases/tag/v${version}";
+    license = lib.licenses.bsd3;
+    maintainers = [ lib.maintainers.SuperSandro2000 ];
   };
 }

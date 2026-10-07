@@ -1,61 +1,51 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
-, six
-, html5lib
-, setuptools
-, tinycss2
-, packaging
-, pythonOlder
-, webencodings
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  setuptools,
+  tinycss2,
+  webencodings,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "bleach";
-  version = "6.1.0";
+  version = "6.4.0";
   pyproject = true;
 
-  disabled = pythonOlder "3.8";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-CjHxg3ljxB1Gu/EzG4d44TCOoHkdsDzE5zV7l89CqP4=";
+  src = fetchFromGitHub {
+    owner = "mozilla";
+    repo = "bleach";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-2HcJIxmH78TIE4q481OZPL5ZempMqka6OChEv+BFctY=";
   };
 
-  nativeBuildInputs = [
-    setuptools
+  pythonRelaxDeps = [
+    # Upstream views pins as known-good versions: https://github.com/mozilla/bleach/pull/741
+    "tinycss2"
   ];
 
-  propagatedBuildInputs = [
-    html5lib
-    packaging
-    setuptools
-    six
+  build-system = [ setuptools ];
+
+  dependencies = [
     webencodings
   ];
 
-  passthru.optional-dependencies = {
-    css = [
-      tinycss2
-    ];
+  optional-dependencies = {
+    css = [ tinycss2 ];
   };
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   disabledTests = [
     # Disable network tests
     "protocols"
   ];
 
-  pythonImportsCheck = [
-    "bleach"
-  ];
+  pythonImportsCheck = [ "bleach" ];
 
-  meta = with lib; {
-    description = "An easy, HTML5, whitelisting HTML sanitizer";
+  meta = {
+    description = "Easy, HTML5, whitelisting HTML sanitizer";
     longDescription = ''
       Bleach is an HTML sanitizing library that escapes or strips markup and
       attributes based on a white list. Bleach can also linkify text safely,
@@ -69,8 +59,8 @@ buildPythonPackage rec {
     '';
     homepage = "https://github.com/mozilla/bleach";
     downloadPage = "https://github.com/mozilla/bleach/releases";
-    changelog = "https://github.com/mozilla/bleach/blob/v${version}/CHANGES";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ prikhi ];
+    changelog = "https://github.com/mozilla/bleach/blob/${finalAttrs.src.tag}/CHANGES";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ prikhi ];
   };
-}
+})

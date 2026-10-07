@@ -1,55 +1,48 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, pysigma
-, pysigma-pipeline-sysmon
-, pytestCheckHook
-, pythonOlder
-, requests
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  pysigma,
+  pysigma-pipeline-sysmon,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pysigma-backend-qradar";
   version = "0.3.3";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "nNipsx-Sec";
     repo = "pySigma-backend-qradar";
-    rev = "refs/tags/v${version}";
+    tag = "v${finalAttrs.version}";
     hash = "sha256-VymaxX+iqrRlf+WEt4xqEvNt5kg8xI5O/MoYahayu0o=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  pythonRelaxDeps = [ "pysigma" ];
 
-  propagatedBuildInputs = [
-    pysigma
-  ];
+  build-system = [ poetry-core ];
+
+  dependencies = [ pysigma ];
 
   nativeCheckInputs = [
     pysigma-pipeline-sysmon
     pytestCheckHook
   ];
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace 'pysigma = "^0.7.2"' 'pysigma = "*"'
-  '';
+  pythonImportsCheck = [ "sigma.backends.qradar" ];
 
-  pythonImportsCheck = [
-    "sigma.backends.qradar"
+  disabledTests = [
+    # Output format unknown
+    "test_qradar_extension_output"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Library to support Qradar for pySigma";
     homepage = "https://github.com/nNipsx-Sec/pySigma-backend-qradar";
-    changelog = "https://github.com/nNipsx-Sec/pySigma-backend-qradar/releases/tag/v${version}";
-    license = with licenses; [ lgpl21Only ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/nNipsx-Sec/pySigma-backend-qradar/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.lgpl21Only;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

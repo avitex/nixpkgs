@@ -1,23 +1,28 @@
-{ lib, buildDunePackage, fetchFromGitHub, re }:
+{
+  lib,
+  buildDunePackage,
+  fetchFromGitHub,
+  re,
+}:
 
-buildDunePackage rec {
+buildDunePackage (finalAttrs: {
   pname = "calendar";
   version = "3.0.0";
   minimalOCamlVersion = "4.03";
 
   src = fetchFromGitHub {
     owner = "ocaml-community";
-    repo = pname;
-    rev = "v${version}";
+    repo = "calendar";
+    rev = "v${finalAttrs.version}";
     sha256 = "sha256-+VQzi6pEMqzV1ZR84Yjdu4jsJEWtx+7bd6PQGX7TiEs=";
   };
 
   propagatedBuildInputs = [ re ];
 
   meta = {
-    inherit (src.meta) homepage;
-    description = "A library for handling dates and times";
+    inherit (finalAttrs.src.meta) homepage;
+    description = "Library for handling dates and times";
     license = lib.licenses.lgpl21Plus;
     maintainers = [ lib.maintainers.gal_bolle ];
   };
-}
+})

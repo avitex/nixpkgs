@@ -1,33 +1,31 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "types-psycopg2";
-  version = "2.9.21.20240118";
+  version = "2.9.21.20251012";
   pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-5KBjFufJaQJVF1w+5d/6W0fFBX8XGB9eNMbc2zQGbzU=";
+    pname = "types_psycopg2";
+    inherit version;
+    hash = "sha256-TNr9OJJ9oM/eSYBPOauFr9nG6cSSgA5C8fDBobAxKTU=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  pythonImportsCheck = [
-    "psycopg2-stubs"
-  ];
+  pythonImportsCheck = [ "psycopg2-stubs" ];
 
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "Typing stubs for psycopg2";
     homepage = "https://github.com/python/typeshed";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
 }

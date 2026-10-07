@@ -1,35 +1,38 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, flask
-, jsonschema
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  flask,
+  jsonschema,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "flask-expects-json";
   version = "1.7.0";
-  format = "setuptools";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "Fischerfredl";
-    repo = pname;
-    rev = version;
+    repo = "flask-expects-json";
+    rev = finalAttrs.version;
     hash = "sha256-CUxuwqjjAb9Fy6xWtX1WtSANYaYr5//vY8k89KghYoQ=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     flask
     jsonschema
-  ] ++ flask.optional-dependencies.async;
+  ]
+  ++ flask.optional-dependencies.async;
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "flask_expects_json"
-  ];
+  pythonImportsCheck = [ "flask_expects_json" ];
 
   disabledTests = [
     # https://github.com/Fischerfredl/flask-expects-json/issues/26
@@ -44,10 +47,10 @@ buildPythonPackage rec {
     "test_validation_invalid"
   ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/fischerfredl/flask-expects-json";
-    description = "Decorator for REST endpoints in flask. Validate JSON request data.";
-    license = licenses.mit;
-    maintainers = [];
+    description = "Decorator for REST endpoints in flask. Validate JSON request data";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
-}
+})

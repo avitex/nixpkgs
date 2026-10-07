@@ -1,34 +1,28 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, six
-, isPy27
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  six,
 }:
 
 buildPythonPackage rec {
   pname = "mongoquery";
-  version = "1.4.2";
+  version = "1.4.3";
   format = "setuptools";
-
-  disabled = isPy27;
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "bd19fc465f0aa9feb3070f144fde41fc68cf28ea32dd3b7565f7df3ab6fc0ac2";
+    sha256 = "sha256-6QH4buWvfvbtovLCb0vSz+g4DYHxeLfjYH27zc7pcjk=";
   };
 
-  propagatedBuildInputs = [
-    six
-  ];
+  propagatedBuildInputs = [ six ];
 
-  pythonImportsCheck = [
-    "mongoquery"
-  ];
+  pythonImportsCheck = [ "mongoquery" ];
 
-  meta = with lib; {
-    description = "A python implementation of mongodb queries";
+  meta = {
+    description = "Python implementation of mongodb queries";
     homepage = "https://github.com/kapouille/mongoquery";
-    license = with licenses; [ unlicense ];
-    maintainers = with maintainers; [ misuzu ];
+    license = lib.licenses.unlicense;
+    maintainers = with lib.maintainers; [ misuzu ];
   };
 }

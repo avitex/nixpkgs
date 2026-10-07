@@ -1,39 +1,53 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, coreutils
-, pbr
-, prettytable
-, keystoneauth1
-, requests
-, warlock
-, oslo-utils
-, oslo-i18n
-, wrapt
-, pyopenssl
-, pythonOlder
-, stestr
-, testscenarios
-, ddt
-, requests-mock
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  coreutils,
+  setuptools,
+  pbr,
+  prettytable,
+  keystoneauth1,
+  requests,
+  warlock,
+  openstacksdk,
+  oslo-i18n,
+  oslo-utils,
+  wrapt,
+  pyopenssl,
+  stestr,
+  testscenarios,
+  ddt,
+  requests-mock,
+  writeText,
 }:
-
-buildPythonPackage rec {
+let
   pname = "python-glanceclient";
-  version = "4.4.0";
-  format = "setuptools";
+  version = "4.13.0";
 
-  disabled = pythonOlder "3.8";
+  disabledTests = [
+    # Skip tests which require networking.
+    "glanceclient.tests.unit.test_http.TestClient.test_http_chunked_response"
+    "glanceclient.tests.unit.test_http.TestClient.test_log_request_id_once"
+    "glanceclient.tests.unit.test_http.TestClient.test_log_request_id_once"
+    ''glanceclient\.tests\.unit\.test_ssl\.TestHTTPSVerifyCert\..*''
+  ];
+in
+buildPythonPackage {
+  inherit pname version;
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-ejZuH/Zr23bmJ+7PfNQFO9lPNfo83GkNKa/0fpduBTI=";
+    pname = "python_glanceclient";
+    inherit version;
+    hash = "sha256-+jNZvIvZPnrryjctr+yOGQA7TB9kSZ4uuCsncdqPpBw=";
   };
 
   postPatch = ''
     substituteInPlace glanceclient/tests/unit/v1/test_shell.py \
-      --replace "/bin/echo" "${coreutils}/bin/echo"
+      --replace-fail "/bin/echo" "${lib.getExe' coreutils "echo"}"
   '';
+
+  nativeBuildInputs = [ setuptools ];
 
   propagatedBuildInputs = [
     pbr
@@ -48,24 +62,25 @@ buildPythonPackage rec {
   ];
 
   nativeCheckInputs = [
+    ddt
+    openstacksdk
+    requests-mock
     stestr
     testscenarios
-    ddt
-    requests-mock
   ];
 
   checkPhase = ''
-    stestr run
+    runHook preCheck
+    stestr run -e ${writeText "disabled-tests" (lib.concatStringsSep "\n" disabledTests)}
+    runHook postCheck
   '';
 
-  pythonImportsCheck = [
-    "glanceclient"
-  ];
+  pythonImportsCheck = [ "glanceclient" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python bindings for the OpenStack Images API";
     homepage = "https://github.com/openstack/python-glanceclient/";
-    license = licenses.asl20;
-    maintainers = teams.openstack.members;
+    license = lib.licenses.asl20;
+    teams = [ lib.teams.openstack ];
   };
 }

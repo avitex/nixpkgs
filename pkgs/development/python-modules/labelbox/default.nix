@@ -1,105 +1,109 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, geojson
-, google-api-core
-, imagesize
-, nbconvert
-, nbformat
-, numpy
-, opencv4
-, packaging
-, pillow
-, pydantic
-, pyproj
-, pytestCheckHook
-, python-dateutil
-, pythonOlder
-, requests
-, setuptools
-, shapely
-, tqdm
-, typeguard
-, typing-extensions
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  geojson,
+  google-api-core,
+  hatchling,
+  imagesize,
+  lbox-clients,
+  nbconvert,
+  nbformat,
+  numpy,
+  opencv-python-headless,
+  pillow,
+  pydantic,
+  pyproj,
+  pytest-cov-stub,
+  pytest-order,
+  pytest-rerunfailures,
+  pytest-xdist,
+  pytestCheckHook,
+  python-dateutil,
+  pyyaml,
+  requests,
+  shapely,
+  strenum,
+  tqdm,
+  typeguard,
+  typing-extensions,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "labelbox";
-  version = "3.58.1";
+  version = "7.12.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "Labelbox";
     repo = "labelbox-python";
-    rev = "refs/tags/v.${version}";
-    hash = "sha256-H6fn+TpfYbu/warhr9XcQjfxSThIjBp9XwelA5ZvTBE=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-a3G9Jl1IfbLyI7RZY32zZTbPg8EpSZUrNy12A01Y+Qc=";
   };
 
-  postPatch = ''
-    substituteInPlace pytest.ini \
-      --replace "--reruns 5 --reruns-delay 10" ""
-  '';
+  sourceRoot = "${finalAttrs.src.name}/libs/labelbox";
 
-  nativeBuildInputs = [
-    setuptools
+  pythonRelaxDeps = [
+    "lbox-clients"
+    "python-dateutil"
   ];
 
-  propagatedBuildInputs = [
+  build-system = [ hatchling ];
+
+  dependencies = [
     google-api-core
+    lbox-clients
     pydantic
     python-dateutil
     requests
+    strenum
     tqdm
+    geojson
+    pyyaml
   ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     data = [
       shapely
-      geojson
       numpy
       pillow
-      opencv4
+      opencv-python-headless
       typeguard
       imagesize
       pyproj
       # pygeotile
       typing-extensions
-      packaging
     ];
   };
 
   nativeCheckInputs = [
     nbconvert
     nbformat
+    pytest-cov-stub
+    pytest-order
+    pytest-rerunfailures
+    pytest-xdist
     pytestCheckHook
-  ] ++ passthru.optional-dependencies.data;
-
-  # disable pytest_plugins which requires `pygeotile`
-  preCheck = ''
-    substituteInPlace tests/conftest.py \
-      --replace "pytest_plugins" "_pytest_plugins"
-  '';
+  ]
+  ++ lib.flatten (builtins.attrValues finalAttrs.passthru.optional-dependencies);
 
   disabledTestPaths = [
     # Requires network access
     "tests/integration"
     # Missing requirements
     "tests/data"
+    "tests/unit/test_label_data_type.py"
   ];
 
-  pythonImportsCheck = [
-    "labelbox"
-  ];
+  __darwinAllowLocalNetworking = true;
 
-  meta = with lib; {
+  pythonImportsCheck = [ "labelbox" ];
+
+  meta = {
     description = "Platform API for LabelBox";
     homepage = "https://github.com/Labelbox/labelbox-python";
-    changelog = "https://github.com/Labelbox/labelbox-python/blob/v.${version}/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ rakesh4g ];
-    # https://github.com/Labelbox/labelbox-python/issues/1246
-    broken = versionAtLeast pydantic.version "2";
+    changelog = "https://github.com/Labelbox/labelbox-python/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ rakesh4g ];
   };
-}
+})

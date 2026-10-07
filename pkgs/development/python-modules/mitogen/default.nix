@@ -1,34 +1,34 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "mitogen";
-  version = "0.3.4";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.3.53";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "mitogen-hq";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-tMpjmSqZffFGbo06W/FAut584F8eOPrcLKjj2bnB+Zo=";
+    repo = "mitogen";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-YtQl3pII/SLYA9Ekm48n2naYEixHWFEaXg7gtuPXfmU=";
   };
+
+  build-system = [ setuptools ];
 
   # Tests require network access and Docker support
   doCheck = false;
 
-  pythonImportsCheck = [
-    "mitogen"
-  ];
+  pythonImportsCheck = [ "mitogen" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python Library for writing distributed self-replicating programs";
     homepage = "https://github.com/mitogen-hq/mitogen";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/mitogen-hq/mitogen/blob/${finalAttrs.src.tag}/docs/changelog.rst";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

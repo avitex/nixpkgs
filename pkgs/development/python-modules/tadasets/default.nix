@@ -1,36 +1,43 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, numpy
-, matplotlib
-, pytest
-, scipy
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  numpy,
+  matplotlib,
+  pytestCheckHook,
+  setuptools,
+  scipy,
+  scikit-learn,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "tadasets";
-  version = "0.0.4";
-  format = "setuptools";
+  version = "0.2.2";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    sha256 = "a0e6c14678750315febd97fcf334bbbfd2695ebd91b4fe7707bb1220d7348416";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-C+l19J0PHjZTlzAhXbojicaOyr/gjN8fuH7cLyb449w=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     numpy
     matplotlib
   ];
 
   nativeCheckInputs = [
-    pytest
+    pytestCheckHook
     scipy
+    scikit-learn
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Great data sets for Topological Data Analysis";
     homepage = "https://tadasets.scikit-tda.org";
-    license = licenses.mit;
+    changelog = "https://github.com/scikit-tda/tadasets/blob/v${finalAttrs.version}/CHANGELOG.md";
+    license = lib.licenses.mit;
     maintainers = [ ];
   };
-}
+})

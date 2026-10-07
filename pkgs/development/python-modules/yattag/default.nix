@@ -1,29 +1,33 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "yattag";
-  version = "1.15.2";
-  format = "setuptools";
+  version = "1.16.1";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-qtn1QL0i3FA+W1UGzEeFb6zwgapx/TX3JzcbY+HkAr8=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-uqjyVOfqXT4GGCga0v9WEODlNgs2COaVwpv7OynQUfQ=";
   };
 
-  pythonImportsCheck = [
-    "yattag"
-  ];
+  build-system = [ setuptools ];
 
-  meta = with lib; {
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  pythonImportsCheck = [ "yattag" ];
+
+  meta = {
     description = "Library to generate HTML or XML";
     homepage = "https://www.yattag.org/";
-    license = licenses.lgpl21Only;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.lgpl21Only;
+    maintainers = [ ];
   };
-}
+})

@@ -1,57 +1,60 @@
-{ lib
-, beautifulsoup4
-, buildPythonPackage
-, click
-, colorama
-, fetchFromGitHub
-, html2text
-, lxml
-, markdown
-, pytestCheckHook
-, python-dateutil
-, pythonOlder
-, pytz
-, requests
-, simplejson
-, tabulate
+{
+  lib,
+  beautifulsoup4,
+  buildPythonPackage,
+  click,
+  colorama,
+  fetchFromGitHub,
+  html2text,
+  lxml,
+  markdown,
+  pandas,
+  pytestCheckHook,
+  python-dateutil,
+  pytz,
+  requests,
+  setuptools,
+  simplejson,
+  tabulate,
+  tldextract,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "faraday-plugins";
-  version = "1.15.1";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "1.31.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "infobyte";
     repo = "faraday_plugins";
-    rev = "refs/tags/${version}";
-    hash = "sha256-cJ7gFE8zTN+7fp4EY8ZRwjS8i0r+8WaIH/EdY89nZew=";
+    tag = finalAttrs.version;
+    hash = "sha256-Z2jkw2HS3NNZ0YURHe7sEWpZ8FArDGHEvXvyC3AMaYc=";
   };
 
   postPatch = ''
     substituteInPlace setup.py \
-      --replace "version=version," "version='${version}',"
+      --replace-fail "version=version," "version='${finalAttrs.version}',"
   '';
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     beautifulsoup4
     click
     colorama
     html2text
     lxml
     markdown
+    pandas
     python-dateutil
     pytz
     requests
     simplejson
     tabulate
+    tldextract
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   disabledTestPaths = [
     # faraday itself is currently not available
@@ -61,21 +64,21 @@ buildPythonPackage rec {
   disabledTests = [
     # Fail because of missing faraday
     "test_detect_report"
-    "test_process_report_summary"
+    "test_process_report"
+    "TestNuclei3x"
     # JSON parsing issue
     "test_process_report_ignore_info"
     "test_process_report_tags"
   ];
 
-  pythonImportsCheck = [
-    "faraday_plugins"
-  ];
+  pythonImportsCheck = [ "faraday_plugins" ];
 
-  meta = with lib; {
+  meta = {
     description = "Security tools report parsers for Faraday";
     homepage = "https://github.com/infobyte/faraday_plugins";
-    changelog = "https://github.com/infobyte/faraday_plugins/releases/tag/${version}";
-    license = with licenses; [ gpl3Only ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/infobyte/faraday_plugins/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.gpl3Only;
+    maintainers = with lib.maintainers; [ fab ];
+    mainProgram = "faraday-plugins";
   };
-}
+})

@@ -1,51 +1,49 @@
-{ lib
-, buildPythonPackage
-, python
-, fetchpatch
-, fetchPypi
-, pari
-, gmp
-, cython_3
-, cysignals
+{
+  lib,
+  buildPythonPackage,
+  python,
+  fetchPypi,
+  pari,
+  pkg-config,
+  gmp,
+  meson-python,
+  cython,
+  cysignals,
+
+  # Reverse dependency
+  sage,
 }:
 
 buildPythonPackage rec {
   pname = "cypari2";
-  # upgrade may break sage, please test the sage build or ping @timokau on upgrade
-  version = "2.1.4";
-  format = "setuptools";
+  # upgrade may break sage, please test the sage build or ping the sage team on upgrade
+  version = "2.2.4";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-76SkTZb2k8sRVtof1vzMEw2vz5wZr0GFz3cL9E0A2/w=";
+    hash = "sha256-+fDplKmgsGRhkyBBHh2cMDFYhH4FW1gILv2t5ayX9hM=";
   };
 
-  patches = [
-    # patch to avoid some segfaults in sage's totallyreal.pyx test.
-    # (https://trac.sagemath.org/ticket/27267).
-    (fetchpatch {
-      name = "use-trashcan-for-gen.patch";
-      url = "https://raw.githubusercontent.com/sagemath/sage/b6ea17ef8e4d652de0a85047bac8d41e90b25555/build/pkgs/cypari/patches/trashcan.patch";
-      hash = "sha256-w4kktWb9/aR9z4CjrUvAMOxEwRN2WkubaKzQttN8rU8=";
-    })
-  ];
-
-  preBuild = ''
-    # generate cythonized extensions (auto_paridecl.pxd is crucial)
-    ${python.pythonOnBuildForHost.interpreter} setup.py build_ext --inplace
+  preConfigure = ''
+    substituteInPlace cypari2/meson.build \
+       --replace-fail "'cypari2.py'" "'cypari2.pc'"
   '';
+
+  build-system = [
+    meson-python
+    cython
+    cysignals
+  ];
 
   nativeBuildInputs = [
     pari
+    pkg-config
   ];
 
   buildInputs = [
     gmp
-  ];
-
-  propagatedBuildInputs = [
-    cysignals
-    cython_3
+    pari
   ];
 
   checkPhase = ''
@@ -53,10 +51,14 @@ buildPythonPackage rec {
     make check
   '';
 
-  meta = with lib; {
+  passthru.tests = {
+    inherit sage;
+  };
+
+  meta = {
     description = "Cython bindings for PARI";
-    license = licenses.gpl2Plus;
-    maintainers = teams.sage.members;
+    license = lib.licenses.gpl2Plus;
+    teams = [ lib.teams.sage ];
     homepage = "https://github.com/defeo/cypari2";
   };
 }

@@ -1,39 +1,44 @@
-{ stdenv
-, lib
-, fetchFromGitLab
-, gitUpdater
-, testers
-, boost
-, cmake
-, cmake-extras
-, dbus
-, dbus-cpp
-, gdk-pixbuf
-, glib
-, gst_all_1
-, gtest
-, libapparmor
-, libexif
-, pkg-config
-, properties-cpp
-, qtbase
-, qtdeclarative
-, shared-mime-info
-, sqlite
-, taglib
-, udisks
-, wrapQtAppsHook
+{
+  stdenv,
+  lib,
+  fetchFromGitLab,
+  gitUpdater,
+  nixosTests,
+  testers,
+  boost,
+  cmake,
+  cmake-extras,
+  dbus,
+  dbus-cpp,
+  gdk-pixbuf,
+  glib,
+  gst_all_1,
+  gtest,
+  libapparmor,
+  libexif,
+  pkg-config,
+  properties-cpp,
+  qtbase,
+  qtdeclarative,
+  shared-mime-info,
+  sqlite,
+  taglib,
+  udisks,
+  wrapQtAppsHook,
 }:
 
+let
+  withQt6 = lib.versions.major qtbase.version == "6";
+in
 stdenv.mkDerivation (finalAttrs: {
   pname = "mediascanner2";
-  version = "0.115";
+  version = "0.201";
 
   src = fetchFromGitLab {
     owner = "ubports";
     repo = "development/core/mediascanner2";
-    rev = finalAttrs.version;
-    hash = "sha256-UEwFe65VB2asxQhuWGEAVow/9rEvZxry4dd2/60fXN4=";
+    tag = finalAttrs.version;
+    hash = "sha256-Z57ptFR+/W80sPquM5hgaqnCjd9pWYheq2VnkR+fGSY=";
   };
 
   outputs = [
@@ -43,11 +48,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   postPatch = ''
     substituteInPlace src/qml/MediaScanner.*/CMakeLists.txt \
-      --replace "\''${CMAKE_INSTALL_LIBDIR}/qt5/qml" "\''${CMAKE_INSTALL_PREFIX}/${qtbase.qtQmlPrefix}"
-
-    # Lomiri desktop doesn't identify itself under Canonical's name anymore
-    substituteInPlace src/daemon/scannerdaemon.cc \
-      --replace 'Unity8' 'Lomiri'
+      --replace-fail "\''${CMAKE_INSTALL_LIBDIR}/qt\''${QT_VERSION_MAJOR}/qml" "\''${CMAKE_INSTALL_PREFIX}/${qtbase.qtQmlPrefix}"
   '';
 
   strictDeps = true;
@@ -75,24 +76,27 @@ stdenv.mkDerivation (finalAttrs: {
     sqlite
     taglib
     udisks
-  ] ++ (with gst_all_1; [
+  ]
+  ++ (with gst_all_1; [
     gstreamer
     gst-plugins-base
     gst-plugins-good
   ]);
 
-  checkInputs = [
-    gtest
-  ];
+  nativeCheckInputs = [ dbus ];
+
+  checkInputs = [ gtest ];
 
   cmakeFlags = [
-    "-DENABLE_TESTS=${lib.boolToString finalAttrs.doCheck}"
+    (lib.cmakeBool "ENABLE_QT6" withQt6)
+    (lib.cmakeBool "ENABLE_TESTS" finalAttrs.finalPackage.doCheck)
   ];
 
   doCheck = stdenv.buildPlatform.canExecute stdenv.hostPlatform;
 
   preCheck = ''
     export QT_PLUGIN_PATH=${lib.getBin qtbase}/${qtbase.qtPluginPrefix}
+    export QML2_IMPORT_PATH=${lib.getBin qtdeclarative}/${qtbase.qtQmlPrefix}
     export XDG_DATA_DIRS=${shared-mime-info}/share:$XDG_DATA_DIRS
   '';
 
@@ -104,19 +108,26 @@ stdenv.mkDerivation (finalAttrs: {
   '';
 
   passthru = {
-    tests.pkg-config = testers.testMetaPkgConfig finalAttrs.finalPackage;
+    tests = {
+      pkg-config = testers.testMetaPkgConfig finalAttrs.finalPackage;
+    }
+    // lib.optionalAttrs (!withQt6) {
+      # music app needs mediascanner to work properly, so it can find files
+      music-app = nixosTests.lomiri-music-app;
+    };
     updateScript = gitUpdater { };
   };
 
-  meta = with lib; {
+  meta = {
     description = "Media scanner service & access library";
     homepage = "https://gitlab.com/ubports/development/core/mediascanner2";
-    license = licenses.gpl3Only;
-    maintainers = teams.lomiri.members;
+    changelog = "https://gitlab.com/ubports/development/core/mediascanner2/-/blob/${
+      if (!isNull finalAttrs.src.tag) then finalAttrs.src.tag else finalAttrs.src.rev
+    }/ChangeLog";
+    license = lib.licenses.gpl3Only;
+    teams = [ lib.teams.lomiri ];
     mainProgram = "mediascanner-service-2.0";
-    platforms = platforms.linux;
-    pkgConfigModules = [
-      "mediascanner-2.0"
-    ];
+    platforms = lib.platforms.linux;
+    pkgConfigModules = [ "mediascanner-2.0" ];
   };
 })

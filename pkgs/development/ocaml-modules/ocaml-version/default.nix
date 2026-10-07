@@ -1,12 +1,17 @@
-{ lib, fetchurl, buildDunePackage, alcotest }:
+{
+  lib,
+  fetchurl,
+  buildDunePackage,
+  alcotest,
+}:
 
-buildDunePackage rec {
+buildDunePackage (finalAttrs: {
   pname = "ocaml-version";
-  version = "3.6.2";
+  version = "4.1.4";
 
   src = fetchurl {
-    url = "https://github.com/ocurrent/ocaml-version/releases/download/v${version}/ocaml-version-${version}.tbz";
-    hash = "sha256-XJ0xq71ZiR39phQIULXFDLHoj3HntxLI+v2gR0Bp/rI=";
+    url = "https://github.com/ocurrent/ocaml-version/releases/download/v${finalAttrs.version}/ocaml-version-${finalAttrs.version}.tbz";
+    hash = "sha256-Iiik1STIuLd1639h99JE64H/2sowC3jCnY/drKWkPbI=";
   };
 
   checkInputs = [ alcotest ];
@@ -16,10 +21,10 @@ buildDunePackage rec {
   minimalOCamlVersion = "4.07";
   duneVersion = "3";
 
-  meta = with lib; {
+  meta = {
     description = "Manipulate, parse and generate OCaml compiler version strings";
     homepage = "https://github.com/ocurrent/ocaml-version";
-    license = licenses.isc;
-    maintainers = with maintainers; [ vbgl ];
+    license = lib.licenses.isc;
+    maintainers = with lib.maintainers; [ vbgl ];
   };
-}
+})

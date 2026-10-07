@@ -1,26 +1,26 @@
-{ lib
-, fetchFromGitHub
-, buildPythonPackage
-, plugincode
-, file
-, zlib
+{
+  lib,
+  fetchFromGitHub,
+  buildPythonPackage,
+  plugincode,
+  file,
+  zlib,
 }:
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "typecode-libmagic";
-  version = "21.4.4";
+  version = "21.5.31";
+  format = "setuptools";
 
   src = fetchFromGitHub {
-    owner = "nexB";
+    owner = "aboutcode-org";
     repo = "scancode-plugins";
-    rev = "v${version}";
-    sha256 = "xnUGDMS34iMVMGo/nZwRarGzzbj3X4Rt+YHvvKpmy6A=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-nGgFjp1N1IM/Sm4xLJw5WiZncc369/LqNcwFJBS1EQs=";
   };
 
-  sourceRoot = "${src.name}/builtins/typecode_libmagic-linux";
+  sourceRoot = "${finalAttrs.src.name}/builtins/typecode_libmagic-linux";
 
-  propagatedBuildInputs = [
-    plugincode
-  ];
+  propagatedBuildInputs = [ plugincode ];
 
   preBuild = ''
     pushd src/typecode_libmagic
@@ -36,15 +36,14 @@ buildPythonPackage rec {
   # no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "typecode_libmagic"
-  ];
+  pythonImportsCheck = [ "typecode_libmagic" ];
 
-  meta = with lib; {
-    description = "A ScanCode Toolkit plugin to provide pre-built binary libraries and utilities and their locations";
-    homepage = "https://github.com/nexB/scancode-plugins/tree/main/builtins/typecode_libmagic-linux";
-    license = licenses.asl20;
-    maintainers = [ ];
-    platforms = platforms.linux;
+  meta = {
+    description = "ScanCode Toolkit plugin to provide pre-built binary libraries and utilities and their locations";
+    homepage = "https://github.com/aboutcode-org/scancode-plugins/tree/main/builtins/typecode_libmagic-linux";
+    license = lib.licenses.asl20;
+    platforms = lib.platforms.linux;
+    maintainers = with lib.maintainers; [ eljamm ];
+    teams = with lib.teams; [ ngi ];
   };
-}
+})

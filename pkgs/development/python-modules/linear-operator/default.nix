@@ -1,54 +1,63 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, jaxtyping
-, pytestCheckHook
-, scipy
-, setuptools
-, setuptools-scm
-, torch
-, wheel
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+  setuptools-scm,
+
+  # dependencies
+  scipy,
+  torch,
+
+  # tests
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "linear-operator";
-  version = "0.5.2";
-  format = "pyproject";
+  version = "0.6.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "cornellius-gp";
     repo = "linear_operator";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-OuE6jx9Q4IU+b2a+mrglRdBOReN1tt/thetNXxwk1GI=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-Ghe4a3zMSvTv3J6ROd1RLELK+k24/rO8p+XUPVsl090=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     setuptools-scm
-    wheel
   ];
 
-  propagatedBuildInputs = [
-    jaxtyping
+  dependencies = [
     scipy
     torch
   ];
 
   pythonImportsCheck = [ "linear_operator" ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   disabledTests = [
     # flaky numerical tests
+    "test_matmul_matrix_broadcast"
+    "test_solve_matrix_broadcast"
     "test_svd"
+  ]
+  ++ lib.optionals (stdenv.hostPlatform.isLinux && stdenv.hostPlatform.isAarch64) [
+    # RuntimeError: Failed to initialize cpuinfo!
+    "test_half"
   ];
 
-  meta = with lib; {
-    description = "A LinearOperator implementation to wrap the numerical nuts and bolts of GPyTorch";
-    homepage = "https://github.com/cornellius-gp/linear_operator/";
-    license = licenses.mit;
-    maintainers = with maintainers; [ veprbl ];
+  meta = {
+    description = "LinearOperator implementation to wrap the numerical nuts and bolts of GPyTorch";
+    homepage = "https://github.com/cornellius-gp/linear_operator";
+    changelog = "https://github.com/cornellius-gp/linear_operator/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ veprbl ];
   };
-}
+})

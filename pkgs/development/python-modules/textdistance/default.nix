@@ -1,33 +1,43 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  pytestCheckHook,
+  hypothesis,
+  numpy,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "textdistance";
-  version = "4.6.1";
-  format = "setuptools";
+  version = "4.6.3";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-JYllgBse+FaGppq/bDzv3F2iHC+9iMkMaHJfV6fUXyE=";
+    pname = "textdistance";
+    inherit (finalAttrs) version;
+    hash = "sha256-1tq8ULTqgyzc8OHmAhvQx/zZreFViI15u2o8Mfzi3G8=";
   };
 
-  # There aren't tests
-  doCheck = false;
+  build-system = [ setuptools ];
 
-  pythonImportsCheck = [
-    "textdistance"
+  nativeCheckInputs = [
+    pytestCheckHook
+    hypothesis
+    numpy
   ];
 
-  meta = with lib; {
+  disabledTestPaths = [ "tests/test_external.py" ];
+
+  pythonImportsCheck = [ "textdistance" ];
+
+  meta = {
     description = "Python library for comparing distance between two or more sequences";
     homepage = "https://github.com/life4/textdistance";
-    changelog = "https://github.com/life4/textdistance/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/life4/textdistance/releases/tag/${finalAttrs.version}";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
-}
+})

@@ -1,32 +1,50 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, chex
-, jaxlib
-, numpy
-, tensorflow-probability
-, dm-haiku
-, pytest-xdist
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  flit-core,
+
+  # dependencies
+  absl-py,
+  chex,
+  jax,
+  jaxlib,
+  numpy,
+  tensorflow-probability,
+
+  # tests
+  dm-haiku,
+  mock,
+  pytest-xdist,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "distrax";
-  version = "0.1.5";
+  version = "0.1.9";
   pyproject = true;
-
-  disabled = pythonOlder "3.9";
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "google-deepmind";
     repo = "distrax";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-A1aCL/I89Blg9sNmIWQru4QJteUTN6+bhgrEJPmCrM0=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-mX05qWyGTye+ZIXzU+W8ICz691UgVNIYXFN7oJHPssc=";
   };
 
-  buildInputs = [
+  build-system = [
+    flit-core
+  ];
+
+  pythonRemoveDeps = [
+    "tfp-nightly"
+  ];
+  dependencies = [
+    absl-py
     chex
+    jax
     jaxlib
     numpy
     tensorflow-probability
@@ -34,32 +52,22 @@ buildPythonPackage rec {
 
   nativeCheckInputs = [
     dm-haiku
+    mock
     pytest-xdist
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "distrax"
-  ];
+  pythonImportsCheck = [ "distrax" ];
 
   disabledTests = [
-    # AssertionError on numerical values
-    # Reported upstream in https://github.com/google-deepmind/distrax/issues/267
-    "test_method_with_input_unnormalized_probs__with_device"
-    "test_method_with_input_unnormalized_probs__with_jit"
-    "test_method_with_input_unnormalized_probs__without_device"
-    "test_method_with_input_unnormalized_probs__without_jit"
-    "test_method_with_value_1d"
-    "test_nested_distributions__with_device"
-    "test_nested_distributions__without_device"
-    "test_nested_distributions__with_jit"
-    "test_nested_distributions__without_jit"
-    "test_stability__with_device"
-    "test_stability__with_jit"
-    "test_stability__without_device"
-    "test_stability__without_jit"
+    # Flaky: AssertionError: 1 not less than 0.7000000000000001
     "test_von_mises_sample_gradient"
     "test_von_mises_sample_moments"
+    "test_von_mises_sample_uniform_ks_test"
+
+    # Flaky: AssertionError: Not equal to tolerance
+    "StraightThroughTest"
+    "test_composite_methods_are_consistent__with_jit"
   ];
 
   disabledTestPaths = [
@@ -74,13 +82,15 @@ buildPythonPackage rec {
     "distrax/_src/distributions/tfp_compatible_distribution_test.py"
     "distrax/_src/distributions/transformed_test.py"
     "distrax/_src/distributions/uniform_test.py"
+    "distrax/_src/utils/hmm_test.py"
     "distrax/_src/utils/transformations_test.py"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Probability distributions in JAX";
     homepage = "https://github.com/deepmind/distrax";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ onny ];
+    changelog = "https://github.com/google-deepmind/distrax/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ onny ];
   };
-}
+})

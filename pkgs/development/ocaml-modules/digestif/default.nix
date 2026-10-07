@@ -1,28 +1,29 @@
-{ lib, ocaml, fetchurl, buildDunePackage
-, eqaf
-, alcotest, astring, bos, findlib, fpath
+{
+  lib,
+  ocaml,
+  fetchurl,
+  buildDunePackage,
+  eqaf,
+  alcotest,
+  crowbar,
 }:
 
-buildDunePackage rec {
+buildDunePackage (finalAttrs: {
   pname = "digestif";
-  version = "1.1.4";
-
-  minimalOCamlVersion = "4.08";
-  duneVersion = "3";
+  version = "1.3.1";
 
   src = fetchurl {
-    url = "https://github.com/mirage/digestif/releases/download/v${version}/digestif-${version}.tbz";
-    hash = "sha256-w3k+cg8NqAVPYobFRcghp/6+iC5/TlSX7ImxWjU1EeE=";
+    url = "https://github.com/mirage/digestif/releases/download/v${finalAttrs.version}/digestif-${finalAttrs.version}.tbz";
+    hash = "sha256-OSeUmlbUNawhBs24OUQAv/mJ1EVn66kDjkfbJmzIhGY=";
   };
 
   propagatedBuildInputs = [ eqaf ];
 
-  checkInputs = [ alcotest astring bos fpath ];
+  checkInputs = [
+    alcotest
+    crowbar
+  ];
   doCheck = true;
-
-  postCheck = ''
-    ocaml -I ${findlib}/lib/ocaml/${ocaml.version}/site-lib/ test/test_runes.ml
-  '';
 
   meta = {
     description = "Simple hash algorithms in OCaml";
@@ -30,4 +31,4 @@ buildDunePackage rec {
     license = lib.licenses.mit;
     maintainers = [ lib.maintainers.vbgl ];
   };
-}
+})

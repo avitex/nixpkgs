@@ -1,46 +1,54 @@
-{ lib
-, stdenv
-, addOpenGLRunpath
-, autoPatchelfHook
-, buildPythonPackage
-, cudaPackages
-, fetchurl
-, pythonAtLeast
-, pythonOlder
-, pillow
-, python
-, torch-bin
+{
+  lib,
+  stdenv,
+  python,
+  buildPythonPackage,
+  fetchurl,
+  pythonAtLeast,
+
+  # buildInputs
+  cudaPackages,
+
+  # nativeBuildInputs
+  addDriverRunpath,
+  autoPatchelfHook,
+
+  # dependencies
+  pillow,
+  torch-bin,
 }:
 
 let
   pyVerNoDot = builtins.replaceStrings [ "." ] [ "" ] python.pythonVersion;
   srcs = import ./binary-hashes.nix version;
   unsupported = throw "Unsupported system";
-  version = "0.16.2";
-in buildPythonPackage {
-  inherit version;
-
+  version = "0.28.0";
+in
+buildPythonPackage {
   pname = "torchvision";
-
+  inherit version;
   format = "wheel";
+  __structuredAttrs = true;
 
   src = fetchurl srcs."${stdenv.system}-${pyVerNoDot}" or unsupported;
 
-  disabled = (pythonOlder "3.8") || (pythonAtLeast "3.12");
+  disabled = pythonAtLeast "3.15";
 
   # Note that we don't rely on config.cudaSupport here, because the Linux wheels all come built with CUDA support.
-  buildInputs = with cudaPackages; lib.optionals stdenv.isLinux [
-    # $out/${sitePackages}/torchvision/_C.so wants libcudart.so.11.0 but torchvision.libs only ships
-    # libcudart.$hash.so.11.0
-    cuda_cudart
-  ];
+  buildInputs =
+    with cudaPackages;
+    lib.optionals stdenv.hostPlatform.isLinux [
+      # $out/${sitePackages}/torchvision/_C.so wants libcudart.so.11.0 but torchvision.libs only ships
+      # libcudart.$hash.so.11.0
+      cuda_cudart
+    ];
 
-  nativeBuildInputs = lib.optionals stdenv.isLinux [
+  nativeBuildInputs = lib.optionals stdenv.hostPlatform.isLinux [
+    addDriverRunpath
     autoPatchelfHook
-    addOpenGLRunpath
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     pillow
     torch-bin
   ];
@@ -50,20 +58,28 @@ in buildPythonPackage {
 
   pythonImportsCheck = [ "torchvision" ];
 
-  preInstall = lib.optionalString stdenv.isLinux ''
+  preInstall = lib.optionalString stdenv.hostPlatform.isLinux ''
     addAutoPatchelfSearchPath "${torch-bin}/${python.sitePackages}/torch"
   '';
 
-  meta = with lib; {
+  meta = {
     description = "PyTorch vision library";
-    homepage = "https://pytorch.org/";
+    homepage = "https://pytorch.org/vision";
+    downloadPage = "https://github.com/pytorch/vision";
     changelog = "https://github.com/pytorch/vision/releases/tag/v${version}";
     # Includes CUDA and Intel MKL, but redistributions of the binary are not limited.
     # https://docs.nvidia.com/cuda/eula/index.html
     # https://www.intel.com/content/www/us/en/developer/articles/license/onemkl-license-faq.html
-    license = licenses.bsd3;
-    sourceProvenance = with sourceTypes; [ binaryNativeCode ];
-    platforms = [ "aarch64-darwin" "x86_64-darwin" "x86_64-linux" ];
-    maintainers = with maintainers; [ junjihashimoto ];
+    license = lib.licenses.bsd3;
+    sourceProvenance = with lib.sourceTypes; [ binaryNativeCode ];
+    platforms = [
+      "aarch64-darwin"
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
+    maintainers = with lib.maintainers; [
+      GaetanLepage
+      junjihashimoto
+    ];
   };
 }

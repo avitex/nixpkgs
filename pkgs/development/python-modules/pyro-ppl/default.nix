@@ -1,61 +1,67 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, graphviz
-, jupyter
-, matplotlib
-, networkx
-, opt-einsum
-, pandas
-, pillow
-, pyro-api
-, pythonOlder
-, torch
-, scikit-learn
-, seaborn
-, torchvision
-, tqdm
-, wget
+{
+  lib,
+  buildPythonPackage,
+  pytestCheckHook,
+  fetchFromGitHub,
+  graphviz,
+  ipywidgets,
+  matplotlib,
+  ninja,
+  notebook,
+  numpy,
+  opt-einsum,
+  pandas,
+  pillow,
+  pyro-api,
+  scikit-learn,
+  scipy,
+  seaborn,
+  setuptools,
+  torch,
+  torchvision,
+  tqdm,
+  wget,
+  pytest-xdist,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pyro-ppl";
-  version = "1.8.6";
-  format = "setuptools";
+  version = "1.9.2";
+  pyproject = true;
+  __structuredAttrs = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit version pname;
-    hash = "sha256-ANL03ailPmbZVRJNxuSektz1cM071waCUJHbdk2TzQc=";
+  src = fetchFromGitHub {
+    owner = "pyro-ppl";
+    repo = "pyro";
+    tag = finalAttrs.version;
+    hash = "sha256-P33neKtdBoIjKjv8KvoECOtlyaLEyb1spDwyGhPAVHk=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
+    numpy
+    opt-einsum
     pyro-api
     torch
-    networkx
-    opt-einsum
     tqdm
   ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     extras = [
+      notebook
+      ipywidgets
       graphviz
-      jupyter
-      # lap
       matplotlib
+      torchvision
       pandas
       pillow
       scikit-learn
       seaborn
-      torchvision
-      # visdom
+      scipy
       wget
     ];
   };
-
-  # pyro not shipping tests do simple smoke test instead
-  doCheck = false;
 
   pythonImportsCheck = [
     "pyro"
@@ -64,11 +70,34 @@ buildPythonPackage rec {
     "pyro.optim"
   ];
 
-  meta = with lib; {
+  # Added for the tests/distributions/test_spanning_tree.py
+  preCheck = ''
+    export TORCH_EXTENSIONS_DIR=$(mktemp -d)
+  '';
+
+  nativeCheckInputs = [
+    graphviz
+    ninja
+    pytest-xdist
+    pytestCheckHook
+    scipy
+  ];
+
+  pytestFlags = [ "--stage=unit" ];
+
+  disabledTests = [
+    "test_stable_with_log_prob_param_fit"
+  ];
+
+  meta = {
     description = "Library for probabilistic modeling and inference";
     homepage = "http://pyro.ai";
-    changelog = "https://github.com/pyro-ppl/pyro/releases/tag/${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ teh georgewhewell ];
+    changelog = "https://github.com/pyro-ppl/pyro/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [
+      Filippo-Galli
+      georgewhewell
+      teh
+    ];
   };
-}
+})

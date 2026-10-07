@@ -1,16 +1,15 @@
-{ buildDunePackage
-, happy-eyeballs
-, duration
-, dns-client-mirage
-, domain-name
-, ipaddr
-, fmt
-, logs
-, lwt
-, mirage-clock
-, mirage-random
-, mirage-time
-, tcpip
+{
+  buildDunePackage,
+  happy-eyeballs,
+  duration,
+  domain-name,
+  ipaddr,
+  fmt,
+  logs,
+  lwt,
+  mirage-mtime,
+  mirage-sleep,
+  tcpip,
 }:
 
 buildDunePackage {
@@ -18,24 +17,16 @@ buildDunePackage {
 
   inherit (happy-eyeballs) src version;
 
-  minimalOCamlVersion = "4.08";
-  duneVersion = "3";
-
-  buildInputs = [
-    duration
-    ipaddr
-    domain-name
-    fmt
-    mirage-clock
-    mirage-random
-    mirage-time
-  ];
-
   propagatedBuildInputs = [
-    dns-client-mirage
+    domain-name
+    duration
+    fmt
     happy-eyeballs
+    ipaddr
     logs
     lwt
+    mirage-mtime
+    mirage-sleep
     tcpip
   ];
 

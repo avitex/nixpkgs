@@ -1,44 +1,41 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, pythonRelaxDepsHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# build-system
-, hatchling
+  # build-system
+  hatchling,
 
-# dependencies
-, django
-, pydantic
-, typing-extensions
+  # dependencies
+  django,
+  pydantic,
+  typing-extensions,
 
-# tests
-, django-stubs
-, pytestCheckHook
-, pytest-asyncio
+  # tests
+  django-stubs,
+  pytestCheckHook,
+  pytest-asyncio,
 }:
 
 buildPythonPackage rec {
   pname = "pyngo";
-  version = "2.0.1";
+  version = "2.5.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.10";
 
   src = fetchFromGitHub {
     owner = "yezz123";
     repo = "pyngo";
-    rev = "refs/tags/${version}";
-    hash = "sha256-wvy1L21AnQ4JP5seAh6DWksQU2OcbYTXKcixpFryH4w=";
+    tag = version;
+    hash = "sha256-GThDsl1fnJ5oMvmJcJohs+H2GQxpacG1fp9C7JNmycs=";
   };
 
   nativeBuildInputs = [
     hatchling
-    pythonRelaxDepsHook
   ];
 
   pythonRelaxDeps = [
     "pydantic"
+    "typing-extensions"
   ];
 
   propagatedBuildInputs = [
@@ -55,11 +52,11 @@ buildPythonPackage rec {
     pytest-asyncio
   ];
 
-  meta = with lib; {
-    changelog = "https://github.com/yezz123/pyngo/releases/tag/${version}";
+  meta = {
+    changelog = "https://github.com/yezz123/pyngo/releases/tag/${src.tag}";
     description = "Pydantic model support for Django & Django-Rest-Framework";
     homepage = "https://github.com/yezz123/pyngo";
-    license = licenses.mit;
-    maintainers = with maintainers; [ hexa ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ hexa ];
   };
 }

@@ -1,41 +1,38 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, pythonOlder
-, tokenize-rt
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  setuptools,
+  tokenize-rt,
 }:
 
 buildPythonPackage rec {
   pname = "add-trailing-comma";
-  version = "3.1.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.8";
+  version = "4.0.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "asottile";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-B+wjBy42RwabVz/6qEMGpB0JmwJ9hqSskwcNj4x/B/k=";
+    repo = "add-trailing-comma";
+    tag = "v${version}";
+    hash = "sha256-Ts04kjhGE0lgrHyT+EuJsVLIYU/842azG1ZUHTyFijc=";
   };
 
-  propagatedBuildInputs = [
-    tokenize-rt
-  ];
+  build-system = [ setuptools ];
 
-  pythonImportsCheck = [
-    "add_trailing_comma"
-  ];
+  dependencies = [ tokenize-rt ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  meta = with lib; {
-    description = "A tool (and pre-commit hook) to automatically add trailing commas to calls and literals";
+  pythonImportsCheck = [ "add_trailing_comma" ];
+
+  meta = {
+    description = "Tool (and pre-commit hook) to automatically add trailing commas to calls and literals";
     homepage = "https://github.com/asottile/add-trailing-comma";
-    license = licenses.mit;
-    maintainers = with maintainers; [ gador ];
+    changelog = "https://github.com/asottile/add-trailing-comma/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ gador ];
+    mainProgram = "add-trailing-comma";
   };
 }

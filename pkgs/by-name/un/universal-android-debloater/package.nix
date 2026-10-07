@@ -1,29 +1,40 @@
-{ android-tools
-, clang
-, expat
-, fetchFromGitHub
-, fontconfig
-, freetype
-, lib
-, libglvnd
-, makeWrapper
-, mold
-, pkg-config
-, rustPlatform
-, xorg
+{
+  android-tools,
+  clang,
+  dbus,
+  expat,
+  fetchFromGitHub,
+  fontconfig,
+  freetype,
+  lib,
+  stdenv,
+  libglvnd,
+  libxkbcommon,
+  makeWrapper,
+  mold,
+  nix-update-script,
+  pkg-config,
+  rustPlatform,
+  wayland,
+  writableTmpDirAsHomeHook,
+  libxrandr,
+  libxi,
+  libxcursor,
+  libx11,
 }:
-rustPlatform.buildRustPackage rec {
+
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "universal-android-debloater";
-  version = "0.6.2";
+  version = "1.2.0";
 
   src = fetchFromGitHub {
     owner = "Universal-Debloater-Alliance";
-    repo = pname;
-    rev = version;
-    hash = "sha256-yCtdCg2mEAz4b/ev32x+RbjCtHTu20mOKFgtckXk1Fo=";
+    repo = "universal-android-debloater-next-generation";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-TGelOjwqTzYShZxXyPTTfkjAreFmZmrCF7jtp1UAfDw=";
   };
 
-  cargoHash = "sha256-70dX5fqORdGG2q3YeXJHABCHy0dvtA/Cptk8aLGNgV4=";
+  cargoHash = "sha256-RutiCWTkXnF7W86SnXRs+vI7dELrbdZXI62J8suZv5g=";
 
   buildInputs = [
     expat
@@ -39,25 +50,38 @@ rustPlatform.buildRustPackage rec {
 
   nativeCheckInputs = [
     clang
+    writableTmpDirAsHomeHook
   ];
 
-  preCheck = ''
-    export HOME="$(mktemp -d)"
-  '';
-
   postInstall = ''
-    wrapProgram $out/bin/uad_gui \
-      --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath [ fontconfig freetype libglvnd xorg.libX11 xorg.libXcursor xorg.libXi xorg.libXrandr ]} \
-      --suffix PATH : ${lib.makeBinPath [ android-tools ]}
+    wrapProgram $out/bin/uad-ng --prefix LD_LIBRARY_PATH : ${
+      lib.makeLibraryPath (
+        [
+          dbus
+          fontconfig
+          freetype
+          libglvnd
+          libxkbcommon
+          libx11
+          libxcursor
+          libxi
+          libxrandr
+        ]
+        ++ lib.optionals stdenv.hostPlatform.isLinux [ wayland ]
+      )
+    } --suffix PATH : ${lib.makeBinPath [ android-tools ]}
   '';
 
-  meta = with lib; {
-    description = "A tool to debloat non-rooted Android devices";
-    changelog = "https://github.com/Universal-Debloater-Alliance/universal-android-debloater/blob/${src.rev}/CHANGELOG.md";
-    homepage = "https://github.com/Universal-Debloater-Alliance/universal-android-debloater";
-    license = licenses.gpl3Only;
-    mainProgram = "uad_gui";
-    maintainers = with maintainers; [ xfix ];
-    platforms = platforms.linux;
+  passthru.updateScript = nix-update-script { };
+
+  meta = {
+    changelog = "https://github.com/Universal-Debloater-Alliance/universal-android-debloater-next-generation/releases/tag/v${finalAttrs.version}";
+    description = "Tool to debloat non-rooted Android devices";
+    homepage = "https://github.com/Universal-Debloater-Alliance/universal-android-debloater-next-generation";
+    license = lib.licenses.gpl3Only;
+    mainProgram = "uad-ng";
+    maintainers = with lib.maintainers; [ lavafroth ];
+    broken = with stdenv.hostPlatform; isDarwin && isx86_64;
+    platforms = with lib.platforms; linux ++ darwin;
   };
-}
+})

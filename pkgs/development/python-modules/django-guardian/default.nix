@@ -1,38 +1,45 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, django-environ
-, mock
-, django
-, pytestCheckHook
-, pytest-django
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  django-environ,
+  django,
+  pytestCheckHook,
+  pytest-django,
+  pytest-xdist,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "django-guardian";
-  version = "2.4.0";
-  format = "setuptools";
+  version = "3.5.0";
+  pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "c58a68ae76922d33e6bdc0e69af1892097838de56e93e78a8361090bcd9f89a0";
+  src = fetchFromGitHub {
+    owner = "django-guardian";
+    repo = "django-guardian";
+    tag = finalAttrs.version;
+    hash = "sha256-viqICF6zfJxAj1jEYtBXCR2NbUR26Q8SeKVFTMVzisQ=";
   };
 
-  propagatedBuildInputs = [ django ];
+  build-system = [ setuptools ];
+
+  dependencies = [ django ];
 
   nativeCheckInputs = [
     django-environ
-    mock
     pytestCheckHook
     pytest-django
+    pytest-xdist
   ];
 
   pythonImportsCheck = [ "guardian" ];
 
-  meta = with lib; {
+  meta = {
+    changelog = "https://github.com/django-guardian/django-guardian/releases/tag/${finalAttrs.src.tag}";
     description = "Per object permissions for Django";
     homepage = "https://github.com/django-guardian/django-guardian";
-    license = with licenses; [ mit bsd2 ];
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.bsd2;
+    maintainers = [ ];
   };
-}
+})

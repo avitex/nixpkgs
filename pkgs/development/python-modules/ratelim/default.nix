@@ -1,7 +1,8 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, decorator
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  decorator,
 }:
 
 buildPythonPackage rec {
@@ -14,19 +15,17 @@ buildPythonPackage rec {
     sha256 = "07dirdd8y23706110nb0lfz5pzbrcvd9y74h64la3y8igqbk4vc2";
   };
 
-  propagatedBuildInputs = [
-    decorator
-  ];
+  propagatedBuildInputs = [ decorator ];
 
   pythonImportsCheck = [ "ratelim" ];
 
   # package has no tests
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/themiurgo/ratelim";
     description = "Simple Python library that limits the number of times a function can be called during a time interval";
-    license = licenses.mit;
-    maintainers = with maintainers; [ dgliwka ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ dgliwka ];
   };
 }

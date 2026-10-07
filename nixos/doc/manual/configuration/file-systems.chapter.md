@@ -6,10 +6,12 @@ Ext4 file system on device `/dev/disk/by-label/data` onto the mount
 point `/data`:
 
 ```nix
-fileSystems."/data" =
-  { device = "/dev/disk/by-label/data";
+{
+  fileSystems."/data" = {
+    device = "/dev/disk/by-label/data";
     fsType = "ext4";
   };
+}
 ```
 
 This will create an entry in `/etc/fstab`, which will generate a
@@ -35,8 +37,3 @@ System startup will fail if any of the filesystems fails to mount,
 dropping you to the emergency shell. You can make a mount asynchronous
 and non-critical by adding `options = [ "nofail" ];`.
 :::
-
-```{=include=} sections
-luks-file-systems.section.md
-sshfs-file-systems.section.md
-```

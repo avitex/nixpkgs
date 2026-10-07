@@ -1,6 +1,7 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
 }:
 
 buildPythonPackage rec {
@@ -15,10 +16,9 @@ buildPythonPackage rec {
 
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     homepage = "http://fedorahosted.org/offtrac";
     description = "Trac xmlrpc library";
-    license = licenses.gpl2;
+    license = lib.licenses.gpl2;
   };
-
 }

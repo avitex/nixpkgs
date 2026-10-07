@@ -1,46 +1,51 @@
-{ stdenv
-, lib
-, fetchFromGitLab
-, fetchpatch
-, gitUpdater
-, testers
-, cmake
-, dbus
-, dbus-test-runner
-, pkg-config
-, qtbase
-, qtdeclarative
+{
+  stdenv,
+  lib,
+  fetchFromGitLab,
+  gitUpdater,
+  testers,
+  cmake,
+  dbus,
+  dbus-test-runner,
+  doxygen,
+  pkg-config,
+  qtbase,
+  qtdeclarative,
+  qttools,
+  validatePkgConfig,
+  withDocumentation ? true,
 }:
 
+let
+  withQt6 = lib.strings.versionAtLeast qtbase.version "6";
+in
 stdenv.mkDerivation (finalAttrs: {
   pname = "lomiri-action-api";
-  version = "1.1.2";
+  version = "1.2.2";
 
   src = fetchFromGitLab {
     owner = "ubports";
     repo = "development/core/lomiri-action-api";
-    rev = finalAttrs.version;
-    hash = "sha256-FOHjZ5F4IkjSn/SpZEz25CbTR/gaK4D7BRxDVSDuAl8=";
+    tag = finalAttrs.version;
+    hash = "sha256-2bI507ey9VMVgnrsly5L6SexLE6OPgmgwfv+ejwk/Mw=";
   };
 
   outputs = [
     "out"
     "dev"
-  ];
-
-  patches = [
-    # Drop deprecated qt5_use_modules usage
-    # Remove when https://gitlab.com/ubports/development/core/lomiri-action-api/-/merge_requests/4 merged & in release
-    (fetchpatch {
-      url = "https://gitlab.com/OPNA2608/lomiri-action-api/-/commit/ff1d7f7eb127f6a00a99e8b278c963899d0303f0.patch";
-      hash = "sha256-nLUoRl260hMbtEPjOQJI/3w54xgFxjcxerAqNN5FU/0=";
-    })
+  ]
+  ++ lib.optionals withDocumentation [
+    "doc"
   ];
 
   postPatch = ''
     # Queries QMake for broken Qt variable: '/build/qtbase-<commit>/$(out)/$(qtQmlPrefix)'
     substituteInPlace qml/Lomiri/Action/CMakeLists.txt \
-      --replace "\''${QT_IMPORTS_DIR}/Lomiri" '${qtbase.qtQmlPrefix}/Lomiri'
+      --replace-fail "\''${CMAKE_INSTALL_FULL_LIBDIR}/qt\''${QT_VERSION_MAJOR}/qml" "\''${CMAKE_INSTALL_PREFIX}/${qtbase.qtQmlPrefix}"
+
+    # Fix section labels
+    substituteInPlace documentation/qml/pages/* \
+      --replace-warn '\part' '\section1'
   '';
 
   strictDeps = true;
@@ -48,6 +53,12 @@ stdenv.mkDerivation (finalAttrs: {
   nativeBuildInputs = [
     cmake
     pkg-config
+    qtdeclarative
+    validatePkgConfig
+  ]
+  ++ lib.optionals withDocumentation [
+    doxygen
+    qttools # qdoc
   ];
 
   buildInputs = [
@@ -61,9 +72,11 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   cmakeFlags = [
-    "-DENABLE_TESTING=${lib.boolToString finalAttrs.finalPackage.doCheck}"
-    "-Duse_libhud2=OFF" # Use vendored libhud2, TODO package libhud2 separately?
-    "-DGENERATE_DOCUMENTATION=OFF" # QML docs need qdoc, https://github.com/NixOS/nixpkgs/pull/245379
+    (lib.cmakeBool "ENABLE_QT6" withQt6)
+    (lib.cmakeBool "ENABLE_TESTING" finalAttrs.finalPackage.doCheck)
+    (lib.cmakeBool "GENERATE_DOCUMENTATION" withDocumentation)
+    # Use vendored libhud2, TODO package libhud2 separately?
+    (lib.cmakeBool "use_libhud2" false)
   ];
 
   dontWrapQtApps = true;
@@ -80,14 +93,15 @@ stdenv.mkDerivation (finalAttrs: {
     updateScript = gitUpdater { };
   };
 
-  meta = with lib; {
+  meta = {
     description = "Allow applications to export actions in various forms to the Lomiri Shell";
     homepage = "https://gitlab.com/ubports/development/core/lomiri-action-api";
-    license = licenses.lgpl3Only;
-    maintainers = teams.lomiri.members;
-    platforms = platforms.linux;
+    changelog = "https://gitlab.com/ubports/development/core/lomiri-action-api/-/blob/${finalAttrs.version}/ChangeLog";
+    license = lib.licenses.lgpl3Only;
+    teams = [ lib.teams.lomiri ];
+    platforms = lib.platforms.linux;
     pkgConfigModules = [
-      "lomiri-action-qt-1"
+      "lomiri-action-qt${lib.optionalString withQt6 "6"}-1"
     ];
   };
 })

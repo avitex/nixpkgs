@@ -1,42 +1,40 @@
-{ lib
-, fetchFromGitHub
-, installShellFiles
-, php
-, nix-update-script
-, testers
+{
+  lib,
+  fetchFromGitHub,
+  installShellFiles,
+  php,
+  nix-update-script,
+  versionCheckHook,
 }:
 
-php.buildComposerProject (finalAttrs: {
+php.buildComposerProject2 (finalAttrs: {
   pname = "castor";
-  version = "0.11.1";
+  version = "1.5.0";
 
   src = fetchFromGitHub {
     owner = "jolicode";
     repo = "castor";
-    rev = "v${finalAttrs.version}";
-    hash = "sha256-FqFCKvhOEtDERNRLB3613geEiNDOlQuLeCa5uVvoMdM=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-3a0LJTlXTX28DYcHTfaUek2WzIuOhx6DaDm3RVu/rXA=";
   };
 
-  vendorHash = "sha256-+ORwa3+tkVJ9KU+9URg+1lyHoL1swxg6DG5ex8HjigE=";
+  vendorHash = "sha256-k2Yx4aV07PTqMu2yKUvGumXDMPzDaIKkwtWnkhCBOYc=";
 
   nativeBuildInputs = [ installShellFiles ];
 
   # install shell completions
   postInstall = ''
-    echo "yes" | ${php}/bin/php $out/share/php/castor/bin/castor
     installShellCompletion --cmd castor \
-      --bash <(${php}/bin/php $out/share/php/castor/bin/castor completion bash) \
-      --fish <(${php}/bin/php $out/share/php/castor/bin/castor completion fish) \
-      --zsh <(${php}/bin/php $out/share/php/castor/bin/castor completion zsh)
+      --bash <(php $out/bin/castor completion bash) \
+      --fish <(php $out/bin/castor completion fish) \
+      --zsh <(php $out/bin/castor completion zsh)
   '';
+
+  doInstallCheck = true;
+  nativeInstallCheckInputs = [ versionCheckHook ];
 
   passthru = {
     updateScript = nix-update-script { };
-    tests.version = testers.testVersion {
-      command = "castor --version";
-      package = php.packages.castor;
-      version = "v${finalAttrs.version}";
-    };
   };
 
   meta = {
@@ -44,7 +42,7 @@ php.buildComposerProject (finalAttrs: {
     description = "DX oriented task runner and command launcher built with PHP";
     homepage = "https://github.com/jolicode/castor";
     license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ gaelreyrol ];
+    maintainers = [ ];
     mainProgram = "castor";
   };
 })

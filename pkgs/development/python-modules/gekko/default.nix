@@ -1,36 +1,35 @@
-{ fetchPypi
-, lib
-, buildPythonPackage
-, setuptools
-, numpy
-, wheel
-,
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  numpy,
+  setuptools,
 }:
+
 buildPythonPackage rec {
   pname = "gekko";
-  version = "1.0.6";
+  version = "1.3.2";
   pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-WNyEdJXBXfhrD1LywBBJ3Ehk+CnUS8VYbJFK8mpKV20=";
+    hash = "sha256-o5nNn4lshkrb37ud0FL5V9EG9FTgpxG9U9tpbIiazn4=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-    wheel
-  ];
+  build-system = [ setuptools ];
+
+  dependencies = [ numpy ];
+
+  # Module has no tests
+  doCheck = false;
 
   pythonImportsCheck = [ "gekko" ];
 
-  propagatedBuildInputs = [
-    numpy
-  ];
-
-  meta = with lib; {
+  meta = {
+    description = "Module for machine learning and optimization";
     homepage = "https://github.com/BYU-PRISM/GEKKO";
-    description = "A Python package for machine learning and optimization";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ayes-web ];
+    changelog = "https://github.com/BYU-PRISM/GEKKO/releases/tag/v${version}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ BatteredBunny ];
   };
 }

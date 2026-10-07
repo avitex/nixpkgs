@@ -1,36 +1,51 @@
-{ lib
-, nix-update-script
-, fetchPypi
-, buildPythonPackage
-, regex
-, pip
+{
+  lib,
+  fetchFromGitHub,
+  buildPythonPackage,
+  setuptools,
+  deprecated,
+  regex,
+  pytest-cov-stub,
+  pytest-forked,
+  pytest-random-order,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "oelint-parser";
-  version = "2.13.11";
-  format = "setuptools";
+  version = "8.13.1";
+  pyproject = true;
 
-  src = fetchPypi {
-    inherit version;
-    pname = "oelint_parser";
-    hash = "sha256-Hr+2S4AGx0W+rrMFdAlN7/OcDTFYivZVYknD/sHWMDs=";
+  src = fetchFromGitHub {
+    owner = "priv-kweihmann";
+    repo = "oelint-parser";
+    tag = finalAttrs.version;
+    hash = "sha256-wQxOcdowzo8pDRH0iT851ZRYehDUqsCI2W6f2eQQbFA=";
   };
 
-  buildInputs = [ pip ];
-  propagatedBuildInputs = [ regex ];
+  pythonRelaxDeps = [ "regex" ];
+
+  build-system = [ setuptools ];
+
+  dependencies = [
+    regex
+    deprecated
+  ];
+
+  nativeCheckInputs = [
+    pytest-cov-stub
+    pytest-forked
+    pytest-random-order
+    pytestCheckHook
+  ];
+
   pythonImportsCheck = [ "oelint_parser" ];
 
-  # Fail to run inside the code the build.
-  doCheck = false;
-
-  passthru.updateScript = nix-update-script { };
-
-  meta = with lib; {
+  meta = {
     description = "Alternative parser for bitbake recipes";
     homepage = "https://github.com/priv-kweihmann/oelint-parser";
-    changelog = "https://github.com/priv-kweihmann/oelint-parser/releases/tag/v${version}";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ otavio ];
+    changelog = "https://github.com/priv-kweihmann/oelint-parser/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.bsd2;
+    maintainers = with lib.maintainers; [ otavio ];
   };
-}
+})

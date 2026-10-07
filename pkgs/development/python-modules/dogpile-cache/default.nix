@@ -1,47 +1,50 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, setuptools
-, pytestCheckHook
-, mako
-, decorator
-, stevedore
-, typing-extensions
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  pytest-xdist,
+  pytestCheckHook,
+  mako,
+  decorator,
+  stevedore,
 }:
 
 buildPythonPackage rec {
   pname = "dogpile-cache";
-  version = "1.3.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.6";
+  version = "1.5.0";
+  pyproject = true;
 
   src = fetchPypi {
-    pname = "dogpile.cache";
+    pname = "dogpile_cache";
     inherit version;
-    hash = "sha256-Cjh/GTLAce6P2XHS/1H4q6EQbFWUOaUbjHSiB/QOIV0=";
+    hash = "sha256-hJxVc8mjjxVc1BcxA8cCtjft4DYcEuhkh2h30M0SXuw=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     decorator
     stevedore
-    typing-extensions
   ];
 
   nativeCheckInputs = [
-    pytestCheckHook
     mako
+    pytest-xdist
+    pytestCheckHook
   ];
 
-  meta = with lib; {
-    description = "A caching front-end based on the Dogpile lock";
+  disabledTestPaths = [
+    # flaky
+    "tests/cache/test_dbm_backend.py"
+    # timing sensitive
+    "tests/test_lock.py::ConcurrencyTest"
+  ];
+
+  meta = {
+    description = "Caching front-end based on the Dogpile lock";
     homepage = "https://github.com/sqlalchemy/dogpile.cache";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
 }

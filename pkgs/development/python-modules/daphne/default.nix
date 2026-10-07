@@ -1,36 +1,38 @@
-{ lib
-, stdenv
-, asgiref
-, autobahn
-, buildPythonPackage
-, django
-, fetchFromGitHub
-, hypothesis
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, twisted
+{
+  lib,
+  stdenv,
+  asgiref,
+  autobahn,
+  buildPythonPackage,
+  django,
+  fetchFromGitHub,
+  hypothesis,
+  pytest-asyncio,
+  pytestCheckHook,
+  setuptools,
+  twisted,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "daphne";
-  version = "4.0.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "4.2.3";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "django";
-    repo = pname;
-    rev = version;
-    hash = "sha256-vPMrmC2B0Pcvk8Y1FsJ4PXnzIMtPod7lL2u0IYNVUxc=";
+    repo = "daphne";
+    tag = finalAttrs.version;
+    hash = "sha256-xdHvJZ+JfVYBpSvZ83mCgLSYgiIxZUS0Yx6Kg706aN4=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     asgiref
     autobahn
     twisted
-  ] ++ twisted.optional-dependencies.tls;
+  ]
+  ++ twisted.optional-dependencies.tls;
 
   nativeCheckInputs = [
     django
@@ -39,22 +41,17 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  postPatch = ''
-    substituteInPlace setup.py \
-      --replace "pytest-runner" ""
-  '';
-
   # Most tests fail on darwin
-  doCheck = !stdenv.isDarwin;
+  doCheck = !stdenv.hostPlatform.isDarwin;
 
-  pythonImportsCheck = [
-    "daphne"
-  ];
+  pythonImportsCheck = [ "daphne" ];
 
-  meta = with lib; {
+  meta = {
     description = "Django ASGI (HTTP/WebSocket) server";
     homepage = "https://github.com/django/daphne";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/django/daphne/blob/${finalAttrs.src.tag}/CHANGELOG.txt";
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
+    mainProgram = "daphne";
   };
-}
+})

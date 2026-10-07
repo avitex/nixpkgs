@@ -1,18 +1,20 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, netifaces
-, paho-mqtt
-, pycryptodome
-, requests
-, six
-, zeroconf
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  netifaces,
+  paho-mqtt,
+  pycryptodome,
+  requests,
+  six,
+  zeroconf,
 }:
 
 buildPythonPackage rec {
   pname = "libpurecool";
   version = "0.6.4";
-  format = "setuptools";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
@@ -23,10 +25,12 @@ buildPythonPackage rec {
   postPatch = ''
     rm libpurecool/zeroconf.py
     substituteInPlace libpurecool/dyson_pure_cool_link.py \
-      --replace "from .zeroconf import ServiceBrowser, Zeroconf" "from zeroconf import ServiceBrowser, Zeroconf"
+      --replace-fail "from .zeroconf import ServiceBrowser, Zeroconf" "from zeroconf import ServiceBrowser, Zeroconf"
   '';
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     netifaces
     paho-mqtt
     pycryptodome
@@ -39,10 +43,10 @@ buildPythonPackage rec {
   doCheck = false;
   pythonImportsCheck = [ "libpurecool" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python library for Dyson devices";
     homepage = "http://libpurecool.readthedocs.io";
-    license = with licenses; [ asl20 ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

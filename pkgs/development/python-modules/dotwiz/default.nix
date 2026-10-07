@@ -1,47 +1,39 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pyheck
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pyheck,
+  pytestCheckHook,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "dotwiz";
   version = "0.4.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "rnag";
     repo = "dotwiz";
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     hash = "sha256-ABmkwpJ40JceNJieW5bhg0gqWNrR6Wxj84nLCjKU11A=";
   };
 
-  propagatedBuildInputs = [
-    pyheck
-  ];
+  build-system = [ setuptools ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  dependencies = [ pyheck ];
 
-  pythonImportsCheck = [
-    "dotwiz"
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pytestFlagsArray = [
-    "--ignore=benchmarks"
-    "--ignore-glob=*integration*"
-  ];
+  pythonImportsCheck = [ "dotwiz" ];
 
-  meta = with lib; {
+  disabledTestPaths = [ "benchmarks" ];
+
+  meta = {
     description = "Dict subclass that supports dot access notation";
     homepage = "https://github.com/rnag/dotwiz";
-    changelog = "https://github.com/rnag/dotwiz/blob/v${version}/HISTORY.rst";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/rnag/dotwiz/blob/${src.tag}/HISTORY.rst";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

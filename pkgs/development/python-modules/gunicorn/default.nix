@@ -1,80 +1,75 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# build-system
-, setuptools
+  # build-system
+  setuptools,
 
-# dependencies
-, packaging
+  # dependencies
+  packaging,
 
-# optional-dependencies
-, eventlet
-, gevent
-, tornado
-, setproctitle
+  # optional-dependencies
+  eventlet,
+  gevent,
+  tornado,
+  setproctitle,
 
-, pytestCheckHook
+  # tests
+  pytest-asyncio,
+  pytestCheckHook,
+  pytest-cov-stub,
 }:
 
 buildPythonPackage rec {
   pname = "gunicorn";
-  version = "21.2.0";
+  version = "26.0.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.5";
 
   src = fetchFromGitHub {
     owner = "benoitc";
     repo = "gunicorn";
-    rev = version;
-    hash = "sha256-xP7NNKtz3KNrhcAc00ovLZRx2h6ZqHbwiFOpCiuwf98=";
+    tag = version;
+    hash = "sha256-duq5ghUuiuZL644jHgZ0qXHkcc8POHt7BX91m9F5BGE=";
   };
 
-  postPatch = ''
-    substituteInPlace setup.cfg \
-      --replace "--cov=gunicorn --cov-report=xml" ""
-  '';
+  build-system = [ setuptools ];
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  dependencies = [ packaging ];
 
-  propagatedBuildInputs = [
-    packaging
-  ];
-
-  passthru.optional-dependencies = {
-    gevent = [
-      gevent
-    ];
-    eventlet = [
-      eventlet
-    ];
-    tornado = [
-      tornado
-    ];
-    gthread = [];
-    setproctitle = [
-      setproctitle
-    ];
+  optional-dependencies = {
+    gevent = [ gevent ];
+    eventlet = [ eventlet ];
+    tornado = [ tornado ];
+    gthread = [ ];
+    setproctitle = [ setproctitle ];
   };
 
-  pythonImportsCheck = [
-    "gunicorn"
-  ];
+  pythonImportsCheck = [ "gunicorn" ];
 
   nativeCheckInputs = [
+    pytest-asyncio
     pytestCheckHook
-  ] ++ lib.flatten (lib.attrValues passthru.optional-dependencies);
+    pytest-cov-stub
+  ]
+  ++ lib.concatAttrValues optional-dependencies;
 
-  meta = with lib; {
-    changelog = "https://github.com/benoitc/gunicorn/releases/tag/${version}";
+  disabledTests = [
+    # failure while starting a gunicorn instance
+    "TestSignalHandlingIntegration"
+  ];
+
+  disabledTestPaths = [
+    # tries to start gunicorn and fails on import
+    "tests/test_control_socket_integration.py"
+  ];
+
+  meta = {
+    description = "WSGI HTTP Server for UNIX, fast clients and sleepy applications";
     homepage = "https://github.com/benoitc/gunicorn";
-    description = "gunicorn 'Green Unicorn' is a WSGI HTTP Server for UNIX, fast clients and sleepy applications";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/benoitc/gunicorn/releases/tag/${version}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ getchoo ];
     mainProgram = "gunicorn";
   };
 }

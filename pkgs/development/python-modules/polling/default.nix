@@ -1,10 +1,11 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools
-, wheel
-, mock
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  wheel,
+  mock,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
@@ -24,19 +25,17 @@ buildPythonPackage rec {
     wheel
   ];
 
-  pythonImportsCheck = [
-    "polling"
-  ];
+  pythonImportsCheck = [ "polling" ];
 
   nativeCheckInputs = [
     mock
     pytestCheckHook
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Powerful polling utility in Python";
     homepage = "https://github.com/justiniso/polling";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

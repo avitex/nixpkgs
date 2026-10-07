@@ -1,42 +1,39 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "immutabledict";
-  version = "4.1.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "4.3.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "corenting";
     repo = "immutabledict";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-c76apNW6nlxL9paevqKpPw5RpDLMpYnbVabCCIrW3pw=";
+    tag = "v${version}";
+    hash = "sha256-BZ3qiYZtw5YcWTy2rtlDZE3J1Hia9/Yniy+I7xhq7AE=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
+  build-system = [ poetry-core ];
+
+  pythonImportsCheck = [ "immutabledict" ];
+
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  disabledTests = [
+    # fails if builder load is highly variable
+    "test_performance"
   ];
 
-  pythonImportsCheck = [
-    "immutabledict"
-  ];
-
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
-
-  meta = with lib; {
-    description = "A fork of frozendict, an immutable wrapper around dictionaries";
+  meta = {
+    description = "Fork of frozendict, an immutable wrapper around dictionaries";
     homepage = "https://github.com/corenting/immutabledict";
     changelog = "https://github.com/corenting/immutabledict/blob/v${version}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ hexa ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ hexa ];
   };
 }

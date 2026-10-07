@@ -1,44 +1,38 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools
-, setuptools-scm
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  setuptools-scm,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "dissect-cstruct";
-  version = "3.12";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.12";
+  version = "4.7";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "fox-it";
     repo = "dissect.cstruct";
-    rev = "refs/tags/${version}";
-    hash = "sha256-67s0Qr/YeQp/K9MZS+btKdp+9J6mIMCwiittIUB9p2w=";
+    tag = version;
+    hash = "sha256-eEaKGFpArg0p3+/I2dH3mQ+eNIVJ8KsUbRcw4Ecrl7g=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     setuptools-scm
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "dissect.cstruct"
-  ];
+  pythonImportsCheck = [ "dissect.cstruct" ];
 
-  meta = with lib; {
+  meta = {
     description = "Dissect module implementing a parser for C-like structures";
     homepage = "https://github.com/fox-it/dissect.cstruct";
-    changelog = "https://github.com/fox-it/dissect.cstruct/releases/tag/${version}";
-    license = licenses.agpl3Only;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/fox-it/dissect.cstruct/releases/tag/${src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

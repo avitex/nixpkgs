@@ -1,63 +1,68 @@
-{ lib
-, allpairspy
-, approval-utilities
-, beautifulsoup4
-, buildPythonPackage
-, empty-files
-, fetchFromGitHub
-, mock
-, mrjob
-, numpy
-, pyperclip
-, pytest
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, setuptools
-, testfixtures
+{
+  lib,
+  allpairspy,
+  approval-utilities,
+  beautifulsoup4,
+  buildPythonPackage,
+  empty-files,
+  fetchFromGitHub,
+  mock,
+  numpy,
+  pyperclip,
+  pytest,
+  pytest-asyncio,
+  pytestCheckHook,
+  pyyaml,
+  setuptools,
+  testfixtures,
+  typing-extensions,
 }:
 
 buildPythonPackage rec {
   pname = "approvaltests";
-  version = "10.2.0";
+  version = "18.0.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "approvals";
     repo = "ApprovalTests.Python";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-2NaqqgrHXJovoVExvbr0s86eRbcxy+DUrsdRH/vak3E=";
+    tag = "v${version}";
+    hash = "sha256-2lz3TMI4/QoNVfnZga5Ro9rheixFpVJfNbvVLy0lnLA=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  postPatch = ''
+    test -f setup.py || mv setup/setup.approvaltests.py setup.py
 
-  propagatedBuildInputs = [
+    python3 setup/set_version.py '${version}'
+
+    patchShebangs internal_documentation/scripts
+  '';
+
+  build-system = [ setuptools ];
+
+  dependencies = [
     allpairspy
     approval-utilities
     beautifulsoup4
     empty-files
     mock
-    mrjob
     pyperclip
     pytest
     testfixtures
+    typing-extensions
   ];
 
   nativeCheckInputs = [
     numpy
     pytest-asyncio
     pytestCheckHook
+    pyyaml
   ];
 
   disabledTests = [
-    "test_docstrings"
-    # Tests expects paths below ApprovalTests.Python directory
-    "test_received_filename"
-    "test_pytest_namer"
+    "test_warnings"
+    # test runs another python interpreter, ignoring $PYTHONPATH
+    "test_command_line_verify"
   ];
 
   pythonImportsCheck = [
@@ -65,11 +70,11 @@ buildPythonPackage rec {
     "approvaltests.reporters.generic_diff_reporter_factory"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Assertion/verification library to aid testing";
     homepage = "https://github.com/approvals/ApprovalTests.Python";
-    changelog = "https://github.com/approvals/ApprovalTests.Python/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ marsam ];
+    changelog = "https://github.com/approvals/ApprovalTests.Python/releases/tag/${src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
 }

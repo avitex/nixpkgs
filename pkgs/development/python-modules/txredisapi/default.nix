@@ -1,27 +1,26 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools
-, six
-, twisted
-, nixosTests
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  six,
+  twisted,
+  nixosTests,
 }:
 
 buildPythonPackage rec {
   pname = "txredisapi";
-  version = "1.4.9";
-  format = "pyproject";
+  version = "1.4.12";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "IlyaSkriblovsky";
     repo = "txredisapi";
-    rev = "refs/tags/${version}";
-    hash = "sha256-6Z2vurTAw9YHxvEiixtdxBH0YHj+Y9aTdsSkafPMZus=";
+    tag = version;
+    hash = "sha256-jvxqHYDRTnG1X+VkC1syTM/W+CRiL9w4Ehf7pe147Uo=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
   propagatedBuildInputs = [
     six
@@ -29,19 +28,16 @@ buildPythonPackage rec {
   ]
   ++ twisted.optional-dependencies.tls;
 
-  pythonImportsCheck = [
-    "txredisapi"
-  ];
+  pythonImportsCheck = [ "txredisapi" ];
 
   doCheck = false;
 
   passthru.tests.unit-tests = nixosTests.txredisapi;
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/IlyaSkriblovsky/txredisapi";
-    description = "non-blocking redis client for python";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ dandellion ];
+    description = "Non-blocking redis client for python";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ dandellion ];
   };
 }
-

@@ -1,41 +1,36 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "emoji";
-  version = "2.8.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "2.16.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "carpedm20";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-fnVY4KwiqvSVYijlDckLq6qDrBJj/rJGMwaQ1mMygek=";
+    repo = "emoji";
+    tag = "v${version}";
+    hash = "sha256-sDQ4KE9J7/0hlmXxyploRYGkIzj3YIFrxzq7yA5NFp0=";
   };
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  build-system = [ setuptools ];
 
-  disabledTests = [
-    "test_emojize_name_only"
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "emoji"
-  ];
+  disabledTests = [ "test_emojize_name_only" ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "emoji" ];
+
+  meta = {
     description = "Emoji for Python";
     homepage = "https://github.com/carpedm20/emoji/";
-    changelog = "https://github.com/carpedm20/emoji/blob/v${version}/CHANGES.md";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ joachifm ];
+    changelog = "https://github.com/carpedm20/emoji/blob/${src.tag}/CHANGES.md";
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
 }

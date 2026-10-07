@@ -1,48 +1,52 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, garth
-, lxml
-, python-dotenv
-, pythonOlder
-, requests
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  garminconnect,
+  importlib-resources,
+  lxml,
+  poetry-core,
+  python-dotenv,
+  requests,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "withings-sync";
-  version = "4.2.4";
+  version = "6.0.2";
   pyproject = true;
-
-  disabled = pythonOlder "3.10";
 
   src = fetchFromGitHub {
     owner = "jaroslawhartman";
     repo = "withings-sync";
-    rev = "refs/tags/v.${version}";
-    hash = "sha256-nFYEtQob3x6APWDKCVP5p+qkKmgvXIcmegp/6ZRbDQA=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-z0rVUFBbPff6xfItLQqbt+uN5Qe/BbVLAH1xMVUSfpA=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail "1.0.0.dev1" "${finalAttrs.version}"
+  '';
 
-  propagatedBuildInputs = [
-    garth
+  pythonRelaxDeps = [ "garminconnect" ];
+
+  build-system = [ poetry-core ];
+
+  dependencies = [
+    garminconnect
+    importlib-resources
     lxml
     python-dotenv
     requests
   ];
 
-  pythonImportsCheck = [
-    "withings_sync"
-  ];
+  pythonImportsCheck = [ "withings_sync" ];
 
-  meta = with lib; {
+  meta = {
     description = "Synchronisation of Withings weight";
     homepage = "https://github.com/jaroslawhartman/withings-sync";
-    changelog = "https://github.com/jaroslawhartman/withings-sync/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/jaroslawhartman/withings-sync/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
+    mainProgram = "withings-sync";
   };
-}
+})

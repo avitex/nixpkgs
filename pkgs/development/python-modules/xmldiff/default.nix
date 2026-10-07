@@ -1,42 +1,35 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchPypi
-, lxml
-, setuptools
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  lxml,
+  setuptools,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "xmldiff";
-  version = "2.6.3";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "3.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-GbAws/o30fC1xa2a2pBZiEw78sdRxd2PHrTtSc/j/GA=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-OA7E0FzvM/W3Bs94mrzISNJ3MNZ+AtwLTxEH4Wzpqq0=";
   };
 
-  propagatedBuildInputs = [
-    lxml
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  dependencies = [ lxml ];
 
-  pythonImportsCheck = [
-    "xmldiff"
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "xmldiff" ];
+
+  meta = {
     description = "Creates diffs of XML files";
     homepage = "https://github.com/Shoobx/xmldiff";
     changelog = "https://github.com/Shoobx/xmldiff/blob/master/CHANGES.rst";
-    license = licenses.mit;
-    maintainers = with maintainers; [ sfrijters ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ sfrijters ];
   };
-}
+})

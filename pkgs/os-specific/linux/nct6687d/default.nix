@@ -1,18 +1,21 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, kernel
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  kernel,
+  kernelModuleMakeFlags,
+  nix-update-script,
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation {
   pname = "nct6687d";
-  version = "unstable-2023-09-22";
+  version = "0-unstable-2026-08-15";
 
   src = fetchFromGitHub {
     owner = "Fred78290";
     repo = "nct6687d";
-    rev = "cdfe855342a9383a9c4c918d51576c36d989070d";
-    hash = "sha256-iOLWxj4I6oYkNXFSkmw7meTQEnrIfb4Mw+/LkzgzDxM=";
+    rev = "4864fd681346119cf17417f82934a8ce05d88ff6";
+    hash = "sha256-NFoJTDAsSzamZVrx7Tqojb2OBCC73MNc5xugvkonR7w=";
   };
 
   setSourceRoot = ''
@@ -21,8 +24,9 @@ stdenv.mkDerivation rec {
 
   nativeBuildInputs = kernel.moduleBuildDependencies;
 
-  makeFlags = kernel.makeFlags ++ [
-    "-C" "${kernel.dev}/lib/modules/${kernel.modDirVersion}/build"
+  makeFlags = kernelModuleMakeFlags ++ [
+    "-C"
+    "${kernel.dev}/lib/modules/${kernel.modDirVersion}/build"
     "M=$(sourceRoot)"
   ];
 
@@ -30,11 +34,15 @@ stdenv.mkDerivation rec {
   installFlags = [ "INSTALL_MOD_PATH=${placeholder "out"}" ];
   installTargets = [ "modules_install" ];
 
-  meta = with lib; {
+  passthru.updateScript = nix-update-script {
+    extraArgs = [ "--version=branch=main" ];
+  };
+
+  meta = {
     description = "Kernel module for the Nuvoton NCT6687-R chipset found on many B550/B650 motherboards from ASUS and MSI";
-    license = with licenses; [ gpl2Only ];
+    license = lib.licenses.gpl2Only;
     homepage = "https://github.com/Fred78290/nct6687d/";
-    platforms = platforms.linux;
-    maintainers = with maintainers; [ atemu ];
+    platforms = lib.platforms.linux;
+    maintainers = with lib.maintainers; [ atemu ];
   };
 }

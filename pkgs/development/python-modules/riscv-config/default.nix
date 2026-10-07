@@ -1,28 +1,30 @@
-{ lib
-, buildPythonPackage
-, cerberus
-, fetchFromGitHub
-, fetchpatch
-, pythonOlder
-, pyyaml
-, ruamel-yaml
+{
+  lib,
+  buildPythonPackage,
+  cerberus,
+  fetchFromGitHub,
+  pyyaml,
+  ruamel-yaml,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "riscv-config";
-  version = "3.17.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "3.18.3";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "riscv-software-src";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-dMs900w5sXggqxU+2W8qKrKjGpyrXhA2QEbXQeaKZTs=";
+    repo = "riscv-config";
+    tag = version;
+    hash = "sha256-eaHi6ezgU8gQYH97gCS2TzEzIP3F4zfn7uiA/To2Gmc=";
   };
 
-  propagatedBuildInputs = [
+  pythonRelaxDeps = [ "pyyaml" ];
+
+  build-system = [ setuptools ];
+
+  dependencies = [
     cerberus
     pyyaml
     ruamel-yaml
@@ -31,15 +33,14 @@ buildPythonPackage rec {
   # Module has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "riscv_config"
-  ];
+  pythonImportsCheck = [ "riscv_config" ];
 
-  meta = with lib; {
+  meta = {
     description = "RISC-V configuration validator";
     homepage = "https://github.com/riscv/riscv-config";
     changelog = "https://github.com/riscv-software-src/riscv-config/blob/${version}/CHANGELOG.md";
-    maintainers = with maintainers; [ genericnerdyusername ];
-    license = licenses.bsd3;
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
+    mainProgram = "riscv-config";
   };
 }

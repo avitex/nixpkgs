@@ -1,33 +1,30 @@
-{ lib, stdenv, fetchFromGitHub, postgresql, freetds, unstableGitUpdater }:
+{
+  fetchFromGitHub,
+  freetds,
+  lib,
+  postgresql,
+  postgresqlBuildExtension,
+}:
 
-stdenv.mkDerivation rec {
+postgresqlBuildExtension (finalAttrs: {
   pname = "tds_fdw";
-  # Move to stable version when it's released.
-  version = "unstable-2023-12-04";
+  version = "2.0.5";
 
-  buildInputs = [ postgresql freetds ];
+  buildInputs = [ freetds ];
 
   src = fetchFromGitHub {
-    owner  = "tds-fdw";
-    repo   = "tds_fdw";
-    rev    = "14b147fde8d99f3946fbd7b84aaaf5fc00af90e2";
-    hash   = "sha256-h1kTcm796ibfcrkRRs+yi1TRpcyZog95Genw8hMh0cg=";
+    owner = "tds-fdw";
+    repo = "tds_fdw";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-4ecdErksaZ7SyCKzvSY5sD7rrKljq7BMn+gI9Yz49r0=";
   };
 
-  installPhase = ''
-    version="$(sed -En "s,^default_version *= *'([^']*)'.*,\1,p" tds_fdw.control)"
-    install -D tds_fdw${postgresql.dlSuffix} -t $out/lib
-    install -D sql/tds_fdw.sql    "$out/share/postgresql/extension/tds_fdw--$version.sql"
-    install -D tds_fdw.control -t $out/share/postgresql/extension
-  '';
-
-  passthru.updateScript = unstableGitUpdater { };
-
-  meta = with lib; {
-    description = "A PostgreSQL foreign data wrapper to connect to TDS databases (Sybase and Microsoft SQL Server)";
-    homepage    = "https://github.com/tds-fdw/tds_fdw";
-    maintainers = [ maintainers.steve-chavez ];
-    platforms   = postgresql.meta.platforms;
-    license     = licenses.postgresql;
+  meta = {
+    description = "PostgreSQL foreign data wrapper to connect to TDS databases (Sybase and Microsoft SQL Server)";
+    homepage = "https://github.com/tds-fdw/tds_fdw";
+    changelog = "https://github.com/tds-fdw/tds_fdw/releases/tag/v${finalAttrs.version}";
+    maintainers = with lib.maintainers; [ steve-chavez ];
+    platforms = postgresql.meta.platforms;
+    license = lib.licenses.postgresql;
   };
-}
+})

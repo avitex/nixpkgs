@@ -1,65 +1,51 @@
-{ lib
-, brotli
-, buildPythonPackage
-, django
-, fetchFromGitHub
-, pytestCheckHook
-, pythonOlder
-, requests
-, setuptools
+{
+  lib,
+  brotli,
+  buildPythonPackage,
+  django,
+  fetchFromGitHub,
+  pytestCheckHook,
+  requests,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "whitenoise";
-  version = "6.5.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
-
-  __darwinAllowLocalNetworking = true;
+  version = "6.12.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "evansd";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-g1D0tjGsAP3y1fWvODWwNvxnTSZJuTpyZ0Otk83Oq9E=";
+    repo = "whitenoise";
+    tag = finalAttrs.version;
+    hash = "sha256-qNya/3oI9413VUGaLPq4vtuLvq9mIGhaYBt+4OhrkOw=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  __darwinAllowLocalNetworking = true;
 
-  propagatedBuildInputs = [
-    brotli
-  ];
+  build-system = [ setuptools ];
+
+  optional-dependencies.brotli = [ brotli ];
 
   nativeCheckInputs = [
     django
     pytestCheckHook
     requests
-  ];
-
-  disabledTestPaths = [
-    # Don't run Django tests
-    "tests/test_django_whitenoise.py"
-    "tests/test_runserver_nostatic.py"
-    "tests/test_storage.py"
-  ];
+  ]
+  ++ finalAttrs.passthru.optional-dependencies.brotli;
 
   disabledTests = [
     # Test fails with AssertionError
     "test_modified"
   ];
 
-  pythonImportsCheck = [
-    "whitenoise"
-  ];
+  pythonImportsCheck = [ "whitenoise" ];
 
-  meta = with lib; {
+  meta = {
     description = "Library to serve static file for WSGI applications";
     homepage = "https://whitenoise.readthedocs.io/";
-    changelog = "https://github.com/evansd/whitenoise/blob/${version}/docs/changelog.rst";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/evansd/whitenoise/blob/${finalAttrs.src.tag}/docs/changelog.rst";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
-}
+})

@@ -1,29 +1,34 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "types-retry";
-  version = "0.9.9.4";
-  format = "setuptools";
+  version = "0.9.9.20260408";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-5HMdxoS1a4ddl0ZFmtZl07woGla1MKzfHJdzAWd5mUE=";
+    pname = "types_retry";
+    inherit (finalAttrs) version;
+    hash = "sha256-P5j6YuwCdEk4P1wBnM6sx4TB26tHYJid2rQh97hAfZI=";
   };
+
+  build-system = [ setuptools ];
 
   # Modules doesn't have tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "retry-stubs"
-  ];
+  pythonImportsCheck = [ "retry-stubs" ];
 
-  meta = with lib; {
+  meta = {
     description = "Typing stubs for retry";
     homepage = "https://github.com/python/typeshed";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

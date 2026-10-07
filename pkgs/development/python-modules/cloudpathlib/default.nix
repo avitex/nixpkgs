@@ -1,82 +1,84 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, flit-core
-, importlib-metadata
-, typing-extensions
-, cloudpathlib
-, azure-storage-blob
-, google-cloud-storage
-, boto3
-, psutil
-, pydantic
-, pytestCheckHook
-, pytest-cases
-, pytest-cov
-, pytest-xdist
-, python-dotenv
-, shortuuid
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  flit-core,
+
+  # optional-dependencies
+  azure-storage-blob,
+  azure-storage-file-datalake,
+  google-cloud-storage,
+  boto3,
+
+  # tests
+  azure-identity,
+  psutil,
+  pydantic,
+  pytestCheckHook,
+  pytest-cases,
+  pytest-cov-stub,
+  pytest-xdist,
+  python-dotenv,
+  shortuuid,
+  tenacity,
 }:
 
 buildPythonPackage rec {
   pname = "cloudpathlib";
-  version = "0.17.0";
+  version = "0.24.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "drivendataorg";
     repo = "cloudpathlib";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-rj8v4EUMPdB5zmbP4VQli2H6GjDor3BHaA95GwoKS5E=";
+    tag = "v${version}";
+    hash = "sha256-MpCgK1JnQ/Etp0EyH5z6iknrQeJ4Wn6rwBw2EjgVAic=";
   };
 
-  nativeBuildInputs = [
-    flit-core
-  ];
+  postPatch =
+    # missing pytest-reportlog test dependency
+    ''
+      substituteInPlace pyproject.toml \
+        --replace-fail "--report-log reportlog.jsonl" ""
+    '';
 
-  propagatedBuildInputs = [
-    importlib-metadata
-    typing-extensions
-  ];
+  build-system = [ flit-core ];
 
-  passthru.optional-dependencies = {
-    all = [
-      cloudpathlib
-    ];
+  optional-dependencies = {
+    all = optional-dependencies.azure ++ optional-dependencies.gs ++ optional-dependencies.s3;
     azure = [
       azure-storage-blob
+      azure-storage-file-datalake
     ];
-    gs = [
-      google-cloud-storage
-    ];
-    s3 = [
-      boto3
-    ];
+    gs = [ google-cloud-storage ];
+    s3 = [ boto3 ];
   };
 
   pythonImportsCheck = [ "cloudpathlib" ];
 
   nativeCheckInputs = [
-    azure-storage-blob
-    boto3
-    google-cloud-storage
+    azure-identity
     psutil
     pydantic
     pytestCheckHook
     pytest-cases
-    pytest-cov
+    pytest-cov-stub
     pytest-xdist
     python-dotenv
     shortuuid
-  ];
+    tenacity
+  ]
+  ++ optional-dependencies.all;
 
-  meta = with lib; {
+  __darwinAllowLocalNetworking = true;
+
+  meta = {
     description = "Python pathlib-style classes for cloud storage services such as Amazon S3, Azure Blob Storage, and Google Cloud Storage";
     homepage = "https://github.com/drivendataorg/cloudpathlib";
-    license = licenses.mit;
-    maintainers = with maintainers; [ GaetanLepage ];
+    changelog = "https://github.com/drivendataorg/cloudpathlib/blob/${src.tag}/HISTORY.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ GaetanLepage ];
   };
 }

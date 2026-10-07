@@ -1,66 +1,127 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools
-, proton-core
-, proton-vpn-connection
-, proton-vpn-logger
-, proton-vpn-killswitch
-, proton-vpn-session
-, distro
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  aiohttp,
+  cryptography,
+  distro,
+  fido2,
+  gobject-introspection,
+  iproute2,
+  jinja2,
+  networkmanager,
+  packaging,
+  proton-core,
+  proton-vpn-local-agent,
+  pycairo,
+  pygobject3,
+  pynacl,
+  pyopenssl,
+  pytest-asyncio,
+  pytest-cov-stub,
+  pytestCheckHook,
+  pyxdg,
+  requests,
+  sentry-sdk,
+  setuptools,
 }:
 
-buildPythonPackage {
+buildPythonPackage rec {
   pname = "proton-vpn-api-core";
-  version = "0.20.1-unstable-2023-10-10";
+  version = "5.2.5";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "ProtonVPN";
     repo = "python-proton-vpn-api-core";
-    rev = "9c03fc30d3ff08559cab3644eadde027b029375d";
-    hash = "sha256-vnz1+NazQceAs9KA3Jq0tsJditRoG/LoBR+0wuDzzHk=";
+    rev = "v${version}";
+    hash = "sha256-OGbms0FP0UjHjqvzlFpJIZo3bPFirVcwtVgvAvA9QZA=";
   };
 
+  postPatch = ''
+    substituteInPlace proton/vpn/backend/networkmanager/killswitch/wireguard/killswitch_connection_handler.py \
+      --replace-fail '["/usr/sbin/ip", "route"]' '["${iproute2}/bin/ip", "route"]'
+  '';
+
   nativeBuildInputs = [
-    setuptools
+    # Needed to recognize the NM namespace
+    gobject-introspection
   ];
 
   propagatedBuildInputs = [
-    distro
-    proton-core
-    proton-vpn-connection
-    proton-vpn-logger
-    proton-vpn-killswitch
-    proton-vpn-session
+    # Needed here for the NM namespace
+    networkmanager
   ];
 
-  postPatch = ''
-    substituteInPlace setup.cfg \
-      --replace "--cov=proton/vpn/core/ --cov-report html --cov-report term" ""
-  '';
+  build-system = [
+    setuptools
+  ];
 
-  pythonImportsCheck = [ "proton.vpn.core" ];
+  dependencies = [
+    cryptography
+    distro
+    fido2
+    jinja2
+    packaging
+    proton-core
+    proton-vpn-local-agent
+    pycairo
+    pygobject3
+    pynacl
+    pyxdg
+    sentry-sdk
+  ];
+
+  pythonImportsCheck = [
+    "proton.vpn.backend.networkmanager.core"
+    "proton.vpn.backend.networkmanager.killswitch.default"
+    "proton.vpn.backend.networkmanager.killswitch.wireguard"
+    "proton.vpn.backend.networkmanager.protocol.openvpn"
+    "proton.vpn.backend.networkmanager.protocol.wireguard"
+    "proton.vpn.connection"
+    "proton.vpn.core"
+    "proton.vpn.killswitch.interface"
+    "proton.vpn.logging"
+    "proton.vpn.session"
+    "proton.vpn.split_tunneling"
+  ];
 
   nativeCheckInputs = [
+    aiohttp
+    pyopenssl
+    pytest-asyncio
+    requests
     pytestCheckHook
+    pytest-cov-stub
   ];
 
-  preCheck = ''
+  # Needed for `pythonImportsCheck`, `postInstall` happens between `pythonImportsCheckPhase` and `pytestCheckPhase`.
+  postInstall = ''
     # Needed for Permission denied: '/homeless-shelter'
     export HOME=$(mktemp -d)
+    export XDG_RUNTIME_DIR=$(mktemp -d)
   '';
 
-  disabledTestPaths = [
-    # Has a single test failing with Permission denied: '/run'
-    "tests/test_session.py"
+  disabledTests = [
+    # Permission denied: '/run'
+    "test_ensure_configuration_file_is_created"
+    "test_ovpnconfig_with_certificate"
+    "test_ovpnconfig_with_settings"
+    "test_wireguard_config_content_generation"
+    "test_wireguard_with_non_certificate"
+    "test_ensure_generate_is_returning_expected_content"
+    "test_ensure_same_configuration_file_in_case_of_duplicate"
+    "test_ensure_configuration_file_is_deleted"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Acts as a facade to the other Proton VPN components, exposing a uniform API to the available Proton VPN services";
     homepage = "https://github.com/ProtonVPN/python-proton-vpn-api-core";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ wolfangaukang ];
+    license = lib.licenses.gpl3Only;
+    platforms = lib.platforms.linux;
+    maintainers = with lib.maintainers; [
+      anthonyroussel
+      rapiteanu
+    ];
   };
 }

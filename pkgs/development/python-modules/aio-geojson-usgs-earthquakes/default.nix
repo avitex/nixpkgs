@@ -1,55 +1,51 @@
-{ lib
-, aio-geojson-client
-, aiohttp
-, aresponses
-, buildPythonPackage
-, fetchFromGitHub
-, pytest-asyncio
-, pytestCheckHook
-, pytz
-, pythonOlder
+{
+  lib,
+  aio-geojson-client,
+  aiohttp,
+  aiointercept,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytest-asyncio,
+  pytestCheckHook,
+  pytz,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "aio-geojson-usgs-earthquakes";
-  version = "0.2";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "2026.8.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "exxamalte";
     repo = "python-aio-geojson-usgs-earthquakes";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-ET8wcOep4tSZJXyL+XvfW2j9eKp6LrBk/g18ZlgLIzc=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-ymmO43USHiu11SRmirkJfjKZayD7eRv057uPhtZLWx0=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     aio-geojson-client
     aiohttp
     pytz
   ];
 
-  __darwinAllowLocalNetworking = true;
-
   nativeCheckInputs = [
+    aiointercept
+    pytest-asyncio
     pytestCheckHook
   ];
 
-  checkInputs = [
-    aresponses
-    pytest-asyncio
-  ];
+  pythonImportsCheck = [ "aio_geojson_usgs_earthquakes" ];
 
-  pythonImportsCheck = [
-    "aio_geojson_usgs_earthquakes"
-  ];
+  __darwinAllowLocalNetworking = true;
 
-  meta = with lib; {
-    description = "Python module for accessing the U.S. Geological Survey Earthquake Hazards Program feeds";
+  meta = {
+    description = "Module for accessing the U.S. Geological Survey Earthquake Hazards Program feeds";
     homepage = "https://github.com/exxamalte/python-aio-geojson-usgs-earthquakes";
-    changelog = "https://github.com/exxamalte/python-aio-geojson-usgs-earthquakes/blob/v${version}/CHANGELOG.md";
-    license = with licenses; [ asl20 ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/exxamalte/python-aio-geojson-usgs-earthquakes/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

@@ -1,25 +1,34 @@
-{ buildPythonPackage
-, lib
-, fetchPypi
+{
+  buildPythonPackage,
+  lib,
+  fetchPypi,
+  setuptools_80,
 }:
 
-buildPythonPackage rec {
-  pname = "XStatic";
+buildPythonPackage (finalAttrs: {
+  pname = "xstatic";
   version = "1.0.3";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit version pname;
-    sha256 = "sha256-QCVEzJ4XlIlEEFTwnIB4BOEV6iRpB96HwDVftPWjEmg=";
+    pname = "XStatic";
+    inherit (finalAttrs) version;
+    hash = "sha256-QCVEzJ4XlIlEEFTwnIB4BOEV6iRpB96HwDVftPWjEmg=";
   };
+
+  build-system = [ setuptools_80 ];
 
   # no tests implemented
   doCheck = false;
 
-  meta = with lib;{
-    homepage = "https://bitbucket.org/thomaswaldmann/xstatic";
-    description = "Base packaged static files for python";
-    license = licenses.mit;
-    maintainers = with maintainers; [ makefu ];
-  };
+  pythonImportsCheck = [ "xstatic" ];
 
-}
+  meta = {
+    homepage = "https://github.com/xstatic-py/xstatic";
+    description = "Base packaged static files for python";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ makefu ];
+  };
+})

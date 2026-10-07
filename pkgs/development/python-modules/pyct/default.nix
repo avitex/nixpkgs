@@ -1,26 +1,38 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, param
-, pytestCheckHook
-, pythonOlder
-, pyyaml
-, requests
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pythonAtLeast,
+
+  # build-system
+  hatchling,
+  hatch-vcs,
+
+  # dependencies
+  param,
+  pyyaml,
+  requests,
+
+  # tests
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pyct";
-  version = "0.5.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.6.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-3Z9KxcvY43w1LAQDYGLTxfZ+/sdtQEdh7xawy/JqpqA=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-1OUTss81thZWBa5fzl8qSZhbxnRzxXnehRNLjHHTdKg=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [
+    hatchling
+    hatch-vcs
+  ];
+
+  dependencies = [
     param
     pyyaml
     requests
@@ -29,16 +41,20 @@ buildPythonPackage rec {
   nativeCheckInputs = [
     pytestCheckHook
   ];
-
-  pythonImportsCheck = [
-    "pyct"
+  # Only the command line doesn't work on with Python 3.12, due to usage of
+  # deprecated distutils module. Not disabling it totally.
+  disabledTestPaths = lib.optionals (pythonAtLeast "3.12") [
+    "pyct/tests/test_cmd.py"
   ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "pyct" ];
+
+  meta = {
     description = "ClI for Python common tasks for users";
+    mainProgram = "pyct";
     homepage = "https://github.com/pyviz/pyct";
-    changelog = "https://github.com/pyviz-dev/pyct/releases/tag/v${version}";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/pyviz-dev/pyct/releases/tag/v${finalAttrs.version}";
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
-}
+})

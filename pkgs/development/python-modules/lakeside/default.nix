@@ -1,10 +1,10 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, protobuf
-, pycryptodome
-, pythonOlder
-, requests
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  protobuf,
+  pycryptodome,
+  requests,
 }:
 
 buildPythonPackage rec {
@@ -12,12 +12,10 @@ buildPythonPackage rec {
   version = "0.13";
   format = "setuptools";
 
-  disabled = pythonOlder "3.7";
-
   src = fetchFromGitHub {
     owner = "nkgilley";
     repo = "python-lakeside";
-    rev = "refs/tags/${version}";
+    tag = version;
     hash = "sha256-Y5g78trkwOF3jsbgTv0uVkvfB1HZN+w1T6xIorxGAhg=";
   };
 
@@ -30,15 +28,13 @@ buildPythonPackage rec {
   # Module has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "lakeside"
-  ];
+  pythonImportsCheck = [ "lakeside" ];
 
-  meta = with lib; {
+  meta = {
     description = "Library for controlling LED bulbs from Eufy";
     homepage = "https://github.com/nkgilley/python-lakeside";
     changelog = "https://github.com/nkgilley/python-lakeside/releases/tag/${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

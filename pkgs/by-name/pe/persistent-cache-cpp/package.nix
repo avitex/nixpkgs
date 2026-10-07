@@ -1,74 +1,35 @@
-{ stdenv
-, lib
-, fetchFromGitLab
-, fetchpatch
-, gitUpdater
-, testers
-, boost
-, cmake
-, doxygen
-, gtest
-, leveldb
-, lomiri
-, pkg-config
-, python3
+{
+  stdenv,
+  lib,
+  fetchFromGitLab,
+  gitUpdater,
+  testers,
+  boost,
+  cmake,
+  doxygen,
+  gtest,
+  leveldb,
+  lomiri,
+  pkg-config,
+  python3,
+  validatePkgConfig,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "persistent-cache-cpp";
-  version = "1.0.6";
+  version = "1.0.10";
 
   src = fetchFromGitLab {
     owner = "ubports";
     repo = "development/core/lib-cpp/persistent-cache-cpp";
-    rev = finalAttrs.version;
-    hash = "sha256-RLZiYY0Y9LT+ajM4Va4MpVVDBlu2yvCpn8bNGMB8ydo=";
+    tag = finalAttrs.version;
+    hash = "sha256-siZb9D6ZGdKjlxJEgguPi9ZemWS0zY/7RwafWY6u67I=";
   };
 
   outputs = [
     "out"
     "dev"
     "doc"
-  ];
-
-  patches = [
-    # Version in CMakeLists.txt didn't get bumped, emits wrong version in pkg-config
-    # Remove when https://gitlab.com/ubports/development/core/lib-cpp/persistent-cache-cpp/-/merge_requests/13 merged & in release
-    (fetchpatch {
-      name = "0001-persistent-cache-cpp-CMakeLists-txt-Update-version.patch";
-      url = "https://gitlab.com/OPNA2608/persistent-cache-cpp/-/commit/20d5d3f61563c62bcbe85e71ddc4fe16d7c995d5.patch";
-      hash = "sha256-BKovtT9OvV+xEwBO8AZTxAzL9kqyDB9ip32t2Xx4eIk=";
-    })
-
-    # PersistentStringCacheImpl.exceptions test fails on LLVM's libcxx, it depends on std::system_error producing a very specific exception text
-    # Expects "Unknown error 666", gets "unspecified generic_category error"
-    # Remove when https://gitlab.com/ubports/development/core/lib-cpp/persistent-cache-cpp/-/merge_requests/14 merged & in release
-    (fetchpatch {
-      name = "0002-persistent-cache-cpp-persistent_string_cache_impl_test-libcxx-fix.patch";
-      url = "https://gitlab.com/OPNA2608/persistent-cache-cpp/-/commit/a696dbd3093b8333f9ee1f0cad846b2256c729c5.patch";
-      hash = "sha256-SJxdXeM7W+WKEmiLTwnQYAM7YmPayEk6vPb46y4thv4=";
-    })
-
-    # Enable usage of BUILD_TESTING to opting out of tests
-    # Remove when https://gitlab.com/ubports/development/core/lib-cpp/persistent-cache-cpp/-/merge_requests/15 merged & in release
-    (fetchpatch {
-      name = "0003-persistent-cache-cpp-Enable-opting-out-of-tests.patch";
-      url = "https://gitlab.com/OPNA2608/persistent-cache-cpp/-/commit/1fb06d28c16325e90046e93662c0f5fd16c29b4a.patch";
-      hash = "sha256-2/6EYBh71S4dzqWEde+3dLOGp015fN6IifAj1bI1XAI=";
-    })
-
-    # Enable linking based on stdenv (static or dynamic), only propagate leveldb link requirement when linked statically
-    # Remove when https://gitlab.com/ubports/development/core/lib-cpp/persistent-cache-cpp/-/merge_requests/16 merged & in release
-    (fetchpatch {
-      name = "0004-persistent-cache-cpp-Un-hardcode-static-linking.patch";
-      url = "https://gitlab.com/OPNA2608/persistent-cache-cpp/-/commit/45cd84fe76e3a0e1da41a662df695009a6f4f07e.patch";
-      hash = "sha256-1UjdhzrjnIUO1ySaZTm0vkdNgok0RNlGtNOWUoAUlzU=";
-    })
-    (fetchpatch {
-      name = "0005-persistent-cache-cpp-Propagate-leveldb-dependency-only-when-needed.patch";
-      url = "https://gitlab.com/OPNA2608/persistent-cache-cpp/-/commit/6204b65df32360a7e358558041219a867652c429.patch";
-      hash = "sha256-cIewdtF0OdQuLz94KNY2HL8XZp1IaKlZz2hNlMvKLw4=";
-    })
   ];
 
   postPatch = ''
@@ -79,7 +40,8 @@ stdenv.mkDerivation (finalAttrs: {
     # Runs in parallel to other tests, limit to 1 thread
     substituteInPlace tests/headers/compile_headers.py \
       --replace 'multiprocessing.cpu_count()' '1'
-  '' + lib.optionalString finalAttrs.finalPackage.doCheck ''
+  ''
+  + lib.optionalString finalAttrs.finalPackage.doCheck ''
     patchShebangs tests/{headers,whitespace}/*.py
   '';
 
@@ -87,6 +49,7 @@ stdenv.mkDerivation (finalAttrs: {
     cmake
     doxygen
     pkg-config
+    validatePkgConfig
   ];
 
   buildInputs = [
@@ -106,26 +69,31 @@ stdenv.mkDerivation (finalAttrs: {
   cmakeFlags = [
     # error: 'old_version' may be used uninitialized
     (lib.cmakeBool "Werror" false)
+    # Defaults to static if not set
     (lib.cmakeBool "BUILD_SHARED_LIBS" (!stdenv.hostPlatform.isStatic))
   ];
 
   doCheck = stdenv.buildPlatform.canExecute stdenv.hostPlatform;
 
   passthru = {
-    tests.pkg-config = testers.testMetaPkgConfig finalAttrs.finalPackage;
+    tests.pkg-config = testers.hasPkgConfigModules {
+      package = finalAttrs.finalPackage;
+      versionCheck = true;
+    };
     updateScript = gitUpdater { };
   };
 
-  meta = with lib; {
+  meta = {
     description = "Cache of key-value pairs with persistent storage for C++ 11";
     longDescription = ''
       A persistent cache for arbitrary (possibly large amount of data, such as
       image files) that is fast, scalable, and crash-proof.
     '';
     homepage = "https://gitlab.com/ubports/development/core/lib-cpp/persistent-cache-cpp";
-    license = licenses.lgpl3Only;
-    maintainers = teams.lomiri.members;
-    platforms = platforms.unix;
+    changelog = "https://gitlab.com/ubports/development/core/lib-cpp/persistent-cache-cpp/-/blob/${finalAttrs.version}/ChangeLog";
+    license = lib.licenses.lgpl3Only;
+    teams = [ lib.teams.lomiri ];
+    platforms = lib.platforms.unix;
     pkgConfigModules = [
       "libpersistent-cache-cpp"
     ];

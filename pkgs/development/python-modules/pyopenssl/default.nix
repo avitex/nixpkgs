@@ -1,25 +1,29 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchPypi
-, openssl
-, cryptography
-, pytestCheckHook
-, pretend
-, sphinxHook
-, sphinx-rtd-theme
-, flaky
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  openssl,
+  setuptools,
+  cryptography,
+  typing-extensions,
+  pytestCheckHook,
+  pretend,
+  sphinxHook,
+  sphinx-rtd-theme,
+  pytest-rerunfailures,
 }:
 
 buildPythonPackage rec {
   pname = "pyopenssl";
-  version = "23.3.0";
-  format = "setuptools";
+  version = "26.3.0";
+  pyproject = true;
 
-  src = fetchPypi {
-    pname = "pyOpenSSL";
-    inherit version;
-    hash = "sha256-ayy6XMRugidQ7D5age4SgZhQsRMDYw1XXpgQigecKxI=";
+  src = fetchFromGitHub {
+    owner = "pyca";
+    repo = "pyopenssl";
+    tag = version;
+    hash = "sha256-ASpF7CcakrPS4qg8XFGYgYb7Etjg7wcVyMBbtAZaKO0=";
   };
 
   outputs = [
@@ -28,32 +32,28 @@ buildPythonPackage rec {
     "doc"
   ];
 
+  build-system = [ setuptools ];
+
   nativeBuildInputs = [
     openssl
     sphinxHook
     sphinx-rtd-theme
   ];
 
-  postPatch = ''
-    # remove cryptography pin
-    sed -i "/cryptography/ s/,<[0-9]*//g" setup.py
-  '';
+  pythonRelaxDeps = [ "cryptography" ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     cryptography
+    typing-extensions
   ];
 
   nativeCheckInputs = [
-    flaky
     pretend
+    pytest-rerunfailures
     pytestCheckHook
   ];
 
   __darwinAllowLocalNetworking = true;
-
-  preCheck = ''
-    export LANG="en_US.UTF-8"
-  '';
 
   disabledTests = [
     # https://github.com/pyca/pyopenssl/issues/692
@@ -64,7 +64,10 @@ buildPythonPackage rec {
     "test_wantWriteError"
     # https://github.com/pyca/pyopenssl/issues/1043
     "test_alpn_call_failure"
-  ] ++ lib.optionals (lib.hasPrefix "libressl" openssl.meta.name) [
+    # https://github.com/pyca/pyopenssl/issues/1455
+    "test_client_receives_servers_data"
+  ]
+  ++ lib.optionals (lib.hasPrefix "libressl" openssl.meta.name) [
     # https://github.com/pyca/pyopenssl/issues/791
     # These tests, we disable in the case that libressl is passed in as openssl.
     "test_op_no_compression"
@@ -79,22 +82,24 @@ buildPythonPackage rec {
     "test_verify_with_revoked"
     "test_set_notAfter"
     "test_set_notBefore"
-  ] ++ lib.optionals (lib.versionAtLeast (lib.getVersion openssl.name) "1.1") [
+  ]
+  ++ lib.optionals (lib.versionAtLeast (lib.getVersion openssl.name) "1.1") [
     # these tests are extremely tightly wed to the exact output of the openssl cli tool, including exact punctuation.
     "test_dump_certificate"
     "test_dump_privatekey_text"
     "test_dump_certificate_request"
     "test_export_text"
-  ] ++ lib.optionals stdenv.is32bit [
+  ]
+  ++ lib.optionals stdenv.hostPlatform.is32bit [
     # https://github.com/pyca/pyopenssl/issues/974
     "test_verify_with_time"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Python wrapper around the OpenSSL library";
     homepage = "https://github.com/pyca/pyopenssl";
     changelog = "https://github.com/pyca/pyopenssl/blob/${version}/CHANGELOG.rst";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
 }

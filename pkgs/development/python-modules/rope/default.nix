@@ -1,34 +1,29 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytoolconfig
-, pytest-timeout
-, pytestCheckHook
-, pythonOlder
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytoolconfig,
+  pytest-timeout,
+  pytestCheckHook,
+  pythonAtLeast,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "rope";
-  version = "1.9.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "1.15.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "python-rope";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-j65C3x3anhH23D4kic5j++r/Ft0RqgZ/jFrNrNHVcXA=";
+    repo = "rope";
+    tag = version;
+    hash = "sha256-gKoLfEjYmXEWrST4PuzpTx5m63LJh49/OMoop6p3drk=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
-    pytoolconfig
-  ] ++ pytoolconfig.optional-dependencies.global;
+  dependencies = [ pytoolconfig ] ++ pytoolconfig.optional-dependencies.global;
 
   __darwinAllowLocalNetworking = true;
 
@@ -41,13 +36,19 @@ buildPythonPackage rec {
     "test_search_submodule"
     "test_get_package_source_pytest"
     "test_get_modname_folder"
+  ]
+  ++ lib.optionals (pythonAtLeast "3.13") [
+    # https://github.com/python-rope/rope/issues/801
+    "test_skipping_directories_not_accessible_because_of_permission_error"
+    "test_hint_parametrized_iterable"
+    "test_hint_parametrized_iterator"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Python refactoring library";
     homepage = "https://github.com/python-rope/rope";
-    changelog = "https://github.com/python-rope/rope/blob/${version}/CHANGELOG.md";
-    license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ goibhniu ];
+    changelog = "https://github.com/python-rope/rope/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.gpl3Plus;
+    maintainers = [ ];
   };
 }

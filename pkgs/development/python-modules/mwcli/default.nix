@@ -1,9 +1,9 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonRelaxDepsHook
-, docopt
-, para
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  docopt,
+  para,
 }:
 
 buildPythonPackage rec {
@@ -17,13 +17,7 @@ buildPythonPackage rec {
   };
 
   # Prevent circular dependency
-  pythonRemoveDeps = [
-    "mwxml"
-  ];
-
-  nativeBuildInputs = [
-    pythonRelaxDepsHook
-  ];
+  pythonRemoveDeps = [ "mwxml" ];
 
   propagatedBuildInputs = [
     docopt
@@ -33,10 +27,10 @@ buildPythonPackage rec {
   # Tests require mwxml which itself depends on this package (circular dependency)
   doCheck = false;
 
-  meta = with lib; {
-    description = "A set of helper functions and classes for mediawiki-utilities command-line utilities";
+  meta = {
+    description = "Set of helper functions and classes for mediawiki-utilities command-line utilities";
     homepage = "https://github.com/mediawiki-utilities/python-mwcli";
-    license = licenses.mit;
-    maintainers = with maintainers; [ GaetanLepage ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ GaetanLepage ];
   };
 }

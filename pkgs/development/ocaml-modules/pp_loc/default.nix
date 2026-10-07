@@ -1,13 +1,17 @@
-{ lib, fetchurl, buildDunePackage }:
+{
+  lib,
+  fetchurl,
+  buildDunePackage,
+}:
 
-buildDunePackage rec {
+buildDunePackage (finalAttrs: {
   pname = "pp_loc";
   version = "2.1.0";
 
   minimalOCamlVersion = "4.08";
 
   src = fetchurl {
-    url = "https://github.com/Armael/pp_loc/releases/download/v${version}/pp_loc-${version}.tbz";
+    url = "https://github.com/Armael/pp_loc/releases/download/v${finalAttrs.version}/pp_loc-${finalAttrs.version}.tbz";
     hash = "sha256-L3NlBdQx6BpP6FGtMQ/ynsTNIMj9N+8FDZ5vEFC6p8s=";
   };
 
@@ -19,4 +23,4 @@ buildDunePackage rec {
     maintainers = [ lib.maintainers.vbgl ];
     homepage = "https://armael.github.io/pp_loc/pp_loc/";
   };
-}
+})

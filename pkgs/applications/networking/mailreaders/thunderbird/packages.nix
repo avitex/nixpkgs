@@ -1,93 +1,132 @@
-{ stdenv, lib, buildMozillaMach, callPackage, fetchurl, fetchpatch, nixosTests, icu, fetchpatch2 }:
+{
+  stdenv,
+  lib,
+  buildMozillaMach,
+  callPackage,
+  fetchurl,
+  fetchpatch2,
+  config,
+}:
 
+let
+  common =
+    {
+      version,
+      sha512,
+      updateScript,
+      applicationName ? "Thunderbird",
+      broken ? stdenv.buildPlatform.is32bit,
+    }:
+    (buildMozillaMach rec {
+      pname = "thunderbird";
+      inherit version updateScript applicationName;
+      application = "comm/mail";
+      binaryName = "thunderbird";
+      src = fetchurl {
+        url = "mirror://mozilla/thunderbird/releases/${version}/source/thunderbird-${version}.source.tar.xz";
+        inherit sha512;
+      };
+      extraPatches = [
+        # The file to be patched is different from firefox's `no-buildconfig-ffx90.patch`.
+        (if lib.versionOlder version "140" then ./no-buildconfig.patch else ./no-buildconfig-tb140.patch)
+      ]
+      ++
+        lib.optional (lib.versionAtLeast version "154" && lib.versionOlder version "154.0.1")
+          (fetchpatch2 {
+            # Fix Success macros colliding: https://bugzilla.mozilla.org/show_bug.cgi?id=2065007
+            url = "https://github.com/mozilla-firefox/firefox/commit/f0b76eba072821d62e74ebdbd8da9243a2ce3b84.patch";
+            hash = "sha256-PCTmv1ZO7ce4q5fp+WPmy5Wga5OMY4hNzqIZ7iYCcp4=";
+          });
+      # FIXME: let's hope that upstream will fix this soon and we can drop this hack again.
+      # https://bugzilla.mozilla.org/show_bug.cgi?id=2040877
+      extraPostPatch =
+        lib.optionalString (lib.versionAtLeast version "151" && lib.versionOlder version "152") ''
+          echo https://hg.mozilla.org/releases/comm-release/rev/becfb8fb2c70f1603882a2787e2170d5d8013949 >> sourcestamp.txt
+          echo https://hg.mozilla.org/releases/mozilla-release/rev/fc12dc911f904307729760a817deb829cbf8feb4 >> sourcestamp.txt
+        ''
+        # https://bugzilla.mozilla.org/show_bug.cgi?id=2006630
+        + lib.optionalString (lib.versionAtLeast version "140.8" && lib.versionOlder version "151") ''
+          find . -name .cargo-checksum.json | xargs sed 's/"[^"]*\.gitmodules":"[a-z0-9]*",//g' -i
+        '';
+
+      meta = {
+        inherit broken;
+        changelog = "https://www.thunderbird.net/en-US/thunderbird/${version}/releasenotes/";
+        description = "Full-featured e-mail client";
+        homepage = "https://www.thunderbird.net/";
+        donationPage = "https://www.thunderbird.net/donate/";
+        mainProgram = "thunderbird";
+        maintainers = with lib.maintainers; [
+          booxter # darwin
+          lovesegfault
+          pierron
+          vcunat
+        ];
+        platforms = lib.platforms.unix;
+        # since Firefox 60, build on 32-bit platforms fails with "out of memory".
+        # not in `badPlatforms` because cross-compilation on 64-bit machine might work.
+        license = lib.licenses.mpl20;
+      };
+    }).override
+      (
+        {
+          enableLocation = false;
+          enableWebRTC = false;
+
+          enablePGO = false; # console.warn: feeds: "downloadFeed: network connection unavailable"
+        }
+        // lib.optionalAttrs (lib.versionAtLeast version "149") {
+          # https://bugzilla.mozilla.org/show_bug.cgi?id=2025767
+          enableCrashReporter = false;
+        }
+      );
+
+in
 rec {
-  thunderbird = thunderbird-115;
+  thunderbird = thunderbird-latest;
 
-  thunderbird-102 = (buildMozillaMach rec {
-    pname = "thunderbird";
-    version = "102.14.0";
-    application = "comm/mail";
-    applicationName = "Mozilla Thunderbird";
-    binaryName = pname;
-    src = fetchurl {
-      url = "mirror://mozilla/thunderbird/releases/${version}/source/thunderbird-${version}.source.tar.xz";
-      hash = "sha512-SuPyFoM67FVCH4J9VbwbX8LwrU/v7LJ3JKW+MxjDUd8k0wpIl7kk5zPtLjmVvihLbRNQSdRgARQ/sclh/vwYMA==";
-    };
-    extraPatches = [
-      # The file to be patched is different from firefox's `no-buildconfig-ffx90.patch`.
-      ./no-buildconfig.patch
-    ];
+  thunderbird-latest = common {
+    version = "156.0.1";
+    sha512 = "e9262a4666e0107c7bc45fc2ad4bac4d6e5db4bfd3325d1d1c418f00adee777db969f8c12d8f310f45fdfda61b26e31bd0eea8b7d64ed1ee0050b5ee9235cfb0";
 
-    meta = with lib; {
-      changelog = "https://www.thunderbird.net/en-US/thunderbird/${version}/releasenotes/";
-      description = "A full-featured e-mail client";
-      homepage = "https://thunderbird.net/";
-      mainProgram = "thunderbird";
-      maintainers = with maintainers; [ eelco lovesegfault pierron vcunat ];
-      platforms = platforms.unix;
-      badPlatforms = platforms.darwin;
-      broken = stdenv.buildPlatform.is32bit; # since Firefox 60, build on 32-bit platforms fails with "out of memory".
-                                             # not in `badPlatforms` because cross-compilation on 64-bit machine might work.
-      license = licenses.mpl20;
-      knownVulnerabilities = [ "Thunderbird 102 support has ended" ];
-    };
     updateScript = callPackage ./update.nix {
-      attrPath = "thunderbird-unwrapped";
-      versionPrefix = "102";
+      attrPath = "thunderbirdPackages.thunderbird-latest";
     };
-  }).override {
-    geolocationSupport = false;
-    webrtcSupport = false;
-
-    pgoSupport = false; # console.warn: feeds: "downloadFeed: network connection unavailable"
   };
 
-  thunderbird-115 = (buildMozillaMach rec {
-    pname = "thunderbird";
-    version = "115.7.0";
-    application = "comm/mail";
-    applicationName = "Mozilla Thunderbird";
-    binaryName = pname;
-    src = fetchurl {
-      url = "mirror://mozilla/thunderbird/releases/${version}/source/thunderbird-${version}.source.tar.xz";
-      sha512 = "de9edb81cf5da494101bf927a5b963ccdec0cc9bff87ebd72d896c6e25102c1113b326f67302a81abd237048aa1e6150c4a97fe4b1892bc80030cbab9099e2d8";
-    };
-    extraPatches = [
-      # The file to be patched is different from firefox's `no-buildconfig-ffx90.patch`.
-      ./no-buildconfig-115.patch
-    ];
+  # Eventually, switch to an updateScript without versionPrefix hardcoded...
+  thunderbird-esr = thunderbird-153;
 
-    meta = with lib; {
-      changelog = "https://www.thunderbird.net/en-US/thunderbird/${version}/releasenotes/";
-      description = "A full-featured e-mail client";
-      homepage = "https://thunderbird.net/";
-      mainProgram = "thunderbird";
-      maintainers = with maintainers; [ eelco lovesegfault pierron vcunat ];
-      platforms = platforms.unix;
-      badPlatforms = platforms.darwin;
-      broken = stdenv.buildPlatform.is32bit; # since Firefox 60, build on 32-bit platforms fails with "out of memory".
-                                             # not in `badPlatforms` because cross-compilation on 64-bit machine might work.
-      license = licenses.mpl20;
-    };
+  thunderbird-153 = common {
+    applicationName = "Thunderbird ESR";
+
+    version = "153.4.0esr";
+    sha512 = "93c43a75010b2edd36c58d054cd2e15a879b9e62e21f419bd8c7f97b8f7f6f29e8aed9d445ab9ccebdc1825dbf0f5e82e6e316c5f817f877d64266a2f2dbf9ec";
+
     updateScript = callPackage ./update.nix {
-      attrPath = "thunderbird-unwrapped";
-      versionPrefix = "115";
+      attrPath = "thunderbirdPackages.thunderbird-153";
+      versionPrefix = "153";
+      versionSuffix = "esr";
     };
-  }).override {
-    geolocationSupport = false;
-    webrtcSupport = false;
-
-    pgoSupport = false; # console.warn: feeds: "downloadFeed: network connection unavailable"
-
-    icu = icu.overrideAttrs (attrs: {
-      # standardize vtzone output
-      # Work around ICU-22132 https://unicode-org.atlassian.net/browse/ICU-22132
-      # https://bugzilla.mozilla.org/show_bug.cgi?id=1790071
-      patches = attrs.patches ++ [(fetchpatch2 {
-        url = "https://hg.mozilla.org/mozilla-central/raw-file/fb8582f80c558000436922fb37572adcd4efeafc/intl/icu-patches/bug-1790071-ICU-22132-standardize-vtzone-output.diff";
-        stripLen = 3;
-        hash = "sha256-MGNnWix+kDNtLuACrrONDNcFxzjlUcLhesxwVZFzPAM=";
-      })];
-    });
   };
+
+  thunderbird-140 = common {
+    applicationName = "Thunderbird ESR";
+
+    version = "140.16.0esr";
+    sha512 = "9844641f9c8b4e7c96445d6d6fc554fc80afd8652899de3458d183f9381a18f08233e5d2e2beedd6adf2a0a6e1331e7abb55e698765b27110ca2dafdf12ecbb7";
+
+    updateScript = callPackage ./update.nix {
+      attrPath = "thunderbirdPackages.thunderbird-140";
+      versionPrefix = "140";
+      versionSuffix = "esr";
+    };
+
+    broken = true;
+  };
+}
+// lib.optionalAttrs config.allowAliases {
+  thunderbird-102 = throw "Thunderbird 102 support ended in September 2023";
+  thunderbird-115 = throw "Thunderbird 115 support ended in October 2024";
+  thunderbird-128 = throw "Thunderbird 128 support ended in August 2025";
 }

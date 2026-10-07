@@ -1,43 +1,39 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, h5py
-, numpy
-, pandas
-, pytestCheckHook
-, pytest-mock
-, pytest-remotedata
-, pytest-rerunfailures
-, pytest-timeout
-, pythonOlder
-, pytz
-, requests
-, requests-mock
-, scipy
-, setuptools
-, setuptools-scm
-, wheel
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  h5py,
+  numpy,
+  pandas,
+  pytestCheckHook,
+  pytest-mock,
+  pytest-remotedata,
+  pytest-rerunfailures,
+  pytest-timeout,
+  pytz,
+  requests,
+  requests-mock,
+  scipy,
+  setuptools,
+  setuptools-scm,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pvlib";
-  version = "0.10.3";
-  format = "pyproject";
+  version = "0.14.0";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi{
-    inherit pname version;
-    hash = "sha256-AkobUj1zpjMyNhLn8xWhcJzwbR/UP/CCGQH2akBostk=";
+  src = fetchPypi {
+    inherit (finalAttrs) pname version;
+    hash = "sha256-nmpmhlJAzk4xy+nTYKKNbreVO6u2KsQDry+QrtFqRQk=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     setuptools-scm
-    wheel
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     h5py
     numpy
     pandas
@@ -47,23 +43,21 @@ buildPythonPackage rec {
   ];
 
   nativeCheckInputs = [
-    pytestCheckHook
     pytest-mock
     pytest-remotedata
     pytest-rerunfailures
     pytest-timeout
+    pytestCheckHook
     requests-mock
   ];
 
-  pythonImportsCheck = [
-    "pvlib"
-  ];
+  pythonImportsCheck = [ "pvlib" ];
 
-  meta = with lib; {
-    homepage = "https://pvlib-python.readthedocs.io";
+  meta = {
     description = "Simulate the performance of photovoltaic energy systems";
-    changelog = "https://pvlib-python.readthedocs.io/en/v${version}/whatsnew.html";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ jluttine ];
+    homepage = "https://pvlib-python.readthedocs.io";
+    changelog = "https://pvlib-python.readthedocs.io/en/v${finalAttrs.version}/whatsnew.html";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ jluttine ];
   };
-}
+})

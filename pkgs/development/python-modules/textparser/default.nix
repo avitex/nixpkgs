@@ -1,39 +1,35 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools-scm
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  setuptools-scm,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "textparser";
   version = "0.24.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
     hash = "sha256-VvcI51qp0AKtt22CO6bvFm1+zsHj5MpMHKED+BdWgzU=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
+    setuptools
     setuptools-scm
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "textparser"
-  ];
+  pythonImportsCheck = [ "textparser" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/eerimoq/textparser";
-    description = "A text parser";
-    license = licenses.mit;
-    maintainers = with maintainers; [ gray-heron ];
+    description = "Text parser";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ gray-heron ];
   };
 }

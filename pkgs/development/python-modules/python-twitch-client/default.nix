@@ -1,11 +1,11 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, pythonOlder
-, requests
-, responses
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  requests,
+  responses,
+  setuptools,
 }:
 
 buildPythonPackage rec {
@@ -13,31 +13,23 @@ buildPythonPackage rec {
   version = "0.7.1";
   pyproject = true;
 
-  disabled = pythonOlder "3.6";
-
   src = fetchFromGitHub {
     owner = "tsifrer";
     repo = "python-twitch-client";
-    rev = "refs/tags/${version}";
+    tag = version;
     sha256 = "sha256-gxBpltwExb9bg3HLkz/MNlP5Q3/x97RHxhbwNqqanIM=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
-  propagatedBuildInputs = [
-    requests
-  ];
+  propagatedBuildInputs = [ requests ];
 
   nativeCheckInputs = [
     pytestCheckHook
     responses
   ];
 
-  pythonImportsCheck = [
-    "twitch"
-  ];
+  pythonImportsCheck = [ "twitch" ];
 
   disabledTests = [
     # Tests require network access
@@ -45,11 +37,11 @@ buildPythonPackage rec {
     "test_update"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Python wrapper for the Twitch API";
     homepage = "https://github.com/tsifrer/python-twitch-client";
     changelog = "https://github.com/tsifrer/python-twitch-client/blob/${version}/CHANGELOG.md";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

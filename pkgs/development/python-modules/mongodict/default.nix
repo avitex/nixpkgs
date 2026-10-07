@@ -1,7 +1,8 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pymongo
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pymongo,
 }:
 
 buildPythonPackage rec {
@@ -16,10 +17,9 @@ buildPythonPackage rec {
 
   propagatedBuildInputs = [ pymongo ];
 
-  meta = with lib; {
+  meta = {
     description = "MongoDB-backed Python dict-like interface";
     homepage = "https://github.com/turicas/mongodict/";
-    license = licenses.gpl3;
+    license = lib.licenses.gpl3;
   };
-
 }

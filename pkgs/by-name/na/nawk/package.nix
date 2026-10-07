@@ -1,20 +1,22 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, bison
-, buildPackages
-, installShellFiles
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  bison,
+  buildPackages,
+  installShellFiles,
+  nix-update-script,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "nawk";
-  version = "20230911";
+  version = "20260426";
 
   src = fetchFromGitHub {
     owner = "onetrueawk";
     repo = "awk";
-    rev = "2ndEdition";
-    hash = "sha256-9SxeYsTFrsJ+Cg43QjQihi2Ij0qdJvTnyGGhUHJHjuU=";
+    rev = finalAttrs.version;
+    hash = "sha256-ndhSOl4xEwbDQ51g7yuwe3MOfmQrzePuanmyXYhWp+I=";
   };
 
   depsBuildBuild = [ buildPackages.stdenv.cc ];
@@ -24,7 +26,10 @@ stdenv.mkDerivation (finalAttrs: {
     installShellFiles
   ];
 
-  outputs = [ "out" "man" ];
+  outputs = [
+    "out"
+    "man"
+  ];
 
   makeFlags = [
     "CC=${stdenv.cc.targetPrefix}cc"
@@ -33,15 +38,18 @@ stdenv.mkDerivation (finalAttrs: {
 
   installPhase = ''
     runHook preInstall
-    install -Dm755 a.out "$out/bin/nawk"
+    mv a.out nawk
+    installBin nawk
     mv awk.1 nawk.1
     installManPage nawk.1
     runHook postInstall
   '';
 
+  passthru.updateScript = nix-update-script { };
+
   meta = {
-    homepage = "https://awk.dev";
-    description = "The one, true implementation of AWK";
+    homepage = "https://github.com/onetrueawk/awk";
+    description = "One, true implementation of AWK";
     longDescription = ''
       This is the version of awk described in "The AWK Programming Language",
       Second Edition, by Al Aho, Brian Kernighan, and Peter Weinberger
@@ -50,7 +58,9 @@ stdenv.mkDerivation (finalAttrs: {
     changelog = "https://github.com/onetrueawk/awk/blob/${finalAttrs.src.rev}/ChangeLog";
     license = lib.licenses.mit;
     mainProgram = "nawk";
-    maintainers = with lib.maintainers; [ AndersonTorres konimex ];
+    maintainers = with lib.maintainers; [
+      konimex
+    ];
     platforms = lib.platforms.all;
   };
 })

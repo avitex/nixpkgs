@@ -1,38 +1,39 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, rstr
-, sre-yield
-, pythonImportsCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  rstr,
+  sre-yield,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "stringbrewer";
   version = "0.0.1";
-  format = "setuptools";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
+    inherit (finalAttrs) pname version;
     hash = "sha256-wtETgi+Tk1ALJzzIM6Ic5zkDbALGL0cELg8X75uepkk=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     rstr
     sre-yield
-  ];
-  nativeBuildInputs = [
-    pythonImportsCheckHook
   ];
 
   # Package has no tests
   doCheck = false;
   pythonImportsCheck = [ "stringbrewer" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python library to generate random strings matching a pattern";
     homepage = "https://github.com/simoncozens/stringbrewer";
-    license = licenses.mit;
-    maintainers = with maintainers; [ danc86 ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ danc86 ];
   };
-}
-
+})

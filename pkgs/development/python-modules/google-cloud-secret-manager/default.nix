@@ -1,33 +1,44 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, google-api-core
-, grpc-google-iam-v1
-, proto-plus
-, protobuf
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  google-api-core,
+  google-auth,
+  grpc-google-iam-v1,
+  grpcio,
+  proto-plus,
+  protobuf,
+  pytest-asyncio,
+  pytestCheckHook,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "google-cloud-secret-manager";
-  version = "2.17.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "2.30.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-glTilgwGqNyRrqw8iUr7oIk6Z0WC8ODs/CL4lOYXPC8=";
+    pname = "google_cloud_secret_manager";
+    inherit version;
+    hash = "sha256-JuyHc3cxtIP3+VwmqMereeIstmMXyVAG5/aYXbxDyKI=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  pythonRelaxDeps = [
+    "protobuf"
+  ];
+
+  dependencies = [
     google-api-core
+    google-auth
     grpc-google-iam-v1
+    grpcio
     proto-plus
     protobuf
-  ] ++ google-api-core.optional-dependencies.grpc;
+  ]
+  ++ google-api-core.optional-dependencies.grpc;
 
   nativeCheckInputs = [
     pytest-asyncio
@@ -40,11 +51,11 @@ buildPythonPackage rec {
     "google.cloud.secretmanager_v1beta1"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Secret Manager API API client library";
     homepage = "https://github.com/googleapis/google-cloud-python/tree/main/packages/google-cloud-secret-manager";
     changelog = "https://github.com/googleapis/google-cloud-python/blob/google-cloud-secret-manager-v${version}/packages/google-cloud-secret-manager/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ siriobalmelli ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ siriobalmelli ];
   };
 }

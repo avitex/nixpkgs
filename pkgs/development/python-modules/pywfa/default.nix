@@ -1,12 +1,12 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, cython
-, setuptools
-, wheel
-, pysam
-, unittestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  cython,
+  setuptools,
+  wheel,
+  pysam,
+  unittestCheckHook,
 }:
 
 buildPythonPackage rec {
@@ -14,13 +14,11 @@ buildPythonPackage rec {
   version = "0.5.1";
   pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
   src = fetchFromGitHub {
     owner = "kcleal";
     repo = "pywfa";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-oeVXK9uyH4E98tApKrA7dXifQYb41KuDTAZ40XgAaF8=";
+    tag = "v${version}";
+    hash = "sha256-TeJ7Jq4LR+I1+zeMeBtHZa9dR+CRJJG5sT99tB227P8=";
   };
 
   nativeBuildInputs = [
@@ -43,11 +41,11 @@ buildPythonPackage rec {
     "pywfa.align"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Python wrapper for wavefront alignment using WFA2-lib";
     homepage = "https://github.com/kcleal/pywfa";
-    changelog = "https://github.com/kcleal/pywfa/releases/tag/${src.rev}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ natsukium ];
+    changelog = "https://github.com/kcleal/pywfa/releases/tag/v${version}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ natsukium ];
   };
 }

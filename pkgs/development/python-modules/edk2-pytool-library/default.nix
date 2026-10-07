@@ -1,56 +1,47 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, setuptools
-, setuptools-scm
-, pythonRelaxDepsHook
-, pyasn1
-, pyasn1-modules
-, cryptography
-, joblib
-, gitpython
-, sqlalchemy
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  setuptools-scm,
+  pyasn1,
+  pyasn1-modules,
+  cryptography,
+  joblib,
+  gitpython,
+  sqlalchemy,
+  pygount,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "edk2-pytool-library";
-  version = "0.20.0";
+  version = "0.23.17";
   pyproject = true;
-
-  disabled = pythonOlder "3.10";
 
   src = fetchFromGitHub {
     owner = "tianocore";
     repo = "edk2-pytool-library";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-uqXQbSk/diyTq4d+J1ubc6ylJpETmJt699vfbSuY290=";
+    tag = "v${version}";
+    hash = "sha256-VQJ549UE0zhrSh6Xu/QjwHcK/xdT6wYDJ3o+5XH3DU8=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     setuptools-scm
-    pythonRelaxDepsHook
   ];
 
-  pythonRelaxDeps = [
-    "tinydb"
-    "joblib"
-  ];
-
-  propagatedBuildInputs = [
+  dependencies = [
     pyasn1
     pyasn1-modules
     cryptography
     joblib
     gitpython
     sqlalchemy
+    pygount
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   disabledTests = [
     # requires network access
@@ -59,12 +50,12 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "edk2toollib" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python library package that supports UEFI development";
     homepage = "https://github.com/tianocore/edk2-pytool-library";
-    changelog = "https://github.com/tianocore/edk2-pytool-library/releases/tag/v${version}";
-    license = licenses.bsd2Patent;
-    maintainers = with maintainers; [ nickcao ];
-    platforms = platforms.linux;
+    changelog = "https://github.com/tianocore/edk2-pytool-library/releases/tag/${src.tag}";
+    license = lib.licenses.bsd2Patent;
+    maintainers = with lib.maintainers; [ nickcao ];
+    platforms = lib.platforms.linux;
   };
 }

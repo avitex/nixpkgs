@@ -1,64 +1,71 @@
-{ lib
-, buildPythonPackage
-, datasets
-, dvc
-, dvc-render
-, dvc-studio-client
-, fastai
-, fetchFromGitHub
-, funcy
-, gto
-, jsonargparse
-, lightgbm
-, lightning
-, matplotlib
-, mmcv
-, numpy
-, optuna
-, pandas
-, pillow
-, pytestCheckHook
-, pythonOlder
-, ruamel-yaml
-, scikit-learn
-, scmrepo
-, setuptools-scm
-, tabulate
-, tensorflow
-, torch
-, transformers
-, xgboost
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools-scm,
+
+  # dependencies
+  dvc,
+  dvc-render,
+  dvc-studio-client,
+  funcy,
+  gto,
+  psutil,
+  pynvml,
+  ruamel-yaml,
+  scmrepo,
+
+  # optional-dependencies
+  # all
+  jsonargparse,
+  lightgbm,
+  lightning,
+  matplotlib,
+  mmcv,
+  numpy,
+  optuna,
+  pandas,
+  pillow,
+  scikit-learn,
+  tensorflow,
+  torch,
+  transformers,
+  xgboost,
+  # huggingface
+  datasets,
+  # fastai
+  fastai,
 }:
 
 buildPythonPackage rec {
   pname = "dvclive";
-  version = "3.41.1";
+  version = "3.49.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "iterative";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-PbgazRK3+CoJISh1ZXGjxDfbKHY/XqSvVrkpycvPi7c=";
+    repo = "dvclive";
+    tag = version;
+    hash = "sha256-jjYglvXPtwPJEp2Qo309QeRLYooUmsDhO1Dc1S3OjQg=";
   };
 
-  nativeBuildInputs = [
-    setuptools-scm
-  ];
+  build-system = [ setuptools-scm ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     dvc
     dvc-render
     dvc-studio-client
     funcy
     gto
+    psutil
+    pynvml
     ruamel-yaml
     scmrepo
   ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     all = [
       jsonargparse
       lightgbm
@@ -74,34 +81,23 @@ buildPythonPackage rec {
       torch
       transformers
       xgboost
-    ] ++ jsonargparse.optional-dependencies.signatures;
+    ]
+    ++ jsonargparse.optional-dependencies.signatures;
     image = [
       numpy
       pillow
     ];
-    sklearn = [
-      scikit-learn
-    ];
+    sklearn = [ scikit-learn ];
     plots = [
       pandas
       scikit-learn
       numpy
     ];
-    markdown = [
-      matplotlib
-    ];
-    mmcv = [
-      mmcv
-    ];
-    tf = [
-      tensorflow
-    ];
-    xgb = [
-      xgboost
-    ];
-    lgbm = [
-      lightgbm
-    ];
+    markdown = [ matplotlib ];
+    mmcv = [ mmcv ];
+    tf = [ tensorflow ];
+    xgb = [ xgboost ];
+    lgbm = [ lightgbm ];
     huggingface = [
       datasets
       transformers
@@ -109,31 +105,26 @@ buildPythonPackage rec {
     # catalyst = [
     #   catalyst
     # ];
-    fastai = [
-      fastai
-    ];
+    fastai = [ fastai ];
     lightning = [
       lightning
       torch
       jsonargparse
-    ] ++ jsonargparse.optional-dependencies.signatures;
-    optuna = [
-      optuna
-    ];
+    ]
+    ++ jsonargparse.optional-dependencies.signatures;
+    optuna = [ optuna ];
   };
 
   # Circular dependency with dvc
   doCheck = false;
 
-  pythonImportsCheck = [
-    "dvclive"
-  ];
+  pythonImportsCheck = [ "dvclive" ];
 
-  meta = with lib; {
+  meta = {
     description = "Library for logging machine learning metrics and other metadata in simple file formats";
     homepage = "https://github.com/iterative/dvclive";
-    changelog = "https://github.com/iterative/dvclive/releases/tag/${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/iterative/dvclive/releases/tag/${src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

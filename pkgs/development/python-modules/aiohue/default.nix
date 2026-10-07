@@ -1,40 +1,37 @@
-{ lib
-, aiohttp
-, asyncio-throttle
-, awesomeversion
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, pytest-aiohttp
-, pytest-asyncio
-, pythonOlder
-, setuptools
+{
+  lib,
+  aiohttp,
+  asyncio-throttle,
+  awesomeversion,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  pytest-aiohttp,
+  pytest-asyncio,
+  pytest-cov-stub,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "aiohue";
-  version = "4.7.0";
+  version = "4.9.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.10";
 
   src = fetchFromGitHub {
     owner = "home-assistant-libs";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-t48rUPAM0XpbDreCwHU/smoyhPtxhwrpDkb1170GkQM=";
+    repo = "aiohue";
+    tag = finalAttrs.version;
+    hash = "sha256-AZQzt/JoCvGtz4AR7afI4k1BFrYjmq5Vp+NFbxzED9c=";
   };
 
   postPatch = ''
     substituteInPlace pyproject.toml \
-      --replace 'version = "0.0.0"' 'version = "${version}"'
+      --replace-fail 'version = "0.0.0"' 'version = "${finalAttrs.version}"'
   '';
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     awesomeversion
     aiohttp
     asyncio-throttle
@@ -44,6 +41,7 @@ buildPythonPackage rec {
     pytestCheckHook
     pytest-asyncio
     pytest-aiohttp
+    pytest-cov-stub
   ];
 
   pythonImportsCheck = [
@@ -56,11 +54,11 @@ buildPythonPackage rec {
     "examples/"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Python package to talk to Philips Hue";
     homepage = "https://github.com/home-assistant-libs/aiohue";
-    changelog = "https://github.com/home-assistant-libs/aiohue/releases/tag/${version}";
-    license = with licenses; [ asl20 ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/home-assistant-libs/aiohue/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

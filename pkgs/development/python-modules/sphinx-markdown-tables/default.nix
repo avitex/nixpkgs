@@ -1,8 +1,9 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, sphinx
-, markdown
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  sphinx,
+  markdown,
 }:
 
 buildPythonPackage rec {
@@ -22,10 +23,9 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "sphinx_markdown_tables" ];
 
-  meta = with lib; {
+  meta = {
     description = "Sphinx extension for rendering tables written in markdown";
     homepage = "https://github.com/ryanfox/sphinx-markdown-tables";
-    maintainers = with maintainers; [ Madouura ];
-    license = licenses.gpl3;
+    license = lib.licenses.gpl3;
   };
 }

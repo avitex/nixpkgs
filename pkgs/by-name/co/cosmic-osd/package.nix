@@ -1,45 +1,86 @@
-{ lib
-, fetchFromGitHub
-, rustPlatform
-, pkg-config
-, libxkbcommon
-, udev
-, wayland
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  rustPlatform,
+  libcosmicAppHook,
+  just,
+  pulseaudio,
+  pipewire,
+  libinput,
+  udev,
+  nix-update-script,
+  nixosTests,
 }:
 
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "cosmic-osd";
-  version = "unstable-2023-11-15";
+  version = "1.9.0";
 
+  # nixpkgs-update: no auto update
   src = fetchFromGitHub {
     owner = "pop-os";
-    repo = pname;
-    rev = "c1d10382dd1132923a4ddc9c86bb89bd9a70cd68";
-    hash = "sha256-KCjWTN6hjbmJU6UfCP5NWbLy2K09+eRY5U4cQ5iV3E4=";
+    repo = "cosmic-osd";
+    tag = "epoch-${finalAttrs.version}";
+    hash = "sha256-kGYoPIE/owCdoT3uNpDA1w1D1zbRMGrxOS6Yp3BfXzo=";
   };
 
-  cargoLock = {
-    lockFile = ./Cargo.lock;
-    outputHashes = {
-      "accesskit-0.11.0" = "sha256-xVhe6adUb8VmwIKKjHxwCwOo5Y1p3Or3ylcJJdLDrrE=";
-      "cosmic-config-0.1.0" = "sha256-7pfKQvScoahp+Fhv+QfgyIroCyQO6kjXcnTilBL41K8=";
-      "smithay-client-toolkit-0.17.0" = "sha256-vDY4cqz5CZD12twElUWVCsf4N6VO9O+Udl8Dc4arWK4=";
-      "smithay-client-toolkit-0.18.0" = "sha256-2WbDKlSGiyVmi7blNBr2Aih9FfF2dq/bny57hoA4BrE=";
-      "softbuffer-0.2.0" = "sha256-VD2GmxC58z7Qfu/L+sfENE+T8L40mvUKKSfgLmCTmjY=";
-      "taffy-0.3.11" = "sha256-0hXOEj6IjSW8e1t+rvxBFX6V9XRum3QO2Des1XlHJEw=";
-    };
-  };
+  cargoHash = "sha256-YLrUev919xxG74F5Vk85XbJjAvb5IfsDjM6flr7HJwE=";
 
-  nativeBuildInputs = [ pkg-config ];
-  buildInputs = [ libxkbcommon wayland udev ];
+  separateDebugInfo = true;
+  __structuredAttrs = true;
 
   env.POLKIT_AGENT_HELPER_1 = "/run/wrappers/bin/polkit-agent-helper-1";
 
-  meta = with lib; {
+  nativeBuildInputs = [
+    just
+    libcosmicAppHook
+    rustPlatform.bindgenHook
+  ];
+
+  buildInputs = [
+    pulseaudio
+    udev
+    libinput
+    pipewire
+  ];
+
+  dontUseJustBuild = true;
+  dontUseJustCheck = true;
+
+  justFlags = [
+    "--set"
+    "prefix"
+    (placeholder "out")
+    "--set"
+    "cargo-target-dir"
+    "target/${stdenv.hostPlatform.rust.cargoShortTarget}"
+  ];
+
+  passthru = {
+    tests = {
+      inherit (nixosTests)
+        cosmic
+        cosmic-autologin
+        cosmic-noxwayland
+        cosmic-autologin-noxwayland
+        ;
+    };
+
+    updateScript = nix-update-script {
+      extraArgs = [
+        "--version-regex"
+        "epoch-(.*)"
+      ];
+    };
+  };
+
+  meta = {
     homepage = "https://github.com/pop-os/cosmic-osd";
     description = "OSD for the COSMIC Desktop Environment";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ nyanbinary ];
-    platforms = platforms.linux;
+    mainProgram = "cosmic-osd";
+    license = lib.licenses.gpl3Only;
+    teams = [ lib.teams.cosmic ];
+    platforms = lib.platforms.linux;
   };
-}
+})

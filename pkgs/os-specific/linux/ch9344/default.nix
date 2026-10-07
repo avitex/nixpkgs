@@ -1,21 +1,26 @@
-{ stdenv, lib, fetchzip, kernel }:
+{
+  stdenv,
+  lib,
+  fetchFromGitHub,
+  kernel,
+  kernelModuleMakeFlags,
+}:
 
 stdenv.mkDerivation rec {
   pname = "ch9344";
-  version = "1.9";
+  version = "2.3";
 
-  src = fetchzip {
-    name = "CH9344SER_LINUX.zip";
-    url = "https://www.wch.cn/downloads/file/386.html#CH9344SER_LINUX.zip";
-    hash = "sha256-g55ftAfjKKlUFzGhI1a/O7Eqbz6rkGf1vWuEJjBZxBE=";
+  src = fetchFromGitHub {
+    owner = "WCHSoftGroup";
+    repo = "ch9344ser_linux";
+    rev = "e0a38c4f4f9d4c1f5e2e3a352b7b1010b33aa322";
+    hash = "sha256-ldYoGmG9DAjASl3xL8djeZ8jRHlcBQdAt0KYAr53epI=";
   };
 
-  patches = lib.optionals (lib.versionAtLeast kernel.modDirVersion "6.1") [
-    # https://github.com/torvalds/linux/commit/a8c11c1520347be74b02312d10ef686b01b525f1
-    ./fix-incompatible-pointer-types.patch
-  ] ++ lib.optionals (lib.versionAtLeast kernel.modDirVersion "6.3") [
-    # https://github.com/torvalds/linux/commit/5d420399073770134d2b03e004b2c0201c7fa26f
-    ./fix-incompatible-pointer-types_6_3.patch
+  patches = [
+    ./fix-linux-6-12-build.patch
+    ./fix-linux-6-15-build.patch
+    ./fix-linux-6-16-build.patch
   ];
 
   sourceRoot = "${src.name}/driver";
@@ -26,7 +31,7 @@ stdenv.mkDerivation rec {
     substituteInPlace Makefile --replace "KERNELDIR :=" "KERNELDIR ?="
   '';
 
-  makeFlags = [
+  makeFlags = kernelModuleMakeFlags ++ [
     "KERNELDIR=${kernel.dev}/lib/modules/${kernel.modDirVersion}/build"
   ];
 
@@ -36,16 +41,15 @@ stdenv.mkDerivation rec {
     runHook postInstall
   '';
 
-  meta = with lib; {
+  meta = {
     homepage = "https://www.wch-ic.com/";
-    downloadPage = "https://www.wch.cn/downloads/CH9344SER_LINUX_ZIP.html";
+    downloadPage = "https://github.com/WCHSoftGroup/ch9344ser_linux";
     description = "WCH CH9344/CH348 UART driver";
     longDescription = ''
       A kernel module for WinChipHead CH9344/CH348 USB To Multi Serial Ports controller.
     '';
-    # Archive contains no license.
-    license = licenses.unfree;
-    platforms = platforms.linux;
-    maintainers = with maintainers; [ MakiseKurisu ];
+    license = lib.licenses.gpl2Only;
+    platforms = lib.platforms.linux;
+    maintainers = with lib.maintainers; [ RadxaYuntian ];
   };
 }

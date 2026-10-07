@@ -1,37 +1,31 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pyparsing
-, pytestCheckHook
-, pythonAtLeast
-, pythonOlder
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pyparsing,
+  pytestCheckHook,
+  pythonAtLeast,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "aenum";
-  version = "3.1.15";
+  version = "3.1.16";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-jL12zRjE+HD/ObJChNPqAo++hzGljfOqWB5DTFdblVk=";
+    hash = "sha256-v6+Vib20GO46mG2FdQxzGNnSg5wbGh1v6PxT7CAc8UA=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
   nativeCheckInputs = [
     pyparsing
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "aenum"
-  ];
+  pythonImportsCheck = [ "aenum" ];
 
   disabledTests = [
     # https://github.com/ethanfurman/aenum/issues/27
@@ -42,15 +36,16 @@ buildPythonPackage rec {
     "test_arduino_headers"
     "test_c_header_scanner"
     "test_extend_flag_backwards_stdlib"
-  ] ++ lib.optionals (pythonAtLeast "3.12") [
+  ]
+  ++ lib.optionals (pythonAtLeast "3.12") [
     # AttributeError: <enum 'Color'> has no attribute 'value'. Did you mean: 'blue'?
     "test_extend_enum_shadow_property_stdlib"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Advanced Enumerations (compatible with Python's stdlib Enum), NamedTuples, and NamedConstants";
     homepage = "https://github.com/ethanfurman/aenum";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ vrthra ];
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
 }

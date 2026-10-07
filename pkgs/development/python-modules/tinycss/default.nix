@@ -1,18 +1,16 @@
-{ lib
-, buildPythonPackage
-, cssutils
-, cython
-, fetchPypi
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  cssutils,
+  cython,
+  fetchPypi,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "tinycss";
   version = "0.4";
   format = "setuptools";
-
-  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
@@ -23,17 +21,11 @@ buildPythonPackage rec {
     sed -i "/--cov/d" setup.cfg
   '';
 
-  nativeBuildInputs = [
-    cython
-  ];
+  nativeBuildInputs = [ cython ];
 
-  propagatedBuildInputs = [
-    cssutils
-  ];
+  propagatedBuildInputs = [ cssutils ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   preBuild = ''
     # Force Cython to re-generate this file. If it is present, Cython will
@@ -44,17 +36,15 @@ buildPythonPackage rec {
   '';
 
   # Disable Cython tests
-  TINYCSS_SKIP_SPEEDUPS_TESTS = true;
+  env.TINYCSS_SKIP_SPEEDUPS_TESTS = true;
 
-  pythonImportsCheck = [
-    "tinycss"
-  ];
+  pythonImportsCheck = [ "tinycss" ];
 
-  meta = with lib; {
+  meta = {
     description = "Complete yet simple CSS parser for Python";
     homepage = "https://tinycss.readthedocs.io";
     changelog = "https://github.com/Kozea/tinycss/releases/tag/v${version}";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
 }

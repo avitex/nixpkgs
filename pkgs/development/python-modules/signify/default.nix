@@ -1,60 +1,47 @@
-{ lib
-, asn1crypto
-, buildPythonPackage
-, certvalidator
-, fetchFromGitHub
-, mscerts
-, oscrypto
-, pyasn1
-, pyasn1-modules
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  asn1crypto,
+  buildPythonPackage,
+  certvalidator,
+  fetchFromGitHub,
+  mscerts,
+  oscrypto,
+  pytestCheckHook,
+  setuptools,
+  typing-extensions,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "signify";
-  version = "0.5.2";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.6";
+  version = "0.9.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "ralphje";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-+UhZF+QYuv8pq/sTu7GDPUrlPNNixFgVZL+L0ulj/ko=";
+    repo = "signify";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-ICmBzIbkynxRNojNQrQZoydMyFd6j3F1BLWN8VeB5dE=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     asn1crypto
     certvalidator
     mscerts
     oscrypto
-    pyasn1
-    pyasn1-modules
+    typing-extensions
   ];
 
-  pythonImportsCheck = [
-    "signify"
-  ];
+  pythonImportsCheck = [ "signify" ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  disabledTests = [
-    # chain doesn't validate because end-entitys certificate expired
-    # https://github.com/ralphje/signify/issues/27
-    "test_revoked_certificate"
-  ];
-
-  meta = with lib; {
-    description = "library that verifies PE Authenticode-signed binaries";
+  meta = {
+    changelog = "https://github.com/ralphje/signify/blob/refs/tags/${finalAttrs.src.tag}/docs/changelog.rst";
+    description = "Library that verifies PE Authenticode-signed binaries";
     homepage = "https://github.com/ralphje/signify";
-    license = licenses.mit;
-    maintainers = with maintainers; [ baloo ];
-    # No support for pyasn1 > 0.5
-    # https://github.com/ralphje/signify/issues/37
-    broken = true;
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ baloo ];
   };
-}
+})

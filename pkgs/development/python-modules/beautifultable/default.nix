@@ -1,45 +1,40 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, wcwidth
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  wcwidth,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "beautifultable";
   version = "1.1.0";
-  format = "setuptools";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "pri22296";
-    repo = pname;
-    rev = "v${version}";
+    repo = "beautifultable";
+    tag = "v${finalAttrs.version}";
     hash = "sha256-/SReCEvSwiNjBoz/3tGJ9zUNBAag4mLsHlUXwm47zCw=";
   };
 
-  propagatedBuildInputs = [
-    wcwidth
-  ];
+  build-system = [ setuptools ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  dependencies = [ wcwidth ];
 
-  pytestFlagsArray = [
-    "test.py"
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "beautifultable"
-  ];
+  enabledTestPaths = [ "test.py" ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "beautifultable" ];
+
+  meta = {
     description = "Python package for printing visually appealing tables";
     homepage = "https://github.com/pri22296/beautifultable";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

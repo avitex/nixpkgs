@@ -1,36 +1,37 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchPypi
-, django
-, colorama
-, coverage
-, unidecode
-, lxml
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  colorama,
+  coverage,
+  unidecode,
+  lxml,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "green";
-  version = "3.4.3";
-  format = "setuptools";
+  version = "4.0.2";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-iGXQt3tcsThR3WAaWK0sgry1LafKEG8FOMV4fxJzaKY=";
+    pname = "green";
+    inherit (finalAttrs) version;
+    hash = "sha256-pAZ8P5/CpkTtNfU2ZJUGQzROxGLm0uu1vXS3YpcVprE=";
   };
 
-  patches = [
-    ./tests.patch
-  ];
+  patches = [ ./tests.patch ];
 
   postPatch = ''
     substituteInPlace green/test/test_integration.py \
       --subst-var-by green "$out/bin/green"
   '';
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     colorama
     coverage
     unidecode
@@ -41,18 +42,16 @@ buildPythonPackage rec {
   checkPhase = ''
     $out/bin/green -tvvv \
       green.test.test_version \
-      green.test.test_cmdline \
-      green.test.test_command
+      green.test.test_cmdline
   '';
 
-  pythonImportsCheck = [
-    "green"
-  ];
+  pythonImportsCheck = [ "green" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python test runner";
     homepage = "https://github.com/CleanCut/green";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/CleanCut/green/blob/${finalAttrs.version}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
-}
+})

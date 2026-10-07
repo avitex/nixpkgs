@@ -1,13 +1,14 @@
-{ qtModule
-, stdenv
-, lib
-, bluez
-, libevdev
-, libX11
-, pkg-config
-, qtbase
-, udev
-, wrapQtAppsHook
+{
+  qtModule,
+  stdenv,
+  lib,
+  bluez,
+  libevdev,
+  libx11,
+  pkg-config,
+  qtbase,
+  udev,
+  wrapQtAppsHook,
 }:
 
 qtModule {
@@ -16,7 +17,8 @@ qtModule {
   outputs = [
     "out"
     "dev"
-  ] ++ lib.optionals stdenv.hostPlatform.isLinux [
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isLinux [
     "bin"
   ];
 
@@ -32,13 +34,14 @@ qtModule {
   buildInputs = lib.optionals stdenv.hostPlatform.isLinux [
     bluez
     libevdev
-    libX11
+    libx11
     udev
   ];
 
   qmakeFlags = [
     "CONFIG+=git_build"
-  ] ++ lib.optionals stdenv.hostPlatform.isLinux [
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isLinux [
     "CONFIG+=ofono"
     "CONFIG+=udisks"
     "CONFIG+=upower"

@@ -1,71 +1,72 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, python
-, cython
-, oldest-supported-numpy
-, setuptools
-, setuptools-scm
-, numpy
-, pandas
-, cramjam
-, fsspec
-, thrift
-, python-lzo
-, pytestCheckHook
-, pythonOlder
-, packaging
-, wheel
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  cython,
+  setuptools,
+  setuptools-scm,
+
+  # nativeBuildInputs
+  gitMinimal,
+
+  # dependencies
+  cramjam,
+  fsspec,
+  numpy,
+  packaging,
+  pandas,
+
+  # optional-dependencies
+  python-lzo,
+
+  # tests
+  pytestCheckHook,
+  python,
 }:
 
 buildPythonPackage rec {
   pname = "fastparquet";
-  version = "2023.7.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "2026.5.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "dask";
-    repo = pname;
-    rev = version;
-    hash = "sha256-pJ0zK0upEV7TyuNMIcozugkwBlYpK/Dg6BdB0kBpn9k=";
+    repo = "fastparquet";
+    tag = version;
+    hash = "sha256-thvoMXXiGtHGcJ0/IrGujjhVAvSmTMGmrlDHjG8R7PQ=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     cython
-    oldest-supported-numpy
     setuptools
     setuptools-scm
-    wheel
   ];
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace '"pytest-runner"' ""
+  nativeBuildInputs = [
+    gitMinimal
+  ];
 
-    sed -i \
-      -e "/pytest-runner/d" \
-      -e '/"git", "status"/d' setup.py
-  '';
-
-  propagatedBuildInputs = [
+  dependencies = [
     cramjam
     fsspec
     numpy
-    pandas
-    thrift
     packaging
+    pandas
   ];
 
-  passthru.optional-dependencies = {
-    lzo = [
-      python-lzo
-    ];
+  optional-dependencies = {
+    lzo = [ python-lzo ];
   };
 
-  nativeCheckInputs = [
-    pytestCheckHook
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  disabledTests = [
+    # DeprecationWarning: The 'generic' unit for NumPy timedelta is deprecated,
+    # and will raise an error in the future. This includes implicit conversion of bare
+    # integers (e.g. `+ 1`).Please use a specific unit instead.
+    "test_import_without_warning"
   ];
 
   # Workaround https://github.com/NixOS/nixpkgs/issues/123561
@@ -80,14 +81,13 @@ buildPythonPackage rec {
     rm "$fastparquet_test"
   '';
 
-  pythonImportsCheck = [
-    "fastparquet"
-  ];
+  pythonImportsCheck = [ "fastparquet" ];
 
-  meta = with lib; {
-    description = "A python implementation of the parquet format";
+  meta = {
+    description = "Implementation of the parquet format";
     homepage = "https://github.com/dask/fastparquet";
-    license = with licenses; [ asl20 ];
-    maintainers = with maintainers; [ veprbl ];
+    changelog = "https://github.com/dask/fastparquet/blob/${version}/docs/source/releasenotes.rst";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ veprbl ];
   };
 }

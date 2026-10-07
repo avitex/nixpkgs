@@ -1,20 +1,26 @@
-{ pkgs, config, lib, ... }:
+{
+  pkgs,
+  config,
+  lib,
+  ...
+}:
 
 let
   cfg = config.services.mympd;
-in {
+in
+{
   options = {
 
     services.mympd = {
 
-      enable = lib.mkEnableOption (lib.mdDoc "MyMPD server");
+      enable = lib.mkEnableOption "MyMPD server";
 
-      package = lib.mkPackageOption pkgs "mympd" {};
+      package = lib.mkPackageOption pkgs "mympd" { };
 
       openFirewall = lib.mkOption {
         type = lib.types.bool;
         default = false;
-        description = lib.mdDoc ''
+        description = ''
           Open ports needed for the functionality of the program.
         '';
       };
@@ -23,18 +29,26 @@ in {
         type = lib.types.listOf lib.types.str;
         default = [ ];
         example = [ "music" ];
-        description = lib.mdDoc ''
+        description = ''
           Additional groups for the systemd service.
         '';
       };
 
       settings = lib.mkOption {
         type = lib.types.submodule {
-          freeformType = with lib.types; attrsOf (nullOr (oneOf [ str bool int ]));
+          freeformType =
+            with lib.types;
+            attrsOf (
+              nullOr (oneOf [
+                str
+                bool
+                int
+              ])
+            );
           options = {
             http_port = lib.mkOption {
               type = lib.types.port;
-              description = lib.mdDoc ''
+              description = ''
                 The HTTP port where mympd's web interface will be available.
 
                 The HTTPS/SSL port can be configured via {option}`config`.
@@ -44,19 +58,19 @@ in {
 
             ssl = lib.mkOption {
               type = lib.types.bool;
-              description = lib.mdDoc ''
+              description = ''
                 Whether to enable listening on the SSL port.
 
-                Refer to <https://jcorporation.github.io/myMPD/configuration/configuration-files#ssl-options>
+                Refer to <https://jcorporation.github.io/myMPD/020-configuration/configuration-files#ssl-options>
                 for more information.
               '';
               default = false;
             };
           };
         };
-        description = lib.mdDoc ''
+        description = ''
           Manages the configuration files declaratively. For all the configuration
-          options, see <https://jcorporation.github.io/myMPD/configuration/configuration-files>.
+          options, see <https://jcorporation.github.io/myMPD/020-configuration/configuration-files>.
 
           Each key represents the "File" column from the upstream configuration table, and the
           value is the content of that file.
@@ -76,9 +90,11 @@ in {
         mkdir -p "$config_dir"
 
         ${pipe cfg.settings [
-          (mapAttrsToList (name: value: ''
-            echo -n "${if isBool value then boolToString value else toString value}" > "$config_dir/${name}"
-            ''))
+          (mapAttrsToList (
+            name: value: ''
+              echo -n "${if isBool value then boolToString value else toString value}" > "$config_dir/${name}"
+            ''
+          ))
           (concatStringsSep "\n")
         ]}
       '';
@@ -92,7 +108,7 @@ in {
         DynamicUser = true;
         ExecStart = lib.getExe cfg.package;
         LockPersonality = true;
-        MemoryDenyWriteExecute = true;
+        MemoryDenyWriteExecute = false; # pcre2 jit
         PrivateDevices = true;
         ProtectClock = true;
         ProtectControlGroups = true;

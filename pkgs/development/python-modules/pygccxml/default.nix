@@ -1,29 +1,25 @@
-{ lib
-, castxml
-, fetchFromGitHub
-, buildPythonPackage
-, llvmPackages
-, pythonOlder
-, setuptools
+{
+  lib,
+  castxml,
+  fetchFromGitHub,
+  buildPythonPackage,
+  llvmPackages,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "pygccxml";
-  version = "2.4.0";
+  version = "3.0.2";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "gccxml";
     repo = "pygccxml";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-rw99afv68c92LWmKUErB1y0Cts69UEpI0GCxSMvD+B8=";
+    tag = "v${version}";
+    hash = "sha256-pIo25/tKiXpyiWUkpILPDPTNWIUEGK4uRSTpvoGwS1Q=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
   buildInputs = [
     castxml
@@ -34,11 +30,11 @@ buildPythonPackage rec {
   # but the format doesn't accept -isystem directives
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "Python package for easy C++ declarations navigation";
     homepage = "https://github.com/gccxml/pygccxml";
-    changelog = "https://github.com/CastXML/pygccxml/blob/v${version}/CHANGELOG.md";
-    license = licenses.boost;
-    maintainers = with maintainers; [ teto ];
+    changelog = "https://github.com/CastXML/pygccxml/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.boost;
+    maintainers = with lib.maintainers; [ teto ];
   };
 }

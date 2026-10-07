@@ -1,4 +1,9 @@
-{ lib, buildPythonPackage, fetchPypi, pygments }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pygments,
+}:
 
 buildPythonPackage rec {
   pname = "insegel";
@@ -15,14 +20,12 @@ buildPythonPackage rec {
   # No tests included
   doCheck = false;
 
-  pythonImportsCheck = [
-    "insegel"
-  ];
+  pythonImportsCheck = [ "insegel" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/autophagy/insegel";
-    description = "A monochrome 2 column Sphinx theme";
-    license = licenses.mit;
-    maintainers = with maintainers; [ autophagy ];
+    description = "Monochrome 2 column Sphinx theme";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ autophagy ];
   };
 }

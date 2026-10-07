@@ -1,34 +1,22 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, hatchling
-, opentelemetry-instrumentation
-, opentelemetry-sdk
-, opentelemetry-semantic-conventions
-, opentelemetry-test-utils
-, pytestCheckHook
+{
+  buildPythonPackage,
+  hatchling,
+  opentelemetry-instrumentation,
+  opentelemetry-test-utils,
+  pytestCheckHook,
 }:
 
 buildPythonPackage {
   inherit (opentelemetry-instrumentation) version src;
   pname = "opentelemetry-util-http";
-  disabled = pythonOlder "3.7";
+  pyproject = true;
 
   sourceRoot = "${opentelemetry-instrumentation.src.name}/util/opentelemetry-util-http";
 
-  format = "pyproject";
-
-  nativeBuildInputs = [
-    hatchling
-  ];
-
-  propagatedBuildInputs = [
-    opentelemetry-instrumentation
-    opentelemetry-sdk
-    opentelemetry-semantic-conventions
-  ];
+  build-system = [ hatchling ];
 
   nativeCheckInputs = [
+    opentelemetry-instrumentation
     opentelemetry-test-utils
     pytestCheckHook
   ];
@@ -40,6 +28,8 @@ buildPythonPackage {
   ];
 
   pythonImportsCheck = [ "opentelemetry.util.http" ];
+
+  __darwinAllowLocalNetworking = true;
 
   meta = opentelemetry-instrumentation.meta // {
     homepage = "https://github.com/open-telemetry/opentelemetry-python-contrib/tree/main/util/opentelemetry-util-http";

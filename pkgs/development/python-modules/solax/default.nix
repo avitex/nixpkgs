@@ -1,52 +1,53 @@
-{ lib
-, aiohttp
-, buildPythonPackage
-, fetchPypi
-, pytest-asyncio
-, pytest-cov
-, pytest-httpserver
-, pytestCheckHook
-, pythonOlder
-, setuptools-scm
-, voluptuous
+{
+  lib,
+  aiohttp,
+  async-timeout,
+  buildPythonPackage,
+  fetchPypi,
+  pytest-asyncio,
+  pytest-httpserver,
+  pytestCheckHook,
+  setuptools-scm,
+  voluptuous,
 }:
 
 buildPythonPackage rec {
   pname = "solax";
-  version = "0.3.2";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.8";
+  version = "3.2.4";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-7UDTG8rw9XJd5LPqcAe2XyE7DQa96dBj9YOcgW+/aFc=";
+    hash = "sha256-60FIDhd60zaWcwPnq7P7WxuXQc1MivWNTctj3TuZF3k=";
   };
 
-  nativeBuildInputs = [
-    setuptools-scm
-  ];
+  build-system = [ setuptools-scm ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
+    async-timeout
     voluptuous
   ];
 
   nativeCheckInputs = [
     pytest-asyncio
-    pytest-cov
     pytest-httpserver
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "solax"
+  pythonImportsCheck = [ "solax" ];
+
+  disabledTests = [
+    # Tests require network access
+    "test_discovery"
+    "test_smoke"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Python wrapper for the Solax Inverter API";
     homepage = "https://github.com/squishykid/solax";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/squishykid/solax/releases/tag/v${version}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

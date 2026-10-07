@@ -1,83 +1,73 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchFromGitHub
-, hatchling
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# runtime
-, ApplicationServices
-, anyio
-, itsdangerous
-, jinja2
-, python-multipart
-, pyyaml
-, httpx
-, typing-extensions
+  # build-system
+  hatchling,
 
-# tests
-, pytestCheckHook
-, pythonOlder
-, trio
+  # dependencies
+  anyio,
+
+  # optional dependencies
+  itsdangerous,
+  jinja2,
+  python-multipart,
+  pyyaml,
+  httpx,
+  httpx2,
+
+  # tests
+  pytestCheckHook,
+  trio,
+
+  # reverse dependencies
+  fastapi,
 }:
 
 buildPythonPackage rec {
   pname = "starlette";
-  version = "0.32.0.post1";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "1.3.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
-    owner = "encode";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-1twyN3fSlxwfDtyqaFFuCAVehLZ8vCV4voCT7CVSEbk=";
+    owner = "Kludex";
+    repo = "starlette";
+    tag = version;
+    hash = "sha256-0eby4cDIU2bPUv+1qSTnZtfo4kkgMDIDYnZ9wp2wtoI=";
   };
 
-  nativeBuildInputs = [
-    hatchling
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
-    anyio
+  dependencies = [ anyio ];
+
+  optional-dependencies.full = [
     itsdangerous
     jinja2
     python-multipart
     pyyaml
     httpx
-  ] ++ lib.optionals (pythonOlder "3.10") [
-    typing-extensions
-  ] ++ lib.optionals stdenv.isDarwin [
-    ApplicationServices
+    httpx2
   ];
 
   nativeCheckInputs = [
     pytestCheckHook
     trio
-    typing-extensions
-  ];
+  ]
+  ++ lib.concatAttrValues optional-dependencies;
 
-  pytestFlagsArray = [
-    "-W" "ignore::DeprecationWarning"
-    "-W" "ignore::trio.TrioDeprecationWarning"
-  ];
+  pythonImportsCheck = [ "starlette" ];
 
-  disabledTests = [
-    # asserts fail due to inclusion of br in Accept-Encoding
-    "test_websocket_headers"
-    "test_request_headers"
-  ];
+  passthru.tests = {
+    inherit fastapi;
+  };
 
-  pythonImportsCheck = [
-    "starlette"
-  ];
-
-  meta = with lib; {
-    changelog = "https://github.com/encode/starlette/releases/tag/${version}";
-    downloadPage = "https://github.com/encode/starlette";
+  meta = {
+    changelog = "https://github.com/Kludex/starlette/blob/${src.tag}/docs/release-notes.md";
+    downloadPage = "https://github.com/Kludex/starlette";
     homepage = "https://www.starlette.io/";
-    description = "The little ASGI framework that shines";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ wd15 ];
+    description = "Little ASGI framework that shines";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ wd15 ];
   };
 }

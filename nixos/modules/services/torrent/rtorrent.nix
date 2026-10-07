@@ -1,4 +1,10 @@
-{ config, options, pkgs, lib, ... }:
+{
+  config,
+  options,
+  pkgs,
+  lib,
+  ...
+}:
 
 with lib;
 
@@ -7,14 +13,17 @@ let
   cfg = config.services.rtorrent;
   opt = options.services.rtorrent;
 
-in {
+in
+{
+  meta.maintainers = with lib.maintainers; [ thiagokokada ];
+
   options.services.rtorrent = {
-    enable = mkEnableOption (lib.mdDoc "rtorrent");
+    enable = mkEnableOption "rtorrent";
 
     dataDir = mkOption {
       type = types.str;
       default = "/var/lib/rtorrent";
-      description = lib.mdDoc ''
+      description = ''
         The directory where rtorrent stores its data files.
       '';
     };
@@ -23,7 +32,7 @@ in {
       type = types.str;
       default = "0750";
       example = "0755";
-      description = lib.mdDoc ''
+      description = ''
         Unix Permissions in octal on the rtorrent directory.
       '';
     };
@@ -32,7 +41,7 @@ in {
       type = types.str;
       default = "${cfg.dataDir}/download";
       defaultText = literalExpression ''"''${config.${opt.dataDir}}/download"'';
-      description = lib.mdDoc ''
+      description = ''
         Where to put downloaded files.
       '';
     };
@@ -40,7 +49,7 @@ in {
     user = mkOption {
       type = types.str;
       default = "rtorrent";
-      description = lib.mdDoc ''
+      description = ''
         User account under which rtorrent runs.
       '';
     };
@@ -48,7 +57,7 @@ in {
     group = mkOption {
       type = types.str;
       default = "rtorrent";
-      description = lib.mdDoc ''
+      description = ''
         Group under which rtorrent runs.
       '';
     };
@@ -58,7 +67,7 @@ in {
     port = mkOption {
       type = types.port;
       default = 50000;
-      description = lib.mdDoc ''
+      description = ''
         The rtorrent port.
       '';
     };
@@ -66,7 +75,7 @@ in {
     openFirewall = mkOption {
       type = types.bool;
       default = false;
-      description = lib.mdDoc ''
+      description = ''
         Whether to open the firewall for the port in {option}`services.rtorrent.port`.
       '';
     };
@@ -75,7 +84,7 @@ in {
       type = types.str;
       readOnly = true;
       default = "/run/rtorrent/rpc.sock";
-      description = lib.mdDoc ''
+      description = ''
         RPC socket path.
       '';
     };
@@ -83,7 +92,7 @@ in {
     configText = mkOption {
       type = types.lines;
       default = "";
-      description = lib.mdDoc ''
+      description = ''
         The content of {file}`rtorrent.rc`. The [modernized configuration template](https://rtorrent-docs.readthedocs.io/en/latest/cookbook.html#modernized-configuration-template) with the values specified in this module will be prepended using mkBefore. You can use mkForce to overwrite the config completely.
       '';
     };
@@ -92,7 +101,7 @@ in {
   config = mkIf cfg.enable {
 
     users.groups = mkIf (cfg.group == "rtorrent") {
-      rtorrent = {};
+      rtorrent = { };
     };
 
     users.users = mkIf (cfg.user == "rtorrent") {
@@ -119,8 +128,8 @@ in {
       execute.throw = sh, -c, (cat, "mkdir -p ", (cfg.basedir), "/session ", (cfg.watch), " ", (cfg.logs))
 
       # Listening port for incoming peer traffic (fixed; you can also randomize it)
-      network.port_range.set = ${toString cfg.port}-${toString cfg.port}
-      network.port_random.set = no
+      network.listen.port.range.set = ${toString cfg.port}-${toString cfg.port}
+      network.listen.port.random.set = no
 
       # Tracker-less torrent and UDP tracker support
       # (conservative settings for 'private' trackers, change for 'public')
@@ -140,13 +149,6 @@ in {
 
       protocol.encryption.set = allow_incoming,try_outgoing,enable_retry
 
-      # Limits for file handle resources, this is optimized for
-      # an `ulimit` of 1024 (a common default). You MUST leave
-      # a ceiling of handles reserved for rTorrent's internal needs!
-      network.http.max_open.set = 50
-      network.max_open_files.set = 600
-      network.max_open_sockets.set = 3000
-
       # Memory resource usage (increase if you have a large number of items loaded,
       # and/or the available resources to spend)
       pieces.memory.max.set = 1800M
@@ -160,15 +162,14 @@ in {
       execute.nothrow = sh, -c, (cat, "echo >", (session.path), "rtorrent.pid", " ", (system.pid))
 
       # Other operational settings (check & adapt)
-      encoding.add = utf8
       system.umask.set = 0027
       system.cwd.set = (cfg.basedir)
       network.http.dns_cache_timeout.set = 25
-      schedule2 = monitor_diskspace, 15, 60, ((close_low_diskspace, 1000M))
+      schedule = monitor_diskspace, 15, 60, ((close_low_diskspace, 1000M))
 
       # Watch directories (add more as you like, but use unique schedule names)
-      #schedule2 = watch_start, 10, 10, ((load.start, (cat, (cfg.watch), "start/*.torrent")))
-      #schedule2 = watch_load, 11, 10, ((load.normal, (cat, (cfg.watch), "load/*.torrent")))
+      #schedule = watch_start, 10, 10, ((load.start, (cat, (cfg.watch), "start/*.torrent")))
+      #schedule = watch_load, 11, 10, ((load.normal, (cat, (cfg.watch), "load/*.torrent")))
 
       # Logging:
       #   Levels = critical error warn notice info debug
@@ -180,31 +181,72 @@ in {
 
       # XMLRPC
       scgi_local = (cfg.rpcsock)
-      schedule = scgi_group,0,0,"execute.nothrow=chown,\":rtorrent\",(cfg.rpcsock)"
+      schedule = scgi_group,0,0,"execute.nothrow=chown,\":${cfg.group}\",(cfg.rpcsock)"
       schedule = scgi_permission,0,0,"execute.nothrow=chmod,\"g+w,o=\",(cfg.rpcsock)"
     '';
 
     systemd = {
       services = {
-        rtorrent = let
-          rtorrentConfigFile = pkgs.writeText "rtorrent.rc" cfg.configText;
-        in {
-          description = "rTorrent system service";
-          after = [ "network.target" ];
-          path = [ cfg.package pkgs.bash ];
-          wantedBy = [ "multi-user.target" ];
-          serviceConfig = {
-            User = cfg.user;
-            Group = cfg.group;
-            Type = "simple";
-            Restart = "on-failure";
-            WorkingDirectory = cfg.dataDir;
-            ExecStartPre=''${pkgs.bash}/bin/bash -c "if test -e ${cfg.dataDir}/session/rtorrent.lock && test -z $(${pkgs.procps}/bin/pidof rtorrent); then rm -f ${cfg.dataDir}/session/rtorrent.lock; fi"'';
-            ExecStart="${cfg.package}/bin/rtorrent -n -o system.daemon.set=true -o import=${rtorrentConfigFile}";
-            RuntimeDirectory = "rtorrent";
-            RuntimeDirectoryMode = 755;
+        rtorrent =
+          let
+            rtorrentConfigFile = pkgs.writeText "rtorrent.rc" cfg.configText;
+          in
+          {
+            description = "rTorrent system service";
+            after = [ "network.target" ];
+            path = [
+              cfg.package
+              pkgs.bash
+            ];
+            wantedBy = [ "multi-user.target" ];
+            serviceConfig = {
+              User = cfg.user;
+              Group = cfg.group;
+              Type = "simple";
+              Restart = "on-failure";
+              WorkingDirectory = cfg.dataDir;
+              ExecStartPre = ''${pkgs.bash}/bin/bash -c "if test -e ${cfg.dataDir}/session/rtorrent.lock && test -z $(${pkgs.procps}/bin/pidof rtorrent); then rm -f ${cfg.dataDir}/session/rtorrent.lock; fi"'';
+              ExecStart = "${cfg.package}/bin/rtorrent -n -o system.daemon.set=true -o import=${rtorrentConfigFile}";
+              RuntimeDirectory = "rtorrent";
+              RuntimeDirectoryMode = 750;
+
+              # rtorrent derives socket limits from this value since 0.16.15; see table in
+              # https://github.com/rakshasa/rtorrent/wiki/Socket-Manager-and-Resource-Allocation
+              LimitNOFILE = lib.mkDefault 16384;
+
+              CapabilityBoundingSet = [ "" ];
+              LockPersonality = true;
+              NoNewPrivileges = true;
+              PrivateDevices = true;
+              PrivateTmp = true;
+              ProtectClock = true;
+              ProtectControlGroups = true;
+              # If the default user is changed, there is a good chance that they
+              # want to store data in e.g.: $HOME directory
+              # Relax hardening in this case
+              ProtectHome = lib.mkIf (cfg.user == "rtorrent") true;
+              ProtectHostname = true;
+              ProtectKernelLogs = true;
+              ProtectKernelModules = true;
+              ProtectKernelTunables = true;
+              ProtectProc = "invisible";
+              ProtectSystem = "full";
+              RestrictAddressFamilies = [
+                "AF_UNIX"
+                "AF_INET"
+                "AF_INET6"
+              ];
+              RestrictNamespaces = true;
+              RestrictRealtime = true;
+              RestrictSUIDSGID = true;
+              SystemCallArchitectures = "native";
+              SystemCallFilter = [
+                "@system-service"
+                "~@privileged"
+                "@chown"
+              ];
+            };
           };
-        };
       };
 
       tmpfiles.rules = [ "d '${cfg.dataDir}' ${cfg.dataPermissions} ${cfg.user} ${cfg.group} -" ];

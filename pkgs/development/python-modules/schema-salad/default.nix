@@ -1,52 +1,65 @@
-{ lib
-, black
-, buildPythonPackage
-, cachecontrol
-, fetchFromGitHub
-, importlib-resources
-, mistune
-, mypy-extensions
-, pytestCheckHook
-, pythonOlder
-, rdflib
-, requests
-, ruamel-yaml
-, setuptools-scm
+{
+  lib,
+  ast-serialize,
+  black,
+  buildPythonPackage,
+  cachecontrol,
+  fetchFromGitHub,
+  mistune,
+  mypy-extensions,
+  mypy,
+  pytestCheckHook,
+  rdflib,
+  requests,
+  rich-argparse,
+  ruamel-yaml,
+  setuptools-scm,
+  types-dataclasses,
+  types-requests,
+  types-setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "schema-salad";
-  version = "8.5.20240102191336.dev7+g8e95468";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "8.10.20260814121804";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "common-workflow-language";
     repo = "schema_salad";
-    rev = "8e954684b08d222d54b7eff680eaa4d4e65920a9";
-    hash = "sha256-VoFFKe6XHDytj5UlmsN14RevKcgpl+DSDMGDVS2Ols4=";
+    tag = version;
+    hash = "sha256-82124Xb4fOl0CjaE/FVbf8V1adtVw2dVpifql6xUB2k=";
   };
 
-  nativeBuildInputs = [
-    setuptools-scm
-  ];
+  pythonRelaxDeps = [ "mistune" ];
 
-  propagatedBuildInputs = [
+  postPatch = ''
+    substituteInPlace setup.py \
+      --replace-fail 'pytest_runner + ["setuptools_scm>=8.0.4,<11"]' '["setuptools_scm"]'
+    substituteInPlace pyproject.toml \
+      --replace-fail '"setuptools_scm[toml]>=8.0.4,<11"' '"setuptools_scm[toml]"'
+    sed -i "/black>=/d" pyproject.toml
+  '';
+
+  build-system = [ setuptools-scm ];
+
+  dependencies = [
+    ast-serialize
     cachecontrol
     mistune
+    mypy
     mypy-extensions
     rdflib
     requests
+    rich-argparse
     ruamel-yaml
-  ] ++ cachecontrol.optional-dependencies.filecache
-  ++ lib.optionals (pythonOlder "3.9") [
-    importlib-resources
-  ];
+    types-dataclasses
+    types-requests
+    types-setuptools
+  ]
+  ++ cachecontrol.optional-dependencies.filecache;
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ] ++ passthru.optional-dependencies.pycodegen;
+  nativeCheckInputs = [ pytestCheckHook ] ++ optional-dependencies.pycodegen;
 
   preCheck = ''
     rm tox.ini
@@ -54,6 +67,7 @@ buildPythonPackage rec {
 
   disabledTests = [
     "test_load_by_yaml_metaschema"
+    "test_detect_changes_in_html"
     # Setup for these tests requires network access
     "test_secondaryFiles"
     "test_outputBinding"
@@ -62,21 +76,17 @@ buildPythonPackage rec {
     "test_bad_schemas"
   ];
 
-  pythonImportsCheck = [
-    "schema_salad"
-  ];
+  pythonImportsCheck = [ "schema_salad" ];
 
-  passthru.optional-dependencies = {
-    pycodegen = [
-      black
-    ];
+  optional-dependencies = {
+    pycodegen = [ black ];
   };
 
-  meta = with lib; {
+  meta = {
     description = "Semantic Annotations for Linked Avro Data";
     homepage = "https://github.com/common-workflow-language/schema_salad";
-    changelog = "https://github.com/common-workflow-language/schema_salad/releases/tag/${version}";
-    license = with licenses; [ asl20 ];
-    maintainers = with maintainers; [ veprbl ];
+    changelog = "https://github.com/common-workflow-language/schema_salad/releases/tag/${src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ veprbl ];
   };
 }

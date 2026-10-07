@@ -1,26 +1,29 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, eth-hash
-, eth-utils
-, hexbytes
-, pytestCheckHook
-, pythonOlder
-, rlp
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  eth-hash,
+  eth-utils,
+  hexbytes,
+  pytestCheckHook,
+  rlp,
+  pydantic,
 }:
 
 buildPythonPackage rec {
   pname = "eth-rlp";
-  version = "0.3.0";
-  format = "setuptools";
-  disabled = pythonOlder "3.7";
+  version = "2.2.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "ethereum";
     repo = "eth-rlp";
     rev = "v${version}";
-    hash = "sha256-wfmRjHFu6H3J6hNin8ZA2454xXrLgcUdeR8iGXFomRE=";
+    hash = "sha256-e8nPfxk3OnFEcPnfTy1IEUCHVId6E/ssNOUeAe331+U=";
   };
+
+  build-system = [ setuptools ];
 
   propagatedBuildInputs = [
     hexbytes
@@ -30,14 +33,20 @@ buildPythonPackage rec {
 
   nativeCheckInputs = [
     pytestCheckHook
-  ] ++ eth-hash.optional-dependencies.pycryptodome;
+    pydantic
+  ]
+  ++ eth-hash.optional-dependencies.pycryptodome;
 
   pythonImportsCheck = [ "eth_rlp" ];
 
-  meta = with lib; {
+  disabledTests = [
+    "test_install_local_wheel"
+  ];
+
+  meta = {
     description = "RLP definitions for common Ethereum objects";
     homepage = "https://github.com/ethereum/eth-rlp";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

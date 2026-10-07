@@ -1,31 +1,47 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, ddt
-, keystoneauth1
-, oslo-i18n
-, oslo-serialization
-, oslo-utils
-, pbr
-, requests
-, prettytable
-, requests-mock
-, simplejson
-, stestr
-, stevedore
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  ddt,
+  keystoneauth1,
+  openstackdocstheme,
+  oslo-i18n,
+  oslo-serialization,
+  oslo-utils,
+  pbr,
+  requests,
+  prettytable,
+  reno,
+  requests-mock,
+  setuptools,
+  simplejson,
+  sphinxHook,
+  stestr,
+  stevedore,
 }:
 
 buildPythonPackage rec {
   pname = "python-cinderclient";
-  version = "9.4.0";
-  format = "setuptools";
+  version = "9.10.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-pT5kcKUWYntZ0iUFIioMhXlL4afyd06HeWEFvUfulpU=";
+    pname = "python_cinderclient";
+    inherit version;
+    hash = "sha256-+4Vub0OCpMhNgvAEFePGZRS3PhLZRnmTUYK6T4ZRCRY=";
   };
 
-  propagatedBuildInputs = [
+  nativeBuildInputs = [
+    openstackdocstheme
+    reno
+    sphinxHook
+  ];
+
+  sphinxBuilders = [ "man" ];
+
+  build-system = [ setuptools ];
+
+  dependencies = [
     simplejson
     keystoneauth1
     oslo-i18n
@@ -44,15 +60,20 @@ buildPythonPackage rec {
   ];
 
   checkPhase = ''
+    runHook preCheck
+
     stestr run
+
+    runHook postCheck
   '';
 
   pythonImportsCheck = [ "cinderclient" ];
 
-  meta = with lib; {
+  meta = {
     description = "OpenStack Block Storage API Client Library";
+    mainProgram = "cinder";
     homepage = "https://github.com/openstack/python-cinderclient";
-    license = licenses.asl20;
-    maintainers = teams.openstack.members;
+    license = lib.licenses.asl20;
+    teams = [ lib.teams.openstack ];
   };
 }

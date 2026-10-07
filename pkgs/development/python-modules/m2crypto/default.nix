@@ -1,55 +1,72 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchPypi
-, openssl
-, parameterized
-, pytestCheckHook
-, pythonOlder
-, swig2
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitLab,
+  openssl,
+  pytestCheckHook,
+  setuptools,
+  swig,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "m2crypto";
-  version = "0.40.1";
-  format = "setuptools";
+  version = "0.50.0";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    pname = "M2Crypto";
-    inherit version;
-    hash = "sha256-u/0RPsVXCMBYFiUqTwnkI33087v8gXHLvDMFfSV7uzA=";
+  src = fetchFromGitLab {
+    owner = "m2crypto";
+    repo = "m2crypto";
+    tag = finalAttrs.version;
+    hash = "sha256-FH5orOTHAoVQCPD1Gc31GWkVCSq6s/uMmKVx0UYy88E=";
   };
 
-  nativeBuildInputs = [
-    swig2
-    openssl
-  ];
+  # https://lists.sr.ht/~mcepl/m2crypto/%3CCAPhw1+Hg6+OJZoqt1O6aezxnTUFmfFTMzDwkD2bJ74jnmygqrg@mail.gmail.com%3E
+  postPatch = lib.optionalString stdenv.hostPlatform.isDarwin ''
+    substituteInPlace src/SWIG/_lib.h \
+      --replace-fail "|| defined(__clang__)" "&& !defined(__clang__)"
+    substituteInPlace src/SWIG/_m2crypto.i \
+      --replace-fail "PRAGMA_IGNORE_UNUSED_LABEL" "" \
+      --replace-fail "PRAGMA_WARN_STRICT_PROTOTYPES" ""
+  '';
 
-  buildInputs = [
-    openssl
-    parameterized
-  ];
+  build-system = [ setuptools ];
 
-  env.NIX_CFLAGS_COMPILE = lib.optionalString stdenv.isDarwin (toString [
-    "-Wno-error=implicit-function-declaration"
-    "-Wno-error=incompatible-pointer-types"
-  ]);
+  nativeBuildInputs = [ swig ];
+
+  buildInputs = [ openssl ];
+
+  env = {
+    NIX_CFLAGS_COMPILE = lib.optionalString stdenv.hostPlatform.isDarwin (toString [
+      "-Wno-error=implicit-function-declaration"
+      "-Wno-error=incompatible-pointer-types"
+    ]);
+    OPENSSL_PATH = lib.optionalString stdenv.hostPlatform.isDarwin "${openssl.dev}";
+  }
+  // lib.optionalAttrs (stdenv.hostPlatform != stdenv.buildPlatform) {
+    CPP = "${stdenv.cc.targetPrefix}cpp";
+  };
 
   nativeCheckInputs = [
     pytestCheckHook
+    openssl
   ];
 
-  pythonImportsCheck = [
-    "M2Crypto"
+  disabledTests = [
+    # Connection refused
+    "test_makefile_err"
   ];
 
-  meta = with lib; {
-    description = "A Python crypto and SSL toolkit";
+  # Tests require localhost access
+  __darwinAllowLocalNetworking = true;
+
+  pythonImportsCheck = [ "M2Crypto" ];
+
+  meta = {
+    description = "Python crypto and SSL toolkit";
     homepage = "https://gitlab.com/m2crypto/m2crypto";
-    changelog = "https://gitlab.com/m2crypto/m2crypto/-/blob/${version}/CHANGES";
-    license = licenses.mit;
-    maintainers = with maintainers; [ andrew-d ];
+    changelog = "https://gitlab.com/m2crypto/m2crypto/-/tags/${finalAttrs.version}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ sarahec ];
   };
-}
+})

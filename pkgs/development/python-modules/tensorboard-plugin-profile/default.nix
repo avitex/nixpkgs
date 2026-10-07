@@ -1,10 +1,11 @@
-{ lib
-, fetchPypi
-, buildPythonPackage
-, setuptools
-, gviz-api
-, protobuf
-, werkzeug
+{
+  lib,
+  fetchPypi,
+  buildPythonPackage,
+  setuptools,
+  gviz-api,
+  protobuf,
+  werkzeug,
 }:
 
 buildPythonPackage rec {
@@ -20,9 +21,7 @@ buildPythonPackage rec {
     hash = "sha256-t9AZg0BGjDcOxtoRBHZO0joIgLHpoKqEUY4pxmw8sjg=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
   propagatedBuildInputs = [
     gviz-api
@@ -30,10 +29,10 @@ buildPythonPackage rec {
     werkzeug
   ];
 
-  meta = with lib; {
-    description = "Profile Tensorboard Plugin.";
+  meta = {
+    description = "Profile Tensorboard Plugin";
     homepage = "http://tensorflow.org";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ndl ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ ndl ];
   };
 }

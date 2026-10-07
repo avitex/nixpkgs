@@ -1,95 +1,120 @@
-{ ansicolors
-, attrs
-, autobahn
-, buildPythonPackage
-, fetchFromGitHub
-, jinja2
-, lib
-, mock
-, openssh
-, packaging
-, pexpect
-, psutil
-, pyserial
-, pytestCheckHook
-, pytest-dependency
-, pytest-mock
-, pythonRelaxDepsHook
-, pyudev
-, pyusb
-, pyyaml
-, requests
-, setuptools
-, setuptools-scm
-, wheel
-, xmodem
+{
+  ansicolors,
+  attrs,
+  buildPythonPackage,
+  exceptiongroup,
+  fetchFromGitHub,
+  fetchpatch,
+  fetchpatch2,
+  grpcio,
+  grpcio-tools,
+  grpcio-reflection,
+  jinja2,
+  lib,
+  nix-update-script,
+  mock,
+  openssh,
+  pexpect,
+  psutil,
+  pyserial,
+  pytest,
+  pytestCheckHook,
+  pytest-benchmark,
+  pytest-dependency,
+  pytest-mock,
+  pyudev,
+  pyusb,
+  pyyaml,
+  py-netgear-plus,
+  requests,
+  setuptools,
+  setuptools-scm,
+  util-linux,
+  xmodem,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "labgrid";
-  version = "23.0.5";
+  version = "26.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "labgrid-project";
     repo = "labgrid";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-jrapbSrybuLT3V11rvV342tOr7/sRwBMgAdNWDG5obA=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-SX7FIaSl2sy1hMPEmgGCQQAzXUeFZRw/CrXf/ZHRBDU=";
   };
 
-  nativeBuildInputs = [
-    pythonRelaxDepsHook
+  passthru.updateScript = nix-update-script { };
+
+  build-system = [
     setuptools
     setuptools-scm
-    wheel
   ];
 
-  pyproject = true;
-
-  propagatedBuildInputs = [
+  dependencies = [
     ansicolors
     attrs
-    autobahn
+    exceptiongroup
     jinja2
-    packaging
+    grpcio
+    grpcio-tools
+    grpcio-reflection
     pexpect
     pyserial
     pyudev
     pyusb
     pyyaml
+    pytest
     requests
     xmodem
   ];
 
-  pythonRelaxDeps = [
-    "attrs"
-    "autobahn"
-    "jinja2"
-    "packaging"
-    "pexpect"
-    "pytest"
-    "pyudev"
-    "requests"
-    "xmodem"
-  ];
+  pythonRemoveDeps = [ "pyserial-labgrid" ];
 
-  pythonRemoveDeps = [
-    "pyserial-labgrid"
-  ];
+  pythonImportsCheck = [ "labgrid" ];
 
   nativeCheckInputs = [
     mock
     openssh
     psutil
     pytestCheckHook
+    pytest-benchmark
     pytest-mock
     pytest-dependency
+    util-linux
+    py-netgear-plus
   ];
 
-  meta = with lib; {
+  disabledTests = [
+    # flaky, timing sensitive
+    "test_timing"
+
+    # flaky, depends on ssh connection
+    "test_argument_device_expansion"
+    "test_argument_file_expansion"
+    "test_local_managedfile"
+
+    # flaky: teardown race on x86_64-linux
+    "test_remoteplace_target"
+
+    # netns tests require working SSH & Agentwrapper
+    "test_tcp"
+    "test_udp"
+    "test_getaddrinfo"
+    "test_closed_socket"
+    "test_dup"
+    "test_detach"
+    "test_socks"
+  ];
+
+  pytestFlags = [ "--benchmark-disable" ];
+
+  meta = {
     description = "Embedded control & testing library";
-    homepage = "https://labgrid.org";
-    license = licenses.lgpl21Plus;
-    maintainers = with maintainers; [ emantor ];
-    platforms = with platforms; linux;
+    homepage = "https://github.com/labgrid-project/labgrid";
+    license = lib.licenses.lgpl21Plus;
+    maintainers = with lib.maintainers; [ emantor ];
+    platforms = with lib.platforms; linux;
   };
-}
+})

@@ -2,31 +2,49 @@
   lib,
   stdenvNoCC,
   fetchFromGitHub,
+  dash,
+  scdoc,
+  makeBinaryWrapper,
 }:
-stdenvNoCC.mkDerivation {
+stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "xdg-terminal-exec";
-  version = "unstable-2023-12-08";
+  version = "0.14.3";
 
   src = fetchFromGitHub {
     owner = "Vladimir-csp";
     repo = "xdg-terminal-exec";
-    rev = "04f37d4337b6ce157d4a7338dd600a32deb43a28";
-    hash = "sha256-QIPdF+/dMUEVcz5j9o+wQ4dnw2yWwz7slnLdMNETkGs=";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-O9T478gQPWkF/4g1MGjBYdMEI4Rc9IXopRPAtaWCXqg=";
   };
 
-  dontBuild = true;
-  installPhase = ''
-    runHook preInstall
-    install -Dm555 xdg-terminal-exec -t $out/bin
-    runHook postInstall
+  strictDeps = true;
+
+  nativeBuildInputs = [
+    scdoc
+    makeBinaryWrapper
+  ];
+
+  buildInputs = [ dash ];
+
+  makeFlags = [ "prefix=${placeholder "out"}" ];
+
+  dontPatchShebangs = true;
+  postFixup = ''
+    # use dash posix sh implementation as recommended by upstream
+    substituteInPlace $out/bin/xdg-terminal-exec \
+      --replace-fail '#!/bin/sh' '#!${lib.getExe dash}'
+
+    # add default config to XDG_DATA_DIRS
+    wrapProgram $out/bin/xdg-terminal-exec \
+      --suffix XDG_DATA_DIRS : '${placeholder "out"}/share'
   '';
 
   meta = {
-    description = "Proposal for XDG terminal execution utility";
+    description = "Reference implementation of the proposed XDG Default Terminal Execution Specification";
     homepage = "https://github.com/Vladimir-csp/xdg-terminal-exec";
     license = lib.licenses.gpl3Plus;
     mainProgram = "xdg-terminal-exec";
-    maintainers = with lib.maintainers; [quantenzitrone];
+    maintainers = with lib.maintainers; [ quantenzitrone ];
     platforms = lib.platforms.unix;
   };
-}
+})

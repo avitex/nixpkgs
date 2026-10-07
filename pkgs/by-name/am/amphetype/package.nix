@@ -1,32 +1,75 @@
-{ fetchFromGitLab, lib, python3Packages, qt5 }:
+{
+  lib,
+  stdenv,
+  copyDesktopItems,
+  fetchFromGitLab,
+  makeDesktopItem,
+  python3Packages,
+  qt5,
+}:
 
 let
   pname = "amphetype";
   version = "1.0.0";
-in python3Packages.buildPythonApplication {
+  description = "Advanced typing practice program";
+in
+python3Packages.buildPythonApplication {
+  pyproject = true;
   inherit pname version;
 
   src = fetchFromGitLab {
     owner = "franksh";
-    repo = pname;
-    rev = "v${version}";
+    repo = "amphetype";
+    tag = "v${version}";
     hash = "sha256-pve2f+XMfFokMCtW3KdeOJ9Ey330Gwv/dk1+WBtrBEQ=";
   };
 
-  propagatedBuildInputs = with python3Packages; [
+  nativeBuildInputs = [
+    copyDesktopItems
+    qt5.wrapQtAppsHook
+  ];
+
+  # qtwayland is a Linux-only Qt platform plugin; it is unsupported on Darwin.
+  buildInputs = lib.optionals stdenv.hostPlatform.isLinux [
+    qt5.qtwayland
+  ];
+
+  build-system = with python3Packages; [
+    setuptools
+  ];
+
+  dependencies = with python3Packages; [
     editdistance
     pyqt5
     translitcodec
   ];
 
+  makeWrapperArgs = [
+    "\${qtWrapperArgs[@]}"
+  ];
+
+  # no tests
   doCheck = false;
 
-  nativeBuildInputs = [ qt5.wrapQtAppsHook ];
+  desktopItems = [
+    (makeDesktopItem {
+      name = "amphetype";
+      desktopName = "Amphetype";
+      genericName = "Typing Practice";
+      categories = [
+        "Education"
+        "Qt"
+      ];
+      exec = "amphetype";
+      comment = description;
+    })
+  ];
 
-  meta = with lib; {
-    description = "An advanced typing practice program";
+  meta = {
+    inherit description;
+    mainProgram = "amphetype";
     homepage = "https://gitlab.com/franksh/amphetype";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ rycee ];
+    license = lib.licenses.gpl3Only;
+    maintainers = with lib.maintainers; [ rycee ];
   };
 }

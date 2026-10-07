@@ -1,41 +1,43 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, hypothesis
-, pythonOlder
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  hypothesis,
+  pytest-cov-stub,
+  pytestCheckHook,
+  uv-build,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pyisbn";
-  version = "1.3.1";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "1.4.3";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    sha256 = "06fm9rn31cb4b61hzy63cnwfjpppgyy517k8a04gzcv9g60n7xbh";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-qPOS8G/ZUqH23mvhSKcs93s8UfpXIxIc0cIgGvRjpbM=";
   };
 
   postPatch = ''
-    substituteInPlace setup.cfg \
-      --replace "--cov pyisbn --cov-report term-missing --no-cov-on-fail" ""
+    substituteInPlace pyproject.toml \
+      --replace-fail "uv_build>=0.9.0,<0.10.0" "uv_build"
   '';
+
+  build-system = [ uv-build ];
 
   nativeCheckInputs = [
     hypothesis
+    pytest-cov-stub
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "pyisbn"
-  ];
+  pythonImportsCheck = [ "pyisbn" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python module for working with 10- and 13-digit ISBNs";
     homepage = "https://github.com/JNRowe/pyisbn";
-    license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ eigengrau ];
+    changelog = "https://github.com/JNRowe/pyisbn/releases/tag/v${finalAttrs.version}";
+    license = lib.licenses.gpl3Plus;
+    maintainers = [ ];
   };
-}
+})

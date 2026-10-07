@@ -1,30 +1,41 @@
-{ lib
-, fetchFromGitHub
-, buildPythonPackage
-, packaging
-, jinja2
-, pyyaml
+{
+  lib,
+  fetchFromGitHub,
+  buildPythonPackage,
+  packaging,
+  jinja2,
+  pyyaml,
+  poetry-core,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pyinstaller-versionfile";
-  version = "2.1.1";
+  version = "3.1.0";
 
-  format = "setuptools";
+  pyproject = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "DudeNr33";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-lz1GuiXU+r8sMld5SsG3qS+FOsWfbvkQmO2bxAR3XcY=";
+    repo = "pyinstaller-versionfile";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-L94MrZjCOw2Cxj0kF+F35TixVNJUi1sK99FG9+CzaIg=";
   };
 
-  propagatedBuildInputs = [ packaging jinja2 pyyaml ];
+  build-system = [ poetry-core ];
+
+  dependencies = [
+    packaging
+    jinja2
+    pyyaml
+  ];
 
   meta = {
-    description = "Create a windows version-file from a simple YAML file that can be used by PyInstaller.";
+    description = "Create a windows version-file from a simple YAML file that can be used by PyInstaller";
+    mainProgram = "create-version-file";
+    changelog = "https://github.com/DudeNr33/pyinstaller-versionfile/blob/v${finalAttrs.version}/CHANGELOG.md";
     homepage = "https://pypi.org/project/pyinstaller-versionfile/";
     license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ ];
+    maintainers = [ ];
   };
-}
+})

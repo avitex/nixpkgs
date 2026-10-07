@@ -1,37 +1,54 @@
-{ lib, fetchFromGitHub, buildPythonPackage, pyyaml, six, pytest, pyaml }:
+{
+  lib,
+  fetchFromGitHub,
+  buildPythonPackage,
 
-buildPythonPackage rec {
+  # build-system
+  uv-build,
+
+  # dependencies
+  pyyaml,
+
+  # tests
+  pytestCheckHook,
+  toml,
+}:
+
+buildPythonPackage (finalAttrs: {
   pname = "python-frontmatter";
-  version = "1.1.0";
-  format = "setuptools";
+  version = "1.3.0";
+  pyproject = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "eyeseast";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    sha256 = "sha256-Sr0RbNVk87Zu01U7nkuPUSnl1bm6G72EZDP/eDn099s=";
+    repo = "python-frontmatter";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-b/ruWPPiKvDzMjcVhxiBtnAaMNWnWvy1v8GZxGeibyY=";
   };
 
-  propagatedBuildInputs = [
-    pyyaml
-    pyaml # yes, it's needed
-    six
+  build-system = [ uv-build ];
+
+  dependencies = [ pyyaml ];
+
+  nativeCheckInputs = [
+    pytestCheckHook
+    toml
   ];
 
-  # tries to import test.test, which conflicts with module
-  # exported by python interpreter
-  doCheck = false;
-  nativeCheckInputs = [
-    pytest
+  pytestFlags = [
+    "--doctest-glob=README.md"
+    "--doctest-modules"
   ];
 
   pythonImportsCheck = [ "frontmatter" ];
 
-  meta = with lib; {
-    homepage = "https://github.com/eyeseast/python-frontmatter";
+  meta = {
     description = "Parse and manage posts with YAML (or other) frontmatter";
-    license = licenses.mit;
-    maintainers = with maintainers; [ siraben ];
-    platforms = platforms.unix;
+    homepage = "https://github.com/eyeseast/python-frontmatter";
+    changelog = "https://github.com/eyeseast/python-frontmatter/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ siraben ];
+    platforms = lib.platforms.unix;
   };
-}
+})

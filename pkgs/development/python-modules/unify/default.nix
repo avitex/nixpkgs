@@ -1,10 +1,11 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, setuptools
-, pytestCheckHook
-, untokenize
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonAtLeast,
+  setuptools,
+  pytestCheckHook,
+  untokenize,
 }:
 
 buildPythonPackage rec {
@@ -12,30 +13,23 @@ buildPythonPackage rec {
   version = "0.5";
   pyproject = true;
 
-  disabled = pythonOlder "3.9";
+  # lib2to3 usage and unmaintained since 2019
+  disabled = pythonAtLeast "3.13";
 
   src = fetchFromGitHub {
     owner = "myint";
     repo = "unify";
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     hash = "sha256-cWV/Q+LbeIxnQNqyatRWQUF8X+HHlQdc10y9qJ7v3dA=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
-  propagatedBuildInputs = [
-    untokenize
-  ];
+  propagatedBuildInputs = [ untokenize ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "unify"
-  ];
+  pythonImportsCheck = [ "unify" ];
 
   disabledTests = [
     # https://github.com/myint/unify/issues/21
@@ -43,10 +37,11 @@ buildPythonPackage rec {
     "test_format_code_with_backslash_in_comment"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Modifies strings to all use the same quote where possible";
+    mainProgram = "unify";
     homepage = "https://github.com/myint/unify";
-    license = licenses.mit;
-    maintainers = with maintainers; [ FlorianFranzen ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ FlorianFranzen ];
   };
 }

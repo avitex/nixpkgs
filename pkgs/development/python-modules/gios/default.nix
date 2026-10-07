@@ -1,39 +1,50 @@
-{ lib
-, aiohttp
-, aioresponses
-, buildPythonPackage
-, dacite
-, fetchFromGitHub
-, pytest-asyncio
-, pytest-error-for-skips
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  aiohttp,
+  aiointercept,
+  buildPythonPackage,
+  dacite,
+  fetchFromGitHub,
+  pyprojectVersionPatchHook,
+  pytest-asyncio,
+  pytest-error-for-skips,
+  pytestCheckHook,
+  pythonOlder,
+  setuptools,
+  syrupy,
 }:
 
 buildPythonPackage rec {
   pname = "gios";
-  version = "3.2.2";
-  format = "setuptools";
+  version = "7.1.1";
+  pyproject = true;
 
-  disabled = pythonOlder "3.8";
+  disabled = pythonOlder "3.13";
 
   src = fetchFromGitHub {
     owner = "bieniu";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-5CiKikhIZ+1pb5/NJ2XzpG1XHrkyuW1WUvvNEpxJIcw=";
+    repo = "gios";
+    tag = version;
+    hash = "sha256-VWLdvk+PF/0BaPNIIJcb+rsW1MyNoHcQuVx1Kvx20jk=";
   };
 
-  propagatedBuildInputs = [
+  nativeBuildInputs = [
+    pyprojectVersionPatchHook
+  ];
+
+  build-system = [ setuptools ];
+
+  dependencies = [
     aiohttp
     dacite
   ];
 
   nativeCheckInputs = [
-    aioresponses
+    aiointercept
     pytest-asyncio
     pytest-error-for-skips
     pytestCheckHook
+    syrupy
   ];
 
   disabledTests = [
@@ -41,15 +52,13 @@ buildPythonPackage rec {
     "test_invalid_station_id"
   ];
 
-  pythonImportsCheck = [
-    "gios"
-  ];
+  pythonImportsCheck = [ "gios" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python client for getting air quality data from GIOS";
     homepage = "https://github.com/bieniu/gios";
-    changelog = "https://github.com/bieniu/gios/releases/tag/${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/bieniu/gios/releases/tag/${src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

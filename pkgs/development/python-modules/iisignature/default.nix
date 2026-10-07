@@ -1,9 +1,10 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools
-, wheel
-, numpy
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  wheel,
+  numpy,
 }:
 
 buildPythonPackage rec {
@@ -21,19 +22,17 @@ buildPythonPackage rec {
     wheel
   ];
 
-  propagatedBuildInputs = [
-    numpy
-  ];
+  propagatedBuildInputs = [ numpy ];
 
   # PyPI tarball has no tests
   doCheck = false;
 
   pythonImportsCheck = [ "iisignature" ];
 
-  meta = with lib; {
+  meta = {
     description = "Iterated integral signature calculations";
     homepage = "https://pypi.org/project/iisignature";
-    license = licenses.mit;
-    maintainers = with maintainers; [ mbalatsko ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

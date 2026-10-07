@@ -1,12 +1,13 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, isPy3k
-, easyprocess
-, entrypoint2
-, jeepney
-, mss
-, pillow
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  isPy3k,
+  easyprocess,
+  entrypoint2,
+  jeepney,
+  mss,
+  pillow,
 }:
 
 buildPythonPackage rec {
@@ -16,14 +17,15 @@ buildPythonPackage rec {
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-jA6T8K72amv+Vahqv87WvTlq5LT2zB428EoorSYlWU0=";
+    hash = "sha256-jA6T8K72amv+Vahqv87WvTlq5LT2zB428EoorSYlWU0=";
   };
 
   propagatedBuildInputs = [
     easyprocess
     entrypoint2
     pillow
-  ] ++ lib.optionals (isPy3k) [
+  ]
+  ++ lib.optionals isPy3k [
     jeepney
     mss
   ];
@@ -33,10 +35,10 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "pyscreenshot" ];
 
-  meta = with lib; {
-    description = "python screenshot";
+  meta = {
+    description = "Python screenshot";
     homepage = "https://github.com/ponty/pyscreenshot";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
 }

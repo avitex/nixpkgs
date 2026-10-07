@@ -1,37 +1,39 @@
-{ lib
-, fetchPypi
-, buildPythonPackage
-, setuptools-scm
-, attrs
-, pdfminer-six
-, commoncode
-, plugincode
-, binaryornot
-, typecode-libmagic
-, pytestCheckHook
-, pytest-xdist
-, pythonOlder
+{
+  lib,
+  fetchFromGitHub,
+  buildPythonPackage,
+  setuptools,
+  setuptools-scm,
+  attrs,
+  pdfminer-six,
+  commoncode,
+  plugincode,
+  binaryornot,
+  typecode-libmagic,
+  pytestCheckHook,
+  pytest-xdist,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "typecode";
-  version = "30.0.1";
-  format = "setuptools";
+  version = "30.2.0";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-Glc5QiTVr//euymeNTxGN+FVaOEa6cUxHGyGo9bQrJc=";
+  src = fetchFromGitHub {
+    owner = "aboutcode-org";
+    repo = "typecode";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-+7Yu2t++4PaF8yT+kKgo5MP6lbr8CXkjo5/4KMrApZY=";
   };
 
   dontConfigure = true;
 
-  nativeBuildInputs = [
+  build-system = [
+    setuptools
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     attrs
     pdfminer-six
     commoncode
@@ -49,26 +51,20 @@ buildPythonPackage rec {
     "TestFileTypesDataDriven"
 
     # Many of the failures below are reported in:
-    # https://github.com/nexB/typecode/issues/36
-
-    # AssertionError: assert 'application/x-bytecode.python'...
-    "test_compiled_python_1"
-    "test_package_json"
+    # https://github.com/aboutcode-org/typecode/issues/36
 
     # fails due to change in file (libmagic) 5.45
-    "test_doc_postscript_eps"
-    "test_package_debian"
+    "test_media_image_img"
   ];
 
-  pythonImportsCheck = [
-    "typecode"
-  ];
+  pythonImportsCheck = [ "typecode" ];
 
-  meta = with lib; {
+  meta = {
     description = "Comprehensive filetype and mimetype detection using libmagic and Pygments";
-    homepage = "https://github.com/nexB/typecode";
-    changelog = "https://github.com/nexB/typecode/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    homepage = "https://github.com/aboutcode-org/typecode";
+    changelog = "https://github.com/aboutcode-org/typecode/releases/tag/v${finalAttrs.version}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ eljamm ];
+    teams = with lib.teams; [ ngi ];
   };
-}
+})

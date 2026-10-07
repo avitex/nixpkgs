@@ -1,24 +1,33 @@
 { lib, fetchFromGitHub }:
 let
-  version = "1.0.5";
-  srcHash = "sha256-tkgkhYuLHfmT42P+UMZ7uNB2wBKo0YGiw0a5RoMAu6M=";
-  vendorHash = "sha256-QTTnTPOgP+FlbqXNCGJc9VuBzQcMujpvFB3+DykYTPY=";
-  yarnHash = "sha256-TrcTc5svLLSedRC8gCwIBW7/mtHo+uSNZGImtRiVJ0w=";
+  version = "3.18.0";
+  vendorHash = "sha256-BLqkVqMadojMeL27L3YbRn2rmgtqixZidrpbhmE63lg=";
+  nodeModulesHash = "sha256-1gz7R1bkW4spv8gFWa6uGyGzmCy7LerVMpd7leLQuLw=";
 in
 {
-  inherit version yarnHash vendorHash;
+  inherit version vendorHash nodeModulesHash;
 
   src = fetchFromGitHub {
     owner = "woodpecker-ci";
     repo = "woodpecker";
-    rev = "v${version}";
-    hash = srcHash;
+    tag = "v${version}";
+    hash = "sha256-4RJ6iSrTbHzucVT/eu/wfe0bAKn7wEp5l6zd9GmGvO4=";
   };
 
   postInstall = ''
     cd $out/bin
     for f in *; do
-      mv -- "$f" "woodpecker-$f"
+      if [ "$f" = cli ]; then
+        # Issue a warning to the user if they call the deprecated executable
+        cat >woodpecker << EOF
+    #!/bin/sh
+    echo 'WARNING: calling \`woodpecker\` is deprecated, use \`woodpecker-cli\` instead.' >&2
+    $out/bin/woodpecker-cli "\$@"
+    EOF
+        chmod +x woodpecker
+        patchShebangs woodpecker
+      fi
+        mv -- "$f" "woodpecker-$f"
     done
     cd -
   '';
@@ -26,13 +35,17 @@ in
   ldflags = [
     "-s"
     "-w"
-    "-X github.com/woodpecker-ci/woodpecker/version.Version=${version}"
+    "-X go.woodpecker-ci.org/woodpecker/v3/version.Version=${version}"
   ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://woodpecker-ci.org/";
     changelog = "https://github.com/woodpecker-ci/woodpecker/blob/v${version}/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ambroisie techknowlogick adamcstephens ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [
+      ambroisie
+      marcusramberg
+      techknowlogick
+    ];
   };
 }

@@ -1,7 +1,9 @@
-{ config, lib, pkgs, ... }:
-
-with lib;
-
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   cfg = config.services.soft-serve;
   configFile = format.generate "config.yaml" cfg.settings;
@@ -12,21 +14,21 @@ in
 {
   options = {
     services.soft-serve = {
-      enable = mkEnableOption "soft-serve";
+      enable = lib.mkEnableOption "soft-serve";
 
-      package = mkPackageOption pkgs "soft-serve" { };
+      package = lib.mkPackageOption pkgs "soft-serve" { };
 
-      settings = mkOption {
+      settings = lib.mkOption {
         type = format.type;
         default = { };
-        description = mdDoc ''
+        description = ''
           The contents of the configuration file for soft-serve.
 
           See <${docUrl}>.
         '';
-        example = literalExpression ''
+        example = lib.literalExpression ''
           {
-            name = "dadada's repos";
+            name = "user's repos";
             log_format = "text";
             ssh = {
               listen_addr = ":23231";
@@ -41,12 +43,7 @@ in
     };
   };
 
-  config = mkIf cfg.enable {
-
-    systemd.tmpfiles.rules = [
-      # The config file has to be inside the state dir
-      "L+ ${stateDir}/config.yaml - - - - ${configFile}"
-    ];
+  config = lib.mkIf cfg.enable {
 
     systemd.services.soft-serve = {
       description = "Soft Serve git server";
@@ -56,16 +53,19 @@ in
       wantedBy = [ "multi-user.target" ];
 
       environment.SOFT_SERVE_DATA_PATH = stateDir;
+      environment.SOFT_SERVE_CONFIG_LOCATION = configFile;
 
       serviceConfig = {
         Type = "simple";
         DynamicUser = true;
         Restart = "always";
-        ExecStart = "${getExe cfg.package} serve";
+        ExecStart = "${lib.getExe cfg.package} serve";
+
+        # Hooks must be executable, but DynamicUser mounts /var/lib/private as noexec
+        ExecPaths = "${stateDir}/repos";
+
         StateDirectory = "soft-serve";
         WorkingDirectory = stateDir;
-        RuntimeDirectory = "soft-serve";
-        RuntimeDirectoryMode = "0750";
         ProcSubset = "pid";
         ProtectProc = "invisible";
         UMask = "0027";
@@ -79,12 +79,15 @@ in
         ProtectKernelModules = true;
         ProtectKernelLogs = true;
         ProtectControlGroups = true;
-        RestrictAddressFamilies = [ "AF_UNIX" "AF_INET" "AF_INET6" ];
+        RestrictAddressFamilies = [
+          "AF_UNIX"
+          "AF_INET"
+          "AF_INET6"
+        ];
         RestrictNamespaces = true;
         LockPersonality = true;
         MemoryDenyWriteExecute = true;
         RestrictRealtime = true;
-        RemoveIPC = true;
         PrivateMounts = true;
         SystemCallArchitectures = "native";
         SystemCallFilter = [
@@ -95,5 +98,5 @@ in
     };
   };
 
-  meta.maintainers = [ maintainers.dadada ];
+  meta.maintainers = [ lib.maintainers.dadada ];
 }

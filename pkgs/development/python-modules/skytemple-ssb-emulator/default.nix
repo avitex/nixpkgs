@@ -1,78 +1,91 @@
-{ alsa-lib
-, buildPythonPackage
-, cargo
-, fetchPypi
-, glib
-, lib
-, libpcap
-, meson
-, ninja
-, openal
-, pkg-config
-, range-typed-integers
-, rustc
-, rustPlatform
-, SDL2
-, setuptools
-, setuptools-rust
-, soundtouch
-, zlib
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  rustPlatform,
+
+  # build-system
+  meson,
+  setuptools,
+  setuptools-rust,
+
+  # buildInputs
+  SDL2,
+  alsa-lib,
+  glib,
+  libpcap,
+  soundtouch,
+  zlib,
+
+  # nativeBuildInputs
+  cargo,
+  ninja,
+  openal,
+  pkg-config,
+  rustc,
+
+  # dependencies
+  range-typed-integers,
 }:
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "skytemple-ssb-emulator";
-  version = "1.6.1.post1";
+  version = "1.8.2";
   pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-FEQnQPIathtrP03Dncz560K0lhKW4+HI/Oyo7qsEpFw=";
+  src = fetchFromGitHub {
+    owner = "SkyTemple";
+    repo = "skytemple-ssb-emulator";
+    tag = finalAttrs.version;
+    hash = "sha256-zmLEvE96gkElTggcRG9fZDrJPLOXeNuSk49zXQAB69Y=";
   };
 
-  cargoDeps = rustPlatform.importCargoLock {
-    lockFile = ./Cargo.lock;
-    outputHashes = {
-      "skytemple_rust-1.6.0" = "sha256-4glBo1VKCSwSSeQU6Ojhc0Cbaikxy101V1fU4rgcczg=";
-    };
+  cargoDeps = rustPlatform.fetchCargoVendor {
+    inherit (finalAttrs) src pname version;
+    hash = "sha256-MSPqQmC70pq+sEM8zJrrFiz32dorOJxr2G/y2H4EUQI=";
   };
+
+  env = {
+    # Python 3.14 compatibility
+    # error: the configured Python interpreter version (3.14) is newer than PyO3's maximum supported
+    # version (3.13)
+    PYO3_USE_ABI3_FORWARD_COMPATIBILITY = 1;
+  };
+
+  build-system = [
+    meson
+    setuptools
+    setuptools-rust
+  ];
 
   buildInputs = [
+    SDL2
     alsa-lib
     glib
     libpcap
-    SDL2
     soundtouch
     zlib
   ];
 
   nativeBuildInputs = [
     cargo
-    meson
     ninja
     openal
     pkg-config
-    rustc
     rustPlatform.cargoSetupHook
-    setuptools
-    setuptools-rust
+    rustc
   ];
 
-  propagatedBuildInputs = [
-    range-typed-integers
-  ];
+  dependencies = [ range-typed-integers ];
 
-  hardeningDisable = [
-    "format"
-  ];
+  hardeningDisable = [ "format" ];
 
   doCheck = false; # there are no tests
-  pythonImportsCheck = [
-    "skytemple_ssb_emulator"
-  ];
+  pythonImportsCheck = [ "skytemple_ssb_emulator" ];
 
-  meta = with lib; {
+  meta = {
     description = "SkyTemple Script Engine Debugger Emulator Backend";
     homepage = "https://github.com/SkyTemple/skytemple-ssb-emulator";
-    license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ marius851000 xfix ];
+    license = lib.licenses.gpl3Plus;
+    maintainers = with lib.maintainers; [ marius851000 ];
   };
-}
+})

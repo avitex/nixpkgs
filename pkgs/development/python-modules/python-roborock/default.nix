@@ -1,76 +1,93 @@
-{ lib
-, stdenv
-, aiohttp
-, async-timeout
-, buildPythonPackage
-, click
-, construct
-, dacite
-, fetchFromGitHub
-, paho-mqtt
-, poetry-core
-, pycryptodome
-, pycryptodomex
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, pythonRelaxDepsHook
+{
+  lib,
+  stdenv,
+  aiohttp,
+  aiomqtt,
+  aioresponses,
+  buildPythonPackage,
+  click,
+  construct,
+  fetchFromGitHub,
+  freezegun,
+  hatchling,
+  paho-mqtt,
+  protobuf,
+  pycryptodome,
+  pycryptodomex,
+  pyrate-limiter,
+  pyshark,
+  pytest-asyncio,
+  pytestCheckHook,
+  pyyaml,
+  vacuum-map-parser-roborock,
+  click-shell,
+  syrupy,
+  writableTmpDirAsHomeHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "python-roborock";
-  version = "0.39.1";
+  version = "7.12.0";
   pyproject = true;
 
-  disabled = pythonOlder "3.10";
-
   src = fetchFromGitHub {
-    owner = "humbertogontijo";
+    owner = "Python-roborock";
     repo = "python-roborock";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-iFLzrjbCwBuV9RQSHoP5LOG0PIPjiTMCpvk3wqGtMgk=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-svgKXclEGIUZT61fnk0u/dV6mSJkMNuC8aXJNH+6D+k=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace "poetry-core==1.7.1" "poetry-core"
-  '';
-
   pythonRelaxDeps = [
+    "protobuf"
     "pycryptodome"
   ];
 
-  nativeBuildInputs = [
-    poetry-core
-    pythonRelaxDepsHook
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
-    async-timeout
-    click
+    aiomqtt
     construct
-    dacite
     paho-mqtt
+    protobuf
     pycryptodome
-  ] ++ lib.optionals stdenv.isDarwin [
-    pycryptodomex
+    pyrate-limiter
+    vacuum-map-parser-roborock
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [ pycryptodomex ];
+
+  optional-dependencies.cli = [
+    click
+    click-shell
+    pyyaml
+    pyshark
   ];
 
   nativeCheckInputs = [
+    aioresponses
+    freezegun
     pytest-asyncio
     pytestCheckHook
+    syrupy
+    writableTmpDirAsHomeHook
+  ]
+  ++ lib.concatAttrValues finalAttrs.passthru.optional-dependencies;
+
+  disabledTests = [
+    # url mocking mismatch, probably due to yarl update
+    "test_url_cycling"
   ];
 
-  pythonImportsCheck = [
-    "roborock"
-  ];
+  __darwinAllowLocalNetworking = true;
 
-  meta = with lib; {
+  pythonImportsCheck = [ "roborock" ];
+
+  meta = {
     description = "Python library & console tool for controlling Roborock vacuum";
-    homepage = "https://github.com/humbertogontijo/python-roborock";
-    changelog = "https://github.com/humbertogontijo/python-roborock/blob/v${version}/CHANGELOG.md";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ fab ];
+    homepage = "https://github.com/Python-roborock/python-roborock";
+    changelog = "https://github.com/Python-roborock/python-roborock/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
+    mainProgram = "roborock";
   };
-}
+})

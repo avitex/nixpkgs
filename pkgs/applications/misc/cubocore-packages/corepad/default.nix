@@ -1,32 +1,43 @@
-{ mkDerivation, lib, fetchFromGitLab, qtbase, cmake, ninja, libcprime, libcsys }:
+{
+  lib,
+  stdenv,
+  fetchFromGitLab,
+  qt6,
+  cmake,
+  ninja,
+  libcprime,
+  libcsys,
+}:
 
-mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "corepad";
-  version = "4.5.0";
+  version = "5.0.1";
 
   src = fetchFromGitLab {
     owner = "cubocore/coreapps";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-qiw6P+I9iAcFcBWiMKAzyxM6waXx/2TPVQHLcLjAnoY=";
+    repo = "corepad";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-TA/gwI7ukuwChBRp2xsDbNbTblkzYgQ5YHwuI53cxc8=";
   };
 
   nativeBuildInputs = [
     cmake
     ninja
+    qt6.wrapQtAppsHook
   ];
 
   buildInputs = [
-    qtbase
+    qt6.qtbase
     libcprime
     libcsys
   ];
 
-  meta = with lib; {
-    description = "A document editor from the C Suite";
+  meta = {
+    description = "Document editor from the C Suite";
+    mainProgram = "corepad";
     homepage = "https://gitlab.com/cubocore/coreapps/corepad";
-    license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ dan4ik605743 ];
-    platforms = platforms.linux;
+    license = lib.licenses.gpl3Plus;
+    maintainers = [ ];
+    platforms = lib.platforms.linux;
   };
-}
+})

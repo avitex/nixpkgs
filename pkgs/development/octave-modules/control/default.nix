@@ -1,20 +1,24 @@
-{ buildOctavePackage
-, lib
-, fetchFromGitHub
-, gfortran
-, lapack, blas
-, autoreconfHook
+{
+  buildOctavePackage,
+  lib,
+  fetchFromGitHub,
+  gfortran,
+  lapack,
+  blas,
+  autoreconfHook,
+  nix-update-script,
 }:
 
 buildOctavePackage rec {
   pname = "control";
-  version = "3.6.1";
+  version = "4.2.3";
 
   src = fetchFromGitHub {
     owner = "gnu-octave";
     repo = "pkg-control";
-    rev = "refs/tags/control-${version}";
-    sha256 = "sha256-7beEsdrne50NY4lGCotxGXwwWnMzUR2CKCc20OCjd0g=";
+    tag = "${pname}-${version}";
+    fetchSubmodules = true;
+    sha256 = "sha256-go7ylTl1jitLwVo5ozi2hjUKFjOCnHOasRM4/EqqAaw=";
   };
 
   # Running autoreconfHook inside the src directory fixes a compile issue about
@@ -35,13 +39,21 @@ buildOctavePackage rec {
   ];
 
   buildInputs = [
-    lapack blas
+    lapack
+    blas
   ];
 
-  meta = with lib; {
+  passthru.updateScript = nix-update-script {
+    extraArgs = [
+      "--version-regex"
+      "control-(.*)"
+    ];
+  };
+
+  meta = {
     homepage = "https://gnu-octave.github.io/packages/control/";
-    license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ KarlJoad ];
+    license = lib.licenses.gpl3Plus;
+    maintainers = with lib.maintainers; [ ravenjoad ];
     description = "Computer-Aided Control System Design (CACSD) Tools for GNU Octave, based on the proven SLICOT Library";
   };
 }

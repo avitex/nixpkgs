@@ -1,50 +1,43 @@
-{ lib
-, fetchFromGitHub
-, fetchpatch
-, buildPythonPackage
-, setuptools
-, pytestCheckHook
-, sortedcontainers
+{
+  lib,
+  fetchFromGitHub,
+  fetchpatch,
+  buildPythonPackage,
+  setuptools_80,
+  pytestCheckHook,
+  pytest-cov-stub,
+  sortedcontainers,
 }:
 
 buildPythonPackage rec {
   pname = "strct";
-  version = "0.0.32";
+  version = "0.0.35";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "shaypal5";
     repo = "strct";
-    rev = "v${version}";
-    hash = "sha256-ctafvdfSOdp7tlCUYg7d5XTXR1qBcWvOVtGtNUnhYIw=";
+    tag = "v${version}";
+    hash = "sha256-4IykGzy1PTrRAbx/sdtzL4My4cDSlplL9rOFBcLbaB8=";
   };
 
   patches = [
-    # https://github.com/shaypal5/strct/pull/4
     (fetchpatch {
-      name = "fix-versioneer-on-python312.patch";
-      url = "https://github.com/shaypal5/strct/commit/a1e5b6ca9045b52efdfdbb3c82e12a01e251d41b.patch";
-      hash = "sha256-xXADCSIhq1ARny2twzrhR1J8LkMFWFl6tmGxrM8RvkU=";
+      name = "support-setuptools-82.patch";
+      url = "https://github.com/shaypal5/strct/commit/5005a939b590cd992d985128a2c1dba230a7fe41.patch";
+      includes = [ "setup.py" ];
+      hash = "sha256-0vRRst79G6JZZ+IzBR7rr85nOo0qY0ikVBz4Lvauwbc=";
     })
   ];
 
-  postPatch = ''
-    substituteInPlace pytest.ini \
-      --replace  \
-        "--cov" \
-        "#--cov"
+  # don't append .dev0 to version
+  env.RELEASING_PROCESS = "1";
 
-    # configure correct version, which fails due to missing .git
-    substituteInPlace versioneer.py strct/_version.py \
-      --replace '"0+unknown"' '"${version}"'
-  '';
-
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools_80 ];
 
   nativeCheckInputs = [
     pytestCheckHook
+    pytest-cov-stub
     sortedcontainers
   ];
 
@@ -57,10 +50,10 @@ buildPythonPackage rec {
     "strct.sortedlists"
   ];
 
-  meta = with lib; {
-    description = "A small pure-python package for data structure related utility functions";
+  meta = {
+    description = "Small pure-python package for data structure related utility functions";
     homepage = "https://github.com/shaypal5/strct";
-    license = licenses.mit;
-    maintainers = with maintainers; [ pbsds ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ pbsds ];
   };
 }

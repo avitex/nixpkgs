@@ -1,45 +1,73 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, aiodns
-, aiohttp
-, backports-zoneinfo
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  aiodns,
+  aiohttp,
+  aresponses,
+  poetry-core,
+  pyprojectVersionPatchHook,
+  pytest-asyncio,
+  pytest-cov-stub,
+  pytest-freezer,
+  pytestCheckHook,
+  syrupy,
+  yarl,
 }:
 
 buildPythonPackage rec {
   pname = "forecast-solar";
-  version = "3.0.0";
-
-  format = "setuptools";
+  version = "5.0.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "home-assistant-libs";
     repo = "forecast_solar";
-    rev = "refs/tags/${version}";
-    hash = "sha256-Go0DF2qyVyGVYEeoEEuxsSR9Ge8Pg4S77zM1HL83ELc=";
+    tag = "v${version}";
+    hash = "sha256-fvmi5kwVAScVlGpxutjH8nl0lJx/VnQEVoj9a1UY7r4=";
   };
 
-  PACKAGE_VERSION = version;
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
+  nativeBuildInputs = [
+    pyprojectVersionPatchHook
+  ];
+
+  dependencies = [
     aiodns
     aiohttp
-  ] ++ lib.optionals (pythonOlder "3.9") [
-    backports-zoneinfo
+    yarl
   ];
 
   pythonImportsCheck = [ "forecast_solar" ];
 
   nativeCheckInputs = [
+    aresponses
+    pytest-asyncio
+    pytest-cov-stub
+    pytest-freezer
     pytestCheckHook
+    syrupy
   ];
 
-  meta = with lib; {
+  disabledTests = [
+    # "Error while resolving Forecast.Solar API address"
+    "test_api_key_validation"
+    "test_estimated_forecast"
+    "test_internal_session"
+    "test_json_request"
+    "test_plane_validation"
+    "test_status_400"
+    "test_status_401"
+    "test_status_422"
+    "test_status_429"
+  ];
+
+  meta = {
+    changelog = "https://github.com/home-assistant-libs/forecast_solar/releases/tag/v${version}";
     description = "Asynchronous Python client for getting forecast solar information";
     homepage = "https://github.com/home-assistant-libs/forecast_solar";
-    license = licenses.mit;
-    maintainers = with maintainers; [ dotlambda ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ dotlambda ];
   };
 }

@@ -1,24 +1,28 @@
-{ lib
-, fetchFromGitHub
-, installShellFiles
-, python3Packages
-, ssm-session-manager-plugin
+{
+  lib,
+  fetchFromGitHub,
+  installShellFiles,
+  python3Packages,
+  ssm-session-manager-plugin,
 }:
 
-python3Packages.buildPythonApplication rec {
+python3Packages.buildPythonApplication (finalAttrs: {
   pname = "aws-gate";
   version = "0.11.3";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "xen0l";
-    repo = pname;
-    rev = version;
+    repo = "aws-gate";
+    tag = finalAttrs.version;
     hash = "sha256-9w2jP4s1HXf1gYiXX05Dt2iXt0bR0U48yc8h9T5M+EQ=";
   };
 
   patches = [
     ./disable-bootstrap.patch
+    # default and missing parameters, which were replaced by dump_default and load_default
+    # https://github.com/xen0l/aws-gate/pull/1770
+    ./fix-compatibility-with-marshmallow-4.x.patch
   ];
 
   postPatch = ''
@@ -26,14 +30,24 @@ python3Packages.buildPythonApplication rec {
   '';
 
   nativeBuildInputs = [
+    installShellFiles
     python3Packages.setuptools
     python3Packages.wheel
-    installShellFiles
   ];
 
-  propagatedBuildInputs = [ ssm-session-manager-plugin ] ++ builtins.attrValues {
-    inherit (python3Packages) marshmallow boto3 pyyaml wrapt cryptography;
-  };
+  pythonRelaxDeps = true;
+
+  propagatedBuildInputs = [
+    python3Packages.boto3
+    python3Packages.cryptography
+    python3Packages.marshmallow
+    python3Packages.packaging
+    python3Packages.pyyaml
+    python3Packages.requests
+    python3Packages.unix-ar
+    python3Packages.wrapt
+    ssm-session-manager-plugin
+  ];
 
   postInstall = ''
     installShellCompletion --bash completions/bash/aws-gate
@@ -41,15 +55,15 @@ python3Packages.buildPythonApplication rec {
   '';
 
   checkPhase = ''
-    $out/bin/${pname} --version
+    $out/bin/aws-gate --version
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Better AWS SSM Session manager CLI client";
     homepage = "https://github.com/xen0l/aws-gate";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ tirimia ];
-    platforms = with platforms; linux ++ darwin;
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ tirimia ];
+    platforms = with lib.platforms; linux ++ darwin;
     mainProgram = "aws-gate";
   };
-}
+})

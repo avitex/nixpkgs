@@ -1,22 +1,23 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, enaml
-, pyqtgraph
-, pythonocc-core
-, typing-extensions
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  enaml,
+  pyqtgraph,
+  pythonocc-core,
+  typing-extensions,
 }:
 
 buildPythonPackage rec {
   pname = "enamlx";
-  version = "0.6.2";
+  version = "0.6.4";
   format = "setuptools";
 
   src = fetchFromGitHub {
     owner = "frmdstryr";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-LHqOZ1uLWFbUeQAGKoMH9GljhRq1K4RTVWzgV/pt3g8=";
+    repo = "enamlx";
+    tag = "v${version}";
+    hash = "sha256-C3/G0bnu1EQh0elqdrpCwkFPZU4qmkUX7WRSRK9nkM4=";
   };
 
   propagatedBuildInputs = [
@@ -37,10 +38,10 @@ buildPythonPackage rec {
     "enamlx.widgets"
   ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/frmdstryr/enamlx";
     description = "Additional Qt Widgets for Enaml";
-    license = licenses.mit;
-    maintainers = with maintainers; [ raboof ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ raboof ];
   };
 }

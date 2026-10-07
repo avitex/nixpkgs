@@ -1,66 +1,58 @@
-{ lib
-, aiohttp
-, attrs
-, backoff
-, backports-strenum
-, boto3
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, pyhumps
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, warrant-lite
+{
+  lib,
+  aiohttp,
+  attrs,
+  backoff,
+  boto3,
+  buildPythonPackage,
+  cattrs,
+  fetchFromGitHub,
+  hatchling,
+  pytest-asyncio,
+  pytestCheckHook,
+  warrant-lite,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pyoverkiz";
-  version = "1.13.4";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "2.2.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "iMicknl";
     repo = "python-overkiz-api";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-VMf6WBWf33KEWJG8UtCDZCa20a8kmVd5UpLIcJgzDis=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-tyfzOF3ho9ueQFY10WEbJT05DImLs5iOdv5kPgrtY54=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace 'pyhumps = "^3.0.2,!=3.7.3"' 'pyhumps = "^3.0.2"'
-  '';
+  build-system = [ hatchling ];
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
-
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
     attrs
     backoff
-    backports-strenum
-    boto3
-    pyhumps
-    warrant-lite
+    cattrs
   ];
+
+  optional-dependencies = {
+    nexity = [
+      boto3
+      warrant-lite
+    ];
+  };
 
   nativeCheckInputs = [
     pytest-asyncio
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "pyoverkiz"
-  ];
+  pythonImportsCheck = [ "pyoverkiz" ];
 
-  meta = with lib; {
+  meta = {
     description = "Module to interact with the Somfy TaHoma API or other OverKiz APIs";
     homepage = "https://github.com/iMicknl/python-overkiz-api";
-    changelog = "https://github.com/iMicknl/python-overkiz-api/releases/tag/v${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/iMicknl/python-overkiz-api/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

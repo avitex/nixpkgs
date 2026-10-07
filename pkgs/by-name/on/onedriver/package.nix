@@ -1,30 +1,42 @@
-{ buildGoModule
-, fetchFromGitHub
-, lib
-, pkg-config
-, webkitgtk_4_1
-, glib
-, fuse
-, installShellFiles
-, wrapGAppsHook
+{
+  buildGoModule,
+  fetchFromGitHub,
+  lib,
+  pkg-config,
+  webkitgtk_4_1,
+  glib,
+  fuse3,
+  installShellFiles,
+  wrapGAppsHook3,
+  glib-networking,
+  wrapperDir ? "/run/wrappers/bin",
 }:
 let
   pname = "onedriver";
-  version = "0.14.1";
+  version = "0.15.0";
 
   src = fetchFromGitHub {
     owner = "jstaf";
     repo = "onedriver";
     rev = "v${version}";
-    hash = "sha256-mA5otgqXQAw2UYUOJaC1zyJuzEu2OS/pxmjJnWsVdxs=";
+    hash = "sha256-DCxF52CtA9KAP+yz5Rgzc/nUAXtZwfYAVU7oHREJlRY=";
   };
 in
 buildGoModule {
   inherit pname version src;
-  vendorHash = "sha256-OOiiKtKb+BiFkoSBUQQfqm4dMfDW3Is+30Kwcdg8LNA=";
+  vendorHash = "sha256-Ifcmf9AtZnrjgTPQnof/ap0TY19zHVftm5N4JgvbAgs=";
 
-  nativeBuildInputs = [ pkg-config installShellFiles wrapGAppsHook ];
-  buildInputs = [ webkitgtk_4_1 glib fuse ];
+  nativeBuildInputs = [
+    pkg-config
+    installShellFiles
+    wrapGAppsHook3
+  ];
+  buildInputs = [
+    webkitgtk_4_1
+    glib
+    fuse3
+    glib-networking
+  ];
 
   ldflags = [ "-X github.com/jstaf/onedriver/cmd/common.commit=v${version}" ];
 
@@ -39,18 +51,23 @@ buildGoModule {
     install -Dm644 ./pkg/resources/onedriver.png $out/share/icons/onedriver/onedriver.png
     install -Dm644 ./pkg/resources/onedriver-128.png $out/share/icons/onedriver/onedriver-128.png
 
-    install -Dm644 ./pkg/resources/onedriver.desktop $out/share/applications/onedriver.desktop
+    install -Dm644 ./pkg/resources/onedriver-launcher.desktop $out/share/applications/onedriver-launcher.desktop
+    install -Dm644 ./pkg/resources/onedriver@.service $out/lib/systemd/user/onedriver@.service
 
     mkdir -p $out/share/man/man1
     installManPage ./pkg/resources/onedriver.1
 
-    substituteInPlace $out/share/applications/onedriver.desktop \
-      --replace "/usr/bin/onedriver-launcher" "$out/bin/onedriver-launcher" \
-      --replace "/usr/share/icons" "$out/share/icons"
+    substituteInPlace $out/share/applications/onedriver-launcher.desktop \
+      --replace-fail "/usr/bin/onedriver-launcher" "$out/bin/onedriver-launcher" \
+      --replace-fail "/usr/share/icons" "$out/share/icons"
+
+    substituteInPlace $out/lib/systemd/user/onedriver@.service \
+      --replace-fail "/usr/bin/onedriver" "$out/bin/onedriver" \
+      --replace-fail "/usr/bin/fusermount3" "${wrapperDir}/fusermount3"
   '';
 
-  meta = with lib; {
-    description = "A network filesystem for Linux";
+  meta = {
+    description = "Network filesystem for Linux";
     longDescription = ''
       onedriver is a network filesystem that gives your computer direct access to your files on Microsoft OneDrive.
       This is not a sync client. Instead of syncing files, onedriver performs an on-demand download of files when
@@ -58,8 +75,11 @@ buildGoModule {
       your local computer.
     '';
     inherit (src.meta) homepage;
-    license = licenses.gpl3Plus;
-    maintainers = [ maintainers.massimogengarelli ];
-    platforms = platforms.linux;
+    license = lib.licenses.gpl3Plus;
+    maintainers = [
+      lib.maintainers.massimogengarelli
+      lib.maintainers.lnk3
+    ];
+    platforms = lib.platforms.linux;
   };
 }

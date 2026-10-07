@@ -1,57 +1,73 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, hatchling
-, aiosqlite
-, anyio
-, channels
-, pycrdt
-, pytest-asyncio
-, pytestCheckHook
-, uvicorn
-, websockets
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  hatchling,
+
+  # dependencies
+  anyio,
+  pycrdt,
+  pycrdt-store,
+  sqlite-anyio,
+
+  # optional-dependencies
+  channels,
+
+  # tests
+  httpx-ws,
+  hypercorn,
+  pytest-asyncio,
+  pytestCheckHook,
+  trio,
+  uvicorn,
+  websockets,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pycrdt-websocket";
-  version = "0.12.6";
+  version = "0.16.5";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
-    owner = "jupyter-server";
+    owner = "y-crdt";
     repo = "pycrdt-websocket";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-VYD1OrerqwzjaT1Eb6q+kryf15iHCMSHJZbon225bio=";
+    tag = finalAttrs.version;
+    hash = "sha256-8Lsfyd6+XuVTFFy6DZd8MKvlIvwEwAeF+wC56v7Jx4U=";
   };
 
-  nativeBuildInputs = [
-    hatchling
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
-    aiosqlite
+  dependencies = [
     anyio
     pycrdt
+    pycrdt-store
+    sqlite-anyio
   ];
 
-  passthru.optional-dependencies = {
-    django = [
-      channels
-    ];
+  optional-dependencies = {
+    django = [ channels ];
   };
 
-  pythonImportsCheck = [
-    "pycrdt_websocket"
-  ];
+  pythonImportsCheck = [ "pycrdt.websocket" ];
 
   nativeCheckInputs = [
+    httpx-ws
+    hypercorn
     pytest-asyncio
     pytestCheckHook
+    trio
     uvicorn
     websockets
+  ];
+
+  disabledTests = [
+    # Looking for a certfile
+    # FileNotFoundError: [Errno 2] No such file or directory
+    "test_asgi"
+    "test_yroom_restart"
   ];
 
   disabledTestPaths = [
@@ -61,11 +77,11 @@ buildPythonPackage rec {
 
   __darwinAllowLocalNetworking = true;
 
-  meta = with lib; {
+  meta = {
     description = "WebSocket Connector for pycrdt";
     homepage = "https://github.com/jupyter-server/pycrdt-websocket";
-    changelog = "https://github.com/jupyter-server/pycrdt-websocket/blob/${src.rev}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = teams.jupyter.members;
+    changelog = "https://github.com/jupyter-server/pycrdt-websocket/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    teams = [ lib.teams.jupyter ];
   };
-}
+})

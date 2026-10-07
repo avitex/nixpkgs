@@ -1,41 +1,48 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, google-api-core
-, google-cloud-core
-, google-cloud-testutils
-, libcst
-, mock
-, proto-plus
-, protobuf
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  google-api-core,
+  google-auth,
+  google-cloud-core,
+  google-cloud-testutils,
+  grpcio,
+  libcst,
+  mock,
+  proto-plus,
+  protobuf,
+  pytest-asyncio,
+  pytestCheckHook,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "google-cloud-datastore";
-  version = "2.19.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "2.26.1";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-B/xYcKAmHyVGbFV8E035Wpbf0lN6vQiLnVN/ur6ZuXQ=";
+    pname = "google_cloud_datastore";
+    inherit (finalAttrs) version;
+    hash = "sha256-V6HCsn9ns6XwmtXgFcjqSzQ9TZgKhZoN2aZh3XngA/g=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  pythonRelaxDeps = [ "protobuf" ];
+
+  dependencies = [
     google-api-core
+    google-auth
     google-cloud-core
+    grpcio
     proto-plus
     protobuf
-  ] ++ google-api-core.optional-dependencies.grpc;
+  ]
+  ++ google-api-core.optional-dependencies.grpc;
 
-  passthru.optional-dependencies = {
-    libcst = [
-      libcst
-    ];
+  optional-dependencies = {
+    libcst = [ libcst ];
   };
 
   nativeCheckInputs = [
@@ -66,11 +73,11 @@ buildPythonPackage rec {
     "google.cloud.datastore_v1"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Google Cloud Datastore API client library";
-    homepage = "https://github.com/googleapis/python-datastore";
-    changelog = "https://github.com/googleapis/python-datastore/blob/v${version}/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    homepage = "https://cloud.google.com/datastore";
+    changelog = "https://github.com/googleapis/google-cloud-python/blob/google-cloud-datastore-v${finalAttrs.version}/packages/google-cloud-datastore/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
-}
+})

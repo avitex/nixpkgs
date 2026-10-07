@@ -1,44 +1,55 @@
-{ lib
-, fetchFromGitHub
-, buildPythonPackage
-, pythonOlder
-, numpy
-, cython
-, zlib
-, python-lzo
-, nose
+{
+  lib,
+  fetchFromGitHub,
+  buildPythonPackage,
+  numpy,
+  pyparsing,
+  cython,
+  zlib,
+  python-lzo,
+  pytestCheckHook,
+  setuptools,
+  oldest-supported-numpy,
 }:
 
 buildPythonPackage rec {
   pname = "bx-python";
-  version = "0.10.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.14.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "bxlab";
     repo = "bx-python";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-j2GKj2IGDBk4LBnISRx6ZW/lh5VSdQBasC0gCRj0Fiw=";
+    tag = "v${version}";
+    hash = "sha256-WZjCPggAlC+L/SagC4TXJXNrFG85BmjO7FaV2GxrYYA=";
   };
 
-  nativeBuildInputs = [
+  postPatch = ''
+    # pytest-cython, which provides this option, isn't packaged
+    substituteInPlace pytest.ini \
+      --replace-fail "--doctest-cython" ""
+  '';
+
+  build-system = [
+    setuptools
     cython
+    oldest-supported-numpy
   ];
 
-  buildInputs = [
-    zlib
-  ];
+  buildInputs = [ zlib ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     numpy
-    python-lzo
+    pyparsing
   ];
 
   nativeCheckInputs = [
-    nose
+    python-lzo
+    pytestCheckHook
   ];
+
+  # https://github.com/bxlab/bx-python/issues/101
+  doCheck = false;
 
   postInstall = ''
     cp -r scripts/* $out/bin
@@ -50,12 +61,12 @@ buildPythonPackage rec {
     ln -s $out/bin scripts
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Tools for manipulating biological data, particularly multiple sequence alignments";
     homepage = "https://github.com/bxlab/bx-python";
-    changelog = "https://github.com/bxlab/bx-python/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ jbedo ];
+    changelog = "https://github.com/bxlab/bx-python/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ jbedo ];
     platforms = [ "x86_64-linux" ];
   };
 }

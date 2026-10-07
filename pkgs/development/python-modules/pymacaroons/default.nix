@@ -1,4 +1,10 @@
-{ lib, buildPythonPackage, fetchPypi, six, pynacl }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  six,
+  pynacl,
+}:
 
 buildPythonPackage rec {
   pname = "pymacaroons";
@@ -18,9 +24,9 @@ buildPythonPackage rec {
   # Tests require an old version of hypothesis
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "Macaroon library for Python";
     homepage = "https://github.com/ecordell/pymacaroons";
-    license = licenses.mit;
+    license = lib.licenses.mit;
   };
 }

@@ -1,22 +1,23 @@
-{ stdenv
-, lib
-, fetchurl
-, guile
-, autoreconfHook
-, guile-gcrypt
-, guile-lzma
-, guile-quickcheck
-, makeWrapper
-, pkg-config
-, zlib
+{
+  stdenv,
+  lib,
+  fetchurl,
+  guile,
+  autoreconfHook,
+  guile-gcrypt,
+  guile-lzma,
+  guile-quickcheck,
+  makeWrapper,
+  pkg-config,
+  zlib,
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "disarchive";
   version = "0.5.0";
 
   src = fetchurl {
-    url = "https://files.ngyro.com/disarchive/disarchive-${version}.tar.gz";
+    url = "https://files.ngyro.com/disarchive/disarchive-${finalAttrs.version}.tar.gz";
     hash = "sha256-Agt7v5HTpaskXuYmMdGDRIolaqCHUpwd/CfbZCe9Ups=";
   };
 
@@ -41,7 +42,7 @@ stdenv.mkDerivation rec {
     guile-lzma
   ];
 
-  doCheck = !stdenv.isDarwin;
+  doCheck = !stdenv.hostPlatform.isDarwin;
 
   nativeCheckInputs = [
     guile-quickcheck
@@ -53,12 +54,12 @@ stdenv.mkDerivation rec {
       --prefix GUILE_LOAD_COMPILED_PATH : "$out/${guile.siteCcacheDir}:$GUILE_LOAD_COMPILED_PATH"
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Disassemble software into data and metadata";
     homepage = "https://ngyro.com/software/disarchive.html";
-    license = licenses.gpl3Plus;
+    license = lib.licenses.gpl3Plus;
     mainProgram = "disarchive";
-    maintainers = with maintainers; [ foo-dogsquared ];
+    maintainers = [ ];
     platforms = guile.meta.platforms;
   };
-}
+})

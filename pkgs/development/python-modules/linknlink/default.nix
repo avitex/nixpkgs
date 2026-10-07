@@ -1,45 +1,37 @@
-{ lib
-, buildPythonPackage
-, cryptography
-, fetchFromGitHub
-, pythonOlder
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  cryptography,
+  fetchFromGitHub,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "linknlink";
-  version = "0.1.9";
+  version = "0.2.4";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "xuanxuan000";
     repo = "python-linknlink";
-    rev = "refs/tags/${version}";
-    hash = "sha256-msKunZsAxA9xpCJmG4MVXuJDMEqrCeShvAqOw8zjSPM=";
+    tag = version;
+    hash = "sha256-ObPEcdDHi+SPFjuVKBtu7/5/IgHcam+IWblxxS3+mmI=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
-    cryptography
-  ];
+  dependencies = [ cryptography ];
 
-  pythonImportsCheck = [
-    "linknlink"
-  ];
+  pythonImportsCheck = [ "linknlink" ];
 
   # Module has no test
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "Module and CLI for controlling Linklink devices locally";
     homepage = "https://github.com/xuanxuan000/python-linknlink";
     changelog = "https://github.com/xuanxuan000/python-linknlink/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

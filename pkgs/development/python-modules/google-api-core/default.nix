@@ -1,33 +1,36 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, google-auth
-, googleapis-common-protos
-, grpcio
-, grpcio-gcp
-, grpcio-status
-, mock
-, proto-plus
-, protobuf
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, requests
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  google-auth,
+  googleapis-common-protos,
+  grpcio,
+  grpcio-gcp,
+  grpcio-status,
+  proto-plus,
+  protobuf,
+  pytest-asyncio,
+  pytest-mock,
+  pytestCheckHook,
+  requests,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "google-api-core";
-  version = "2.14.0";
-  format = "setuptools";
+  version = "2.29.0";
+  pyproject = true;
 
-  disabled = pythonOlder "3.6";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-U2ikUCt5PZu/gSpZEuE+Tmn5vYf277UIRgxD9bvRzkE=";
+  src = fetchFromGitHub {
+    owner = "googleapis";
+    repo = "python-api-core";
+    tag = "v${version}";
+    hash = "sha256-wqDGtCYAH2f+P3zUfXgiQTePLr7a0qzUTeEc6pdCGio=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     googleapis-common-protos
     google-auth
     protobuf
@@ -35,23 +38,26 @@ buildPythonPackage rec {
     requests
   ];
 
-  passthru.optional-dependencies = {
+  pythonRelaxDeps = [ "protobuf" ];
+
+  optional-dependencies = {
+    async_rest = [ google-auth ] ++ google-auth.optional-dependencies.aiohttp;
     grpc = [
       grpcio
       grpcio-status
     ];
-    grpcgcp = [
-      grpcio-gcp
-    ];
-    grpcio-gcp = [
-      grpcio-gcp
-    ];
+    grpcgcp = [ grpcio-gcp ];
+    grpcio-gcp = [ grpcio-gcp ];
   };
 
   nativeCheckInputs = [
-    mock
     pytest-asyncio
+    pytest-mock
     pytestCheckHook
+  ];
+
+  pytestFlags = [
+    "-Wignore::pytest.PytestRemovedIn10Warning"
   ];
 
   # prevent google directory from shadowing google imports
@@ -74,19 +80,19 @@ buildPythonPackage rec {
     "test_exception_with_error_code"
   ];
 
-  pythonImportsCheck = [
-    "google.api_core"
-  ];
+  pythonImportsCheck = [ "google.api_core" ];
 
-  meta = with lib; {
+  meta = {
     description = "Core Library for Google Client Libraries";
     longDescription = ''
       This library is not meant to stand-alone. Instead it defines common
       helpers used by all Google API clients.
     '';
     homepage = "https://github.com/googleapis/python-api-core";
-    changelog = "https://github.com/googleapis/python-api-core/blob/v${version}/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/googleapis/python-api-core/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [
+      sarahec
+    ];
   };
 }

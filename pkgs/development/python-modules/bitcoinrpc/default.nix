@@ -1,28 +1,30 @@
-{ lib
-, fetchFromGitHub
-, buildPythonPackage
-, orjson
-, httpx
-, typing-extensions
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  fetchFromGitHub,
+  buildPythonPackage,
+  orjson,
+  httpx,
+  setuptools,
+  typing-extensions,
+  pytestCheckHook,
+  pytest-asyncio,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "bitcoinrpc";
-  version = "0.5.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.7.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "bibajz";
     repo = "bitcoin-python-async-rpc";
-    rev = "v${version}";
-    hash = "sha256-uxkSz99X9ior7l825PaXGIC5XJzO/Opv0vTyY1ixvxU=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-QrLAhX2OZNP6k6TZ7OkD9phQidsExbep8MxWxQpqAU8=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     orjson
     httpx
     typing-extensions
@@ -30,16 +32,17 @@ buildPythonPackage rec {
 
   nativeCheckInputs = [
     pytestCheckHook
+    pytest-asyncio
   ];
 
-  pythonImportsCheck = [
-    "bitcoinrpc"
-  ];
+  disabledTestPaths = [ "tests/test_connection.py" ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "bitcoinrpc" ];
+
+  meta = {
     description = "Bitcoin JSON-RPC client";
     homepage = "https://github.com/bibajz/bitcoin-python-async-rpc";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

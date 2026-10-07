@@ -1,41 +1,36 @@
-{ lib
-, buildPythonPackage
-, docopt
-, fetchFromGitHub
-, pytestCheckHook
-, requests
-, jsonpatch
-, schema
-, responses
-, setuptools
-, tqdm
-, urllib3
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  requests,
+  jsonpatch,
+  schema,
+  responses,
+  setuptools,
+  tqdm,
+  urllib3,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "internetarchive";
-  version = "3.6.0";
+  version = "5.10.1";
+  pyproject = true;
 
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
-
-  # no tests data included in PyPI tarball
   src = fetchFromGitHub {
     owner = "jjjake";
     repo = "internetarchive";
-    rev = "v${version}";
-    hash = "sha256-hy5e6DEAwLKn0l2nJD7fyW5r4ZZiH+fuTEDLQen+dNk=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-OVjvx7Ne2NLXl5eA1HP89HyoTttR9XAx2AJdXiWMkqY=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     tqdm
-    docopt
     requests
     jsonpatch
     schema
-    setuptools # needs pkg_resources at runtime
     urllib3
   ];
 
@@ -60,16 +55,14 @@ buildPythonPackage rec {
     "tests/cli/test_ia_download.py"
   ];
 
-  pythonImportsCheck = [
-    "internetarchive"
-  ];
+  pythonImportsCheck = [ "internetarchive" ];
 
-  meta = with lib; {
-    description = "A Python and Command-Line Interface to Archive.org";
+  meta = {
+    description = "Python and Command-Line Interface to Archive.org";
     homepage = "https://github.com/jjjake/internetarchive";
-    changelog = "https://github.com/jjjake/internetarchive/raw/v${version}/HISTORY.rst";
-    license = licenses.agpl3Plus;
-    maintainers = [ maintainers.marsam ];
+    changelog = "https://github.com/jjjake/internetarchive/blob/${finalAttrs.src.tag}/HISTORY.rst";
+    license = lib.licenses.agpl3Plus;
+    maintainers = with lib.maintainers; [ pyrox0 ];
     mainProgram = "ia";
   };
-}
+})

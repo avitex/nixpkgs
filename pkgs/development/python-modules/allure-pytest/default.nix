@@ -1,47 +1,41 @@
-{ lib
-, allure-python-commons
-, buildPythonPackage
-, fetchPypi
-, pytest
-, pythonOlder
-, setuptools-scm
+{
+  lib,
+  allure-python-commons,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytest,
+  setuptools-scm,
 }:
 
 buildPythonPackage rec {
   pname = "allure-pytest";
-  version = "2.13.2";
+  version = "2.15.3";
   pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-IiQxWejsgc4rUlS0ATgCGYghsbQvEY9p1KKJOWYHx7M=";
+  src = fetchFromGitHub {
+    owner = "allure-framework";
+    repo = "allure-python";
+    tag = version;
+    hash = "sha256-06SKodvyoT0mYn4RmAIryZc+VyTI79KXFK+2/zuhzQ0=";
   };
 
-  nativeBuildInputs = [
-    setuptools-scm
-  ];
+  sourceRoot = "${src.name}/allure-pytest";
 
-  buildInputs = [
-    pytest
-  ];
+  build-system = [ setuptools-scm ];
 
-  propagatedBuildInputs = [
-    allure-python-commons
-  ];
+  buildInputs = [ pytest ];
+
+  dependencies = [ allure-python-commons ];
 
   # Tests were moved to the meta package
   doCheck = false;
 
-  pythonImportsCheck = [
-    "allure_pytest"
-  ];
+  pythonImportsCheck = [ "allure_pytest" ];
 
-  meta = with lib; {
+  meta = {
     description = "Allure integrations for Python test frameworks";
     homepage = "https://github.com/allure-framework/allure-python";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ evanjs ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ evanjs ];
   };
 }

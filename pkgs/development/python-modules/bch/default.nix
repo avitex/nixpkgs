@@ -1,25 +1,31 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, click
-, click-log
-, paho-mqtt
-, pyaml
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  click,
+  click-log,
+  paho-mqtt,
+  pyaml,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "bch";
   version = "1.2.1";
-  format = "setuptools";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "hardwario";
     repo = "bch-control-tool";
-    rev = "v${version}";
-    sha256 = "/C+NbJ0RrWZ/scv/FiRBTh4h7u0xS4mHVDWQ0WwmlEY=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-/C+NbJ0RrWZ/scv/FiRBTh4h7u0xS4mHVDWQ0WwmlEY=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     click
     click-log
     paho-mqtt
@@ -27,17 +33,18 @@ buildPythonPackage rec {
   ];
 
   postPatch = ''
-    sed -ri 's/@@VERSION@@/${version}/g' \
-      bch/cli.py setup.py
+    substituteInPlace bch/cli.py setup.py \
+      --replace-fail "@@VERSION@@" "${finalAttrs.version}"
   '';
 
   pythonImportsCheck = [ "bch" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/hardwario/bch-control-tool";
     description = "HARDWARIO Hub Control Tool";
-    platforms = platforms.linux;
-    license = licenses.mit;
-    maintainers = with maintainers; [ cynerd ];
+    mainProgram = "bch";
+    platforms = lib.platforms.linux;
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ cynerd ];
   };
-}
+})

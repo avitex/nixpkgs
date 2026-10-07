@@ -1,20 +1,18 @@
-{ lib
-, buildPythonPackage
-, cached-property
-, chevron
-, fetchPypi
-, frozendict
-, pystache
-, pythonOlder
-, pyyaml
+{
+  lib,
+  buildPythonPackage,
+  cached-property,
+  chevron,
+  fetchPypi,
+  frozendict,
+  pystache,
+  pyyaml,
 }:
 
 buildPythonPackage rec {
   pname = "genanki";
   version = "0.13.1";
   format = "setuptools";
-
-  disabled = pythonOlder "3.8";
 
   src = fetchPypi {
     inherit pname version;
@@ -37,14 +35,12 @@ buildPythonPackage rec {
   # relies on upstream anki
   doCheck = false;
 
-  pythonImportsCheck = [
-    "genanki"
-  ];
+  pythonImportsCheck = [ "genanki" ];
 
-  meta = with lib; {
+  meta = {
     description = "Generate Anki decks programmatically";
     homepage = "https://github.com/kerrickstaley/genanki";
-    license = licenses.mit;
-    maintainers = with maintainers; [ teto ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ teto ];
   };
 }

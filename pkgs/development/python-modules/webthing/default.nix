@@ -1,29 +1,32 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, ifaddr
-, jsonschema
-, pyee
-, pythonOlder
-, tornado
-, zeroconf
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  ifaddr,
+  jsonschema,
+  pyee,
+  tornado,
+  zeroconf,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "webthing";
   version = "0.15.0";
-  format = "setuptools";
+  pyproject = true;
 
-  disabled = pythonOlder "3.6";
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "WebThingsIO";
     repo = "webthing-python";
-    rev = "v${version}";
+    tag = "v${finalAttrs.version}";
     hash = "sha256-z4GVycdq25QZxuzZPLg6nhj0MAD1bHrsqph4yHgmRhg=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     ifaddr
     jsonschema
     pyee
@@ -34,14 +37,12 @@ buildPythonPackage rec {
   # No tests are present
   doCheck = false;
 
-  pythonImportsCheck = [
-    "webthing"
-  ];
+  pythonImportsCheck = [ "webthing" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python implementation of a Web Thing server";
     homepage = "https://github.com/WebThingsIO/webthing-python";
-    license = with licenses; [ mpl20 ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mpl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

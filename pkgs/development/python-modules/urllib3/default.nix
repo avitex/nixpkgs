@@ -1,58 +1,74 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, isPyPy
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  isPyPy,
 
-# build-system
-, hatchling
+  # build-system
+  hatchling,
+  hatch-vcs,
 
-# optional-dependencies
-, brotli
-, brotlicffi
-, pysocks
+  # optional-dependencies
+  backports-zstd,
+  brotli,
+  brotlicffi,
+  h2,
+  pysocks,
 
-# tests
-, backports-zoneinfo
-, pytestCheckHook
-, pytest-timeout
-, pythonOlder
-, tornado
-, trustme
+  # tests
+  httpx,
+  pyopenssl,
+  pytestCheckHook,
+  pytest-socket,
+  pytest-timeout,
+  quart,
+  quart-trio,
+  tornado,
+  trio,
+  trustme,
 }:
 
-let self = buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "urllib3";
-  version = "2.1.0";
+  version = "2.7.0";
   pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-33qor7AUj6eEiOeJmyxZtfT/z6gubFTMud03wde1LVQ=";
+  src = fetchFromGitHub {
+    owner = "urllib3";
+    repo = "urllib3";
+    tag = finalAttrs.version;
+    hash = "sha256-iN59MS5gKgDxe2v4ILrZ/1y7wV4yB1tFs4ATKppYAAk=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     hatchling
+    hatch-vcs
   ];
 
-  passthru.optional-dependencies = {
-    brotli = if isPyPy then [
-      brotlicffi
-    ] else [
-      brotli
-    ];
-    socks = [
-      pysocks
-    ];
+  optional-dependencies = {
+    brotli = if isPyPy then [ brotlicffi ] else [ brotli ];
+    h2 = [ h2 ];
+    socks = [ pysocks ];
+    zstd = [ backports-zstd ];
   };
 
   nativeCheckInputs = [
+    httpx
+    pyopenssl
+    pytest-socket
     pytest-timeout
     pytestCheckHook
+    quart
+    quart-trio
     tornado
+    trio
     trustme
-  ] ++ lib.optionals (pythonOlder "3.9") [
-    backports-zoneinfo
-  ] ++ lib.flatten (builtins.attrValues passthru.optional-dependencies);
+  ]
+  ++ lib.concatAttrValues finalAttrs.passthru.optional-dependencies;
+
+  disabledTestMarks = [
+    "requires_network"
+  ];
 
   # Tests in urllib3 are mostly timeout-based instead of event-based and
   # are therefore inherently flaky. On your own machine, the tests will
@@ -67,22 +83,21 @@ let self = buildPythonPackage rec {
   # Still, failures can occur and for that reason tests are disabled.
   doCheck = false;
 
-  passthru.tests.pytest = self.overridePythonAttrs (_: { doCheck = true; });
+  passthru.tests.pytest = finalAttrs.finalPackage.overrideAttrs (_: {
+    doInstallCheck = true;
+  });
 
   preCheck = ''
     export CI # Increases LONG_TIMEOUT
   '';
 
-  pythonImportsCheck = [
-    "urllib3"
-  ];
+  pythonImportsCheck = [ "urllib3" ];
 
-  meta = with lib; {
+  meta = {
     description = "Powerful, user-friendly HTTP client for Python";
     homepage = "https://github.com/urllib3/urllib3";
-    changelog = "https://github.com/urllib3/urllib3/blob/${version}/CHANGES.rst";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/urllib3/urllib3/blob/${finalAttrs.src.tag}/CHANGES.rst";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-};
-in self
+})

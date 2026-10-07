@@ -1,18 +1,27 @@
-{ lib
-, makeWrapper
-, nixosTests
-, symlinkJoin
+{
+  lib,
+  stdenv,
+  makeWrapper,
+  nixosTests,
+  symlinkJoin,
 
-, extraPythonPackages ? (ps: [ ])
+  extraPythonPackages ? (ps: [ ]),
 
-, libsForQt5
+  libsForQt5,
+
+  # unwrapped package parameters
+  withGrass ? false,
+  withServer ? false,
 }:
 let
-  qgis-ltr-unwrapped = libsForQt5.callPackage ./unwrapped-ltr.nix {  };
-in symlinkJoin rec {
+  qgis-ltr-unwrapped = libsForQt5.callPackage ./unwrapped-ltr.nix {
+    inherit withGrass withServer;
+  };
+in
 
-  inherit (qgis-ltr-unwrapped) version;
-  name = "qgis-${version}";
+symlinkJoin {
+  inherit (qgis-ltr-unwrapped) version outputs;
+  pname = "qgis-ltr";
 
   paths = [ qgis-ltr-unwrapped ];
 
@@ -22,21 +31,29 @@ in symlinkJoin rec {
   ];
 
   # extend to add to the python environment of QGIS without rebuilding QGIS application.
-  pythonInputs = qgis-ltr-unwrapped.pythonBuildInputs ++ (extraPythonPackages qgis-ltr-unwrapped.py.pkgs);
+  pythonInputs =
+    qgis-ltr-unwrapped.pythonBuildInputs ++ (extraPythonPackages qgis-ltr-unwrapped.py.pkgs);
 
   postBuild = ''
-    # unpackPhase
-
     buildPythonPath "$pythonInputs"
 
-    wrapProgram $out/bin/qgis \
-      --prefix PATH : $program_PATH \
-      --set PYTHONPATH $program_PYTHONPATH
+    for program in $out/bin/*; do
+      wrapProgram $program \
+        --prefix PATH : $program_PATH \
+        --set PYTHONPATH $program_PYTHONPATH
+    done
+  ''
+  + lib.optionalString (!stdenv.hostPlatform.isDarwin) ''
+    ln -s ${qgis-ltr-unwrapped.man} $man
   '';
 
   passthru = {
     unwrapped = qgis-ltr-unwrapped;
     tests.qgis-ltr = nixosTests.qgis-ltr;
+    updateScript = [
+      ./update.sh
+      "qgis-ltr"
+    ];
   };
 
   inherit (qgis-ltr-unwrapped) meta;

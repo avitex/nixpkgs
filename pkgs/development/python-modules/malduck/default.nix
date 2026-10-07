@@ -1,34 +1,41 @@
-{ lib
-, buildPythonPackage
-, capstone
-, click
-, cryptography
-, dnfile
-, fetchFromGitHub
-, pefile
-, pycryptodomex
-, pyelftools
-, pythonOlder
-, pytestCheckHook
-, typing-extensions
-, yara-python
+{
+  lib,
+  buildPythonPackage,
+  capstone,
+  click,
+  cryptography,
+  dnfile,
+  fetchFromGitHub,
+  pefile,
+  pycryptodomex,
+  pyelftools,
+  pythonAtLeast,
+  setuptools,
+  pytestCheckHook,
+  typing-extensions,
+  yara-python,
 }:
 
 buildPythonPackage rec {
   pname = "malduck";
-  version = "4.3.2";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "4.4.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "CERT-Polska";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-3joIfhQBJzKdoU3FNW/yAHsQa/lMMbw3wGEQTyOBrOQ=";
+    repo = "malduck";
+    tag = "v${version}";
+    hash = "sha256-Btx0HxiZWrb0TDpBokQGtBE2EDK0htONe/DwqlPgAd4=";
   };
 
-  propagatedBuildInputs = [
+  patches = lib.optionals (pythonAtLeast "3.14") [
+    # python 3.14 ctypes rejects `_pack_` without `_layout_ = "ms"`.
+    ./python-3.14-ctypes-layout.patch
+  ];
+
+  build-system = [ setuptools ];
+
+  dependencies = [
     capstone
     click
     cryptography
@@ -40,25 +47,16 @@ buildPythonPackage rec {
     yara-python
   ];
 
-  postPatch = ''
-    substituteInPlace requirements.txt \
-      --replace "pefile==2019.4.18" "pefile" \
-      --replace "dnfile==0.11.0" "dnfile"
-  '';
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  pythonImportsCheck = [ "malduck" ];
 
-  pythonImportsCheck = [
-    "malduck"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Helper for malware analysis";
     homepage = "https://github.com/CERT-Polska/malduck";
     changelog = "https://github.com/CERT-Polska/malduck/releases/tag/v${version}";
-    license = with licenses; [ bsd3 ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ fab ];
+    mainProgram = "malduck";
   };
 }

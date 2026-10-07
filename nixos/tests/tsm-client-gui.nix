@@ -5,25 +5,28 @@
 # to show its main application window
 # and verifies some configuration information.
 
-import ./make-test-python.nix ({ lib, pkgs, ... }: {
+{ lib, pkgs, ... }:
+{
   name = "tsm-client";
 
   enableOCR = true;
 
-  nodes.machine = { pkgs, ... }: {
-    imports = [ ./common/x11.nix ];
-    programs.tsmClient = {
-      enable = true;
-      package = pkgs.tsm-client-withGui;
-      defaultServername = "testserver";
-      servers.testserver = {
-        # 192.0.0.8 is a "dummy address" according to RFC 7600
-        tcpserveraddress = "192.0.0.8";
-        nodename = "SOME-NODE";
-        passworddir = "/tmp";
+  nodes.machine =
+    { pkgs, ... }:
+    {
+      imports = [ ./common/x11.nix ];
+      programs.tsmClient = {
+        enable = true;
+        package = pkgs.tsm-client-withGui;
+        defaultServername = "testserver";
+        servers.testserver = {
+          # 192.0.0.8 is a "dummy address" according to RFC 7600
+          tcpserveraddress = "192.0.0.8";
+          nodename = "SOME-NODE";
+          passworddir = "/tmp";
+        };
       };
     };
-  };
 
   testScript = ''
     machine.succeed("which dsmj")  # fail early if this is missing
@@ -31,7 +34,7 @@ import ./make-test-python.nix ({ lib, pkgs, ... }: {
     machine.execute("DSM_LOG=/tmp dsmj -optfile=/dev/null >&2 &")
 
     # does it report the "TCP/IP connection failure" error code?
-    machine.wait_for_window("IBM Spectrum Protect")
+    machine.wait_for_window("IBM Storage Protect")
     machine.wait_for_text("ANS2610S")
     machine.send_key("esc")
 
@@ -48,10 +51,9 @@ import ./make-test-python.nix ({ lib, pkgs, ... }: {
     # "Connection Information" dialog box
     machine.wait_for_window("Connection Information")
     machine.wait_for_text("SOME-NODE")
-    machine.wait_for_text("${pkgs.tsm-client.passthru.unwrapped.version}")
 
     machine.shutdown()
   '';
 
   meta.maintainers = [ lib.maintainers.yarny ];
-})
+}

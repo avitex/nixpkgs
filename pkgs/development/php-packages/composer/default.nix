@@ -1,35 +1,62 @@
-{ lib, callPackage, fetchFromGitHub, php, unzip, _7zz, xz, git, curl, cacert, makeBinaryWrapper }:
+{
+  lib,
+  fetchFromGitHub,
+  callPackage,
+  php,
+  makeBinaryWrapper,
+  _7zz,
+  curl,
+  gitMinimal,
+  unzip,
+  xz,
+  versionCheckHook,
+}:
+php.buildComposerProject2 (finalAttrs: {
+  pname = "composer";
+  version = "2.10.3";
+  __structuredAttrs = true;
 
-php.buildComposerProject (finalAttrs: {
-  # Hash used by ../../../build-support/php/pkgs/composer-phar.nix to
-  # use together with the version from this package to keep the
-  # bootstrap phar file up-to-date together with the end user composer
-  # package.
-  passthru.pharHash = "sha256-cmACAcc8fEshjxwFEbNthTeWPjaq+iRHV/UjCfiFsxQ=";
+  src = fetchFromGitHub {
+    owner = "composer";
+    repo = "composer";
+    tag = finalAttrs.version;
+    hash = "sha256-f2IaOS8hONZpQjUhlygdHzNKPBQ7T1iMzLsFuQQKlcw=";
+  };
 
+  nativeBuildInputs = [
+    makeBinaryWrapper
+  ];
+
+  # Bootstrapping Composer (source) with Composer (PHAR distribution).
+  # Override the default `composer` attribute to prevent infinite recursion.
   composer = callPackage ../../../build-support/php/pkgs/composer-phar.nix {
     inherit (finalAttrs) version;
     inherit (finalAttrs.passthru) pharHash;
   };
 
-  pname = "composer";
-  version = "2.6.6";
-
-  src = fetchFromGitHub {
-    owner = "composer";
-    repo = "composer";
-    rev = finalAttrs.version;
-    hash = "sha256-KsTZi7dSlQcAxoen9rpofbptVdLYhK+bZeDSXQY7o5M=";
-  };
-
-  nativeBuildInputs = [ makeBinaryWrapper ];
+  vendorHash = "sha256-zyHcFkBTCy68hP9yt3clTE5WcOae9VTIPbdgeCArtag=";
 
   postInstall = ''
     wrapProgram $out/bin/composer \
-      --prefix PATH : ${lib.makeBinPath [ _7zz cacert curl git unzip xz ]}
+      --prefix PATH : ${
+        lib.makeBinPath [
+          _7zz
+          curl
+          gitMinimal
+          unzip
+          xz
+        ]
+      }
   '';
 
-  vendorHash = "sha256-50M1yeAKl9KRsjs34cdb5ZTBFgbukgg0cMtHTYGJ/EM=";
+  doInstallCheck = true;
+  nativeInstallCheckInputs = [ versionCheckHook ];
+
+  # Hash used by ../../../build-support/php/pkgs/composer-phar.nix to
+  # use together with the version from this package to keep the
+  # bootstrap phar file up-to-date together with the end user composer
+  # package.
+  passthru.pharHash = "sha256-ei03nVuP/aoChYDvJklMNtL+70sXjT3RRzpNvF4XyNY=";
 
   meta = {
     changelog = "https://github.com/composer/composer/releases/tag/${finalAttrs.version}";
@@ -37,6 +64,6 @@ php.buildComposerProject (finalAttrs: {
     homepage = "https://getcomposer.org/";
     license = lib.licenses.mit;
     mainProgram = "composer";
-    maintainers = lib.teams.php.members;
+    teams = [ lib.teams.php ];
   };
 })

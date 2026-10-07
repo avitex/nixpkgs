@@ -1,48 +1,39 @@
-{ lib
-, attrs
-, buildPythonPackage
-, cattrs
-, exceptiongroup
-, fetchFromGitHub
-, fonttools
-, fs
-, importlib-metadata
-, poetry-core
-, pytestCheckHook
-, pythonOlder
-, ufo2ft
-, ufolib2
+{
+  lib,
+  attrs,
+  buildPythonPackage,
+  cattrs,
+  fetchFromGitHub,
+  fonttools,
+  pytestCheckHook,
+  ufo2ft,
+  ufolib2,
+  hatchling,
+  hatch-vcs,
 }:
 
 buildPythonPackage rec {
   pname = "statmake";
-  version = "0.6.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "2.0.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "daltonmaag";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-3BZ71JVvj7GCojM8ycu160viPj8BLJ1SiW86Df2fzsw=";
+    repo = "statmake";
+    tag = "v${version}";
+    hash = "sha256-PlMbJuJUkUjKXhkcCfLO5G3R1z9Zwf9qKYj9olOANno=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
+  build-system = [
+    hatchling
+    hatch-vcs
   ];
-
-  propagatedBuildInputs = [
+  dependencies = [
     attrs
     cattrs
     fonttools
-    # required by fonttools[ufo]
-    fs
-  ] ++ lib.optionals (pythonOlder "3.11") [
-    exceptiongroup
-  ] ++ lib.optionals (pythonOlder "3.8") [
-    importlib-metadata
-  ];
+  ]
+  ++ fonttools.optional-dependencies.ufo;
 
   nativeCheckInputs = [
     pytestCheckHook
@@ -50,9 +41,7 @@ buildPythonPackage rec {
     ufolib2
   ];
 
-  pythonImportsCheck = [
-    "statmake"
-  ];
+  pythonImportsCheck = [ "statmake" ];
 
   disabledTests = [
     # Test requires an update as later cattrs is present in Nixpkgs
@@ -60,11 +49,12 @@ buildPythonPackage rec {
     "test_load_stylespace_broken_range"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Applies STAT information from a Stylespace to a variable font";
+    mainProgram = "statmake";
     homepage = "https://github.com/daltonmaag/statmake";
-    changelog = "https://github.com/daltonmaag/statmake/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/daltonmaag/statmake/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

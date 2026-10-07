@@ -1,24 +1,23 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools
-, numpy
-, pandas
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  numpy,
+  pandas,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "prometheus-pandas";
   version = "0.3.3";
   pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
+    inherit (finalAttrs) pname version;
     hash = "sha256-1eaTmNui3cAisKEhBMEpOv+UndJZwb4GGK2M76xiy7k=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
   propagatedBuildInputs = [
     numpy
@@ -28,14 +27,12 @@ buildPythonPackage rec {
   # There are no tests. :(
   doCheck = false;
 
-  pythonImportsCheck = [
-    "prometheus_pandas"
-  ];
+  pythonImportsCheck = [ "prometheus_pandas" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/dcoles/prometheus-pandas";
-    license = licenses.mit;
+    license = lib.licenses.mit;
     description = "Pandas integration for Prometheus";
-    maintainers = with maintainers; [ viktornordling ];
+    maintainers = with lib.maintainers; [ viktornordling ];
   };
-}
+})

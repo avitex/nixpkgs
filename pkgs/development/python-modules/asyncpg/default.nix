@@ -1,44 +1,57 @@
-{ lib
-, fetchPypi
-, buildPythonPackage
-, uvloop
-, postgresql
-, pythonOlder
-, pytest-xdist
-, pytestCheckHook
+{
+  lib,
+  fetchPypi,
+  buildPythonPackage,
+  cython,
+  libpq,
+  uvloop,
+  postgresql,
+  pytest-xdist,
+  pytest8_3CheckHook,
+  setuptools,
+  distro,
 }:
 
 buildPythonPackage rec {
   pname = "asyncpg";
-  version = "0.29.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.31.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-0cSeH0T/+v2aVeGpsQFZCFnYgdY56ikiUW9dnFEtNU4=";
+    hash = "sha256-yYk4bIOUC/vXhxgPKxUZQV4tPWJ3pw2dDwFFrHNQBzU=";
   };
 
-  # sandboxing issues on aarch64-darwin, see https://github.com/NixOS/nixpkgs/issues/198495
-  doCheck = postgresql.doCheck;
+  build-system = [
+    cython
+    setuptools
+  ];
 
   nativeCheckInputs = [
+    libpq.pg_config
     uvloop
     postgresql
+    postgresql.pg_config
     pytest-xdist
-    pytestCheckHook
+    pytest8_3CheckHook
+    distro
   ];
+
+  # sandboxing issues on aarch64-darwin, see https://github.com/NixOS/nixpkgs/issues/198495
+  doCheck = postgresql.doInstallCheck;
 
   preCheck = ''
     rm -rf asyncpg/
+
+    export PGBIN=${lib.getBin postgresql}/bin
   '';
 
-  pythonImportsCheck = [
-    "asyncpg"
-  ];
+  # https://github.com/MagicStack/asyncpg/issues/1236
+  disabledTests = [ "test_connect_params" ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "asyncpg" ];
+
+  meta = {
     description = "Asyncio PosgtreSQL driver";
     homepage = "https://github.com/MagicStack/asyncpg";
     changelog = "https://github.com/MagicStack/asyncpg/releases/tag/v${version}";
@@ -48,7 +61,7 @@ buildPythonPackage rec {
       implementation of PostgreSQL server binary protocol for use with Python's
       asyncio framework.
     '';
-    license = licenses.asl20;
-    maintainers = with maintainers; [ eadwu ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ eadwu ];
   };
 }

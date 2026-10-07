@@ -1,37 +1,36 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, mock
-, parameterized
-, pip
-, pyelftools
-, pytestCheckHook
-, pythonOlder
-, six
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  mock,
+  parameterized,
+  pip,
+  pyelftools,
+  pytestCheckHook,
+  setuptools,
+  six,
 }:
 
 buildPythonPackage rec {
   pname = "aws-lambda-builders";
-  version = "1.45.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "1.61.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "awslabs";
     repo = "aws-lambda-builders";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-TmU7neEnHaRuGNzK9VuXUiEayBLZaPqjrnPLvBOQj5g=";
+    tag = "v${version}";
+    hash = "sha256-NdVZrc6996dlV0jSWuZH/dLQdJnXO+BQb8hk3G0oXmw=";
   };
 
   postPatch = ''
     substituteInPlace setup.py \
-      --replace "version=read_version()," 'version="${version}",'
+      --replace-fail "version=read_version()," 'version="${version}",'
   '';
 
-  propagatedBuildInputs = [
-    six
-  ];
+  build-system = [ setuptools ];
+
+  dependencies = [ six ];
 
   nativeCheckInputs = [
     mock
@@ -57,24 +56,29 @@ buildPythonPackage rec {
     "TestPythonPipWorkflow"
     "TestRubyWorkflow"
     "TestRustCargo"
+    "test_with_mocks"
     # Tests which are passing locally but not on Hydra
     "test_copy_dependencies_action_1_multiple_files"
     "test_move_dependencies_action_1_multiple_files"
   ];
 
-  pythonImportsCheck = [
-    "aws_lambda_builders"
+  disabledTestPaths = [
+    # Dotnet binary needed
+    "tests/integration/workflows/dotnet_clipackage/test_dotnet.py"
   ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "aws_lambda_builders" ];
+
+  meta = {
     description = "Tool to compile, build and package AWS Lambda functions";
+    mainProgram = "lambda-builders";
     homepage = "https://github.com/awslabs/aws-lambda-builders";
-    changelog = "https://github.com/aws/aws-lambda-builders/releases/tag/v${version}";
+    changelog = "https://github.com/aws/aws-lambda-builders/releases/tag/${src.tag}";
     longDescription = ''
       Lambda Builders is a Python library to compile, build and package
       AWS Lambda functions for several runtimes & frameworks.
     '';
-    license = licenses.asl20;
-    maintainers = with maintainers; [ dhkl ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ dhkl ];
   };
 }

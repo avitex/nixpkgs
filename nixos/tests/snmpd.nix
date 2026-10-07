@@ -1,4 +1,5 @@
-import ./make-test-python.nix ({ pkgs, lib, ... }: {
+{ pkgs, lib, ... }:
+{
   name = "snmpd";
 
   nodes.snmpd = {
@@ -16,8 +17,8 @@ import ./make-test-python.nix ({ pkgs, lib, ... }: {
 
   testScript = ''
     start_all();
-    machine.wait_for_unit("snmpd.service")
-    machine.succeed("snmpwalk -v 2c -c public localhost | grep SNMPv2-MIB::sysName.0");
+    snmpd.wait_for_unit("snmpd.service")
+    snmpd.succeed("snmpwalk -v 2c -c public localhost | grep SNMPv2-MIB::sysName.0");
   '';
 
-})
+}

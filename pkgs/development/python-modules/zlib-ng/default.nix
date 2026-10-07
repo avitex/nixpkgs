@@ -1,50 +1,47 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# build-system
-, cmake
-, setuptools
+  # build-system
+  cmake,
+  setuptools,
+  setuptools-scm,
 
-# native dependencies
-, zlib-ng
+  # native dependencies
+  zlib-ng,
 
-# tests
-, pytestCheckHook
+  # tests
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "zlib-ng";
-  version = "0.4.0";
+  version = "1.0.0";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "pycompression";
     repo = "python-zlib-ng";
     rev = "v${version}";
-    hash = "sha256-bVdt4GYdbzhoT6et+LOycg0Bt6dX9DtusNr8HPpgIFI=";
+    hash = "sha256-t/PSby1LUTyp+7XXKZTWjRrPvAei1ZrGSGU2CIcAQBc=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     cmake
     setuptools
+    setuptools-scm
   ];
 
   dontUseCmakeConfigure = true;
 
   env.PYTHON_ZLIB_NG_LINK_DYNAMIC = true;
 
-  buildInputs = [
-    zlib-ng
-  ];
+  buildInputs = [ zlib-ng ];
 
-  pythonImportsCheck = [
-    "zlib_ng"
-  ];
+  pythonImportsCheck = [ "zlib_ng" ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   preCheck = ''
     rm -rf src
@@ -60,11 +57,11 @@ buildPythonPackage rec {
     "test_decompress_infile_outfile_error"
   ];
 
-  meta = with lib; {
-    description = "A drop-in replacement for Python's zlib and gzip modules using zlib-ng";
+  meta = {
+    description = "Drop-in replacement for Python's zlib and gzip modules using zlib-ng";
     homepage = "https://github.com/pycompression/python-zlib-ng";
     changelog = "https://github.com/pycompression/python-zlib-ng/blob/${src.rev}/CHANGELOG.rst";
-    license = licenses.psfl;
-    maintainers = with maintainers; [ hexa ];
+    license = lib.licenses.psfl;
+    maintainers = with lib.maintainers; [ hexa ];
   };
 }

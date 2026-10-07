@@ -1,4 +1,9 @@
-{ buildPythonPackage, fetchPypi, django }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  django,
+}:
 
 buildPythonPackage rec {
   pname = "django-tagging";
@@ -16,7 +21,11 @@ buildPythonPackage rec {
   propagatedBuildInputs = [ django ];
 
   meta = {
-    description = "A generic tagging application for Django projects";
+    description = "Generic tagging application for Django projects";
     homepage = "https://github.com/Fantomas42/django-tagging";
+    license = lib.licenses.AND [
+      lib.licenses.mit
+      lib.licenses.bsd3
+    ];
   };
 }

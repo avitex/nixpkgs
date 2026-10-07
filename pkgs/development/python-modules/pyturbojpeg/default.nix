@@ -1,53 +1,55 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchPypi
-, libjpeg_turbo
-, setuptools
-, numpy
-, python
-, substituteAll
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  libjpeg_turbo,
+  setuptools,
+  numpy,
+  pytest-memray,
+  pytestCheckHook,
+  replaceVars,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pyturbojpeg";
-  version = "1.7.3";
+  version = "2.5.0";
   pyproject = true;
 
-  src = fetchPypi {
-    pname = "PyTurboJPEG";
-    inherit version;
-    hash = "sha256-edSOOrU0YVKP+4AJxCCYnQh6iewxVFTM1QmU88mukis=";
+  src = fetchFromGitHub {
+    owner = "lilohuang";
+    repo = "PyTurboJPEG";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-sZB0BzgrA0I3GHtu5Z6cWpMQcE5Lqkvwix0ztbrWj3g=";
   };
 
   patches = [
-    (substituteAll {
-      src = ./lib-path.patch;
-      libturbojpeg = "${libjpeg_turbo.out}/lib/libturbojpeg${stdenv.hostPlatform.extensions.sharedLibrary}";
+    (replaceVars ./lib-path.patch {
+      libturbojpeg = "${lib.getLib libjpeg_turbo}/lib/libturbojpeg${stdenv.hostPlatform.extensions.sharedLibrary}";
     })
   ];
 
-  nativeBuildInputs = [
-    setuptools
+  build-system = [ setuptools ];
+
+  dependencies = [ numpy ];
+
+  nativeCheckInputs = [
+    pytest-memray
+    pytestCheckHook
   ];
 
-  propagatedBuildInputs = [
-    numpy
+  disabledTests = [
+    # our patch breaks the test
+    "test_library_loading_error_message"
   ];
 
-  # upstream has no tests, but we want to test whether the library is found
-  checkPhase = ''
-    ${python.interpreter} -c 'from turbojpeg import TurboJPEG; TurboJPEG()'
-  '';
+  pythonImportsCheck = [ "turbojpeg" ];
 
-  pythonImportsCheck = [
-    "turbojpeg"
-  ];
-
-  meta = with lib; {
-    description = "A Python wrapper of libjpeg-turbo for decoding and encoding JPEG image";
+  meta = {
+    changelog = "https://github.com/lilohuang/PyTurboJPEG/releases/tag/${finalAttrs.src.tag}";
+    description = "Python wrapper of libjpeg-turbo for decoding and encoding JPEG image";
     homepage = "https://github.com/lilohuang/PyTurboJPEG";
-    license = licenses.mit;
-    maintainers = with maintainers; [ dotlambda ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ dotlambda ];
   };
-}
+})

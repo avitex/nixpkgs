@@ -1,37 +1,55 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, gevent
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  gevent,
+  pytestCheckHook,
+  pythonAtLeast,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "gipc";
-  version = "1.4.0";
-  format = "setuptools";
+  version = "1.8.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "jgehrcke";
     repo = "gipc";
-    rev = "refs/tags/${version}";
-    hash = "sha256-T5TqLanODyzJGyjDZz+75bbz3THxoobYnfJFQxAB76E=";
+    tag = version;
+    hash = "sha256-P3soMA/EBMuhkXQsiLv9gnDBfo9XGosKnSMi+EZ0gaM=";
   };
 
-  postPatch = ''
-    substituteInPlace setup.py \
-      --replace "gevent>=1.5,<=21.12.0" "gevent>=1.5"
-  '';
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
-    gevent
+  dependencies = [ gevent ];
+
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  pythonImportsCheck = [ "gipc" ];
+
+  disabledTests = [
+    # AttributeError
+    "test_all_handles_length"
+    "test_child"
+    "test_closeread"
+    "test_closewrite"
+    "test_early_readchild_exit"
+    "test_handlecount"
+    "test_handler"
+    "test_onewriter"
+    "test_readclose"
+    "test_singlemsg"
+    "test_twochannels_singlemsg"
+    "test_twoclose"
+    "test_twowriters"
+    "test_write_closewrite_read"
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
-
-  meta = with lib; {
-    description = "gevent-cooperative child processes and IPC";
+  meta = {
+    # https://github.com/jgehrcke/gipc/issues/141
+    broken = pythonAtLeast "3.14";
+    description = "Gevent-cooperative child processes and IPC";
     longDescription = ''
       Usage of Python's multiprocessing package in a gevent-powered
       application may raise problems and most likely breaks the application
@@ -41,7 +59,8 @@ buildPythonPackage rec {
       anywhere within your gevent-powered application.
     '';
     homepage = "http://gehrcke.de/gipc";
-    license = licenses.mit;
+    changelog = "https://github.com/jgehrcke/gipc/blob/${version}/CHANGELOG.rst";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
-
 }

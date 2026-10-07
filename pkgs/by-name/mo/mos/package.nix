@@ -1,20 +1,21 @@
-{ lib
-, stdenvNoCC
-, fetchurl
-, undmg
+{
+  lib,
+  stdenvNoCC,
+  fetchurl,
+  unzip,
 }:
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "mos";
-  version = "3.4.1";
+  version = "4.2.1";
 
   src = fetchurl {
-    url = "https://github.com/Caldis/Mos/releases/download/${finalAttrs.version}/Mos.Versions.${finalAttrs.version}.dmg";
-    sha256 = "38ea33e867815506414323484147b882b6d97df4af9759bca0a64d98c95029b3";
+    url = "https://github.com/Caldis/Mos/releases/download/${finalAttrs.version}/Mos.Versions.${finalAttrs.version}-20260531.1.zip";
+    hash = "sha256-LqaelvCS5E2tqTpVvaHN2rMynFJ7vV8G4A37eOlTlgo=";
   };
   sourceRoot = ".";
 
   nativeBuildInputs = [
-    undmg
+    unzip
   ];
 
   installPhase = ''
@@ -24,12 +25,13 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     runHook postInstall
   '';
 
-  meta = with lib; {
-    description = "Smooths scrolling and set mouse scroll directions independently";
-    homepage = "http://mos.caldis.me/";
-    license = licenses.cc-by-nc-40;
-    maintainers = with maintainers; [ ];
+  meta = {
+    description = "Smooths scrolling and set mouse scroll directions independently on macOS";
+    homepage = "https://mos.caldis.me/";
+    changelog = "https://github.com/Caldis/Mos/releases/tag/${finalAttrs.version}";
+    license = lib.licenses.cc-by-nc-40;
+    maintainers = with lib.maintainers; [ xiaoxiangmoe ];
     sourceProvenance = with lib.sourceTypes; [ binaryNativeCode ];
-    platforms = platforms.darwin;
+    platforms = lib.platforms.darwin;
   };
 })

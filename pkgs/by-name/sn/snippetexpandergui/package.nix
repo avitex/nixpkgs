@@ -1,46 +1,47 @@
-{ lib
-, buildGoModule
-, fetchFromSourcehut
-, makeWrapper
-, wails
-, scdoc
-, installShellFiles
-, xorg
-, gtk3
-, webkitgtk
-, gsettings-desktop-schemas
-, snippetexpanderd
+{
+  lib,
+  buildGoModule,
+  wrapGAppsHook3,
+  wails,
+  scdoc,
+  installShellFiles,
+  libx11,
+  gtk3,
+  # webkitgtk_4_0,
+  snippetexpanderd,
+  snippetexpanderx,
 }:
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   inherit (snippetexpanderd) src version;
 
   pname = "snippetexpandergui";
 
-  vendorHash = "sha256-iZfZdT8KlfZMVLQcYmo6EooIdsSGrpO/ojwT9Ft1GQI=";
+  vendorHash = "sha256-1ofkbbitCzrLxugi769jbjOD2iN0Z6kYC5d7X2GYNIg=";
 
   proxyVendor = true;
 
   modRoot = "cmd/snippetexpandergui";
 
   nativeBuildInputs = [
-    makeWrapper
     wails
     scdoc
     installShellFiles
+    wrapGAppsHook3
   ];
 
   buildInputs = [
-    xorg.libX11
+    libx11
     gtk3
-    webkitgtk
-    gsettings-desktop-schemas
+    # webkitgtk_4_0
     snippetexpanderd
+    snippetexpanderx
   ];
 
   ldflags = [
     "-s"
     "-w"
+    "-X 'main.version=${finalAttrs.src.rev}'"
   ];
 
   tags = [
@@ -54,17 +55,26 @@ buildGoModule rec {
     installManPage snippetexpandergui.1
   '';
 
-  postFixup = ''
-    wrapProgram $out/bin/snippetexpandergui \
-      --prefix XDG_DATA_DIRS : ${gsettings-desktop-schemas}/share/gsettings-schemas/${gsettings-desktop-schemas.name}:${gtk3}/share/gsettings-schemas/${gtk3.name}
+  preFixup = ''
+    gappsWrapperArgs+=(
+      # Ensure snippetexpanderd and snippetexpanderx are available to start/stop.
+      --prefix PATH : ${
+        lib.makeBinPath [
+          snippetexpanderd
+          snippetexpanderx
+        ]
+      }
+    )
   '';
 
-  meta = with lib; {
+  meta = {
+    # webkitgtk_4_0 was removed
+    broken = true;
     description = "Your little expandable text snippet helper GUI";
     homepage = "https://snippetexpander.org";
-    license = licenses.gpl2Plus;
-    maintainers = with maintainers; [ ianmjones ];
-    platforms = platforms.linux;
+    license = lib.licenses.gpl2Plus;
+    maintainers = [ ];
+    platforms = lib.platforms.linux;
     mainProgram = "snippetexpandergui";
   };
-}
+})

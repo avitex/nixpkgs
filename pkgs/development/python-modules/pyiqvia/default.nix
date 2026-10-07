@@ -1,36 +1,31 @@
-{ lib
-, buildPythonPackage
-, aiohttp
-, aresponses
-, backoff
-, certifi
-, fetchFromGitHub
-, fetchpatch
-, poetry-core
-, pytest-aiohttp
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, yarl
+{
+  lib,
+  buildPythonPackage,
+  aiohttp,
+  aresponses,
+  backoff,
+  certifi,
+  fetchFromGitHub,
+  poetry-core,
+  pytest-aiohttp,
+  pytest-asyncio,
+  pytestCheckHook,
+  yarl,
 }:
 
 buildPythonPackage rec {
   pname = "pyiqvia";
   version = "2023.12.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.9";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "bachya";
     repo = "pyiqvia";
-    rev = "refs/tags/${version}";
+    tag = version;
     hash = "sha256-qq6UQUz60WkmWqdmExlSQT3wapaHJr8DeH1eVrTOnpQ=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  nativeBuildInputs = [ poetry-core ];
 
   propagatedBuildInputs = [
     aiohttp
@@ -53,11 +48,9 @@ buildPythonPackage rec {
     "examples/"
   ];
 
-  pythonImportsCheck = [
-    "pyiqvia"
-  ];
+  pythonImportsCheck = [ "pyiqvia" ];
 
-  meta = with lib; {
+  meta = {
     description = "Module for working with IQVIA data";
     longDescription = ''
       pyiqvia is an async-focused Python library for allergen, asthma, and
@@ -66,7 +59,7 @@ buildPythonPackage rec {
     '';
     homepage = "https://github.com/bachya/pyiqvia";
     changelog = "https://github.com/bachya/pyiqvia/releases/tag/${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

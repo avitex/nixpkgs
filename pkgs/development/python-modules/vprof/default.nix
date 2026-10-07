@@ -1,9 +1,10 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools
-, wheel
-, psutil
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  wheel,
+  psutil,
 }:
 
 buildPythonPackage rec {
@@ -23,20 +24,18 @@ buildPythonPackage rec {
     wheel
   ];
 
-  propagatedBuildInputs = [
-    psutil
-  ];
+  propagatedBuildInputs = [ psutil ];
 
   pythonImportsCheck = [ "vprof" ];
 
   # The tests are not included in the Pypi sources
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "Visual profiler for Python";
     homepage = "https://github.com/nvdv/vprof";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ GaetanLepage ];
+    license = lib.licenses.bsd2;
+    maintainers = with lib.maintainers; [ GaetanLepage ];
     mainProgram = "vprof";
   };
 }

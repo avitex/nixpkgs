@@ -1,25 +1,30 @@
-{ stdenv
-, lib
-, buildPythonPackage
-, fetchPypi
-, click
-, pip
-, setuptools
-, wheel
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  click,
+  pip,
+  setuptools,
+  wheel,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "shiv";
-  version = "1.0.4";
-  format = "pyproject";
+  version = "1.0.8";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-j2n3gXolRalMyOB6jsWXN1z4biwb0OWD7nU9bzH4UGA=";
+    hash = "sha256-KmjWnpjOgctbj9r7/B4n76k+bYnKFL+uM0guQXb1YdY=";
   };
 
-  propagatedBuildInputs = [ click pip setuptools wheel ];
+  propagatedBuildInputs = [
+    click
+    pip
+    setuptools
+    wheel
+  ];
 
   pythonImportsCheck = [ "shiv" ];
 
@@ -36,12 +41,17 @@ buildPythonPackage rec {
     "test_preamble_no_pip"
     "test_alternate_root"
     "test_alternate_root_environment_variable"
+    # Network required (pip install in test fails in sandbox)
+    "test_ensure_no_modify"
+    "test_find_entry_point"
+    "test_find_entry_point_two_points"
+    "test_console_script_exists"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Command line utility for building fully self contained Python zipapps";
     homepage = "https://github.com/linkedin/shiv";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ prusnak ];
+    license = lib.licenses.bsd2;
+    maintainers = with lib.maintainers; [ prusnak ];
   };
 }

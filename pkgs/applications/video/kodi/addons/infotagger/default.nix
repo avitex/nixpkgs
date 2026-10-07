@@ -1,14 +1,19 @@
-{ lib, buildKodiAddon, fetchFromGitHub, addonUpdateScript }:
+{
+  lib,
+  buildKodiAddon,
+  fetchFromGitHub,
+  addonUpdateScript,
+}:
 buildKodiAddon rec {
   pname = "infotagger";
   namespace = "script.module.infotagger";
-  version = "0.0.7";
+  version = "0.0.8";
 
   src = fetchFromGitHub {
     owner = "jurialmunkey";
     repo = namespace;
     rev = "v${version}";
-    hash = "sha256-Us7ud0QORGn+ALB4uyISekp0kUYY8nN8uFNg8MlxEB0=";
+    hash = "sha256-Ns1OjrYLKz4znXRxqUErDLcmC0HBjBFVYI9GFqDVurY=";
   };
 
   passthru = {
@@ -19,10 +24,10 @@ buildKodiAddon rec {
     };
   };
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/jurialmunkey/script.module.infotagger";
     description = "Wrapper for new Nexus InfoTagVideo ListItem methods to maintain backwards compatibility";
-    license = licenses.gpl3Plus;
-    maintainers = teams.kodi.members;
+    license = lib.licenses.gpl3Plus;
+    teams = [ lib.teams.kodi ];
   };
 }

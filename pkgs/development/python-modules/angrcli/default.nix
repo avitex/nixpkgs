@@ -1,35 +1,36 @@
-{ stdenv
-, lib
-, angr
-, buildPythonPackage
-, cmd2
-, coreutils
-, fetchFromGitHub
-, pygments
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  angr,
+  buildPythonPackage,
+  cmd2,
+  coreutils,
+  fetchFromGitHub,
+  pygments,
+  pytestCheckHook,
+  setuptools,
+  stdenv,
 }:
 
 buildPythonPackage rec {
   pname = "angrcli";
-  version = "1.2.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.6";
+  version = "1.3.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "fmagin";
     repo = "angr-cli";
-    rev = "v${version}";
-    hash = "sha256-a5ajUBQwt3xUNkeSOeGOAFf47wd4UVk+LcuAHGqbq4s=";
+    tag = "v${version}";
+    hash = "sha256-egu7jlEk8/i36qQMHztGr959sBt9d5crW8mj6+sKaHI=";
   };
 
   postPatch = ''
     substituteInPlace tests/test_derefs.py \
-      --replace "/bin/ls" "${coreutils}/bin/ls"
+      --replace-fail "/bin/ls" "${coreutils}/bin/ls"
   '';
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     angr
     cmd2
     pygments
@@ -47,14 +48,12 @@ buildPythonPackage rec {
     "test_max_depth"
   ];
 
-  pythonImportsCheck = [
-    "angrcli"
-  ];
+  pythonImportsCheck = [ "angrcli" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python modules to allow easier interactive use of angr";
     homepage = "https://github.com/fmagin/angr-cli";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

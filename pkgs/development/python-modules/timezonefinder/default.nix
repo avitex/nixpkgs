@@ -1,66 +1,75 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, cffi
-, h3
-, numba
-, numpy
-, poetry-core
-, pytestCheckHook
-, pythonOlder
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  cffi,
+  fetchFromGitHub,
+  flatbuffers,
+  h3,
+  numba,
+  numpy,
+  pydantic,
+  pytestCheckHook,
+  pytz,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "timezonefinder";
-  version = "6.2.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "8.2.5";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "jannikmi";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-n6TcTezu5seKy34KDlzGikAVaqAud00gxywwJA3MaWM=";
+    repo = "timezonefinder";
+    tag = finalAttrs.version;
+    hash = "sha256-NDxGYiBYFqYU3tK/RwlHYARcncAB1GJk+qHxRNrT1oU=";
   };
 
-  nativeBuildInputs = [
-    cffi
-    poetry-core
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  nativeBuildInputs = [ cffi ];
+
+  dependencies = [
     cffi
+    flatbuffers
     h3
     numpy
   ];
 
+  optional-dependencies = {
+    numba = [ numba ];
+    pytz = [ pytz ];
+  };
+
   nativeCheckInputs = [
-    numba
+    pydantic
     pytestCheckHook
-  ];
+  ]
+  ++ lib.concatAttrValues finalAttrs.passthru.optional-dependencies;
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace 'numpy = "^1.22"' 'numpy = "*"'
-  '';
-
-  pythonImportsCheck = [
-    "timezonefinder"
-  ];
+  pythonImportsCheck = [ "timezonefinder" ];
 
   preCheck = ''
     # Some tests need the CLI on the PATH
     export PATH=$out/bin:$PATH
   '';
 
-  meta = with lib; {
-    changelog = "https://github.com/jannikmi/timezonefinder/blob/${version}/CHANGELOG.rst";
+  disabledTestPaths = [
+    # Don't test the archive content
+    "tests/test_package_contents.py"
+    "tests/test_integration.py"
+    # Don't test the example
+    "tests/test_example_scripts.py"
+    # Tests require clang extension
+    "tests/utils_test.py"
+  ];
+
+  meta = {
     description = "Module for finding the timezone of any point on earth (coordinates) offline";
     homepage = "https://github.com/MrMinimal64/timezonefinder";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/jannikmi/timezonefinder/blob/${finalAttrs.src.tag}/CHANGELOG.rst";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
+    mainProgram = "timezonefinder";
   };
-}
+})

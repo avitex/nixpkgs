@@ -1,37 +1,48 @@
-{ lib
-, fetchPypi
-, buildPythonPackage
-, zope-interface
-, mock
-, pythonOlder
+{
+  lib,
+  fetchFromGitHub,
+  buildPythonPackage,
+  setuptools,
+  zope-interface,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "transaction";
-  version = "4.0";
-  format = "setuptools";
+  version = "5.1";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-aANduRP2DRvhL2Vj0gHaqzbIPnY94ViZ/4M48m5eYvI=";
+  src = fetchFromGitHub {
+    owner = "zopefoundation";
+    repo = "transaction";
+    tag = version;
+    hash = "sha256-db6oEea+sIK9SN7fDP19qYgUgbeH9bv3vuQdssq78vo=";
   };
 
-  propagatedBuildInputs = [
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail "setuptools >= 78.1.1,< 81" "setuptools"
+  '';
+
+  build-system = [
+    setuptools
+  ];
+
+  dependencies = [
     zope-interface
-    mock
   ];
 
-  pythonImportsCheck = [
-    "transaction"
+  nativeCheckInputs = [
+    pytestCheckHook
   ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "transaction" ];
+
+  meta = {
     description = "Transaction management";
     homepage = "https://transaction.readthedocs.io/";
     changelog = "https://github.com/zopefoundation/transaction/blob/${version}/CHANGES.rst";
-    license = licenses.zpl20;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.zpl21;
+    maintainers = with lib.maintainers; [ nickcao ];
   };
 }

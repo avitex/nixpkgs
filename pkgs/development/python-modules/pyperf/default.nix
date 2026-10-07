@@ -1,35 +1,27 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, psutil
-, unittestCheckHook
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  psutil,
+  unittestCheckHook,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "pyperf";
-  version = "2.6.2";
+  version = "2.10.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-ZNj63OanT0ePKYMsHqoqBIVmVev/FyktUjf8gxfDo8U=";
+    hash = "sha256-3ZPM/aeSFHJSk+lfH6bgDLSmStzxMmA5SG1OH5HKqmI=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
-  propagatedBuildInputs = [
-    psutil
-  ];
+  propagatedBuildInputs = [ psutil ];
 
-  nativeCheckInputs = [
-    unittestCheckHook
-  ];
+  nativeCheckInputs = [ unittestCheckHook ];
 
   unittestFlagsArray = [
     "-s"
@@ -37,15 +29,14 @@ buildPythonPackage rec {
     "-v"
   ];
 
-  pythonImportsCheck = [
-    "pyperf"
-  ];
+  pythonImportsCheck = [ "pyperf" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python module to generate and modify perf";
+    mainProgram = "pyperf";
     homepage = "https://pyperf.readthedocs.io/";
     changelog = "https://github.com/psf/pyperf/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

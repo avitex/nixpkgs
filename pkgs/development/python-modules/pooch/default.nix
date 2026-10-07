@@ -1,29 +1,27 @@
-{ lib
-, buildPythonPackage
-, isPy27
-, fetchPypi
-, setuptools
-, setuptools-scm
-, wheel
-, pytestCheckHook
-, packaging
-, platformdirs
-, requests
-, tqdm
-, paramiko
-, xxhash
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  setuptools-scm,
+  wheel,
+  pytestCheckHook,
+  packaging,
+  platformdirs,
+  requests,
+  tqdm,
+  paramiko,
+  xxhash,
 }:
 
 buildPythonPackage rec {
   pname = "pooch";
-  version = "1.8.0";
-  format = "pyproject";
-
-  disabled = isPy27;
+  version = "1.8.2";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-9ZmB/VubXQMtzej0oR6qSSwqxjQ/rjWWov2uNfxUsKA=";
+    hash = "sha256-dlYfDeaKAdpN9q846ZVcTJ0aXJDac/fkAnalco7IPRA=";
   };
 
   nativeBuildInputs = [
@@ -49,9 +47,7 @@ buildPythonPackage rec {
     export HOME=$TMPDIR
   '';
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   # tries to touch network
   disabledTests = [
@@ -70,14 +66,12 @@ buildPythonPackage rec {
     "test_load_registry_from_doi"
     "test_retrieve"
     "test_stream_download"
-
   ];
 
-  meta = with lib; {
-    description = "A friend to fetch your data files.";
+  meta = {
+    description = "Friend to fetch your data files";
     homepage = "https://github.com/fatiando/pooch";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ GuillaumeDesforges ];
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
-
 }

@@ -1,30 +1,36 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, meson
-, ninja
-, pkg-config
-, gettext
-, libxslt
-, docbook_xsl_ns
-, libcap
-, libidn2
-, iproute2
-, apparmorRulesFromClosure
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  meson,
+  ninja,
+  pkg-config,
+  gettext,
+  libxslt,
+  docbook_xsl_ns,
+  libcap,
+  libidn2,
+  iproute2,
+  apparmorRulesFromClosure,
+  nix-update-script,
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "iputils";
-  version = "20231222";
+  version = "20250605";
 
   src = fetchFromGitHub {
-    owner = pname;
-    repo = pname;
-    rev = version;
-    hash = "sha256-/blxT6k79fgbxX8qCQuJMf7zDPwMjJUt7FCscaMXx6U=";
+    owner = "iputils";
+    repo = "iputils";
+    tag = finalAttrs.version;
+    hash = "sha256-AJgNPIE90kALu4ihANELr9Dh28LhJ4camLksOIRV8Xo=";
   };
 
-  outputs = [ "out" "apparmor" ];
+  outputs = [
+    "out"
+    "man"
+    "apparmor"
+  ];
 
   # We don't have the required permissions inside the build sandbox:
   # /build/source/build/ping/ping: socket: Operation not permitted
@@ -34,14 +40,20 @@ stdenv.mkDerivation rec {
     "-DNO_SETCAP_OR_SUID=true"
     "-Dsystemdunitdir=etc/systemd/system"
     "-DINSTALL_SYSTEMD_UNITS=true"
-    "-DSKIP_TESTS=${lib.boolToString (!doCheck)}"
+    "-DSKIP_TESTS=${lib.boolToString (!finalAttrs.finalPackage.doCheck)}"
   ]
   # Disable idn usage w/musl (https://github.com/iputils/iputils/pull/111):
   ++ lib.optional stdenv.hostPlatform.isMusl "-DUSE_IDN=false";
 
-  nativeBuildInputs = [ meson ninja pkg-config gettext libxslt.bin docbook_xsl_ns ];
-  buildInputs = [ libcap ]
-    ++ lib.optional (!stdenv.hostPlatform.isMusl) libidn2;
+  nativeBuildInputs = [
+    meson
+    ninja
+    pkg-config
+    gettext
+    libxslt.bin
+    docbook_xsl_ns
+  ];
+  buildInputs = [ libcap ] ++ lib.optional (!stdenv.hostPlatform.isMusl) libidn2;
   nativeCheckInputs = [ iproute2 ];
 
   postInstall = ''
@@ -52,9 +64,12 @@ stdenv.mkDerivation rec {
       include <abstractions/base>
       include <abstractions/consoles>
       include <abstractions/nameservice>
-      include "${apparmorRulesFromClosure { name = "ping"; }
-       ([libcap] ++ lib.optional (!stdenv.hostPlatform.isMusl) libidn2)}"
-      include <local/bin.ping>
+      include "${
+        apparmorRulesFromClosure { name = "ping"; } (
+          [ libcap ] ++ lib.optional (!stdenv.hostPlatform.isMusl) libidn2
+        )
+      }"
+      include if exists <local/bin.ping>
       capability net_raw,
       network inet raw,
       network inet6 raw,
@@ -65,10 +80,12 @@ stdenv.mkDerivation rec {
     EOF
   '';
 
-  meta = with lib; {
+  passthru.updateScript = nix-update-script { };
+
+  meta = {
     homepage = "https://github.com/iputils/iputils";
-    changelog = "https://github.com/iputils/iputils/releases/tag/${version}";
-    description = "A set of small useful utilities for Linux networking";
+    changelog = "https://github.com/iputils/iputils/releases/tag/${finalAttrs.version}";
+    description = "Set of small useful utilities for Linux networking";
     longDescription = ''
       A set of small useful utilities for Linux networking including:
 
@@ -77,8 +94,11 @@ stdenv.mkDerivation rec {
       - ping: send ICMP ECHO_REQUEST to network hosts
       - tracepath: traces path to a network host discovering MTU along this path
     '';
-    license = with licenses; [ gpl2Plus bsd3 ];
-    platforms = platforms.linux;
-    maintainers = with maintainers; [ primeos lheckemann ];
+    license = with lib.licenses; [
+      gpl2Plus
+      bsd3
+    ];
+    platforms = lib.platforms.linux;
+    maintainers = with lib.maintainers; [ mdaniels5757 ];
   };
-}
+})

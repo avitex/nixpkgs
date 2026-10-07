@@ -1,15 +1,16 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytest
-, jupyter-client
-, ipykernel
-, holoviews
-, nbformat
-, nbconvert
-, pyflakes
-, requests
-, beautifulsoup4
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pytest,
+  jupyter-client,
+  ipykernel,
+  holoviews,
+  nbformat,
+  nbconvert,
+  pyflakes,
+  requests,
+  beautifulsoup4,
 }:
 
 buildPythonPackage rec {
@@ -38,10 +39,10 @@ buildPythonPackage rec {
   doCheck = false;
   pythonImportsCheck = [ "nbsmoke" ];
 
-  meta = with lib; {
+  meta = {
     description = "Basic notebook checks and linting";
     homepage = "https://github.com/pyviz/nbsmoke";
-    license = licenses.bsd3;
+    license = lib.licenses.bsd3;
     maintainers = [ ];
   };
 }

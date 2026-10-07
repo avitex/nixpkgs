@@ -1,8 +1,11 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonAtLeast,
+  setuptools,
+  standard-telnetlib,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
@@ -18,20 +21,18 @@ buildPythonPackage rec {
     hash = "sha256-A19olC1rTHTy0xyeSP45fqvv9GUynQSrMgXBgW8ySOs=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  dependencies = lib.optionals (pythonAtLeast "3.13") [ standard-telnetlib ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeBuildInputs = [ setuptools ];
+
+  nativeCheckInputs = [ pytestCheckHook ];
 
   pythonImportsCheck = [ "ndms2_client" ];
 
-  meta = with lib; {
+  meta = {
     description = "Keenetic NDMS 2.x and 3.x client";
     homepage = "https://github.com/foxel/python_ndms2_client";
-    license = licenses.mit;
-    maintainers = with maintainers; [ dotlambda ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ dotlambda ];
   };
 }

@@ -1,8 +1,9 @@
-{ buildPythonPackage
-, fetchFromGitHub
-, sudachidict
-, setuptools
-, sudachipy
+{
+  buildPythonPackage,
+  fetchFromGitHub,
+  sudachidict,
+  setuptools,
+  sudachipy,
 }:
 
 buildPythonPackage rec {
@@ -13,11 +14,11 @@ buildPythonPackage rec {
   src = fetchFromGitHub {
     owner = "WorksApplications";
     repo = "SudachiDict";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-xJ/iPywOZA2kzHaVU43Bc8TUboj3OpDg1kLFMIc/T90=";
+    tag = "v${version}";
+    hash = "sha256-2YI/9y222/mbzDi/3GgwPjAdwnH8qw7viuaQnrVqsZA=";
   };
 
-  sourceRoot = "source/python";
+  sourceRoot = "${src.name}/python";
 
   # setup script tries to get data from the network but we use the nixpkgs' one
   postPatch = ''
@@ -30,13 +31,9 @@ buildPythonPackage rec {
       --replace "%%DICT_TYPE%%" ${sudachidict.dict-type}
   '';
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
-    sudachipy
-  ];
+  dependencies = [ sudachipy ];
 
   # we need to prepare some files before the build
   # https://github.com/WorksApplications/SudachiDict/blob/develop/package_python.sh

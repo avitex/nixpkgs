@@ -1,21 +1,34 @@
-{ fetchurl, stdenv, lib
-, enableStatic ? stdenv.hostPlatform.isStatic
-, enableShared ? !stdenv.hostPlatform.isStatic
-, enableDarwinABICompat ? false
+{
+  fetchurl,
+  stdenv,
+  lib,
+  updateAutotoolsGnuConfigScriptsHook,
+  enableStatic ? stdenv.hostPlatform.isStatic,
+  enableShared ? !stdenv.hostPlatform.isStatic,
+  enableDarwinABICompat ? false,
 }:
 
 # assert !stdenv.hostPlatform.isLinux || stdenv.hostPlatform != stdenv.buildPlatform; # TODO: improve on cross
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "libiconv";
-  version = "1.17";
+  version = "1.19";
 
   src = fetchurl {
-    url = "mirror://gnu/libiconv/${pname}-${version}.tar.gz";
-    sha256 = "sha256-j3QhO1YjjIWlClMp934GGYdx5w3Zpzl3n0wC9l2XExM=";
+    url = "mirror://gnu/libiconv/libiconv-${finalAttrs.version}.tar.gz";
+    hash = "sha256-iN2WqMBGTsoUT8eRrmDNMc2O54Mh5nOX4l/AlcShmqY=";
   };
 
   enableParallelBuilding = true;
+
+  # necessary to build on FreeBSD native pending inclusion of
+  # https://git.savannah.gnu.org/cgit/config.git/commit/?id=e4786449e1c26716e3f9ea182caf472e4dbc96e0
+  nativeBuildInputs = [ updateAutotoolsGnuConfigScriptsHook ];
+
+  strictDeps = true;
+
+  # https://github.com/NixOS/nixpkgs/pull/192630#discussion_r978985593
+  hardeningDisable = lib.optional (stdenv.hostPlatform.libc == "bionic") "fortify";
 
   setupHooks = [
     ../../../build-support/setup-hooks/role.bash
@@ -23,7 +36,10 @@ stdenv.mkDerivation rec {
   ];
 
   postPatch =
-    lib.optionalString ((stdenv.hostPlatform != stdenv.buildPlatform && stdenv.hostPlatform.isMinGW) || stdenv.cc.nativeLibc)
+    lib.optionalString
+      (
+        (stdenv.hostPlatform != stdenv.buildPlatform && stdenv.hostPlatform.isMinGW) || stdenv.cc.nativeLibc
+      )
       ''
         sed '/^_GL_WARN_ON_USE (gets/d' -i srclib/stdio.in.h
       ''
@@ -37,12 +53,12 @@ stdenv.mkDerivation rec {
     + lib.optionalString enableDarwinABICompat ''
       for iconv_h_in in iconv.h.in iconv.h.build.in; do
         substituteInPlace "include/$iconv_h_in" \
-          --replace "#define iconv libiconv" "" \
-          --replace "#define iconv_close libiconv_close" "" \
-          --replace "#define iconv_open libiconv_open" "" \
-          --replace "#define iconv_open_into libiconv_open_into" "" \
-          --replace "#define iconvctl libiconvctl" "" \
-          --replace "#define iconvlist libiconvlist" ""
+          --replace-fail "#define iconv libiconv" "" \
+          --replace-fail "#define iconv_close libiconv_close" "" \
+          --replace-fail "#define iconv_open libiconv_open" "" \
+          --replace-fail "#define iconv_open_into libiconv_open_into" "" \
+          --replace-fail "#define iconvctl libiconvctl" "" \
+          --replace-fail "#define iconvlist libiconvlist" ""
       done
     '';
 
@@ -61,10 +77,19 @@ stdenv.mkDerivation rec {
   configureFlags = [
     (lib.enableFeature enableStatic "static")
     (lib.enableFeature enableShared "shared")
-  ] ++ lib.optional stdenv.isFreeBSD "--with-pic";
+  ]
+  ++ lib.optional stdenv.hostPlatform.isFreeBSD "--with-pic"
+  # Work around build failure caused by the gnulib workaround for
+  # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=114870.
+  # remove after gnulib is updated
+  ++ lib.optional stdenv.hostPlatform.isCygwin "gl_cv_clean_version_stddef=yes";
+
+  passthru = { inherit (finalAttrs) setupHooks; };
+
+  __structuredAttrs = true;
 
   meta = {
-    description = "An iconv(3) implementation";
+    description = "Iconv(3) implementation";
 
     longDescription = ''
       Some programs, like mailers and web browsers, must be able to convert
@@ -85,4 +110,4 @@ stdenv.mkDerivation rec {
     # This library is not needed on GNU platforms.
     hydraPlatforms = with lib.platforms; cygwin ++ darwin ++ freebsd;
   };
-}
+})

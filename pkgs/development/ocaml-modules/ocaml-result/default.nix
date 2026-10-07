@@ -1,11 +1,15 @@
-{ lib, buildDunePackage, fetchurl, ocaml }:
+{
+  lib,
+  buildDunePackage,
+  fetchurl,
+}:
 
-buildDunePackage (rec {
+buildDunePackage (finalAttrs: {
   pname = "result";
   version = "1.5";
 
   src = fetchurl {
-    url = "https://github.com/janestreet/result/releases/download/${version}/result-${version}.tbz";
+    url = "https://github.com/janestreet/result/releases/download/${finalAttrs.version}/result-${finalAttrs.version}.tbz";
     sha256 = "0cpfp35fdwnv3p30a06wd0py3805qxmq3jmcynjc3x2qhlimwfkw";
   };
 
@@ -19,6 +23,4 @@ buildDunePackage (rec {
     '';
     license = lib.licenses.bsd3;
   };
-} // lib.optionalAttrs (!lib.versionAtLeast ocaml.version "4.08") {
-  duneVersion = "1";
 })

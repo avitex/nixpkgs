@@ -1,35 +1,44 @@
-{ lib
-, antlr4
-, antlr4-python3-runtime
-, buildPythonPackage
-, fetchFromGitHub
-, fetchpatch
-, importlib-resources
-, jre_headless
-, omegaconf
-, packaging
-, pytestCheckHook
-, pythonOlder
-, substituteAll
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+
+  # patches
+  replaceVars,
+  antlr4,
+  fetchpatch,
+
+  # nativeBuildInputs
+  jre_headless,
+
+  # dependencies
+  antlr4-python3-runtime,
+  omegaconf,
+  packaging,
+
+  # tests
+  pytest8_3CheckHook,
+  pythonAtLeast,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "hydra-core";
-  version = "1.3.2";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.6";
+  version = "1.3.5";
+  pyproject = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "facebookresearch";
     repo = "hydra";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-kD4BStnstr5hwyAOxdpPzLAJ9MZqU/CPiHkaD2HnUPI=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-Z71H0kE/iRh88b71jX7iPW8B2W3nscCj+SyVNfMkoXw=";
   };
 
   patches = [
-    (substituteAll {
-      src = ./antlr4.patch;
+    (replaceVars ./antlr4.patch {
       antlr_jar = "${antlr4.out}/share/java/antlr-${antlr4.version}-complete.jar";
     })
     # https://github.com/facebookresearch/hydra/pull/2731
@@ -44,24 +53,28 @@ buildPythonPackage rec {
     # We substitute the path to the jar with the one from our antlr4
     # package, so this file becomes unused
     rm -v build_helpers/bin/antlr*-complete.jar
-
-    sed -i 's/antlr4-python3-runtime==.*/antlr4-python3-runtime/' requirements/requirements.txt
   '';
 
-  nativeBuildInputs = [
-    jre_headless
+  build-system = [
+    setuptools
   ];
 
-  propagatedBuildInputs = [
+  nativeBuildInputs = [ jre_headless ];
+
+  pythonRelaxDeps = [
+    "antlr4-python3-runtime"
+  ];
+
+  dependencies = [
     antlr4-python3-runtime
     omegaconf
     packaging
-  ] ++ lib.optionals (pythonOlder "3.9") [
-    importlib-resources
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
+  nativeCheckInputs = [ pytest8_3CheckHook ];
+
+  pytestFlags = [
+    "-Wignore::UserWarning"
   ];
 
   # Test environment setup broken under Nix for a few tests:
@@ -69,10 +82,60 @@ buildPythonPackage rec {
     "test_bash_completion_with_dot_in_path"
     "test_install_uninstall"
     "test_config_search_path"
+
+    # does not raise UserWarning
+    "test_initialize_compat_version_base"
+
+    # AssertionError: Regex pattern did not match
+    "test_initialize_bad_version_base"
+  ]
+  ++ lib.optionals (pythonAtLeast "3.13") [
+    # AssertionError: Regex pattern did not match
+    "test_failure"
+  ]
+  ++ lib.optionals (pythonAtLeast "3.14") [
+    # AssertionError: Regex pattern did not match
+    "test_partial_failure"
+
+    # AssertionError: Mismatch between expected and actual text
+    "test_write_protect_config_node"
+
+    # ValueError: badly formed help string
+    "TestBasicLauncherIntegration"
+    "test_cli_error"
+    "test_completion_plugin"
+    "test_completion_plugin_multirun"
+    "test_configuring_experiments"
+    "test_examples_using_the_config_object"
+    "test_extending_configs"
+    "test_file_completion"
+    "test_missing_default_value"
+    "test_multi_select"
+    "test_searchpath_addition"
+    "test_tutorial_config_file"
+    "test_tutorial_config_file_bad_key"
+    "test_tutorial_config_groups"
+    "test_tutorial_defaults"
+    "test_tutorial_logging"
+    "test_tutorial_simple_cli_app"
+    "test_tutorial_working_directory"
+    "test_tutorial_working_directory_original_cwd"
+    "test_with_flags"
   ];
 
   disabledTestPaths = [
     "tests/test_hydra.py"
+  ]
+  ++ lib.optionals (pythonAtLeast "3.14") [
+    # ValueError: badly formed help string
+    "tests/test_callbacks.py"
+    "tests/test_env_defaults.py"
+    "tests/test_examples/test_advanced_package_overrides.py"
+    "tests/test_examples/test_basic_sweep.py"
+    "tests/test_examples/test_configure_hydra.py"
+    "tests/test_examples/test_experimental.py"
+    "tests/test_examples/test_instantiate_examples.py"
+    "tests/test_examples/test_structured_configs_tutorial.py"
   ];
 
   pythonImportsCheck = [
@@ -81,10 +144,11 @@ buildPythonPackage rec {
     "hydra.version"
   ];
 
-  meta = with lib; {
-    description = "A framework for configuring complex applications";
+  meta = {
+    description = "Framework for configuring complex applications";
     homepage = "https://hydra.cc";
-    license = licenses.mit;
-    maintainers = with maintainers; [ bcdarwin ];
+    changelog = "https://github.com/facebookresearch/hydra/blob/${finalAttrs.src.tag}/NEWS.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ bcdarwin ];
   };
-}
+})

@@ -1,42 +1,43 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
 
-# build time
-, setuptools-scm
+  # build time
+  setuptools-scm,
 
-# propagates
-, aiohttp
+  # propagates
+  aiohttp,
 
-# tests
-, pytestCheckHook
+  # tests
+  pytest-asyncio,
+  pytestCheckHook,
 }:
 
-let
+buildPythonPackage (finalAttrs: {
   pname = "uasiren";
   version = "0.0.1";
-in
+  pyproject = true;
 
-buildPythonPackage {
-  inherit pname version;
-  format = "setuptools";
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "PaulAnnekov";
-    repo = pname;
-    rev = "v${version}";
+    repo = "uasiren";
+    tag = "v${finalAttrs.version}";
     hash = "sha256-NHrnG5Vhz+JZgcTJyfIgGz0Ye+3dFVv2zLCCqw2++oM=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
+    setuptools
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
-    aiohttp
-  ];
+  dependencies = [ aiohttp ];
 
   nativeCheckInputs = [
+    pytest-asyncio
     pytestCheckHook
   ];
 
@@ -45,12 +46,11 @@ buildPythonPackage {
     "uasiren.client"
   ];
 
-  meta = with lib; {
-    changelog = "https://github.com/PaulAnnekov/uasiren/releases/tag/v${version}";
+  meta = {
+    changelog = "https://github.com/PaulAnnekov/uasiren/releases/tag/${finalAttrs.src.tag}";
     description = "Implements siren.pp.ua API - public wrapper for api.ukrainealarm.com API that returns info about Ukraine air-raid alarms";
     homepage = "https://github.com/PaulAnnekov/uasiren";
-    license = licenses.mit;
-    maintainers = with maintainers; [ hexa ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ hexa ];
   };
-}
-
+})

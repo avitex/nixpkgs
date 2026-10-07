@@ -1,123 +1,187 @@
-{ lib
-, home-assistant
+{
+  lib,
+  stdenv,
+  home-assistant,
+  writableTmpDirAsHomeHook,
 }:
 
 let
+  getComponentDeps = component: home-assistant.getPackages component home-assistant.python3Packages;
+  inherit (lib) concatMap;
+
   # some components' tests have additional dependencies
-  extraCheckInputs = with home-assistant.python.pkgs; {
-    airzone_cloud = [
-      aioairzone
+  extraCheckInputs = with home-assistant.python3Packages; {
+    alexa = concatMap getComponentDeps [
+      "cloud"
+      "frontend"
+      "stream"
     ];
-    bluetooth = [
-      pyswitchbot
+    analytics = getComponentDeps "homeassistant_hardware";
+    anthropic = getComponentDeps "ai_task" ++ getComponentDeps "openai_conversation";
+    assist_pipeline = getComponentDeps "frontend";
+    automation = getComponentDeps "frontend" ++ getComponentDeps "mobile_app";
+    axis = getComponentDeps "deconz";
+    backup = getComponentDeps "homeassistant_hardware";
+    bluetooth = getComponentDeps "switchbot";
+    braviatv = getComponentDeps "ssdp";
+    bthome = getComponentDeps "frontend";
+    camera = getComponentDeps "stream";
+    deconz = getComponentDeps "frontend";
+    elkm1 = getComponentDeps "frontend";
+    emulated_hue = [
+      defusedxml
     ];
+    esphome = getComponentDeps "homeassistant_hardware";
+    gardena_bluetooth = getComponentDeps "husqvarna_automower_ble";
+    go2rtc = [
+      tqdm
+    ];
+    google_assistant_sdk = getComponentDeps "frontend";
+    google_drive = getComponentDeps "frontend";
+    google_generative_ai_conversation = getComponentDeps "ai_task";
     govee_ble = [
       ibeacon-ble
     ];
-    lovelace = [
+    hassio = getComponentDeps "frontend" ++ getComponentDeps "homeassistant_yellow";
+    homeassistant_connect_zbt2 = getComponentDeps "zha";
+    homeassistant_hardware = getComponentDeps "otbr" ++ getComponentDeps "zha";
+    homeassistant_sky_connect = getComponentDeps "zha";
+    homeassistant_yellow = getComponentDeps "zha";
+    homekit = getComponentDeps "frontend";
+    http = concatMap getComponentDeps [
+      "cloud"
+      "frontend"
+      "homeassistant_hardware"
+    ];
+    influxdb = getComponentDeps "isal";
+    intelliclima = getComponentDeps "intellifire";
+    logbook = getComponentDeps "alexa";
+    lovelace = getComponentDeps "frontend" ++ [
       pychromecast
     ];
-    matrix = [
-      pydantic
+    lutron_caseta = getComponentDeps "frontend";
+    mastodon = concatMap getComponentDeps [
+      "stream"
     ];
-    mopeka = [
-      pyswitchbot
+    matter = getComponentDeps "homeassistant_hardware";
+    miele = getComponentDeps "cloud";
+    mobile_app = getComponentDeps "frontend";
+    mopeka = getComponentDeps "switchbot";
+    mqtt = getComponentDeps "homeassistant_hardware";
+    nest = [
+      av
     ];
+    ollama = getComponentDeps "ai_task";
     onboarding = [
       pymetno
       radios
       rpi-bad-power
+    ]
+    ++ getComponentDeps "homeassistant_hardware"
+    ++ getComponentDeps "usb";
+    open_router = getComponentDeps "ai_task";
+    osoenergy = [
+      # loguru wants to write into HOME
+      writableTmpDirAsHomeHook
     ];
     raspberry_pi = [
       rpi-bad-power
     ];
-    shelly = [
-      pyswitchbot
+    reolink = getComponentDeps "stream";
+    rss_feed_template = [
+      defusedxml
     ];
-    tilt_ble = [
-      ibeacon-ble
+    script = getComponentDeps "frontend" ++ getComponentDeps "mobile_app";
+    shelly = getComponentDeps "frontend" ++ getComponentDeps "switchbot";
+    songpal = [
+      isal
     ];
+    sonos = getComponentDeps "frontend";
+    swiss_public_transport = getComponentDeps "cookidoo";
+    system_log = [
+      isal
+    ];
+    unifi_discovery = getComponentDeps "unifiprotect";
     xiaomi_miio = [
       arrow
     ];
-    zha = [
-      pydeconz
-    ];
+    yolink = getComponentDeps "cloud";
+    zeroconf = getComponentDeps "shelly";
+    zha = getComponentDeps "deconz" ++ getComponentDeps "frontend";
+    zwave_js = getComponentDeps "frontend" ++ getComponentDeps "homeassistant_hardware";
   };
 
   extraDisabledTestPaths = {
-  };
-
-  extraDisabledTests = {
-    private_ble_device = [
-      # AssertionError: assert '90' == '90.0'
-      "test_estimated_broadcast_interval"
-    ];
-    shell_command = [
-      # tries to retrieve file from github
-      "test_non_text_stdout_capture"
-    ];
-    sma = [
-      # missing operating_status attribute in entity
-      "test_sensor_entities"
-    ];
-  };
-
-  extraPytestFlagsArray = {
-    cloud = [
-      # Tries to connect to alexa-api.nabucasa.com:443
-      "--deselect tests/components/cloud/test_http_api.py::test_websocket_update_preferences_alexa_report_state"
-    ];
-    dnsip = [
-      # Tries to resolve DNS entries
-      "--deselect tests/components/dnsip/test_config_flow.py::test_options_flow"
+    ecovacs = [
+      # [2026.7.2] Outdated snapshots
+      "tests/components/ecovacs/test_vacuum.py::test_clean_area_room_from_not_current_map"
+      "tests/components/ecovacs/test_vacuum.py::test_clean_area_no_map"
+      "tests/components/ecovacs/test_vacuum.py::test_clean_area_invalid_map_id"
     ];
     jellyfin = [
       # AssertionError: assert 'audio/x-flac' == 'audio/flac'
-      "--deselect tests/components/jellyfin/test_media_source.py::test_resolve"
-      # AssertionError: assert [+ received] == [- snapshot]
-      "--deselect tests/components/jellyfin/test_media_source.py::test_music_library"
+      "tests/components/jellyfin/test_media_source.py::test_resolve"
+      "tests/components/jellyfin/test_media_source.py::test_audio_codec_resolve"
+      "tests/components/jellyfin/test_media_source.py::test_music_library"
     ];
-    modem_callerid = [
-      # aioserial mock produces wrong state
-      "--deselect tests/components/modem_callerid/test_init.py::test_setup_entry"
+    minecraft_server = [
+      # FileNotFoundError: [Errno 2] No such file or directory: '/etc/resolv.conf'
+      "tests/components/minecraft_server/test_binary_sensor.py"
+      "tests/components/minecraft_server/test_diagnostics.py"
+      "tests/components/minecraft_server/test_init.py"
+      "tests/components/minecraft_server/test_sensor.py"
+    ];
+    systemmonitor = [
+      # sandbox doesn't grant access to /sys/class/power_supply
+      "tests/components/systemmonitor/test_config_flow.py::test_add_and_remove_processes"
     ];
   };
-in lib.listToAttrs (map (component: lib.nameValuePair component (
+
+  extraDisabledTests = {
+    conversation = lib.optionals stdenv.hostPlatform.isAarch64 [
+      # intent fixture mismatch on aarch64
+      "test_error_no_device_on_floor"
+    ];
+    homeassistant_connect_zbt2 = [
+      # [2026.6.1] AssertionError: assert <ConfigEntryState.LOADED: 'loaded'> is <ConfigEntryState.SETUP_RETRY: 'setup_retry'>
+      "test_usb_device_reactivity"
+    ];
+    homeassistant = [
+      # disabled via nixos-was-never-supported.patch
+      "test_deprecated_installation_issue_core"
+    ];
+    zeroconf = [
+      # multicast socket bind, not possible in the sandbox
+      "test_subscribe_discovery"
+    ];
+  };
+in
+lib.genAttrs home-assistant.supportedComponentsWithTests (
+  component:
   home-assistant.overridePythonAttrs (old: {
     pname = "homeassistant-test-${component}";
-    format = "other";
+    pyproject = false;
 
     dontBuild = true;
     dontInstall = true;
 
-    nativeCheckInputs = old.nativeCheckInputs
-      ++ home-assistant.getPackages component home-assistant.python.pkgs
+    nativeCheckInputs =
+      old.requirementsTest
+      ++ home-assistant.getPackages component home-assistant.python3Packages
       ++ extraCheckInputs.${component} or [ ];
 
-    disabledTests = old.disabledTests or [] ++ extraDisabledTests.${component} or [];
-    disabledTestPaths = old.disabledTestPaths or [] ++ extraDisabledTestPaths.${component} or [ ];
+    disabledTests = extraDisabledTests.${component} or [ ];
+    disabledTestPaths = extraDisabledTestPaths.${component} or [ ];
 
     # components are more often racy than the core
     dontUsePytestXdist = true;
 
-    pytestFlagsArray = lib.remove "tests" old.pytestFlagsArray
-      ++ extraPytestFlagsArray.${component} or [ ]
-      ++ [ "tests/components/${component}" ];
-
-    preCheck = old.preCheck + lib.optionalString (builtins.elem component [ "emulated_hue" "songpal" "system_log" ]) ''
-      patch -p1 < ${./patches/tests-mock-source-ip.patch}
-    '';
+    enabledTestPaths = [ "tests/components/${component}" ];
 
     meta = old.meta // {
-      broken = lib.elem component [
-        # pinned version incompatible with urllib3>=2.0
-        "telegram_bot"
-        # depends on telegram_bot
-        "telegram"
-      ];
+      broken = lib.elem component [ ];
       # upstream only tests on Linux, so do we.
       platforms = lib.platforms.linux;
     };
   })
-)) home-assistant.supportedComponentsWithTests)
+)

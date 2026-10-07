@@ -1,40 +1,44 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, flit-core
-, mock
-, pbr
-, pytest-mock
-, pytestCheckHook
-, pytz
-, requests
-, six
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  docker,
+  hatchling,
+  mock,
+  pyprojectVersionPatchHook,
+  pytest-mock,
+  pytest-xdist,
+  pytestCheckHook,
+  pytz,
+  requests,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "jenkinsapi";
-  version = "0.3.13";
-  format = "pyproject";
+  version = "0.3.23";
+  pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-JGqYpj5h9UoV0WEFyxVIjFZwc030HobHrw1dnAryQLk=";
+  src = fetchFromGitHub {
+    owner = "pycontribs";
+    repo = "jenkinsapi";
+    tag = finalAttrs.version;
+    hash = "sha256-NtILbbXu4dtYda28WaFiGkICf0bOmVMKOOnnrHptxsg=";
   };
 
-  nativeBuildInputs = [
-    flit-core
-    pbr
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
+  nativeBuildInputs = [ pyprojectVersionPatchHook ];
+
+  dependencies = [
     pytz
     requests
-    six
   ];
 
   nativeCheckInputs = [
+    docker
     mock
     pytest-mock
+    pytest-xdist
     pytestCheckHook
   ];
 
@@ -43,11 +47,15 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "jenkinsapi" ];
 
-  meta = with lib; {
-    description = "A Python API for accessing resources on a Jenkins continuous-integration server";
-    homepage = "https://github.com/salimfadhley/jenkinsapi";
-    maintainers = with maintainers; [ drets ] ++ teams.deshaw.members;
-    license = licenses.mit;
+  meta = {
+    description = "Python API for accessing resources on a Jenkins continuous-integration server";
+    homepage = "https://github.com/pycontribs/jenkinsapi";
+    changelog = "https://github.com/pycontribs/jenkinsapi/releases/tag/${finalAttrs.version}";
+    maintainers = with lib.maintainers; [
+      de11n
+      despsyched
+      drets
+    ];
+    license = lib.licenses.mit;
   };
-
-}
+})

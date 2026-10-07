@@ -1,71 +1,57 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, gpiozero
-, mock
-, pyserial
-, pyserial-asyncio
-, pyusb
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, setuptools
-, zigpy
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  gpiozero,
+  mock,
+  pyusb,
+  pytest-asyncio,
+  pytestCheckHook,
+  setuptools,
+  voluptuous,
+  zigpy,
 }:
 
 buildPythonPackage rec {
   pname = "zigpy-zigate";
-  version = "0.12.0";
+  version = "0.14.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "zigpy";
     repo = "zigpy-zigate";
-    rev = "refs/tags/${version}";
-    hash = "sha256-wziXUFYSUXhzWHM870jphG12h99WVzqiYimtIbkXyM0=";
+    tag = version;
+    hash = "sha256-kimlUwwlecXIBxKkBUJC8JqzMdt6Swf5SuOypOnXZCM=";
   };
 
   postPatch = ''
     substituteInPlace pyproject.toml \
-      --replace ', "setuptools-git-versioning<2"' "" \
-      --replace 'dynamic = ["version"]' 'version = "${version}"'
+      --replace-fail ', "setuptools-git-versioning<2"' "" \
+      --replace-fail 'dynamic = ["version"]' 'version = "${version}"'
   '';
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     gpiozero
-    pyserial
-    pyserial-asyncio
     pyusb
+    voluptuous
     zigpy
   ];
 
   nativeCheckInputs = [
-    mock
     pytest-asyncio
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "zigpy_zigate"
-  ];
+  pythonImportsCheck = [ "zigpy_zigate" ];
 
-  disabledTestPaths = [
-    # Fails in sandbox
-    "tests/test_application.py "
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Library which communicates with ZiGate radios for zigpy";
     homepage = "https://github.com/zigpy/zigpy-zigate";
     changelog = "https://github.com/zigpy/zigpy-zigate/releases/tag/${version}";
-    license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ mvnetbiz ];
-    platforms = platforms.linux;
+    license = lib.licenses.gpl3Plus;
+    maintainers = with lib.maintainers; [ mvnetbiz ];
+    platforms = lib.platforms.linux;
   };
 }

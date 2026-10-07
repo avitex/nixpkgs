@@ -1,42 +1,34 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, pythonOlder
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "decli";
-  version = "0.6.1";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "0.6.3";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "woile";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-FZYKNKkQExx/YBn5y/W0+0aMlenuwEctYTL7LAXMZGE=";
+    repo = "decli";
+    tag = "v${version}";
+    hash = "sha256-W4GURqlkHzDwrPAlmiBjc2ZqN//nUK084uRMM7GIme0=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ poetry-core ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "decli"
-  ];
+  pythonImportsCheck = [ "decli" ];
 
-  meta = with lib; {
+  meta = {
     description = "Minimal, easy to use, declarative command line interface tool";
     homepage = "https://github.com/Woile/decli";
-    changelog = "https://github.com/woile/decli/blob/v${version}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ lovesegfault ];
+    changelog = "https://github.com/woile/decli/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ lovesegfault ];
   };
 }

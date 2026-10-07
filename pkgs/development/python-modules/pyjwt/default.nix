@@ -1,51 +1,47 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools
-, cryptography
-, pytestCheckHook
-, pythonOlder
-, sphinxHook
-, sphinx-rtd-theme
-, zope-interface
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  cryptography,
+  pytestCheckHook,
+  sphinxHook,
+  sphinx-rtd-theme,
+  zope-interface,
+  oauthlib,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pyjwt";
-  version = "2.8.0";
-  format = "pyproject";
+  version = "2.14.0";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    pname = "PyJWT";
-    inherit version;
-    hash = "sha256-V+KNFW49XBAIjgxoq7kL+sPfgrQKcb0NqiDGXM1cI94=";
+  src = fetchFromGitHub {
+    owner = "jpadilla";
+    repo = "pyjwt";
+    tag = finalAttrs.version;
+    hash = "sha256-SxJ2GQt1pfm8iAeTB2RmH2kliGeQ6whkM5nuesI1s/U=";
   };
-
-  postPatch = ''
-    sed -i '/types-cryptography/d' setup.cfg
-  '';
 
   outputs = [
     "out"
     "doc"
   ];
 
+  build-system = [ setuptools ];
+
   nativeBuildInputs = [
-    setuptools
     sphinxHook
     sphinx-rtd-theme
     zope-interface
   ];
 
-  passthru.optional-dependencies.crypto = [
-    cryptography
-  ];
+  optional-dependencies.crypto = [ cryptography ];
 
   nativeCheckInputs = [
     pytestCheckHook
-  ] ++ (lib.flatten (lib.attrValues passthru.optional-dependencies));
+  ]
+  ++ (lib.concatAttrValues finalAttrs.passthru.optional-dependencies);
 
   disabledTests = [
     # requires internet connection
@@ -54,11 +50,15 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "jwt" ];
 
-  meta = with lib; {
-    changelog = "https://github.com/jpadilla/pyjwt/blob/${version}/CHANGELOG.rst";
+  passthru.tests = {
+    inherit oauthlib;
+  };
+
+  meta = {
+    changelog = "https://github.com/jpadilla/pyjwt/blob/${finalAttrs.src.tag}/CHANGELOG.rst";
     description = "JSON Web Token implementation in Python";
     homepage = "https://github.com/jpadilla/pyjwt";
-    license = licenses.mit;
-    maintainers = with maintainers; [ prikhi ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ prikhi ];
   };
-}
+})

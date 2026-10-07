@@ -1,42 +1,34 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, setuptools
-, wheel
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "pyduotecno";
-  version = "2024.1.2";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.9";
+  version = "2024.10.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "Cereal2nd";
     repo = "pyDuotecno";
-    rev = "refs/tags/${version}";
-    hash = "sha256-lwtCTzZJn3bamZWbJoeiyxnzrIRZAi9JPjVgiVR0LG8=";
+    tag = version;
+    hash = "sha256-I/ZA2ooa6nunUr/4K+FWAGMOdcJDfGzE99jJ8zTe2Po=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-    wheel
-  ];
+  build-system = [ setuptools ];
 
   # Module has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "duotecno"
-  ];
+  pythonImportsCheck = [ "duotecno" ];
 
-  meta = with lib; {
+  meta = {
     description = "Module to interact with Duotecno IP interfaces";
     homepage = "https://github.com/Cereal2nd/pyDuotecno";
     changelog = "https://github.com/Cereal2nd/pyDuotecno/releases/tag/${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

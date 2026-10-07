@@ -1,31 +1,30 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools
-, requests
-, future
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  requests,
+  six,
 }:
 
 buildPythonPackage rec {
   pname = "pysignalclirestapi";
-  version = "0.3.22";
+  version = "0.3.25";
 
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "bbernhard";
     repo = "pysignalclirestapi";
-    rev = version;
-    hash = "sha256-m8Sihf5vTDntd5Tbaa5o55G/k/rqtmjWreoTab58CHU=";
+    tag = version;
+    hash = "sha256-pMijhYKcy1w6aVKdpMU3e0CF48SMa7uQS7ky2Ifaq1w=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
   propagatedBuildInputs = [
     requests
-    future
+    six
   ];
 
   # upstream has no tests
@@ -33,10 +32,11 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "pysignalclirestapi" ];
 
-  meta = with lib; {
+  meta = {
+    changelog = "https://github.com/bbernhard/pysignalclirestapi/releases/tag/${version}";
     description = "Small python library for the Signal Cli REST API";
     homepage = "https://github.com/bbernhard/pysignalclirestapi";
-    license = licenses.mit;
-    maintainers = with maintainers; [ dotlambda ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ dotlambda ];
   };
 }

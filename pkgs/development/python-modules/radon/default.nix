@@ -1,14 +1,15 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, fetchpatch
-# Python deps
-, mando
-, colorama
-, pytest-mock
-, tomli
-, poetry-core
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  fetchpatch,
+  # Python deps
+  mando,
+  colorama,
+  pytest-mock,
+  tomli,
+  poetry-core,
 }:
 
 buildPythonPackage rec {
@@ -32,9 +33,7 @@ buildPythonPackage rec {
     })
   ];
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  nativeBuildInputs = [ poetry-core ];
 
   nativeCheckInputs = [
     pytestCheckHook
@@ -46,22 +45,22 @@ buildPythonPackage rec {
     colorama
   ];
 
-  passthru.optional-dependencies = {
-    toml = [
-      tomli
-    ];
-  };
-
-  pythonImportsCheck = [
-    "radon"
+  pythonRelaxDeps = [
+    "mando"
   ];
 
-  meta = with lib; {
+  optional-dependencies = {
+    toml = [ tomli ];
+  };
+
+  pythonImportsCheck = [ "radon" ];
+
+  meta = {
     description = "Various code metrics for Python code";
     homepage = "https://radon.readthedocs.org";
     changelog = "https://github.com/rubik/radon/blob/v${version}/CHANGELOG";
-    license = licenses.mit;
-    maintainers = with maintainers; [ t4ccer ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ t4ccer ];
     mainProgram = "radon";
   };
 }

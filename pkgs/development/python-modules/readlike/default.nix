@@ -1,7 +1,8 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, unittestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  unittestCheckHook,
 }:
 
 buildPythonPackage rec {
@@ -18,12 +19,15 @@ buildPythonPackage rec {
 
   nativeCheckInputs = [ unittestCheckHook ];
 
-  unittestFlagsArray = [ "-s" "tests" ];
+  unittestFlagsArray = [
+    "-s"
+    "tests"
+  ];
 
-  meta = with lib; {
+  meta = {
     description = "GNU Readline-like line editing module";
     homepage = "https://github.com/jangler/readlike";
-    license = licenses.mit;
-    maintainers = with maintainers; [ dotlambda ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ dotlambda ];
   };
 }

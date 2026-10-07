@@ -1,23 +1,23 @@
-{ lib
-, bleak
-, bleak-retry-connector
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
+{
+  lib,
+  bleak,
+  bleak-retry-connector,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "pymicrobot";
-  version = "0.0.9";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.9";
+  version = "0.0.23";
+  pyproject = true;
 
   src = fetchPypi {
-    pname = "PyMicroBot";
-    inherit version;
-    hash = "sha256-dhhRHXdck7hJGkXQpkiMulLsnMluZ5ADZ9L8cNm6dFs=";
+    inherit pname version;
+    hash = "sha256-fRCXCT3DR42HhYom23hVcWBXFngLPn7UZmyKrjb+MNY=";
   };
+
+  nativeBuildInputs = [ setuptools ];
 
   propagatedBuildInputs = [
     bleak
@@ -27,15 +27,13 @@ buildPythonPackage rec {
   # Module has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "microbot"
-  ];
+  pythonImportsCheck = [ "microbot" ];
 
-  meta = with lib; {
+  meta = {
     description = "Library to communicate with MicroBot";
     homepage = "https://github.com/spycle/pyMicroBot/";
     changelog = "https://github.com/spycle/pyMicroBot/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

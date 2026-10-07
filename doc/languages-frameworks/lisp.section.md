@@ -20,7 +20,7 @@ The `withPackages` function is of primary utility. It is used to build
 [runnable wrappers](#lisp-building-wrappers), with a pinned and pre-built
 [ASDF FASL](#lisp-loading-asdf) available in the `ASDF` environment variable,
 and `CL_SOURCE_REGISTRY`/`ASDF_OUTPUT_TRANSLATIONS` configured to
-[find the desired systems on runtime](#lisp-loading-systems).
+[find the desired systems at runtime](#lisp-loading-systems).
 
 In addition, Lisps have the `withOverrides` function, which can be used to
 [substitute](#lisp-including-external-pkg-in-scope) any package in the scope of
@@ -45,20 +45,25 @@ $ sbcl
 
 Also one can create a `pkgs.mkShell` environment in `shell.nix`/`flake.nix`:
 
-```
+```nix
 let
   sbcl' = sbcl.withPackages (ps: [ ps.alexandria ]);
-in mkShell {
-  packages = [ sbcl' ];
-}
+in
+mkShell { packages = [ sbcl' ]; }
 ```
 
 Such a Lisp can be now used e.g. to compile your sources:
 
-```
-buildPhase = ''
-  ${sbcl'}/bin/sbcl --load my-build-file.lisp
-''
+```nix
+{
+  buildPhase = ''
+    runHook preBuild
+
+    ${sbcl'}/bin/sbcl --load my-build-file.lisp
+
+    runHook postBuild
+  '';
+}
 ```
 
 ## Importing packages from Quicklisp {#lisp-importing-packages-from-quicklisp}
@@ -132,7 +137,6 @@ During Quicklisp import:
 - names starting with a number have a `_` prepended (`3d-vectors`->`_3d-vectors`)
 - `_` in names is converted to `__` for reversibility
 
-
 ## Defining packages manually inside Nixpkgs {#lisp-defining-packages-inside}
 
 Packages that for some reason are not in Quicklisp, and so cannot be
@@ -173,7 +177,7 @@ into the package scope with `withOverrides`.
 A package defined outside Nixpkgs using `buildASDFSystem` can be woven into the
 Nixpkgs-provided scope like this:
 
-```
+```nix
 let
   alexandria = sbcl.buildASDFSystem rec {
     pname = "alexandria";
@@ -182,14 +186,13 @@ let
       domain = "gitlab.common-lisp.net";
       owner = "alexandria";
       repo = "alexandria";
-      rev = "v${version}";
+      tag = "v${version}";
       hash = "sha256-1Hzxt65dZvgOFIljjjlSGgKYkj+YBLwJCACi5DZsKmQ=";
     };
   };
-  sbcl' = sbcl.withOverrides (self: super: {
-    inherit alexandria;
-  });
-in sbcl'.pkgs.alexandria
+  sbcl' = sbcl.withOverrides (self: super: { inherit alexandria; });
+in
+sbcl'.pkgs.alexandria
 ```
 
 ## Overriding package attributes {#lisp-overriding-package-attributes}
@@ -199,14 +202,14 @@ new package with different parameters.
 
 Example of overriding `alexandria`:
 
-```
+```nix
 sbcl.pkgs.alexandria.overrideLispAttrs (oldAttrs: rec {
   version = "1.4";
   src = fetchFromGitLab {
     domain = "gitlab.common-lisp.net";
     owner = "alexandria";
     repo = "alexandria";
-    rev = "v${version}";
+    tag = "v${version}";
     hash = "sha256-1Hzxt65dZvgOFIljjjlSGgKYkj+YBLwJCACi5DZsKmQ=";
   };
 })
@@ -220,12 +223,12 @@ argument to the `build-asdf-system`/`buildASDFSystem` functions.
 
 The reason is that ASDF searches for a secondary system in the `.asd` of the
 parent package. Thus, having them separate would cause either one of them not to
-load cleanly, because one will contains FASLs of itself but not the other, and
+load cleanly, because one will contain FASLs of itself but not the other, and
 vice versa.
 
 To package slashy systems, use `overrideLispAttrs`, like so:
 
-```
+```nix
 ecl.pkgs.alexandria.overrideLispAttrs (oldAttrs: {
   systems = oldAttrs.systems ++ [ "alexandria/tests" ];
   lispLibs = oldAttrs.lispLibs ++ [ ecl.pkgs.rt ];
@@ -237,7 +240,7 @@ See the [respective section](#lisp-including-external-pkg-in-scope) on using
 
 Note that sometimes the slashy systems might not only have more dependencies
 than the main one, but create a circular dependency between `.asd`
-files. Unfortunately, in this case an adhoc solution becomes necessary.
+files. Unfortunately, in this case an ad-hoc solution becomes necessary.
 
 ## Building Wrappers {#lisp-building-wrappers}
 
@@ -259,7 +262,7 @@ $ sbcl
 
 ### Loading ASDF {#lisp-loading-asdf}
 
-For best results, avoid calling `(require 'asdf)` When using the
+For best results, avoid calling `(require 'asdf)` when using the
 library-generated wrappers.
 
 Use `(load (ext:getenv "ASDF"))` instead, supplying your implementation's way of
@@ -290,10 +293,13 @@ derivation.
 
 This example wraps CLISP:
 
-```
+```nix
 wrapLisp {
   pkg = clisp;
   faslExt = "fas";
-  flags = ["-E" "UTF8"];
+  flags = [
+    "-E"
+    "UTF8"
+  ];
 }
 ```

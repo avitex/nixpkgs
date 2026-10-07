@@ -1,55 +1,44 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, hatch-vcs
-, hatchling
-, pythonOlder
-, sphinx
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatch-vcs,
+  hatchling,
+  sphinx,
+  pytestCheckHook,
 }:
 
-let
+buildPythonPackage (finalAttrs: {
   pname = "sphinx-autodoc-typehints";
-  version = "1.25.2";
-in
+  version = "3.12.1";
+  pyproject = true;
 
-buildPythonPackage {
-  inherit pname version;
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    pname = "sphinx_autodoc_typehints";
-    inherit version;
-    hash = "sha256-PKvCU34XmJsvkuZKOZQlxMi/Vh7XPwh7x0FKUANhalA=";
+  src = fetchFromGitHub {
+    owner = "tox-dev";
+    repo = "sphinx-autodoc-typehints";
+    tag = finalAttrs.version;
+    hash = "sha256-RgRyYZcMJ2bgTxvf339ZEn2f1/BczlSSSv8tbDMn9fs=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     hatch-vcs
     hatchling
   ];
 
-  propagatedBuildInputs = [
-    sphinx
-  ];
+  dependencies = [ sphinx ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   # requires spobjinv, nbtyping
   doCheck = false;
 
-  pythonImportsCheck = [
-    "sphinx_autodoc_typehints"
-  ];
+  pythonImportsCheck = [ "sphinx_autodoc_typehints" ];
 
-  meta = with lib; {
-    changelog = "https://github.com/tox-dev/sphinx-autodoc-typehints/releases/tag/${version}";
+  meta = {
+    changelog = "https://github.com/tox-dev/sphinx-autodoc-typehints/releases/tag/${finalAttrs.version}";
     description = "Type hints (PEP 484) support for the Sphinx autodoc extension";
     homepage = "https://github.com/tox-dev/sphinx-autodoc-typehints";
-    license = licenses.mit;
-    maintainers = with maintainers; [ hexa ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ hexa ];
   };
-}
+})

@@ -1,15 +1,13 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
 }:
 
 buildPythonPackage rec {
   pname = "funcy";
   version = "2.0";
   format = "setuptools";
-
-  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
@@ -19,12 +17,11 @@ buildPythonPackage rec {
   # No tests
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "Collection of fancy functional tools focused on practicality";
     homepage = "https://funcy.readthedocs.org/";
     changelog = "https://github.com/Suor/funcy/blob/2.0/CHANGELOG";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
-
 }

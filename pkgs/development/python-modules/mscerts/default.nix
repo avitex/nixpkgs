@@ -1,36 +1,35 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "mscerts";
-  version = "2023.11.29";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "2026.7.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "ralphje";
     repo = "mscerts";
-    rev = "refs/tags/${version}";
-    hash = "sha256-TNwpWxknCUcvXFy3UInrEx4iFZi/hLS7exvJBv3DlWo=";
+    tag = finalAttrs.version;
+    hash = "sha256-fJ/+s0z3zIxHNfCxjDIuSlpQ6lBeT1xAVyveS0pjrR8=";
   };
+
+  build-system = [ setuptools ];
 
   # extras_require contains signify -> circular dependency
 
   # Module has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "mscerts"
-  ];
+  pythonImportsCheck = [ "mscerts" ];
 
-  meta = with lib; {
+  meta = {
     description = "Makes the Microsoft Trusted Root Program's Certificate Trust Lists available in Python";
     homepage = "https://github.com/ralphje/mscerts";
-    license = with licenses; [ mpl20 ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mpl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

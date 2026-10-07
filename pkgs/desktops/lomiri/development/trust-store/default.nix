@@ -1,35 +1,41 @@
-{ stdenv
-, lib
-, fetchFromGitLab
-, testers
-, boost
-, cmake
-, cmake-extras
-, dbus
-, dbus-cpp
-, doxygen
-, gettext
-, glog
-, graphviz
-, gtest
-, libapparmor
-, newt
-, pkg-config
-, process-cpp
-, properties-cpp
-, qtbase
-, qtdeclarative
+{
+  stdenv,
+  lib,
+  fetchFromGitLab,
+  fetchpatch,
+  gitUpdater,
+  testers,
+  # Uses boost/asio/io_service.hpp
+  # Waiting for https://gitlab.com/ubports/development/core/trust-store/-/merge_requests/19 to get finished & merged
+  boost186,
+  cmake,
+  cmake-extras,
+  dbus,
+  dbus-cpp,
+  doxygen,
+  gettext,
+  glog,
+  graphviz,
+  gtest,
+  libapparmor,
+  newt,
+  pkg-config,
+  process-cpp,
+  properties-cpp,
+  qtbase,
+  qtdeclarative,
+  validatePkgConfig,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "trust-store";
-  version = "0-unstable-2023-12-27";
+  version = "2.0.2";
 
   src = fetchFromGitLab {
     owner = "ubports";
     repo = "development/core/trust-store";
-    rev = "c91e5ac54c4032525f930f0651d673ad3a1095a2";
-    hash = "sha256-zqs40tKo2AOd9yL2Xfbk52Uh8hy4uT1XDT6YtKufAaY=";
+    rev = finalAttrs.version;
+    hash = "sha256-tVwqBu4py8kdydyKECZfLvcLijpZSQszeo8ytTDagy0=";
   };
 
   outputs = [
@@ -39,15 +45,39 @@ stdenv.mkDerivation (finalAttrs: {
     "bin"
   ];
 
+  patches = [
+    # Remove when version > 2.0.2
+    (fetchpatch {
+      name = "0001-trust-store-Fix-boost-184-compat.patch";
+      url = "https://gitlab.com/ubports/development/core/trust-store/-/commit/569f6b35d8bcdb2ae5ff84549cd92cfc0899675b.patch";
+      hash = "sha256-3lrdVIzscXGiLKwftC5oECICVv3sBoS4UedfRHx7uOs=";
+    })
+
+    # Fix compatibility with glog 0.7.x
+    # Remove when https://gitlab.com/ubports/development/core/trust-store/-/merge_requests/18 merged & in release
+    ./1001-treewide-Switch-to-glog-CMake-module.patch
+
+    # Fix compatibility with CMake 4 and beyond (for now)
+    # Remove when version > 2.0.2
+    (fetchpatch {
+      name = "1002-trust-store-CMakeLists.txt-Bump-minimum-version-to-3.10.patch";
+      url = "https://gitlab.com/ubports/development/core/trust-store/-/commit/64bc51f45e1407f16d389120508c2bcddf9e0d5b.patch";
+      hash = "sha256-+ZkTQd6wphd29dTmEIBI7nADFjPQD5012/FVFOtdGbI=";
+    })
+  ];
+
   postPatch = ''
     # pkg-config patching hook expects prefix variable
     substituteInPlace data/trust-store.pc.in \
-      --replace 'includedir=''${exec_prefix}' 'includedir=''${prefix}'
+      --replace-fail 'libdir=''${exec_prefix}' 'libdir=''${prefix}' \
+      --replace-fail 'includedir=''${exec_prefix}' 'includedir=''${prefix}'
 
     substituteInPlace src/core/trust/terminal_agent.h \
-      --replace '/bin/whiptail' '${lib.getExe' newt "whiptail"}'
-  '' + lib.optionalString (!finalAttrs.doCheck) ''
-    sed -i CMakeLists.txt -e '/add_subdirectory(tests)/d'
+      --replace-fail '/bin/whiptail' '${lib.getExe' newt "whiptail"}'
+  ''
+  + lib.optionalString (!finalAttrs.finalPackage.doCheck) ''
+    substituteInPlace CMakeLists.txt \
+      --replace-fail 'add_subdirectory(tests)' ""
   '';
 
   strictDeps = true;
@@ -58,10 +88,11 @@ stdenv.mkDerivation (finalAttrs: {
     gettext
     graphviz
     pkg-config
+    validatePkgConfig
   ];
 
   buildInputs = [
-    boost
+    boost186
     cmake-extras
     dbus-cpp
     glog
@@ -106,14 +137,17 @@ stdenv.mkDerivation (finalAttrs: {
   # Starts & talks to DBus
   enableParallelChecking = false;
 
-  passthru.tests.pkg-config = testers.testMetaPkgConfig finalAttrs.finalPackage;
+  passthru = {
+    tests.pkg-config = testers.testMetaPkgConfig finalAttrs.finalPackage;
+    updateScript = gitUpdater { };
+  };
 
-  meta = with lib; {
+  meta = {
     description = "Common implementation of a trust store to be used by trusted helpers";
     homepage = "https://gitlab.com/ubports/development/core/trust-store";
-    license = licenses.lgpl3Only;
-    maintainers = teams.lomiri.members;
-    platforms = platforms.linux;
+    license = lib.licenses.lgpl3Only;
+    teams = [ lib.teams.lomiri ];
+    platforms = lib.platforms.linux;
     pkgConfigModules = [
       "trust-store"
     ];

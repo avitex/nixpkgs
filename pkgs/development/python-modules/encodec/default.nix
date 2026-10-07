@@ -1,12 +1,13 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# dependencies
-, einops
-, numpy
-, torch-bin
-, torchaudio-bin
+  # dependencies
+  einops,
+  numpy,
+  torch,
+  torchaudio,
 }:
 
 buildPythonPackage rec {
@@ -24,8 +25,8 @@ buildPythonPackage rec {
   propagatedBuildInputs = [
     einops
     numpy
-    torch-bin
-    torchaudio-bin
+    torch
+    torchaudio
   ];
 
   pythonImportsCheck = [ "encodec" ];
@@ -33,11 +34,11 @@ buildPythonPackage rec {
   # requires model data from the internet
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "State-of-the-art deep learning based audio codec supporting both mono 24 kHz audio and stereo 48 kHz audio";
     homepage = "https://github.com/facebookresearch/encodec";
     changelog = "https://github.com/facebookresearch/encodec/blob/${src.rev}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = teams.tts.members;
+    license = lib.licenses.mit;
+    teams = [ lib.teams.tts ];
   };
 }

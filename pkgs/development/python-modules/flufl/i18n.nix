@@ -1,32 +1,44 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, atpublic
-, pdm-pep517
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  atpublic,
+  pdm-pep517,
+  pytestCheckHook,
+  pytest-cov-stub,
+  sybil,
 }:
 
 buildPythonPackage rec {
-  pname = "flufl.i18n";
+  pname = "flufl-i18n";
   version = "4.1.1";
-  format = "pyproject";
-
-  nativeBuildInputs = [ pdm-pep517 ];
-  propagatedBuildInputs = [ atpublic ];
-
-  doCheck = false;
-
-  pythonImportsCheck = [ "flufl.i18n" ];
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
+    pname = "flufl.i18n";
+    inherit version;
     hash = "sha256-wKz6aggkJ9YBJ+o75XjC4Ddnn+Zi9hlYDnliwTc7DNs=";
   };
 
-  meta = with lib; {
-    description = "A high level API for internationalizing Python libraries and applications";
+  nativeBuildInputs = [ pdm-pep517 ];
+
+  propagatedBuildInputs = [ atpublic ];
+
+  pythonImportsCheck = [ "flufl.i18n" ];
+
+  nativeCheckInputs = [
+    pytestCheckHook
+    pytest-cov-stub
+    sybil
+  ];
+
+  pythonNamespaces = [ "flufl" ];
+
+  meta = {
+    description = "High level API for internationalizing Python libraries and applications";
     homepage = "https://gitlab.com/warsaw/flufl.i18n";
     changelog = "https://gitlab.com/warsaw/flufl.i18n/-/raw/${version}/docs/NEWS.rst";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
 }

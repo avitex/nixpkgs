@@ -1,59 +1,76 @@
-{ lib
-, appdirs
-, bokeh
-, buildPythonPackage
-, dask
-, entrypoints
-, fetchFromGitHub
-, fsspec
-, hvplot
-, intake-parquet
-, jinja2
-, msgpack
-, msgpack-numpy
-, pandas
-, panel
-, pyarrow
-, pytestCheckHook
-, python-snappy
-, pythonOlder
-, pyyaml
-, requests
-, stdenv
-, tornado
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+  setuptools-scm,
+
+  # dependencies
+  dask,
+  entrypoints,
+  fsspec,
+  jinja2,
+  msgpack,
+  networkx,
+  pandas,
+  platformdirs,
+  pyyaml,
+
+  # optional-dependencies
+  # server:
+  msgpack-numpy,
+  python-snappy,
+  tornado,
+  # dataframe:
+  pyarrow,
+  # plot
+  hvplot,
+  bokeh,
+  panel,
+  # remote:
+  requests,
+
+  # tests
+  addBinToPathHook,
+  intake-parquet,
+  pytestCheckHook,
+  pythonAtLeast,
+  writableTmpDirAsHomeHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "intake";
-  version = "0.7.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.8";
+  version = "2.0.9";
+  pyproject = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "intake";
     repo = "intake";
-    rev = "refs/tags/${version}";
-    hash = "sha256-LK4abwPViEFJZ10bbRofF2aw2Mj0dliKwX6dFy93RVQ=";
+    tag = finalAttrs.version;
+    hash = "sha256-DiALGrJP4vLWygzZprjYCFM+TYtMS7NVM3+MTyjzcs0=";
   };
 
-  propagatedBuildInputs = [
-    appdirs
+  build-system = [
+    setuptools
+    setuptools-scm
+  ];
+
+  dependencies = [
     dask
     entrypoints
     fsspec
-    msgpack
     jinja2
+    msgpack
+    networkx
     pandas
+    platformdirs
     pyyaml
   ];
 
-  nativeCheckInputs = [
-    intake-parquet
-    pytestCheckHook
-  ] ++ lib.flatten (builtins.attrValues passthru.optional-dependencies);
-
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     server = [
       msgpack
       python-snappy
@@ -68,22 +85,30 @@ buildPythonPackage rec {
       bokeh
       panel
     ];
-    remote = [
-      requests
-    ];
+    remote = [ requests ];
   };
 
-  postPatch = ''
-    substituteInPlace setup.py \
-      --replace "'pytest-runner'" ""
-  '';
+  nativeCheckInputs = [
+    addBinToPathHook
+    intake-parquet
+    pytestCheckHook
+    writableTmpDirAsHomeHook
+  ]
+  ++ lib.concatAttrValues finalAttrs.passthru.optional-dependencies;
 
-  __darwinAllowLocalNetworking = true;
-
-  preCheck = ''
-    export HOME=$(mktemp -d);
-    export PATH="$PATH:$out/bin";
-  '';
+  disabledTestPaths = [
+    # Missing plusins
+    "intake/catalog/tests/test_alias.py"
+    "intake/catalog/tests/test_gui.py"
+    "intake/catalog/tests/test_local.py"
+    "intake/catalog/tests/test_reload_integration.py"
+    "intake/source/tests/test_csv.py"
+    "intake/source/tests/test_derived.py"
+    "intake/source/tests/test_npy.py"
+    "intake/source/tests/test_text.py"
+    "intake/tests/test_config.py"
+    "intake/tests/test_top_level.py"
+  ];
 
   disabledTests = [
     # Disable tests which touch network
@@ -103,37 +128,26 @@ buildPythonPackage rec {
     "test_remote_cat"
     "test_remote_env"
     # ValueError
-    "test_mlist_parameter"
-    # ImportError
-    "test_dataframe"
-    "test_ndarray"
-    "test_python"
+    "test_datasource_python_to_dask"
+    "test_catalog_passthrough"
     # Timing-based, flaky on darwin and possibly others
     "test_idle_timer"
-    # arrow-cpp-13 related
-    "test_read"
-    "test_pickle"
-    "test_read_dask"
-    "test_read_list"
-    "test_read_list_with_glob"
-    "test_to_dask"
-    "test_columns"
-    "test_df_transform"
-    "test_pipeline_apply"
-  ] ++ lib.optionals (stdenv.isDarwin && lib.versionOlder stdenv.hostPlatform.darwinMinVersion "10.13") [
-    # Flaky with older low-res mtime on darwin < 10.13 (#143987)
-    "test_second_load_timestamp"
+  ]
+  ++ lib.optionals (pythonAtLeast "3.12") [
+    # Require deprecated distutils
+    "test_which"
+    "test_load"
   ];
 
-  pythonImportsCheck = [
-    "intake"
-  ];
+  pythonImportsCheck = [ "intake" ];
 
-  meta = with lib; {
+  __darwinAllowLocalNetworking = true;
+
+  meta = {
     description = "Data load and catalog system";
     homepage = "https://github.com/ContinuumIO/intake";
-    changelog = "https://github.com/intake/intake/blob/${version}/docs/source/changelog.rst";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/intake/intake/blob/${finalAttrs.src.rev}/docs/source/changelog.rst";
+    license = lib.licenses.bsd2;
+    maintainers = [ ];
   };
-}
+})

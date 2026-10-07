@@ -1,51 +1,45 @@
-{ lib
-, stdenv
-, brotlicffi
-, buildPythonPackage
-, certifi
-, chardet
-, charset-normalizer
-, fetchPypi
-, fetchpatch
-, idna
-, pysocks
-, pytest-mock
-, pytest-xdist
-, pytestCheckHook
-, pythonOlder
-, urllib3
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  certifi,
+  chardet,
+  charset-normalizer,
+  fetchFromGitHub,
+  idna,
+  pysocks,
+  pytest-mock,
+  pytest-xdist,
+  pytestCheckHook,
+  setuptools,
+  urllib3,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "requests";
-  version = "2.31.0";
-  format = "setuptools";
+  version = "2.34.2";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  __darwinAllowLocalNetworking = true;
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-lCxadY+Y15Dq7Ropy27vx/+w0c968Fw9J5Flbb1q0eE=";
+  src = fetchFromGitHub {
+    owner = "psf";
+    repo = "requests";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-J2/sNpFUDHkNBeN7BfiMamv7YaWixZAZHxaqmPVEptc=";
   };
 
-  propagatedBuildInputs = [
-    brotlicffi
+  build-system = [ setuptools ];
+
+  dependencies = [
     certifi
     charset-normalizer
     idna
     urllib3
   ];
 
-  passthru.optional-dependencies = {
-    security = [];
-    socks = [
-      pysocks
-    ];
-    use_chardet_on_py3 = [
-      chardet
-    ];
+  optional-dependencies = {
+    security = [ ];
+    socks = [ pysocks ];
+    use_chardet_on_py3 = [ chardet ];
   };
 
   nativeCheckInputs = [
@@ -53,7 +47,7 @@ buildPythonPackage rec {
     pytest-xdist
     pytestCheckHook
   ]
-  ++ passthru.optional-dependencies.socks;
+  ++ finalAttrs.passthru.optional-dependencies.socks;
 
   disabledTests = [
     # Disable tests that require network access and use httpbin
@@ -69,26 +63,27 @@ buildPythonPackage rec {
     "test_use_proxy_from_environment"
     "TestRequests"
     "TestTimeout"
-  ] ++ lib.optionals (stdenv.isDarwin && stdenv.isAarch64) [
+  ]
+  ++ lib.optionals (stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isAarch64) [
     # Fatal Python error: Aborted
     "test_basic_response"
     "test_text_response"
   ];
 
-  disabledTestPaths = lib.optionals (stdenv.isDarwin && stdenv.isAarch64) [
+  disabledTestPaths = lib.optionals (stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isAarch64) [
     # Fatal Python error: Aborted
     "tests/test_lowlevel.py"
   ];
 
-  pythonImportsCheck = [
-    "requests"
-  ];
+  pythonImportsCheck = [ "requests" ];
 
-  meta = with lib; {
+  __darwinAllowLocalNetworking = true;
+
+  meta = {
     description = "HTTP library for Python";
     homepage = "http://docs.python-requests.org/";
-    changelog = "https://github.com/psf/requests/blob/v${version}/HISTORY.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/psf/requests/blob/${finalAttrs.src.tag}/HISTORY.md";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

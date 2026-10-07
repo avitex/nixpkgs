@@ -1,6 +1,7 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
 }:
 
 buildPythonPackage rec {
@@ -16,10 +17,9 @@ buildPythonPackage rec {
   # Disabling check because of: https://github.com/toofishes/python-pgpdump/issues/18
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "Python library for parsing PGP packets";
     homepage = "https://github.com/toofishes/python-pgpdump";
-    license = licenses.bsd3;
+    license = lib.licenses.bsd3;
   };
-
 }

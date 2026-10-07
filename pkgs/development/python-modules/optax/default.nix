@@ -1,26 +1,31 @@
-{ lib
-, absl-py
-, buildPythonPackage
-, chex
-, fetchFromGitHub
-, jaxlib
-, numpy
-, callPackage
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  flit-core,
+
+  # dependencies
+  absl-py,
+  jax,
+  jaxlib,
+  numpy,
+
+  # tests
+  callPackage,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "optax";
-  version = "0.1.7";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.2.8";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "deepmind";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-zSMJxagPe2rkhrawJ+TWXUzk6V58IY6MhWmEqLVtOoA=";
+    repo = "optax";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-dVmMacQx6V5lv0z4nWUTlekuEDqtIZlxJazAeA9UR+E=";
   };
 
   outputs = [
@@ -28,13 +33,12 @@ buildPythonPackage rec {
     "testsout"
   ];
 
-  buildInputs = [
-    jaxlib
-  ];
+  build-system = [ flit-core ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     absl-py
-    chex
+    jax
+    jaxlib
     numpy
   ];
 
@@ -43,9 +47,7 @@ buildPythonPackage rec {
     cp -R examples $testsout/examples
   '';
 
-  pythonImportsCheck = [
-    "optax"
-  ];
+  pythonImportsCheck = [ "optax" ];
 
   # check in passthru.tests.pytest to escape infinite recursion with flax
   doCheck = false;
@@ -54,11 +56,11 @@ buildPythonPackage rec {
     pytest = callPackage ./tests.nix { };
   };
 
-  meta = with lib; {
+  meta = {
     description = "Gradient processing and optimization library for JAX";
     homepage = "https://github.com/deepmind/optax";
-    changelog = "https://github.com/deepmind/optax/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ndl ];
+    changelog = "https://github.com/deepmind/optax/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ ndl ];
   };
-}
+})

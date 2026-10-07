@@ -1,8 +1,9 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, lxml
-, requests
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  lxml,
+  requests,
 }:
 
 buildPythonPackage rec {
@@ -23,10 +24,10 @@ buildPythonPackage rec {
   # requires network
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "eBay SDK for Python";
     homepage = "https://github.com/timotheus/ebaysdk-python";
-    license = licenses.cddl;
-    maintainers = [ maintainers.mkg20001 ];
+    license = lib.licenses.cddl;
+    maintainers = [ lib.maintainers.mkg20001 ];
   };
 }

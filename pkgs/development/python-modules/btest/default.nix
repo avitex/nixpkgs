@@ -1,31 +1,35 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  multiprocess,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "btest";
-  version = "1.1";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "1.3";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "zeek";
     repo = "btest";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-D01hAKcE52eKJRUh1/x5DGxRQpWgA2J0nutshpKrtRU=";
+    tag = "v${version}";
+    hash = "sha256-hd/o79GFlmSS4u1IeEkK6l+apw8pinINxPkAZUe8U9U=";
   };
+
+  build-system = [ setuptools ];
+
+  dependencies = [ multiprocess ];
 
   # No tests available and no module to import
   doCheck = false;
 
-  meta = with lib; {
-    description = "A Generic Driver for Powerful System Tests";
+  meta = {
+    description = "Generic Driver for Powerful System Tests";
     homepage = "https://github.com/zeek/btest";
-    changelog = "https://github.com/zeek/btest/blob/${version}/CHANGES";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/zeek/btest/blob/${src.tag}/CHANGES";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

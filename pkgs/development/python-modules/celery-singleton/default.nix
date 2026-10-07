@@ -1,18 +1,20 @@
-{ lib
-, buildPythonPackage
-, fetchpatch
-, fetchFromGitHub
-, poetry-core
-, celery
-, redis
-, pytestCheckHook
-, pytest-celery
+{
+  lib,
+  buildPythonPackage,
+  fetchpatch,
+  fetchFromGitHub,
+  poetry-core,
+  celery,
+  redis,
+  pytestCheckHook,
+  pytest-celery,
+  pytest-cov-stub,
 }:
 
 buildPythonPackage rec {
   pname = "celery-singleton";
   version = "0.3.1";
-  format = "pyproject";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "steinitzu";
@@ -20,13 +22,6 @@ buildPythonPackage rec {
     rev = version;
     hash = "sha256-fHlakxxjYIADELZdxIj6rvsZ/+1QfnKvAg3w5cdzvDc=";
   };
-
-  postPatch = ''
-    # Disable coverage reporting in tests
-    substituteInPlace setup.cfg \
-      --replace "--cov" "" \
-      --replace "--no-cov-on-fail" ""
-  '';
 
   patches = [
     # chore(poetry): use poetry-core
@@ -38,11 +33,9 @@ buildPythonPackage rec {
     })
   ];
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     celery
     redis
   ];
@@ -50,9 +43,10 @@ buildPythonPackage rec {
   checkInputs = [
     pytestCheckHook
     pytest-celery
+    pytest-cov-stub
   ];
 
-  pytestFlagsArray = [ "tests" ];
+  enabledTestPaths = [ "tests" ];
 
   # Tests require a running Redis backend
   disabledTests = [
@@ -66,11 +60,11 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "celery_singleton" ];
 
-  meta = with lib; {
+  meta = {
     description = "Seamlessly prevent duplicate executions of celery tasks";
     homepage = "https://github.com/steinitzu/celery-singleton";
     changelog = "https://github.com/steinitzu/celery-singleton/blob/${src.rev}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ onny ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ onny ];
   };
 }

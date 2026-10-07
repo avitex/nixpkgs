@@ -1,9 +1,9 @@
-{ lib
-, python3
-, fetchPypi
-, buildPythonPackage
-, smbus2
-, poetry-core
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  poetry-core,
+  smbus2,
 }:
 
 buildPythonPackage rec {
@@ -16,19 +16,23 @@ buildPythonPackage rec {
     hash = "sha256-NYBaCXBmuTziT0WYEqrW10HRmRy3jpjH3YWQh5Y/TdQ=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  pythonRelaxDeps = [ "smbus2" ];
 
-  propagatedBuildInputs = [
-    smbus2
-  ];
+  build-system = [ poetry-core ];
 
-  meta = with lib; {
+  dependencies = [ smbus2 ];
+
+  # Module has no tests
+  doCheck = false;
+
+  # Needs /dev/i2c-1
+  # pythonImportsCheck = [ "lcd_i2c" ];
+
+  meta = {
     description = "Library for interacting with an I2C LCD screen through Python";
     homepage = "https://pypi.org/project/lcd-i2c/";
-    license = licenses.mit;
-    maintainers = with maintainers; [ oliver-koss ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ oliver-koss ];
     mainProgram = "lcd-i2c";
   };
 }

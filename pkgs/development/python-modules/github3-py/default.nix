@@ -1,35 +1,38 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchPypi
-, requests
-, uritemplate
-, python-dateutil
-, pyjwt
-, pytestCheckHook
-, betamax
-, betamax-matchers
-, hatchling
-, fetchpatch
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  requests,
+  uritemplate,
+  python-dateutil,
+  pyjwt,
+  pytest-xdist,
+  pytestCheckHook,
+  betamax,
+  betamax-matchers,
+  hatchling,
 }:
 
-buildPythonPackage rec {
-  pname = "github3.py";
-  version = "4.0.1";
-  format = "pyproject";
+buildPythonPackage (finalAttrs: {
+  pname = "github3-py";
+  version = "4.0.1-unstable-2026-04-22";
+  pyproject = true;
 
-  disabled = pythonOlder "3.6";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-MNVxB2dT78OJ7cf5qu8zik/LJLVNiWjV85sTQvRd3TY=";
+  src = fetchFromGitHub {
+    owner = "sigmavirus24";
+    repo = "github3.py";
+    rev = "9eeac0ddb241bf3099a6c904411e3aa23b62fd0d";
+    hash = "sha256-iaI9FqsPGM5R7JGoG+qRdQygMzbYUDX28j1S/IeLfrA=";
   };
 
-  nativeBuildInputs = [
-    hatchling
+  patches = [
+    # https://github.com/sigmavirus24/github3.py/pull/1359
+    ./0001-fix-tests-with-requests-2.34.patch
   ];
 
-  propagatedBuildInputs = [
+  build-system = [ hatchling ];
+
+  dependencies = [
     pyjwt
     python-dateutil
     requests
@@ -37,34 +40,20 @@ buildPythonPackage rec {
   ]
   ++ pyjwt.optional-dependencies.crypto;
 
+  pythonImportsCheck = [ "github3" ];
+
   nativeCheckInputs = [
+    pytest-xdist
     pytestCheckHook
     betamax
     betamax-matchers
   ];
 
-  patches = [
-    (fetchpatch {
-      # disable tests with "AttributeError: 'MockHTTPResponse' object has no attribute 'close'", due to betamax
-      url = "https://github.com/sigmavirus24/github3.py/commit/9d6124c09b0997b5e83579549bcf22b3e901d7e5.patch";
-      hash = "sha256-8Z4vN7iKl/sOcEJptsH5jsqijZgvL6jS7kymZ8+m6bY=";
-    })
-  ];
-
-  # Solves "__main__.py: error: unrecognized arguments: -nauto"
-  preCheck = ''
-    rm tox.ini
-  '';
-
-  disabledTests = [
-    # FileNotFoundError: [Errno 2] No such file or directory: 'tests/id_rsa.pub'
-    "test_delete_key"
-  ];
-
-  meta = with lib; {
+  meta = {
     homepage = "https://github3py.readthedocs.org/en/master/";
-    description = "A wrapper for the GitHub API written in python";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ pSub ];
+    description = "Wrapper for the GitHub API written in python";
+    changelog = "https://github.com/sigmavirus24/github3.py/blob/${finalAttrs.version}/docs/source/release-notes/${finalAttrs.version}.rst";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ pSub ];
   };
-}
+})

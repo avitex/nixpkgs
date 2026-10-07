@@ -1,59 +1,78 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, fetchpatch
-, absl-py
-, flax
-, jaxlib
-, jmp
-, numpy
-, tabulate
-, pytest-xdist
-, pytestCheckHook
-, bsuite
-, chex
-, cloudpickle
-, dill
-, dm-env
-, dm-tree
-, optax
-, rlax
-, tensorflow
+{
+  lib,
+  buildPythonPackage,
+  pythonAtLeast,
+  fetchFromGitHub,
+  fetchpatch,
+
+  # build-system
+  setuptools,
+
+  # dependencies
+  absl-py,
+  jaxlib,
+  jmp,
+  numpy,
+  tabulate,
+
+  # optional-dependencies
+  jax,
+  flax,
+
+  # tests
+  pytest-xdist,
+  pytestCheckHook,
+  bsuite,
+  chex,
+  cloudpickle,
+  dill,
+  dm-env,
+  dm-tree,
+  optax,
+  rlax,
+  tensorflow,
 }:
 
-let dm-haiku = buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "dm-haiku";
-  version = "0.0.11";
-  format = "setuptools";
+  version = "0.0.17";
+  pyproject = true;
+  __srtructuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "deepmind";
     repo = "dm-haiku";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-xve1vNsVOC6/HVtzmzswM/Sk3uUNaTtqNAKheFb/tmI=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-CXEMEuQY6VyQ3Ahn1vYYN6slyqABSbIBeJuxJTPapvw=";
   };
 
-  patches = [
-    # https://github.com/deepmind/dm-haiku/pull/672
-    (fetchpatch {
-      name = "fix-find-namespace-packages.patch";
-      url = "https://github.com/deepmind/dm-haiku/commit/728031721f77d9aaa260bba0eddd9200d107ba5d.patch";
-      hash = "sha256-qV94TdJnphlnpbq+B0G3KTx5CFGPno+8FvHyu/aZeQE=";
-    })
-  ];
+  # https://github.com/deepmind/dm-haiku/pull/672
+  postPatch = ''
+    substituteInPlace setup.py \
+      --replace-fail \
+        "packages=find_namespace_packages(exclude=['*_test.py', 'examples'])," \
+        "packages=find_namespace_packages(exclude=['*_test.py', 'examples*', 'docs*']),"
+  '';
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     absl-py
-    flax
-    jaxlib
+    jaxlib # implicit runtime dependency
     jmp
     numpy
     tabulate
   ];
 
-  pythonImportsCheck = [
-    "haiku"
-  ];
+  optional-dependencies = {
+    jax = [
+      jax
+      jaxlib
+    ];
+    flax = [ flax ];
+  };
+
+  pythonImportsCheck = [ "haiku" ];
 
   nativeCheckInputs = [
     bsuite
@@ -61,8 +80,8 @@ let dm-haiku = buildPythonPackage rec {
     cloudpickle
     dill
     dm-env
-    dm-haiku
     dm-tree
+    flax
     jaxlib
     optax
     pytest-xdist
@@ -72,6 +91,11 @@ let dm-haiku = buildPythonPackage rec {
   ];
 
   disabledTests = [
+    # tensorflow.python.framework.errors_impl.InvalidArgumentError: Graph execution error:
+    # Cannot deserialize computation: UNKNOWN: <unknown>:0: error: loc("erf"):
+    # unregistered operation 'vhlo.composite_v2' found in dialect ('vhlo') that does not allow unknown operations
+    "JaxToTfTest"
+
     # See https://github.com/deepmind/dm-haiku/issues/366.
     "test_jit_Recurrent"
 
@@ -86,31 +110,42 @@ let dm-haiku = buildPythonPackage rec {
     # other tests to fail.
     # https://jax.readthedocs.io/en/latest/notebooks/Common_Gotchas_in_JAX.html#double-64bit-precision
     "test_doctest_haiku.experimental"
+
+    # AssertionError: 1 != 0 : 1 doctests failed
+    "test_doctest_haiku"
+
+    # ValueError: pmap wrapped function must be passed at least one argument containing an array,
+    # got empty *args=() and **kwargs={}
+    "test_equivalent_when_passing_transformed_fn2"
+
+    # AssertionError: ValueError not raised
+    "test_passing_function_to_transform_pmap_transform"
+    "test_passing_function_to_transform_pmap_transform_with_state"
   ];
 
   disabledTestPaths = [
-    # Those tests requires a more recent version of tensorflow. The current one (2.13) is not enough.
-    "haiku/_src/integration/jax2tf_test.py"
+    # Require rlax which is unavailable as its dependency tensorflow-probability is broken
+    "examples/impala/actor_test.py"
+    "examples/impala/learner_test.py"
+    "examples/impala_lite_test.py"
   ];
 
   doCheck = false;
 
   # check in passthru.tests.pytest to escape infinite recursion with bsuite
-  passthru.tests.pytest = dm-haiku.overridePythonAttrs (_: {
-    pname = "${pname}-tests";
-    doCheck = true;
+  passthru.tests.pytest = finalAttrs.finalPackage.overrideAttrs {
+    pname = "${finalAttrs.pname}-tests";
+    doInstallCheck = true;
 
-    # We don't have to install because the only purpose
-    # of this passthru test is to, well, test.
-    # This fixes having to set `catchConflicts` to false.
-    dontInstall = true;
-  });
-
-  meta = with lib; {
-    description = "Haiku is a simple neural network library for JAX developed by some of the authors of Sonnet.";
-    homepage = "https://github.com/deepmind/dm-haiku";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ndl ];
+    # This is only a test derivation; its metadata still identifies the package as "dm-haiku"
+    dontCheckPythonMetadata = true;
   };
-};
-in dm-haiku
+
+  meta = {
+    description = "Haiku is a simple neural network library for JAX developed by some of the authors of Sonnet";
+    homepage = "https://github.com/deepmind/dm-haiku";
+    changelog = "https://github.com/google-deepmind/dm-haiku/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ ndl ];
+  };
+})

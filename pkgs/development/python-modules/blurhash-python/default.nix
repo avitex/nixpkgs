@@ -1,19 +1,17 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, cffi
-, pillow
-, pytestCheckHook
-, setuptools-scm
-, six
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  cffi,
+  pillow,
+  pytestCheckHook,
+  setuptools-scm,
+  six,
 }:
 
 buildPythonPackage rec {
   pname = "blurhash-python";
   version = "1.2.2";
-
-  disabled = pythonOlder "3.8";
 
   pyproject = true;
 
@@ -37,9 +35,7 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "blurhash" ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   meta = {
     description = "Compact representation of a placeholder for an image";

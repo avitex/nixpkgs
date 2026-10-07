@@ -1,48 +1,51 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, click
-, fetchFromGitHub
-, mock
-, prettytable
-, prompt-toolkit
-, ptable
-, pygments
-, pytestCheckHook
-, pythonOlder
-, requests
-, rich
-, sphinx
-, testtools
-, tkinter
-, urllib3
-, zeep
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+
+  # dependencies
+  click,
+  prettytable,
+  prompt-toolkit,
+  pygments,
+  requests,
+  rich,
+  urllib3,
+
+  # tests
+  mock,
+  pytestCheckHook,
+  sphinx,
+  testtools,
+  tkinter,
+  writableTmpDirAsHomeHook,
+  zeep,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "softlayer";
-  version = "6.1.11";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "6.2.9";
+  pyproject = true;
 
   src = fetchFromGitHub {
-    owner = pname;
+    owner = "softlayer";
     repo = "softlayer-python";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-2iN3T58aICQlGwr10/e/mWE9pA4rbJCBTE1jTu3GeGk=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-kGgCW9N2NZi8PHcfpN+8L2bg7v1edP8ZXYaoSt9545M=";
   };
 
-  postPatch = ''
-    substituteInPlace setup.py \
-        --replace "rich ==" "rich >="
-  '';
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  pythonRelaxDeps = [ "rich" ];
+
+  dependencies = [
     click
     prettytable
     prompt-toolkit
-    ptable
     pygments
     requests
     rich
@@ -57,29 +60,35 @@ buildPythonPackage rec {
     sphinx
     testtools
     tkinter
+    writableTmpDirAsHomeHook
     zeep
   ];
 
-  # Otherwise soap_tests.py will fail to create directory
-  # Permission denied: '/homeless-shelter'
-  preCheck = ''
-    export HOME=$(mktemp -d)
-  '';
-
   disabledTestPaths = [
+    # SoftLayer.exceptions.TransportError: TransportError(0): ('Connection aborted.', ConnectionResetError(54, 'Connection reset by peer'))
+    "tests/CLI/modules/hardware/hardware_basic_tests.py::HardwareCLITests"
+
+    # SystemExit: 1 (or 2)
+    "tests/CLI/modules/hardware/hardware_list_tests.py::HardwareListCLITests"
+    "tests/CLI/modules/vs/vs_create_tests.py::VirtCreateTests"
+    "tests/CLI/modules/vs/vs_tests.py::VirtTests"
+
     # Test fails with ConnectionError trying to connect to api.softlayer.com
     "tests/transports/soap_tests.py.unstable"
   ];
 
-  pythonImportsCheck = [
-    "SoftLayer"
+  disabledTests = [
+    # AssertionError
+    "test_cf_call_large_dataset"
   ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "SoftLayer" ];
+
+  meta = {
     description = "Python libraries that assist in calling the SoftLayer API";
     homepage = "https://github.com/softlayer/softlayer-python";
-    changelog = "https://github.com/softlayer/softlayer-python/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ onny ];
+    changelog = "https://github.com/softlayer/softlayer-python/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ onny ];
   };
-}
+})

@@ -1,56 +1,47 @@
-{ lib
-, bluetooth-data-tools
-, bluetooth-sensor-state-data
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, pytestCheckHook
-, pythonOlder
-, sensor-state-data
+{
+  lib,
+  bluetooth-data-tools,
+  bluetooth-sensor-state-data,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  pytest-cov-stub,
+  pytestCheckHook,
+  sensor-state-data,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "qingping-ble";
-  version = "0.10.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.9";
+  version = "1.2.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "bluetooth-devices";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-5w3KGJLdHFv6kURKTz3YImZNjaETiVqbbJTJpBSLSo8=";
+    repo = "qingping-ble";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-gsoD9BtVMX+qQTsgA1iqKKjg01ebfcfBjgJFRCkX19A=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     bluetooth-data-tools
     bluetooth-sensor-state-data
     sensor-state-data
   ];
 
   nativeCheckInputs = [
+    pytest-cov-stub
     pytestCheckHook
   ];
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace " --cov=qingping_ble --cov-report=term-missing:skip-covered" ""
-  '';
+  pythonImportsCheck = [ "qingping_ble" ];
 
-  pythonImportsCheck = [
-    "qingping_ble"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Library for Qingping BLE devices";
     homepage = "https://github.com/bluetooth-devices/qingping-ble";
-    changelog = "https://github.com/Bluetooth-Devices/qingping-ble/blob/v${version}/CHANGELOG.md";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/Bluetooth-Devices/qingping-ble/blob/v${finalAttrs.version}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

@@ -1,17 +1,18 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, six
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  six,
 }:
 
-buildPythonPackage rec{
+buildPythonPackage rec {
   pname = "riprova";
   version = "0.3.1";
   format = "setuptools";
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-FgFySbvBjcZU2bjo40/1O7glc6oFWW05jinEOfMWMVI=";
+    hash = "sha256-FgFySbvBjcZU2bjo40/1O7glc6oFWW05jinEOfMWMVI=";
   };
 
   propagatedBuildInputs = [ six ];
@@ -21,10 +22,10 @@ buildPythonPackage rec{
 
   pythonImportsCheck = [ "riprova" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/h2non/riprova";
     description = "Small and versatile library to retry failed operations using different backoff strategies";
-    license = licenses.mit;
-    maintainers = with maintainers; [ mmilata ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ mmilata ];
   };
 }

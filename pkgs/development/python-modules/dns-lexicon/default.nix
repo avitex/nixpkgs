@@ -1,23 +1,22 @@
-{ lib
-, beautifulsoup4
-, boto3
-, buildPythonPackage
-, cryptography
-, dnspython
-, fetchFromGitHub
-, importlib-metadata
-, localzone
-, oci
-, poetry-core
-, pyotp
-, pytest-vcr
-, pytestCheckHook
-, pythonOlder
-, pyyaml
-, requests
-, softlayer
-, tldextract
-, zeep
+{
+  lib,
+  beautifulsoup4,
+  boto3,
+  buildPythonPackage,
+  cryptography,
+  dnspython,
+  fetchFromGitHub,
+  localzone,
+  oci,
+  poetry-core,
+  pyotp,
+  pytest-vcr,
+  pytestCheckHook,
+  pyyaml,
+  requests,
+  softlayer,
+  tldextract,
+  zeep,
 }:
 
 buildPythonPackage rec {
@@ -25,18 +24,22 @@ buildPythonPackage rec {
   version = "3.16.1";
   pyproject = true;
 
-  disabled = pythonOlder "3.8";
-
   src = fetchFromGitHub {
     owner = "Analogj";
     repo = "lexicon";
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     hash = "sha256-79/zz0TOCpx26TEo6gi9JDBQeVW2azWnxAjWr/FGRLA=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  # https://beautiful-soup-4.readthedocs.io/en/latest/#method-names
+  postPatch = ''
+    sed 's/\<findAll\>/find_all/g' \
+      -i src/lexicon/_private/providers/*.py
+    sed 's/\<renderContents\>/encode_contents/g' \
+      -i src/lexicon/_private/providers/*.py
+  '';
+
+  nativeBuildInputs = [ poetry-core ];
 
   propagatedBuildInputs = [
     beautifulsoup4
@@ -45,29 +48,15 @@ buildPythonPackage rec {
     pyyaml
     requests
     tldextract
-  ] ++ lib.optionals (pythonOlder "3.10") [
-    importlib-metadata
   ];
 
-  passthru.optional-dependencies = {
-    route53 = [
-      boto3
-    ];
-    localzone = [
-      localzone
-    ];
-    softlayer = [
-      softlayer
-    ];
-    ddns = [
-      dnspython
-    ];
-    duckdns = [
-      dnspython
-    ];
-    oci = [
-      oci
-    ];
+  optional-dependencies = {
+    route53 = [ boto3 ];
+    localzone = [ localzone ];
+    softlayer = [ softlayer ];
+    ddns = [ dnspython ];
+    duckdns = [ dnspython ];
+    oci = [ oci ];
     full = [
       boto3
       dnspython
@@ -81,11 +70,10 @@ buildPythonPackage rec {
   nativeCheckInputs = [
     pytestCheckHook
     pytest-vcr
-  ] ++ passthru.optional-dependencies.full;
+  ]
+  ++ optional-dependencies.full;
 
-  pytestFlagsArray = [
-    "tests/"
-  ];
+  enabledTestPaths = [ "tests/" ];
 
   disabledTestPaths = [
     # Needs network access
@@ -104,15 +92,14 @@ buildPythonPackage rec {
     "action_is_correctly"
   ];
 
-  pythonImportsCheck = [
-    "lexicon"
-  ];
+  pythonImportsCheck = [ "lexicon" ];
 
-  meta = with lib; {
+  meta = {
     description = "Manipulate DNS records on various DNS providers in a standardized way";
+    mainProgram = "lexicon";
     homepage = "https://github.com/AnalogJ/lexicon";
     changelog = "https://github.com/AnalogJ/lexicon/blob/v${version}/CHANGELOG.md";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ aviallon ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ aviallon ];
   };
 }

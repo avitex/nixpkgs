@@ -1,37 +1,34 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, pyusb
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  pyusb,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "temperusb";
   version = "1.6.1";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
+    inherit (finalAttrs) pname version;
     hash = "sha256-PwKHT1zzVn+nmxO/R+aK+029WaaHBo7FyVV4eQtHhbM=";
   };
 
-  propagatedBuildInputs = [
-    pyusb
-  ];
+  build-system = [ setuptools ];
 
-  # Module has no tests which are shipped and source is not tagged
-  doCheck = false;
+  dependencies = [ pyusb ];
 
-  pythonImportsCheck = [
-    "temperusb"
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "temperusb" ];
+
+  meta = {
     description = "Library to read TEMPer USB HID devices";
     homepage = "https://github.com/padelt/temper-python";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.gpl3Only;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

@@ -1,51 +1,46 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, httpx
-, poetry-core
-, pytest-asyncio
-, pytest-httpx
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  httpx,
+  poetry-core,
+  pytest-asyncio,
+  pytest-httpx,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "notifications-android-tv";
-  version = "1.0.0";
-  format = "pyproject";
-  disabled = pythonOlder "3.8";
+  version = "1.2.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "engrbm87";
     repo = "notifications_android_tv";
-    rev = version;
-    hash = "sha256-Xr+d2uYzgFp/Fb00ymov02+GYnwjGc3FbJ/rIvQXzCE=";
+    tag = version;
+    hash = "sha256-JUvxxVCiQtywAWU5AYnPm4SueIWIXkzLxPYveVXpc2E=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  pythonRelaxDeps = [ "httpx" ];
 
-  propagatedBuildInputs = [
-    httpx
-  ];
+  nativeBuildInputs = [ poetry-core ];
+
+  propagatedBuildInputs = [ httpx ];
 
   pythonImportsCheck = [ "notifications_android_tv" ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   checkInputs = [
     pytest-asyncio
     pytest-httpx
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Python API for sending notifications to Android/Fire TVs";
     homepage = "https://github.com/engrbm87/notifications_android_tv";
     changelog = "https://github.com/engrbm87/notifications_android_tv/blob/${version}/CHANGES.rst";
-    license = licenses.mit;
-    maintainers = with maintainers; [ dominikh ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ dominikh ];
   };
 }

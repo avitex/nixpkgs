@@ -1,39 +1,42 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, mock
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  mock,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "python-decouple";
   version = "3.8";
-  format = "setuptools";
+  pyproject = true;
 
-  disabled = pythonOlder "3.8";
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "HBNetwork";
-    repo = pname;
-    rev = "refs/tags/v${version}";
+    repo = "python-decouple";
+    tag = "v${finalAttrs.version}";
     hash = "sha256-F9Gu7Y/dJhwOJi/ZaoVclF3+4U/N5JdvpXwgGB3SF3Q=";
   };
+
+  build-system = [
+    setuptools
+  ];
 
   nativeCheckInputs = [
     mock
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "decouple"
-  ];
+  pythonImportsCheck = [ "decouple" ];
 
-  meta = with lib; {
-    description = "Module to handle code and condifuration";
+  meta = {
+    description = "Module to handle code and configuration";
     homepage = "https://github.com/HBNetwork/python-decouple";
-    changelog = "https://github.com/HBNetwork/python-decouple/blob/v${version}/CHANGELOG.md";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/HBNetwork/python-decouple/blob/v${finalAttrs.version}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

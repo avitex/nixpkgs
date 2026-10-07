@@ -1,32 +1,28 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, alembic
-, flask
-, flask-script
-, flask-sqlalchemy
-, pytestCheckHook
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  alembic,
+  flask,
+  flask-script,
+  flask-sqlalchemy,
+  pytestCheckHook,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "flask-migrate";
-  version = "4.0.5";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "4.1.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "miguelgrinberg";
     repo = "Flask-Migrate";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-fdnoX7ypTpH2mQ+7Xuhzdh706Of7PIVhHQGVbe0jv1s=";
+    tag = "v${version}";
+    hash = "sha256-7xQu0Y6aM9WWuH2ImuaopbBS2jE9pVChekVp7SEMHCc=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
   propagatedBuildInputs = [
     alembic
@@ -34,19 +30,17 @@ buildPythonPackage rec {
     flask-sqlalchemy
   ];
 
-  pythonImportsCheck = [
-    "flask_migrate"
-  ];
+  pythonImportsCheck = [ "flask_migrate" ];
 
   nativeCheckInputs = [
     pytestCheckHook
     flask-script
   ];
 
-  meta = with lib; {
+  meta = {
     description = "SQLAlchemy database migrations for Flask applications using Alembic";
     homepage = "https://github.com/miguelgrinberg/Flask-Migrate";
-    license = licenses.mit;
-    maintainers = with maintainers; [ gador ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ gador ];
   };
 }

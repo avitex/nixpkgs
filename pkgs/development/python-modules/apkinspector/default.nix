@@ -1,39 +1,35 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, poetry-core
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "apkinspector";
-  version = "1.2.1";
+  version = "1.3.7";
   pyproject = true;
 
-  disabled = pythonOlder "3.8";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-bB/WeCRnYOdfg4bm9Nloa2QMxr2IJW8IZd+svUno4N0=";
+  src = fetchFromGitHub {
+    owner = "erev0s";
+    repo = "apkInspector";
+    tag = "v${version}";
+    hash = "sha256-6efXoiyjTEzadZ5aut4lFbjth03Uyw8REIYQYjvWS/c=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ poetry-core ];
 
-  # Tests are not available
-  # https://github.com/erev0s/apkInspector/issues/21
-  doCheck = false;
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "apkInspector"
-  ];
+  pythonImportsCheck = [ "apkInspector" ];
 
-  meta = with lib; {
+  meta = {
     description = "Module designed to provide detailed insights into the zip structure of APK files";
     homepage = "https://github.com/erev0s/apkInspector";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/erev0s/apkInspector/releases/tag/${src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
+    mainProgram = "apkInspector";
   };
 }

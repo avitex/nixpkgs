@@ -1,12 +1,13 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, celery
-, humanize
-, pytz
-, tornado
-, prometheus-client
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  celery,
+  humanize,
+  pytz,
+  tornado,
+  prometheus-client,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
@@ -16,7 +17,7 @@ buildPythonPackage rec {
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-WrcXuXlTB3DBavtItQ0qmNI8Pp/jmFHc9rxNAYRaAqA=";
+    hash = "sha256-WrcXuXlTB3DBavtItQ0qmNI8Pp/jmFHc9rxNAYRaAqA=";
   };
 
   postPatch = ''
@@ -35,18 +36,14 @@ buildPythonPackage rec {
 
   __darwinAllowLocalNetworking = true;
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "flower"
-  ];
+  pythonImportsCheck = [ "flower" ];
 
-  meta = with lib; {
+  meta = {
     description = "Real-time monitor and web admin for Celery distributed task queue";
     homepage = "https://github.com/mher/flower";
-    license = licenses.bsdOriginal;
-    maintainers = with maintainers; [ arnoldfarkas ];
+    license = lib.licenses.bsdOriginal;
+    maintainers = [ ];
   };
 }

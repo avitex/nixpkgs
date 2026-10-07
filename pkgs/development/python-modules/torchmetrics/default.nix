@@ -1,67 +1,64 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, numpy
-, lightning-utilities
-, cloudpickle
-, scikit-learn
-, scikit-image
-, packaging
-, psutil
-, py-deprecate
-, torch
-, pytestCheckHook
-, torchmetrics
-, pytorch-lightning
-, pytest-doctestplus
-, pytest-xdist
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # dependencies
+  numpy,
+  lightning-utilities,
+  packaging,
+
+  # buildInputs
+  torch,
+
+  # tests
+  ipython,
+  pytestCheckHook,
+  pytest-doctestplus,
+  pytest-xdist,
+  pytorch-lightning,
+  scikit-image,
+  transformers,
+
+  # passthru
+  torchmetrics,
 }:
 
-let
+buildPythonPackage (finalAttrs: {
   pname = "torchmetrics";
-  version = "1.3.0.post";
-in
-buildPythonPackage {
-  inherit pname version;
+  version = "1.9.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "Lightning-AI";
     repo = "torchmetrics";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-InwXOeQ/u7sdq/+gjm0CSCiuB/9YXP+rPVbvOSH16Dk=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-jlIZQWu0lE37Gv0Rzmgm+kG3dEeT1p3pKdXzkUgq3Rw=";
   };
 
-  propagatedBuildInputs = [
+  dependencies = [
     numpy
     lightning-utilities
     packaging
-    py-deprecate
   ];
 
   # Let the user bring their own instance
-  buildInputs = [
-    torch
-  ];
+  buildInputs = [ torch ];
 
   nativeCheckInputs = [
-    pytorch-lightning
-    scikit-learn
-    scikit-image
-    cloudpickle
-    psutil
+    ipython
     pytestCheckHook
     pytest-doctestplus
     pytest-xdist
+    pytorch-lightning
+    scikit-image
+    transformers
   ];
 
   # A cyclic dependency in: integrations/test_lightning.py
   doCheck = false;
   passthru.tests.check = torchmetrics.overridePythonAttrs (_: {
-    pname = "${pname}-check";
+    pname = "${finalAttrs.pname}-check";
     doCheck = true;
     # We don't have to install because the only purpose
     # of this passthru test is to, well, test.
@@ -69,9 +66,9 @@ buildPythonPackage {
     dontInstall = true;
   });
 
-  disabledTests = [
-    # `IndexError: list index out of range`
-    "test_metric_lightning_log"
+  pytestFlags = [
+    # The (path: py.path.local) argument is deprecated, please use (file_path: pathlib.Path)
+    "-Wignore::pytest.PytestRemovedIn9Warning"
   ];
 
   disabledTestPaths = [
@@ -79,21 +76,27 @@ buildPythonPackage {
     # Also too cross-dependent
     "tests/unittests"
 
+    # AttributeError: partially initialized module 'pesq' has no attribute 'pesq' (most likely due to a circular import)
+    "examples/audio/pesq.py"
+
+    # Require internet access
+    "examples/audio/text_to_speech.py"
+    "examples/image/clip_score.py"
+    "examples/text/bertscore.py"
+    "examples/text/perplexity.py"
+    "examples/text/rouge.py"
+
     # A trillion import path mismatch errors
     "src/torchmetrics"
   ];
 
-  pythonImportsCheck = [
-    "torchmetrics"
-  ];
+  pythonImportsCheck = [ "torchmetrics" ];
 
-  meta = with lib; {
+  meta = {
     description = "Machine learning metrics for distributed, scalable PyTorch applications (used in pytorch-lightning)";
     homepage = "https://lightning.ai/docs/torchmetrics/";
-    changelog = "https://github.com/Lightning-AI/torchmetrics/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [
-      SomeoneSerge
-    ];
+    changelog = "https://github.com/Lightning-AI/torchmetrics/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ SomeoneSerge ];
   };
-}
+})

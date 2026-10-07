@@ -1,38 +1,37 @@
-{ lib
-, buildPythonPackage
-, decorator
-, fetchFromGitHub
-, jinja2
-, jsonschema
-, mypy
-, packaging
-, pytest
-, pytestCheckHook
-, pythonOlder
-, pyyaml
-, regex
-, tomlkit
+{
+  lib,
+  buildPythonPackage,
+  decorator,
+  fetchFromGitHub,
+  jinja2,
+  jsonschema,
+  mypy,
+  packaging,
+  pytest,
+  pytestCheckHook,
+  pyyaml,
+  regex,
+  setuptools,
+  tomlkit,
 }:
 
 buildPythonPackage rec {
   pname = "pytest-mypy-plugins";
-  version = "3.0.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "4.0.3";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "typeddjango";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-kIA2tVOsKsav4tRqZiWCMcRgbRnxAEo7SpmxC2pt9B0=";
+    repo = "pytest-mypy-plugins";
+    tag = version;
+    hash = "sha256-RyHoZniVLtunqz42tuVeAoiUm/e5JvvwX2MMCAJBhy8=";
   };
 
-  buildInputs = [
-    pytest
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  buildInputs = [ pytest ];
+
+  dependencies = [
     decorator
     jinja2
     jsonschema
@@ -43,9 +42,7 @@ buildPythonPackage rec {
     tomlkit
   ];
 
-  pythonImportsCheck = [
-    "pytest_mypy_plugins"
-  ];
+  pythonImportsCheck = [ "pytest_mypy_plugins" ];
 
   nativeCheckInputs = [
     mypy
@@ -56,15 +53,14 @@ buildPythonPackage rec {
     export PATH="$PATH:$out/bin";
   '';
 
-  disabledTestPaths = [
-    "pytest_mypy_plugins/tests/test_explicit_configs.py"
-  ];
+  disabledTestPaths = [ "pytest_mypy_plugins/tests/test_explicit_configs.py" ];
+  disabledTests = [ "test_no_silence_site_packages" ];
 
-  meta = with lib; {
+  meta = {
     description = "Pytest plugin for testing mypy types, stubs, and plugins";
     homepage = "https://github.com/TypedDjango/pytest-mypy-plugins";
     changelog = "https://github.com/typeddjango/pytest-mypy-plugins/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ SomeoneSerge ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ SomeoneSerge ];
   };
 }

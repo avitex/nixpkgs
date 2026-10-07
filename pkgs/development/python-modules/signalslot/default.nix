@@ -1,43 +1,40 @@
-{ stdenv
-, lib
-, buildPythonPackage
-, fetchPypi
-, pythonRelaxDepsHook
-, contexter
-, eventlet
-, mock
-, pytest-xdist
-, pytestCheckHook
-, six
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  contexter,
+  eventlet,
+  mock,
+  pytest-xdist,
+  pytestCheckHook,
+  six,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "signalslot";
   version = "0.2.0";
-  format = "setuptools";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
+    pname = "signalslot";
+    inherit (finalAttrs) version;
     hash = "sha256-ZNodibNGfCOa8xd3myN+cRa28rY3/ynNUia1kwjTIOU=";
   };
 
   postPatch = ''
     substituteInPlace setup.cfg \
-      --replace "--pep8 --cov" "" \
-      --replace "--cov-report html" ""
+      --replace-fail "--pep8 --cov" "" \
+      --replace-fail "--cov-report html" ""
   '';
 
-  nativeBuildInputs = [
-    pythonRelaxDepsHook
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     contexter
     six
-  ];
-
-  pythonRemoveDeps = [
-    "weakrefmethod" # needed until https://github.com/Numergy/signalslot/pull/17
   ];
 
   nativeCheckInputs = [
@@ -49,10 +46,10 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "signalslot" ];
 
-  meta = with lib; {
+  meta = {
     description = "Simple Signal/Slot implementation";
     homepage = "https://github.com/numergy/signalslot";
-    license = licenses.mit;
-    maintainers = with maintainers; [ myaats ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ myaats ];
   };
-}
+})

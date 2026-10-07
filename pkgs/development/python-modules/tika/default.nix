@@ -1,30 +1,46 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pyyaml
-, requests
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  pyyaml,
+  requests,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "tika";
-  version = "2.6.0";
-  format = "setuptools";
+  version = "3.1.0";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-VmcOuBKUTrJe1z8bOwdapB56E1t0skCCLyi4GeWzc9o=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-TDpATD2EZDfJQtam/Xtx1QKFaQ+uVImqim8A/5zND8c=";
   };
 
-  propagatedBuildInputs = [ pyyaml requests ];
+  build-system = [ setuptools ];
 
-  # Requires network
-  doCheck = false;
-  pythonImportsCheck = [ pname ];
+  dependencies = [
+    pyyaml
+    requests
+  ];
 
-  meta = with lib; {
-    description = "A Python binding to the Apache Tika™ REST services";
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  # Only test that does not require network
+  enabledTestPaths = [
+    "tika/tests/test_from_file_service.py::CreateTest::test_remote_endpoint"
+  ];
+
+  pythonImportsCheck = [ "tika" ];
+
+  meta = {
+    description = "Python binding to the Apache Tika™ REST services";
+    mainProgram = "tika-python";
     homepage = "https://github.com/chrismattmann/tika-python";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ Flakebi ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ Flakebi ];
   };
-}
+})

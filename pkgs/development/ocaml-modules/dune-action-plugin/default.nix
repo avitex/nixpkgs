@@ -1,23 +1,28 @@
-{ lib, buildDunePackage, dune_3, dune-glob, dune-private-libs, dune-rpc }:
+{
+  lib,
+  buildDunePackage,
+  dune,
+  dune-glob,
+  dune-private-libs,
+  dune-rpc,
+}:
 
-buildDunePackage rec {
+buildDunePackage {
   pname = "dune-action-plugin";
-  inherit (dune_3) src version;
-
-  duneVersion = "3";
+  inherit (dune) src version;
 
   dontAddPrefix = true;
 
-  propagatedBuildInputs = [ dune-glob dune-private-libs dune-rpc ];
+  propagatedBuildInputs = [
+    dune-glob
+    dune-private-libs
+    dune-rpc
+  ];
 
-  preBuild = ''
-    rm -r vendor/csexp
-  '';
-
-  meta = with lib; {
-    inherit (dune_3.meta) homepage;
+  meta = {
+    inherit (dune.meta) homepage;
     description = "API for writing dynamic Dune actions";
-    maintainers = [ maintainers.marsam ];
-    license = licenses.mit;
+    maintainers = [ ];
+    license = lib.licenses.mit;
   };
 }

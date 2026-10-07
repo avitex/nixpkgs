@@ -1,43 +1,43 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, termcolor
-, pytest
-, packaging
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  termcolor,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "pytest-sugar";
-  version = "0.9.7";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "1.1.1";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-8edMGr+lX3JBz3CIAytuN4Vm8WuTjz8IkF4s9ElO3UY=";
+    hash = "sha256-c7i2UWPr8Q+fZx76ue7T1W8g0spovag/pkdAqSwI9l0=";
   };
 
-  buildInputs = [
-    pytest
+  postPatch = ''
+    # pytest 9 compat
+    substituteInPlace test_sugar.py \
+      --replace-fail "startdir" "start_path"
+  '';
+
+  build-system = [
+    setuptools
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     termcolor
-    packaging
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  meta = with lib; {
-    description = "A plugin that changes the default look and feel of pytest";
+  meta = {
+    description = "Plugin that changes the default look and feel of pytest";
     homepage = "https://github.com/Frozenball/pytest-sugar";
     changelog = "https://github.com/Teemu/pytest-sugar/releases/tag/v${version}";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
 }

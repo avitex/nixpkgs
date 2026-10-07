@@ -1,46 +1,42 @@
-{ lib
-, buildPythonPackage
-, ddt
-, fetchFromGitHub
-, importlib-metadata
-, jsonschema
-, license-expression
-, lxml
-, packageurl-python
-, py-serializable
-, pythonRelaxDepsHook
-, poetry-core
-, pytestCheckHook
-, pythonOlder
-, requirements-parser
-, sortedcontainers
-, setuptools
-, toml
-, types-setuptools
-, types-toml
-, xmldiff
+{
+  lib,
+  buildPythonPackage,
+  ddt,
+  fetchFromGitHub,
+  importlib-metadata,
+  jsonschema,
+  license-expression,
+  lxml,
+  packageurl-python,
+  py-serializable,
+  poetry-core,
+  pytestCheckHook,
+  requirements-parser,
+  sortedcontainers,
+  setuptools,
+  toml,
+  types-setuptools,
+  types-toml,
+  xmldiff,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "cyclonedx-python-lib";
-  version = "6.4.0";
+  version = "11.12.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
     owner = "CycloneDX";
     repo = "cyclonedx-python-lib";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-WPXhla5VGyexZPxq9R86G9CNWuGyn79H+lPDCmWitN0=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-wkESW3xK0h9tlUDNmOgNMxIlA/PKEoPn6JqhDou408c=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-    pythonRelaxDepsHook
-  ];
+  pythonRelaxDeps = [ "py-serializable" ];
 
-  propagatedBuildInputs = [
+  build-system = [ poetry-core ];
+
+  dependencies = [
     importlib-metadata
     license-expression
     packageurl-python
@@ -53,29 +49,29 @@ buildPythonPackage rec {
     types-toml
   ];
 
+  optional-dependencies = {
+    validation = [
+      jsonschema
+      lxml
+    ];
+    json-validation = [ jsonschema ];
+    xml-validation = [ lxml ];
+  };
+
   nativeCheckInputs = [
     ddt
-    jsonschema
-    lxml
     pytestCheckHook
     xmldiff
-  ];
+  ]
+  ++ lib.flatten (builtins.attrValues finalAttrs.passthru.optional-dependencies);
 
-  pythonImportsCheck = [
-    "cyclonedx"
-  ];
-
-  pythonRelaxDeps = [
-    "py-serializable"
-  ];
+  pythonImportsCheck = [ "cyclonedx" ];
 
   preCheck = ''
     export PYTHONPATH=tests''${PYTHONPATH+:$PYTHONPATH}
   '';
 
-  pytestFlagsArray = [
-    "tests/"
-  ];
+  enabledTestPaths = [ "tests/" ];
 
   disabledTests = [
     # These tests require network access
@@ -90,11 +86,11 @@ buildPythonPackage rec {
     "tests/test_output_xml.py"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Python library for generating CycloneDX SBOMs";
     homepage = "https://github.com/CycloneDX/cyclonedx-python-lib";
-    changelog = "https://github.com/CycloneDX/cyclonedx-python-lib/releases/tag/v${version}";
-    license = with licenses; [ asl20 ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/CycloneDX/cyclonedx-python-lib/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

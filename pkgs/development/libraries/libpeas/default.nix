@@ -1,36 +1,40 @@
-{ stdenv
-, lib
-, fetchurl
-, substituteAll
-, meson
-, ninja
-, pkg-config
-, gettext
-, gi-docgen
-, gnome
-, glib
-, gtk3
-, gobject-introspection
-, python3
-, ncurses
-, wrapGAppsHook
+{
+  stdenv,
+  lib,
+  fetchurl,
+  replaceVars,
+  meson,
+  ninja,
+  pkg-config,
+  gettext,
+  gi-docgen,
+  gnome,
+  glib,
+  gtk3,
+  gobject-introspection,
+  python3,
+  ncurses,
+  wrapGAppsHook3,
 }:
 
 stdenv.mkDerivation rec {
   pname = "libpeas";
-  version = "1.36.0";
+  version = "1.38.1";
 
-  outputs = [ "out" "dev" "devdoc" ];
+  outputs = [
+    "out"
+    "dev"
+    "devdoc"
+  ];
 
   src = fetchurl {
-    url = "mirror://gnome/sources/${pname}/${lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
-    sha256 = "KXy5wszNjoYXYj0aPoQVtFMLjlqJPjUnu/0e3RMje0w=";
+    url = "mirror://gnome/sources/libpeas/${lib.versions.majorMinor version}/libpeas-${version}.tar.xz";
+    sha256 = "sha256-6C/TKK3KwaujS2QTa9/Lus8rMliovE5fSApyUCphGuk=";
   };
 
   patches = [
     # Make PyGObject’s gi library available.
-    (substituteAll {
-      src = ./fix-paths.patch;
+    (replaceVars ./fix-paths.patch {
       pythonPaths = lib.concatMapStringsSep ", " (pkg: "'${pkg}/${python3.sitePackages}'") [
         python3.pkgs.pygobject3
       ];
@@ -48,7 +52,7 @@ stdenv.mkDerivation rec {
     gettext
     gi-docgen
     gobject-introspection
-    wrapGAppsHook
+    wrapGAppsHook3
   ];
 
   buildInputs = [
@@ -75,17 +79,18 @@ stdenv.mkDerivation rec {
 
   passthru = {
     updateScript = gnome.updateScript {
-      packageName = pname;
+      packageName = "libpeas";
       versionPolicy = "odd-unstable";
       freeze = true;
     };
   };
 
-  meta = with lib; {
-    description = "A GObject-based plugins engine";
-    homepage = "https://wiki.gnome.org/Projects/Libpeas";
-    license = licenses.gpl2Plus;
-    platforms = platforms.unix;
-    maintainers = teams.gnome.members;
+  meta = {
+    description = "GObject-based plugins engine";
+    mainProgram = "peas-demo";
+    homepage = "https://gitlab.gnome.org/GNOME/libpeas";
+    license = lib.licenses.gpl2Plus;
+    platforms = lib.platforms.unix;
+    teams = [ lib.teams.gnome ];
   };
 }

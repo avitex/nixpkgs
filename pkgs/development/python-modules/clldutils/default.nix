@@ -1,44 +1,42 @@
-{ lib
-, attrs
-, buildPythonPackage
-, colorlog
-, csvw
-, fetchFromGitHub
-, git
-, isPy27
-, lxml
-, markdown
-, markupsafe
-, mock
-, postgresql
-, pylatexenc
-, pytest-mock
-, pytestCheckHook
-, python-dateutil
-, tabulate
+{
+  lib,
+  attrs,
+  buildPythonPackage,
+  colorlog,
+  fetchFromGitHub,
+  bibtexparser,
+  git,
+  lxml,
+  markdown,
+  markupsafe,
+  postgresql,
+  pylatexenc,
+  pytest-cov-stub,
+  pytest-mock,
+  pytestCheckHook,
+  python-dateutil,
+  setuptools,
+  tabulate,
 }:
 
 buildPythonPackage rec {
   pname = "clldutils";
-  version = "3.19.0";
-  format = "setuptools";
-  disabled = isPy27;
+  version = "3.24.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "clld";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-dva0lbbTxvETDPkACxpI3PPzWh5gz87Fv6W3lTjNv3Q=";
+    repo = "clldutils";
+    tag = "v${version}";
+    hash = "sha256-xIs6Lq9iDdcM3j51F27x408oUldvy5nlvVdbrAS5Jz0=";
   };
 
-  patchPhase = ''
-    substituteInPlace setup.cfg --replace "--cov" ""
-  '';
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     attrs
+    bibtexparser
     colorlog
-    csvw
     lxml
     markdown
     markupsafe
@@ -48,23 +46,18 @@ buildPythonPackage rec {
   ];
 
   nativeCheckInputs = [
-    mock
     postgresql
+    pytest-cov-stub
     pytest-mock
     pytestCheckHook
     git
   ];
 
-  disabledTests = [
-    # uses pytest.approx which is not supported in a boolean context in pytest7
-    "test_to_dec"
-    "test_roundtrip"
-  ];
-
-  meta = with lib; {
+  meta = {
+    broken = lib.versionOlder bibtexparser.version "2";
+    changelog = "https://github.com/clld/clldutils/blob/${src.tag}/CHANGES.md";
     description = "Utilities for clld apps without the overhead of requiring pyramid, rdflib et al";
     homepage = "https://github.com/clld/clldutils";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ melling ];
+    license = lib.licenses.asl20;
   };
 }

@@ -1,9 +1,10 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, fetchpatch2
-, setuptools
-, packaging
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  fetchpatch2,
+  setuptools,
+  packaging,
 }:
 
 buildPythonPackage rec {
@@ -26,23 +27,19 @@ buildPythonPackage rec {
     })
   ];
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
-  propagatedBuildInputs = [
-    packaging
-  ];
+  propagatedBuildInputs = [ packaging ];
 
   # no tests implemented
   doCheck = false;
 
   pythonImportsCheck = [ "asterisk_mbox" ];
 
-  meta = with lib; {
-    description = "The client side of a client/server to interact with Asterisk voicemail mailboxes";
+  meta = {
+    description = "Client side of a client/server to interact with Asterisk voicemail mailboxes";
     homepage = "https://github.com/PhracturedBlue/asterisk_mbox";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ dotlambda ];
+    license = lib.licenses.gpl3Only;
+    maintainers = with lib.maintainers; [ dotlambda ];
   };
 }

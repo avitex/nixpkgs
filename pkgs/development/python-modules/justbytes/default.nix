@@ -1,30 +1,42 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, justbases
-, unittestCheckHook
-, hypothesis
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  justbases,
+  pytestCheckHook,
+  hypothesis,
 }:
 
 buildPythonPackage rec {
   pname = "justbytes";
-  version = "0.15.2";
-  format = "setuptools";
+  version = "0.15.3";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "mulkieran";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-+jwIK1ZU+j58VoOfZAm7GdFy7KHU28khwzxhYhcws74=";
+    repo = "justbytes";
+    tag = "v${version}";
+    hash = "sha256-Ardkinh5l0ud57MWLc+ii0xPwo1MgXIioYDrr8jC0ds=";
   };
 
-  propagatedBuildInputs = [ justbases ];
-  nativeCheckInputs = [ unittestCheckHook hypothesis ];
+  build-system = [
+    setuptools
+  ];
 
-  meta = with lib; {
-    description = "computing with and displaying bytes";
+  dependencies = [
+    justbases
+  ];
+
+  nativeCheckInputs = [
+    pytestCheckHook
+    hypothesis
+  ];
+
+  meta = {
+    description = "Computing with and displaying bytes";
     homepage = "https://github.com/mulkieran/justbytes";
-    license = licenses.lgpl2Plus;
-    maintainers = with maintainers; [ nickcao ];
+    license = lib.licenses.lgpl2Plus;
+    maintainers = with lib.maintainers; [ nickcao ];
   };
 }

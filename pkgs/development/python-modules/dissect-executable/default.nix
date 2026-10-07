@@ -1,46 +1,42 @@
-{ lib
-, buildPythonPackage
-, dissect-cstruct
-, dissect-util
-, fetchFromGitHub
-, setuptools
-, setuptools-scm
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  dissect-cstruct,
+  dissect-util,
+  fetchFromGitHub,
+  setuptools,
+  setuptools-scm,
 }:
 
 buildPythonPackage rec {
   pname = "dissect-executable";
-  version = "1.4";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "1.11";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "fox-it";
     repo = "dissect.executable";
-    rev = "refs/tags/${version}";
-    hash = "sha256-h9eOTWJR0Bd3DY8WDYWqLCl1jYJcqP6cRTgWubf/rKI=";
+    tag = version;
+    hash = "sha256-TbygZJjdTfNvwEHmquiXfalu73XgNPZpar50YpxP6NA=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     dissect-cstruct
     dissect-util
   ];
 
-  pythonImportsCheck = [
-    "dissect.executable"
-  ];
+  pythonImportsCheck = [ "dissect.executable" ];
 
-  meta = with lib; {
+  meta = {
     description = "Dissect module implementing a parser for various executable formats such as PE, ELF and Macho-O";
     homepage = "https://github.com/fox-it/dissect.executable";
-    changelog = "https://github.com/fox-it/dissect.executable/releases/tag/${version}";
-    license = licenses.agpl3Only;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/fox-it/dissect.executable/releases/tag/${src.tag}";
+    license = lib.licenses.agpl3Only;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

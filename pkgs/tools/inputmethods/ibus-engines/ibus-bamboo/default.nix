@@ -1,57 +1,49 @@
-{ lib, stdenv
-, fetchFromGitHub
-, glib
-, gettext
-, xorg
-, pkg-config
-, wrapGAppsHook
-, gtk3
-, go
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  libxtst,
+  pkg-config,
+  wrapGAppsHook3,
+  go,
 }:
 
 stdenv.mkDerivation rec {
   pname = "ibus-bamboo";
-  version = "0.8.2-rc18";
+  version = "0.8.5";
 
   src = fetchFromGitHub {
     owner = "BambooEngine";
     repo = pname;
     rev = "v" + lib.toUpper version;
-    sha256 = "sha256-5FSGPUJtUdYyeqJenvKaMIJcvon91I//62fnTCXcdig=";
+    sha256 = "sha256-1qj1Fx8RDdA1qEGWn+/nQCAu4HCei+YbF7SHDzuFw2I=";
   };
 
   nativeBuildInputs = [
-    gettext
     pkg-config
-    wrapGAppsHook
+    wrapGAppsHook3
     go
   ];
 
   buildInputs = [
-    glib
-    gtk3
-    xorg.libX11
-    xorg.xorgproto
-    xorg.libXtst
-    xorg.libXi
+    libxtst
   ];
 
   preConfigure = ''
     export GOCACHE="$TMPDIR/go-cache"
-    sed -i "s,/usr,$out," bamboo.xml
+    sed -i "s,/usr,$out," data/bamboo.xml
   '';
 
   makeFlags = [
     "PREFIX=${placeholder "out"}"
   ];
 
-
-  meta = with lib; {
+  meta = {
     isIbusEngine = true;
-    description = "A Vietnamese IME for IBus";
+    description = "Vietnamese IME for IBus";
     homepage = "https://github.com/BambooEngine/ibus-bamboo";
-    license = licenses.gpl3;
-    platforms = platforms.linux;
-    maintainers = with maintainers; [ superbo ];
+    license = lib.licenses.gpl3;
+    platforms = lib.platforms.linux;
+    maintainers = [ ];
   };
 }

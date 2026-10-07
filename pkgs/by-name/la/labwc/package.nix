@@ -1,39 +1,56 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, cairo
-, gettext
-, glib
-, libdrm
-, libinput
-, libpng
-, librsvg
-, libxcb
-, libxkbcommon
-, libxml2
-, meson
-, ninja
-, pango
-, pkg-config
-, scdoc
-, wayland
-, wayland-protocols
-, wayland-scanner
-, wlroots
-, xcbutilwm
-, xwayland
+{
+  lib,
+  cairo,
+  fetchFromGitHub,
+  gettext,
+  glib,
+  libdrm,
+  libinput,
+  libpng,
+  librsvg,
+  libsfdo,
+  libxcb,
+  libxkbcommon,
+  libxml2,
+  meson,
+  ninja,
+  pango,
+  pkg-config,
+  scdoc,
+  stdenv,
+  versionCheckHook,
+  wayland,
+  wayland-protocols,
+  wayland-scanner,
+  wlroots_0_20,
+  libxcb-wm,
+  xwayland,
+
+  enableSystemd ? true,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "labwc";
-  version = "0.7.0";
+  version = "0.20.2";
 
   src = fetchFromGitHub {
     owner = "labwc";
     repo = "labwc";
-    rev = finalAttrs.version;
-    hash = "sha256-/z2Wo9zhuEVIpk8jHYwg2JbBqkX7tfDP2KTZ9yzj454=";
+    tag = finalAttrs.version;
+    hash = "sha256-gKix9UW4np6fMoMZgHN9G4opwbPkT6ax5G5ZWQCzYio=";
   };
+
+  postPatch = ''
+    substituteInPlace meson.build \
+      --replace-fail "install_dir: systemd.get_variable('systemduserunitdir')" \
+                     "install_dir: '$out/lib/systemd/user'"
+  '';
+
+  outputs = [
+    "out"
+    "doc"
+    "man"
+  ];
 
   nativeBuildInputs = [
     gettext
@@ -51,24 +68,28 @@ stdenv.mkDerivation (finalAttrs: {
     libinput
     libpng
     librsvg
+    libsfdo
     libxcb
     libxkbcommon
     libxml2
     pango
     wayland
     wayland-protocols
-    wlroots
-    xcbutilwm
+    wlroots_0_20
+    libxcb-wm
     xwayland
   ];
 
-  outputs = [ "out" "man" ];
-
-  strictDeps = true;
+  nativeInstallCheckInputs = [ versionCheckHook ];
 
   mesonFlags = [
     (lib.mesonEnable "xwayland" true)
+    (lib.mesonEnable "systemd-session" enableSystemd)
   ];
+
+  strictDeps = true;
+
+  doInstallCheck = true;
 
   passthru = {
     providedSessions = [ "labwc" ];
@@ -76,10 +97,11 @@ stdenv.mkDerivation (finalAttrs: {
 
   meta = {
     homepage = "https://github.com/labwc/labwc";
-    description = "A Wayland stacking compositor, inspired by Openbox";
-    changelog = "https://raw.githubusercontent.com/labwc/labwc/${finalAttrs.version}/NEWS.md";
+    description = "Wayland stacking compositor, inspired by Openbox";
+    changelog = "https://github.com/labwc/labwc/blob/master/NEWS.md";
     license = lib.licenses.gpl2Plus;
-    maintainers = with lib.maintainers; [ AndersonTorres ];
+    mainProgram = "labwc";
+    maintainers = [ ];
     inherit (wayland.meta) platforms;
   };
 })

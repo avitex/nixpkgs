@@ -1,30 +1,33 @@
-{ lib
-, aiofiles
-, buildPythonPackage
-, cython
-, fetchFromGitHub
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  aiofiles,
+  buildPythonPackage,
+  cython,
+  fetchFromGitHub,
+  pytest-asyncio,
+  pytestCheckHook,
+  setuptools,
+  typing-extensions,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "aiocsv";
-  version = "1.2.5";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "1.4.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "MKuranowski";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-4QvVYcTpwhFH57r+iMgmYciWIC2prRnL+ih7qx/CA/U=";
+    repo = "aiocsv";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-WENNtQKvpUuoYai6r8nTRamwCOloVA42YoAA3JGK9B8=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     cython
+    setuptools
   ];
+
+  dependencies = [ typing-extensions ];
 
   nativeCheckInputs = [
     aiofiles
@@ -36,19 +39,18 @@ buildPythonPackage rec {
     export CYTHONIZE=1
   '';
 
-  pythonImportsCheck = [
-    "aiocsv"
-  ];
+  pythonImportsCheck = [ "aiocsv" ];
 
   disabledTestPaths = [
     # Import issue
     "tests/test_parser.py"
   ];
 
-  meta = with lib; {
-    description = "Library for for asynchronous CSV reading/writing";
+  meta = {
+    description = "Library for asynchronous CSV reading/writing";
     homepage = "https://github.com/MKuranowski/aiocsv";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/MKuranowski/aiocsv/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

@@ -1,24 +1,24 @@
-{ stdenv
-, lib
-, buildGoModule
-, fetchFromGitHub
-, runCommand
-, alp
+{
+  lib,
+  buildGoModule,
+  fetchFromGitHub,
+  runCommand,
+  alp,
 }:
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "alp";
-  version = "1.1.17";
+  version = "1.2.0";
 
   src = fetchFromGitHub {
     owner = "gernotfeichter";
     repo = "alp";
-    rev = version;
-    hash = "sha256-7lyWu1bVn7UwLb/Em6VBbg3FrMyxGjebxt5gJhm/xpI=";
+    tag = finalAttrs.version;
+    hash = "sha256-ITrvSKjRCNwUuFYrK0+D4bmSqEG7/7NPMLMaitxZgKM=";
   };
-  vendorHash = "sha256-a2CQZKN/rPWh/Pn9gXfSArTCcGST472tsz1Kqm7M4vM=";
+  vendorHash = "sha256-JTm40N0x5ucLbmS6fEsrGUNJy5rqjPUSOU+CXzAcGEw=";
 
-  sourceRoot = "${src.name}/linux";
+  sourceRoot = "${finalAttrs.src.name}/linux";
 
   # Executing Go commands directly in checkPhase and buildPhase below,
   # because the default testsuite runs all go tests, some of which require docker.
@@ -34,23 +34,23 @@ buildGoModule rec {
   buildPhase = ''
     runHook preBuild
 
-    go build -o $GOPATH/bin/${pname} main.go
+    go build -o $GOPATH/bin/alp main.go
 
     runHook postBuild
   '';
 
   passthru.tests = {
-    test-version = runCommand "${pname}-test" {} ''
+    test-version = runCommand "alp-test" { } ''
       ${alp}/bin/alp version > $out
-      cat $out | grep '${version}'
+      cat $out | grep '${finalAttrs.version}'
     '';
   };
 
-  meta = with lib; {
-    description = "A convenient authentication method that lets you use your android device as a key for your Linux machine";
+  meta = {
+    description = "Convenient authentication method that lets you use your android device as a key for your Linux machine";
     homepage = "https://github.com/gernotfeichter/alp";
-    license = licenses.gpl2Only;
+    license = lib.licenses.gpl2Only;
     mainProgram = "alp";
-    maintainers = with maintainers; [ gernotfeichter ];
+    maintainers = with lib.maintainers; [ gernotfeichter ];
   };
-}
+})

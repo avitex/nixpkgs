@@ -1,22 +1,30 @@
-{ lib, buildDunePackage, fetchurl, ocaml, cmdliner, ptime }:
+{
+  lib,
+  buildDunePackage,
+  fetchurl,
+  ocaml,
+  cmdliner,
+  ptime,
+}:
 
-buildDunePackage rec {
-
+buildDunePackage (finalAttrs: {
   pname = "crunch";
-  version = "3.3.1";
-
-  minimalOCamlVersion = "4.08";
+  version = "4.1.0";
 
   src = fetchurl {
-    url = "https://github.com/mirage/ocaml-crunch/releases/download/v${version}/crunch-${version}.tbz";
-    sha256 = "sha256-LFug1BELy7dzHLpOr7bESnSHw/iMGtR0AScbaf+o7Wo=";
+    url = "https://github.com/mirage/ocaml-crunch/releases/download/v${finalAttrs.version}/crunch-${finalAttrs.version}.tbz";
+    hash = "sha256-t3ddb7bmCUqMMf2/ISdQHZntjO6sQCcQVd1Sx5o+F+c=";
   };
 
   buildInputs = [ cmdliner ];
 
   propagatedBuildInputs = [ ptime ];
 
-  outputs = [ "lib" "bin" "out" ];
+  outputs = [
+    "lib"
+    "bin"
+    "out"
+  ];
 
   installPhase = ''
     dune install --prefix=$bin --libdir=$lib/lib/ocaml/${ocaml.version}/site-lib/
@@ -25,8 +33,9 @@ buildDunePackage rec {
   meta = {
     homepage = "https://github.com/mirage/ocaml-crunch";
     description = "Convert a filesystem into a static OCaml module";
+    mainProgram = "ocaml-crunch";
     license = lib.licenses.isc;
     maintainers = [ lib.maintainers.vbgl ];
   };
 
-}
+})

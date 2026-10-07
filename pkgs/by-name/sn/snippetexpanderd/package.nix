@@ -1,45 +1,50 @@
-{ lib
-, stdenv
-, buildGoModule
-, fetchFromSourcehut
-, pkg-config
-, makeWrapper
-, scdoc
-, installShellFiles
-, xorg
-, gtk3
+{
+  lib,
+  buildGoModule,
+  fetchFromSourcehut,
+  makeWrapper,
+  scdoc,
+  installShellFiles,
+  xclip,
+  wl-clipboard,
+  xdotool,
+  wtype,
 }:
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "snippetexpanderd";
-  version = "1.0.1";
+  version = "1.1.2";
 
   src = fetchFromSourcehut {
     owner = "~ianmjones";
     repo = "snippetexpander";
-    rev = "v${version}";
-    hash = "sha256-y3TJ+L3kXYfZFzAD1vmhvP6Yarctu5LHq/74005h8sI=";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-L+3Zn4z48ZqoVH38oxKg2BkhCTGynsIofQqMDzkfha4=";
   };
 
-  vendorHash = "sha256-QX8HI8I1ZJI6HJ1sl86OiJ4nxwFAjHH8h1zB9ASJaQs=";
+  vendorHash = "sha256-1ofkbbitCzrLxugi769jbjOD2iN0Z6kYC5d7X2GYNIg=";
+
+  proxyVendor = true;
 
   modRoot = "cmd/snippetexpanderd";
 
   nativeBuildInputs = [
-    pkg-config
     makeWrapper
     scdoc
     installShellFiles
   ];
 
   buildInputs = [
-    xorg.libX11
-    gtk3
+    xclip
+    wl-clipboard
+    xdotool
+    wtype
   ];
 
   ldflags = [
     "-s"
     "-w"
+    "-X 'main.version=${finalAttrs.src.rev}'"
   ];
 
   postInstall = ''
@@ -48,16 +53,24 @@ buildGoModule rec {
   '';
 
   postFixup = ''
+    # Ensure xclip/wcopy and xdotool/wtype are available for copy and paste duties.
     wrapProgram $out/bin/snippetexpanderd \
-      --prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath [ xorg.libX11 ]}
+      --prefix PATH : ${
+        lib.makeBinPath [
+          xclip
+          wl-clipboard
+          xdotool
+          wtype
+        ]
+      }
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Your little expandable text snippet helper daemon";
     homepage = "https://snippetexpander.org";
-    license = licenses.gpl2Plus;
-    maintainers = with maintainers; [ ianmjones ];
-    platforms = platforms.linux;
+    license = lib.licenses.gpl2Plus;
+    maintainers = [ ];
+    platforms = lib.platforms.linux;
     mainProgram = "snippetexpanderd";
   };
-}
+})

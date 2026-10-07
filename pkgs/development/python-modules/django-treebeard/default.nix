@@ -1,42 +1,40 @@
-{ lib
-, buildPythonPackage
-, django
-, fetchPypi
-, pytest-django
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  django,
+  fetchFromGitHub,
+  pytest-django,
+  pytestCheckHook,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "django-treebeard";
-  version = "4.7";
-  format = "setuptools";
+  version = "7.0.0";
+  pyproject = true;
 
-  disabled = pythonOlder "3.8";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-x1Gj+SQVjCiP6omvwlpxUZefrwG/Ef3HvjuFgJnfpW0=";
+  src = fetchFromGitHub {
+    owner = "django-treebeard";
+    repo = "django-treebeard";
+    tag = finalAttrs.version;
+    hash = "sha256-GvW5QjCuour56NhAt2o2eQ6g2UoXZnukXGVWop1tjSk=";
   };
 
-  propagatedBuildInputs = [
-    django
-  ];
+  build-system = [ setuptools ];
+
+  dependencies = [ django ];
 
   nativeCheckInputs = [
     pytest-django
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "treebeard"
-  ];
+  pythonImportsCheck = [ "treebeard" ];
 
-  meta = with lib; {
+  meta = {
     description = "Efficient tree implementations for Django";
     homepage = "https://tabo.pe/projects/django-treebeard/";
-    changelog = "https://github.com/django-treebeard/django-treebeard/blob/${version}/CHANGES.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ desiderius ];
+    changelog = "https://github.com/django-treebeard/django-treebeard/blob/${finalAttrs.version}/CHANGES.md";
+    license = lib.licenses.asl20;
   };
-}
+})

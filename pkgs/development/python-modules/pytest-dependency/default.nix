@@ -1,40 +1,42 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, fetchpatch
-, pytest
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytest,
+  pytestCheckHook,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "pytest-dependency";
-  version = "0.5.1";
-  format = "setuptools";
+  version = "0.6.1";
+  pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-wqiSkGGSZj+FAwpquRME5QjlRs3f5VfWktYexXodlGs=";
+  src = fetchFromGitHub {
+    owner = "RKrahl";
+    repo = "pytest-dependency";
+    tag = version;
+    hash = "sha256-1tAikpdCLJMmylIbd1zQ45Bq+95O5cDQxNGwe3XpZuw=";
   };
 
-  patches = [
-    # Fix build with pytest >= 6.2.0, https://github.com/RKrahl/pytest-dependency/pull/51
-    (fetchpatch {
-      url = "https://github.com/RKrahl/pytest-dependency/commit/0930889a13e2b9baa7617f05dc9b55abede5209d.patch";
-      hash = "sha256-xRreoIz8+yW0mAUb4FvKVlPjALzMAZDmdpbmDKRISE0=";
-    })
-  ];
+  postPatch = ''
+    substituteInPlace setup.py \
+      --replace-fail "UNKNOWN" "${version}"
+  '';
+
+  nativeBuildInputs = [ setuptools ];
 
   buildInputs = [ pytest ];
 
-  nativeCheckInputs = [ pytest ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  checkPhase = ''
-    pytest
-  '';
+  pythonImportsCheck = [ "pytest_dependency" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/RKrahl/pytest-dependency";
+    changelog = "https://github.com/RKrahl/pytest-dependency/blob/${version}/CHANGES.rst";
     description = "Manage dependencies of tests";
-    license = licenses.asl20;
-    maintainers = [ maintainers.marsam ];
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
 }

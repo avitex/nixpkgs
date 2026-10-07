@@ -1,13 +1,14 @@
-{ lib
-, stdenv
-, dockapps-sources
-, libX11
-, libXpm
-, libXext
-, libdockapp
+{
+  lib,
+  stdenv,
+  dockapps-sources,
+  libx11,
+  libxpm,
+  libxext,
+  libdockapp,
 }:
 
-stdenv.mkDerivation  (finalAttrs: {
+stdenv.mkDerivation (finalAttrs: {
   pname = "wmsm.app";
 
   inherit (dockapps-sources) version src;
@@ -15,9 +16,9 @@ stdenv.mkDerivation  (finalAttrs: {
   sourceRoot = "${finalAttrs.src.name}/wmsm.app/wmsm";
 
   buildInputs = [
-    libX11
-    libXext
-    libXpm
+    libx11
+    libxext
+    libxpm
     libdockapp
   ];
 
@@ -48,5 +49,6 @@ stdenv.mkDerivation  (finalAttrs: {
     homepage = "https://www.dockapps.net/wmsmapp";
     license = lib.licenses.gpl2Plus;
     maintainers = [ ];
+    platforms = lib.platforms.linux;
   };
 })

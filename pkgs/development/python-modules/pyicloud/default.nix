@@ -1,61 +1,88 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, certifi
-, click
-, keyring
-, keyrings-alt
-, pytz
-, requests
-, six
-, tzlocal
-, pytest-mock
-, pytestCheckHook
-, future
+{
+  lib,
+  buildPythonPackage,
+  certifi,
+  click,
+  fetchFromGitHub,
+  fido2,
+  keyring,
+  keyrings-alt,
+  protobuf,
+  pydantic,
+  pytest-mock,
+  pytest-socket,
+  pytestCheckHook,
+  pythonAtLeast,
+  requests,
+  rich,
+  setuptools_80,
+  setuptools-scm,
+  srp,
+  tinyhtml,
+  typer,
+  tzlocal,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pyicloud";
-  version = "1.0.0";
-  format = "setuptools";
+  version = "2.6.5";
+  pyproject = true;
 
   src = fetchFromGitHub {
-    owner = "picklepete";
-    repo = pname;
-    rev = version;
-    hash = "sha256-2E1pdHHt8o7CGpdG+u4xy5OyNCueUGVw5CY8oicYd5w=";
+    owner = "timlaing";
+    repo = "pyicloud";
+    tag = finalAttrs.version;
+    hash = "sha256-wlBVQPGGt8Q6EeLceORfRn+MtRKtmum+z3WAG6ZR+2Q=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [
+    setuptools_80
+    setuptools-scm
+  ];
+
+  dependencies = [
     certifi
     click
-    future
+    fido2
     keyring
     keyrings-alt
-    pytz
+    protobuf
+    pydantic
     requests
-    six
+    srp
+    tinyhtml
     tzlocal
   ];
 
+  pythonRelaxDeps = [ "tzlocal" ];
+
+  optional-dependencies = {
+    cli = [
+      rich
+      typer
+    ];
+  };
+
   nativeCheckInputs = [
     pytest-mock
+    pytest-socket
     pytestCheckHook
+  ]
+  ++ lib.concatAttrValues finalAttrs.passthru.optional-dependencies;
+
+  pythonImportsCheck = [ "pyicloud" ];
+
+  disabledTests = lib.optionals (pythonAtLeast "3.12") [
+    # https://github.com/picklepete/pyicloud/issues/446
+    "test_storage"
   ];
 
-  postPatch = ''
-    sed -i \
-      -e 's!click>=.*!click!' \
-      -e 's!keyring>=.*!keyring!' \
-      -e 's!keyrings.alt>=.*!keyrings.alt!' \
-      -e 's!tzlocal==.*!tzlocal!' \
-      requirements.txt
-  '';
-
-  meta = with lib; {
-    description = "PyiCloud is a module which allows pythonistas to interact with iCloud webservices";
-    homepage = "https://github.com/picklepete/pyicloud";
-    license = licenses.mit;
-    maintainers = [ maintainers.mic92 ];
+  meta = {
+    description = "Module to interact with iCloud webservices";
+    mainProgram = "icloud";
+    homepage = "https://github.com/timlaing/pyicloud";
+    changelog = "https://github.com/timlaing/pyicloud/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = [ lib.maintainers.mic92 ];
   };
-}
+})

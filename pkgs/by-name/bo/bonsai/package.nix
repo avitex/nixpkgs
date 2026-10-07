@@ -1,54 +1,43 @@
-{ stdenv
-, lib
-, fetchFromSourcehut
-, gitUpdater
-, hare
-, hareThirdParty
+{
+  stdenv,
+  lib,
+  fetchFromSourcehut,
+  gitUpdater,
+  hareHook,
+  hareThirdParty,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "bonsai";
-  version = "1.0.2";
+  version = "1.5.1";
 
   src = fetchFromSourcehut {
     owner = "~stacyharper";
     repo = "bonsai";
     rev = "v${finalAttrs.version}";
-    hash = "sha256-Yosf07KUOQv4O5111tLGgI270g0KVGwzdTPtPOsTcP8=";
+    hash = "sha256-cAlTppDNXXZaL5bG+h4jANfFg2OBd0WqEmDBmY5IvZ8=";
   };
 
   nativeBuildInputs = [
-    hare
+    hareHook
     hareThirdParty.hare-ev
     hareThirdParty.hare-json
   ];
 
-  makeFlags = [
-    "PREFIX=${builtins.placeholder "out"}"
-    "HARECACHE=.harecache"
-    "HAREFLAGS=-qa${stdenv.hostPlatform.uname.processor}"
-  ];
+  makeFlags = [ "PREFIX=${placeholder "out"}" ];
 
   enableParallelBuilding = true;
 
   doCheck = true;
 
-  postPatch = ''
-    substituteInPlace Makefile \
-      --replace 'hare build' 'hare build $(HAREFLAGS)' \
-      --replace 'hare test' 'hare test $(HAREFLAGS)'
-  '';
+  passthru.updateScript = gitUpdater { rev-prefix = "v"; };
 
-  passthru.updateScript = gitUpdater {
-    rev-prefix = "v";
-  };
-
-  meta = with lib; {
+  meta = {
     description = "Finite State Machine structured as a tree";
     homepage = "https://git.sr.ht/~stacyharper/bonsai";
-    license = licenses.agpl3Plus;
-    maintainers = with maintainers; [ colinsane ];
-    platforms = platforms.linux;
+    license = lib.licenses.agpl3Plus;
+    maintainers = with lib.maintainers; [ colinsane ];
+    platforms = lib.platforms.linux;
     mainProgram = "bonsaictl";
   };
 })

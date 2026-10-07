@@ -1,48 +1,56 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, aenum
-, aiohttp
-, importlib-metadata
-, isodate
-, nest-asyncio
-, pytestCheckHook
-, pythonOlder
-, mock
-, pyhamcrest
-, radish-bdd
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fetchpatch,
+  aenum,
+  aiohttp,
+  isodate,
+  nest-asyncio,
+  pytestCheckHook,
+  pyhamcrest,
+  pyyaml,
+  radish-bdd,
+  setuptools,
 }:
 
 buildPythonPackage rec {
-  pname = "gremlinpython";
-  version = "3.6.4";
-  format = "setuptools";
+  __structuredAttrs = true;
 
-  disabled = pythonOlder "3.7";
+  pname = "gremlinpython";
+  version = "3.8.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "apache";
     repo = "tinkerpop";
-    rev = "refs/tags/${version}";
-    hash = "sha256-SQ+LcHeHDB1Hd5wXGDJBZmBG4KEZ3NsV4+4X9WgPb9E=";
+    tag = version;
+    hash = "sha256-dslSvtne+0mobjhjZDiO7crQE3aW5wEMWw7l3LkBTV8=";
   };
 
-  sourceRoot = "${src.name}/gremlin-python/src/main/python";
-
-  postPatch = ''
-    sed -i '/pytest-runner/d' setup.py
-
-    substituteInPlace setup.py \
-      --replace 'importlib-metadata<5.0.0' 'importlib-metadata' \
-      --replace "os.getenv('VERSION', '?').replace('-SNAPSHOT', '.dev-%d' % timestamp)" '"${version}"'
-  '';
-
-  # setup-requires requirements
-  nativeBuildInputs = [
-    importlib-metadata
+  patches = [
+    (fetchpatch {
+      name = "remove-async_timeout.pach";
+      url = "https://github.com/apache/tinkerpop/commit/aa327ace6feaf6ccd3eca411f3b5f6f86f8571f6.patch";
+      excludes = [ "gremlin-python/src/main/python/setup.py" ];
+      hash = "sha256-NyXA9vffFem1EzhdNWuoYr7JPkT5DuKyl409LFj9AvQ=";
+    })
   ];
 
-  propagatedBuildInputs = [
+  postPatch = ''
+    cd gremlin-python/src/main/python
+
+    substituteInPlace gremlin_python/__init__.py \
+      --replace-fail ".dev1" ""
+  '';
+
+  build-system = [ setuptools ];
+
+  pythonRemoveDeps = [
+    "async-timeout"
+  ];
+
+  dependencies = [
     aenum
     aiohttp
     isodate
@@ -51,14 +59,13 @@ buildPythonPackage rec {
 
   nativeCheckInputs = [
     pytestCheckHook
-    mock
     pyhamcrest
+    pyyaml
     radish-bdd
   ];
 
   # disable custom pytest report generation
   preCheck = ''
-    substituteInPlace setup.cfg --replace 'addopts' '#addopts'
     export TEST_TRANSACTIONS='false'
   '';
 
@@ -66,19 +73,25 @@ buildPythonPackage rec {
   disabledTestPaths = [
     "tests/driver/test_client.py"
     "tests/driver/test_driver_remote_connection.py"
+    "tests/driver/test_driver_remote_connection_http.py"
     "tests/driver/test_driver_remote_connection_threaded.py"
+    "tests/driver/test_web_socket_client_behavior.py"
     "tests/process/test_dsl.py"
+    "tests/process/test_traversal.py" # dead locks
     "tests/structure/io/test_functionalityio.py"
   ];
-  pytestFlagsArray = [
-    # disabledTests doesn't quite allow us to be precise enough for this
-    "-k 'not (TestFunctionalGraphSONIO and (test_timestamp or test_datetime or test_uuid))'"
+
+  disabledTests = [
+    "TestFunctionalGraphSONIO and test_timestamp"
+    "TestFunctionalGraphSONIO and test_datetime"
+    "TestFunctionalGraphSONIO and test_uuid"
   ];
 
-  meta = with lib; {
+  meta = {
+    changelog = "https://github.com/apache/tinkerpop/blob/${src.tag}/CHANGELOG.asciidoc";
     description = "Gremlin-Python implements Gremlin, the graph traversal language of Apache TinkerPop, within the Python language";
     homepage = "https://tinkerpop.apache.org/";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ris ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ ris ];
   };
 }

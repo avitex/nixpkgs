@@ -1,7 +1,8 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, cryptography
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  cryptography,
 }:
 
 buildPythonPackage rec {
@@ -22,10 +23,10 @@ buildPythonPackage rec {
   doCheck = false;
   pythonImportsCheck = [ "xiaomi_gateway" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python library to communicate with the Xiaomi Gateway";
     homepage = "https://github.com/Danielhiversen/PyXiaomiGateway/";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

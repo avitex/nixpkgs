@@ -1,52 +1,49 @@
-{ lib
-, buildPythonPackage
-, datalad
-, dcm2niix
-, dcmstack
-, etelemetry
-, fetchPypi
-, filelock
-, git
-, nibabel
-, nipype
-, pydicom
-, pytestCheckHook
-, pythonOlder
-, setuptools
-, versioningit
-, wheel
+{
+  lib,
+  buildPythonPackage,
+  datalad,
+  dcm2niix,
+  dcmstack,
+  etelemetry,
+  fetchPypi,
+  filelock,
+  git,
+  git-annex,
+  nibabel,
+  nipype,
+  pydicom,
+  pytestCheckHook,
+  setuptools,
+  versioningit,
 }:
 
 buildPythonPackage rec {
   pname = "heudiconv";
-  version = "1.0.1";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "1.5.1";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-KMEvuxRFFbnyAez+cpcHKDDXdrHfeZcqlGNwy8RWTxg=";
+    hash = "sha256-EO3iKhFs7U/ekueeUK8PRif6NFcV6xoDIMC+9js0Q8o=";
   };
 
   postPatch = ''
     substituteInPlace pyproject.toml \
-      --replace "versioningit ~=" "versioningit >="
+      --replace-fail "versioningit ~=" "versioningit >="
   '';
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     versioningit
-    wheel
   ];
 
-  propagatedBuildInputs = [
-    nibabel
-    pydicom
-    nipype
+  dependencies = [
     dcmstack
     etelemetry
     filelock
+    nibabel
+    nipype
+    pydicom
   ];
 
   nativeCheckInputs = [
@@ -54,21 +51,28 @@ buildPythonPackage rec {
     dcm2niix
     pytestCheckHook
     git
+    git-annex
   ];
 
   preCheck = ''
     export HOME=$(mktemp -d)
   '';
 
-  pythonImportsCheck = [
-    "heudiconv"
+  pythonImportsCheck = [ "heudiconv" ];
+
+  disabledTests = [
+    # No such file or directory
+    "test_bvals_are_zero"
+
+    # tries to access internet
+    "test_partial_xa_conversion"
   ];
 
-  meta = with lib; {
-    homepage = "https://heudiconv.readthedocs.io";
+  meta = {
     description = "Flexible DICOM converter for organizing imaging data";
+    homepage = "https://heudiconv.readthedocs.io";
     changelog = "https://github.com/nipy/heudiconv/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ bcdarwin ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ bcdarwin ];
   };
 }

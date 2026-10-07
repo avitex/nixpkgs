@@ -1,27 +1,25 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchFromGitHub
-, libspatialindex
-, numpy
-, pytestCheckHook
-, pythonOlder
-, setuptools
-, wheel
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  libspatialindex,
+  numpy,
+  pytestCheckHook,
+  setuptools,
+  wheel,
 }:
 
 buildPythonPackage rec {
   pname = "rtree";
-  version = "1.2.0";
+  version = "1.4.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "Toblerity";
     repo = "rtree";
-    rev = "refs/tags/${version}";
-    hash = "sha256-RmAiyYrkUMBN/ebmo27WvFcRmYlKkywuQHLLUbluTTw=";
+    tag = version;
+    hash = "sha256-ilhHBAYa4GaKUt8CmmJRS569D9INHZmWS6lK/+AIiqY=";
   };
 
   postPatch = ''
@@ -43,11 +41,12 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "rtree" ];
 
-  meta = with lib; {
+  meta = {
     description = "R-Tree spatial index for Python GIS";
     homepage = "https://github.com/Toblerity/rtree";
-    changelog = "https://github.com/Toblerity/rtree/blob/${version}/CHANGES.rst";
-    license = licenses.mit;
-    maintainers = with maintainers; [ bgamari ];
+    changelog = "https://github.com/Toblerity/rtree/blob/${src.tag}/CHANGES.rst";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ bgamari ];
+    teams = [ lib.teams.geospatial ];
   };
 }

@@ -1,50 +1,73 @@
-{ lib
-, stdenv
-, testers
-, fetchFromGitHub
-, rustPlatform
-, darwin
-, numbat
+{
+  lib,
+  fetchFromGitHub,
+  rustPlatform,
+  tzdata,
+  versionCheckHook,
+  nix-update-script,
 }:
 
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "numbat";
-  version = "1.9.0";
+  version = "1.24.0";
 
   src = fetchFromGitHub {
     owner = "sharkdp";
     repo = "numbat";
-    rev = "v${version}";
-    hash = "sha256-zMgZ/QmpZaB+4xdxVBE3C8CWS/aNCDuowDWOg65PhTo=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-b+2DMNfg3ZZcGNJh/C6YKfKdZJBQwuNcaOhF5YOE7E0=";
   };
 
-  cargoHash = "sha256-x6SMQoiDf0GoyOJGP8S69wJnY/nCvo6Bq5KQyrgY+Gs=";
+  cargoHash = "sha256-Lz5S4GT3cUaeKj7js0E6XSwkg3LnGiVplKzTlN54td8=";
 
-  buildInputs = lib.optionals stdenv.isDarwin [
-    darwin.apple_sdk.frameworks.Security
-  ];
-
-  env.NUMBAT_SYSTEM_MODULE_PATH = "${placeholder "out"}/share/${pname}/modules";
+  env.NUMBAT_SYSTEM_MODULE_PATH = "${placeholder "out"}/share/numbat/modules";
 
   postInstall = ''
-    mkdir -p $out/share/${pname}
-    cp -r $src/${pname}/modules $out/share/${pname}/
+    mkdir -p $out/share/numbat
+    cp -r $src/numbat/modules $out/share/numbat/
+
+    mkdir -p $out/share/applications
+    cp $src/assets/numbat.desktop $out/share/applications
+
+    for size in 16 22 24 32 48 64 128 256 512; do
+      dims="''${size}x''${size}"
+      dest=$out/share/icons/hicolor/''${dims}/apps
+      mkdir -p $dest
+      cp $src/assets/numbat-''${dims}.png ''${dest}/numbat.png
+    done
+
+    mkdir -p $out/share/icons/hicolor/scalable/apps
+    cp $src/assets/numbat.svg $out/share/icons/hicolor/scalable/apps
   '';
 
-  passthru.tests.version = testers.testVersion {
-    package = numbat;
-  };
+  preCheck = ''
+    # The datetime library used by Numbat, "jiff", always attempts to use the
+    # system TZDIR on Unix and doesn't fall back to the embedded tzdb when not
+    # present.
+    export TZDIR=${tzdata}/share/zoneinfo
+  '';
 
-  meta = with lib; {
+  nativeInstallCheckInputs = [ versionCheckHook ];
+  doInstallCheck = true;
+
+  passthru.updateScript = nix-update-script { };
+
+  meta = {
     description = "High precision scientific calculator with full support for physical units";
     longDescription = ''
       A statically typed programming language for scientific computations
       with first class support for physical dimensions and units
     '';
     homepage = "https://numbat.dev";
-    changelog = "https://github.com/sharkdp/numbat/releases/tag/v${version}";
-    license = with licenses; [ asl20 mit ];
+    changelog = "https://github.com/sharkdp/numbat/releases/tag/v${finalAttrs.version}";
+    license = with lib.licenses; [
+      asl20
+      mit
+    ];
+    maintainers = with lib.maintainers; [
+      giomf
+      atemu
+    ];
     mainProgram = "numbat";
-    maintainers = with maintainers; [ giomf atemu ];
   };
-}
+})

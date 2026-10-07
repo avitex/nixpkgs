@@ -1,33 +1,31 @@
-{ lib
-, aiohttp
-, async-timeout
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, setuptools
-, wheel
+{
+  lib,
+  aiohttp,
+  async-timeout,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  setuptools-scm,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "loqedapi";
-  version = "2.1.8";
+  version = "2.1.16";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "cpolhout";
     repo = "loqedAPI";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-9ekZ98GazH1tna4JT5SEUETKR227UYRIBBghdj+TFB4=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-tWdoXdcizSpuhp+lpM1h8w4NCUbCsn4SO0lW4FV09UU=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
-    wheel
+    setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
     async-timeout
   ];
@@ -35,15 +33,13 @@ buildPythonPackage rec {
   # Tests require network access
   doCheck = false;
 
-  pythonImportsCheck = [
-    "loqedAPI"
-  ];
+  pythonImportsCheck = [ "loqedAPI" ];
 
-  meta = with lib; {
+  meta = {
     description = "Module to interact with the Loqed Smart Door Lock API";
     homepage = "https://github.com/cpolhout/loqedAPI";
-    changelog = "https://github.com/cpolhout/loqedAPI/releases/tag/v${version}";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/cpolhout/loqedAPI/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.bsd2;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

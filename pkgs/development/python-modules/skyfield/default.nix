@@ -1,33 +1,52 @@
-{ lib, buildPythonPackage, pythonOlder, fetchFromGitHub, certifi, numpy, sgp4, jplephem
-, pandas, ipython, matplotlib, assay
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  certifi,
+  numpy,
+  sgp4,
+  jplephem,
+  pandas,
+  ipython,
+  matplotlib,
+  assay,
 }:
 
 buildPythonPackage rec {
   pname = "skyfield";
-  version = "1.45";
-  format = "setuptools";
+  version = "1.54";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "skyfielders";
     repo = "python-skyfield";
     rev = version;
-    hash = "sha256-kZrXNVE+JGPGiVsd6CTwOqfciYLsD2A4pTS3FpqO+Dk=";
+    hash = "sha256-oZEmc8BVqs3eSaqrjyR/wQu1WTLv4A0a/dpEZduCXqk=";
   };
 
   # Fix broken tests on "exotic" platforms.
   # https://github.com/skyfielders/python-skyfield/issues/582#issuecomment-822033858
   postPatch = ''
     substituteInPlace skyfield/tests/test_planetarylib.py \
-      --replace "if IS_32_BIT" "if True"
+      --replace-fail "if IS_32_BIT" "if True"
   '';
 
-  propagatedBuildInputs = [ certifi numpy sgp4 jplephem ];
+  build-system = [ setuptools ];
 
-  nativeCheckInputs = [ pandas ipython matplotlib assay ];
+  dependencies = [
+    certifi
+    numpy
+    sgp4
+    jplephem
+  ];
 
-  # assay is broken on Python >= 3.11
-  # https://github.com/brandon-rhodes/assay/issues/15
-  doCheck = pythonOlder "3.11";
+  nativeCheckInputs = [
+    pandas
+    ipython
+    matplotlib
+    assay
+  ];
 
   checkPhase = ''
     runHook preCheck
@@ -40,10 +59,10 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "skyfield" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/skyfielders/python-skyfield";
     description = "Elegant astronomy for Python";
-    license = licenses.mit;
-    maintainers = with maintainers; [ zane ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ zane ];
   };
 }

@@ -1,48 +1,64 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, click
-, ansimarkup
-, cachetools
-, colorama
-, click-default-group
-, click-repl
-, dict2xml
-, jinja2
-, more-itertools
-, requests
-, six
-, pytestCheckHook
-, mock
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  click,
+  ansimarkup,
+  cachetools,
+  colorama,
+  click-default-group,
+  click-repl,
+  dict2xml,
+  hatchling,
+  jinja2,
+  more-itertools,
+  requests,
+  six,
+  pytestCheckHook,
+  mock,
+  # The REPL depends on click-repl, which is incompatible with our version of
+  # click.
+  withRepl ? false,
 }:
 
 buildPythonPackage rec {
   pname = "greynoise";
-  version = "2.0.1";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.6";
+  version = "3.0.3";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "GreyNoise-Intelligence";
     repo = "pygreynoise";
-    rev = "v${version}";
-    hash = "sha256-zevom7JqXnZuotXfGtfPOmQNh32dANS4Uc6tHUuq08s=";
+    tag = "v${version}";
+    hash = "sha256-ClNKDMfMKcOYOasUqmQoOtKFsAi5wZw/MLTkq5YzpJk=";
   };
 
-  propagatedBuildInputs = [
+  patches = lib.optionals (!withRepl) [
+    ./remove-repl.patch
+  ];
+
+  build-system = [
+    hatchling
+  ];
+
+  pythonRelaxDeps = [
+    "click"
+  ];
+
+  dependencies = [
     click
     ansimarkup
     cachetools
     colorama
     click-default-group
-    click-repl
     dict2xml
     jinja2
     more-itertools
     requests
     six
+  ]
+  ++ lib.optionals withRepl [
+    click-repl
   ];
 
   nativeCheckInputs = [
@@ -52,11 +68,12 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "greynoise" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python3 library and command line for GreyNoise";
+    mainProgram = "greynoise";
     homepage = "https://github.com/GreyNoise-Intelligence/pygreynoise";
-    changelog = "https://github.com/GreyNoise-Intelligence/pygreynoise/blob/${src.rev}/CHANGELOG.rst";
-    license = licenses.mit;
-    maintainers = with maintainers; [ mbalatsko ];
+    changelog = "https://github.com/GreyNoise-Intelligence/pygreynoise/blob/${src.tag}/CHANGELOG.rst";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

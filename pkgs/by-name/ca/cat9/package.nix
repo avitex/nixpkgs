@@ -1,17 +1,18 @@
-{ lib
-, stdenvNoCC
-, fetchFromGitHub
+{
+  lib,
+  fetchFromCodeberg,
+  stdenvNoCC,
 }:
 
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "cat9";
-  version = "unstable-2023-11-06";
+  version = "0-unstable-2025-12-26";
 
-  src = fetchFromGitHub {
+  src = fetchFromCodeberg {
     owner = "letoram";
     repo = "cat9";
-    rev = "a807776a85237ab0bdd0a712fb33c176fc295e30";
-    hash = "sha256-OlH8FgVBk76Qw+5mnsrryXOL9GbPJWlwUGtYlLuAPxQ=";
+    rev = "8d2b30545c3e87c8f2e161d755b53c23a48bcf05";
+    hash = "sha256-KSXfa7K8SxnyPmSNCXZs8C+gGYxkLRu0MFbJ3cotSEQ=";
   };
 
   dontConfigure = true;
@@ -29,9 +30,9 @@ stdenvNoCC.mkDerivation (finalAttrs: {
 
   meta = {
     homepage = "https://github.com/letoram/cat9";
-    description = "A User shell for LASH";
-    license = with lib.licenses; [ unlicense ];
-    maintainers = with lib.maintainers; [ AndersonTorres ];
+    description = "User shell for LASH";
+    license = lib.licenses.unlicense;
+    maintainers = [ ];
     platforms = lib.platforms.all;
   };
 })

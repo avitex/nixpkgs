@@ -1,32 +1,30 @@
-{ stdenv
-, lib
-, buildPythonPackage
-, django
-, netaddr
-, six
-, fetchFromGitHub
-, pythonOlder
-, djangorestframework
-# required for tests
-, postgresql
-, postgresqlTestHook
-, psycopg2
-, pytestCheckHook
-, pytest-django
+{
+  stdenv,
+  lib,
+  buildPythonPackage,
+  django,
+  netaddr,
+  six,
+  fetchFromGitHub,
+  djangorestframework,
+  # required for tests
+  postgresql,
+  postgresqlTestHook,
+  psycopg2,
+  pytestCheckHook,
+  pytest-django,
 }:
 
 buildPythonPackage rec {
   pname = "django-postgresql-netfields";
-  version = "1.3.1";
+  version = "1.4.1";
   format = "setuptools";
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "jimfunk";
-    repo = pname;
+    repo = "django-postgresql-netfields";
     rev = "v${version}";
-    hash = "sha256-76vGvxxfNZQBCCsTkkSgQZ8PpFspWxJQDj/xq9iOSTU=";
+    hash = "sha256-oUmgV3MaEOYULvadHZgGYtshlIqYrvQpejYfeMzx1vg=";
   };
 
   propagatedBuildInputs = [
@@ -35,7 +33,7 @@ buildPythonPackage rec {
     six
   ];
 
-  doCheck = !stdenv.isDarwin; # could not create shared memory segment: Operation not permitted
+  doCheck = !stdenv.hostPlatform.isDarwin; # could not create shared memory segment: Operation not permitted
 
   nativeCheckInputs = [
     djangorestframework
@@ -49,11 +47,11 @@ buildPythonPackage rec {
   postgresqlTestUserOptions = "LOGIN SUPERUSER";
   env.DJANGO_SETTINGS_MODULE = "testsettings";
 
-  meta = with lib; {
+  meta = {
     description = "Django PostgreSQL netfields implementation";
     homepage = "https://github.com/jimfunk/django-postgresql-netfields";
     changelog = "https://github.com/jimfunk/django-postgresql-netfields/blob/v${version}/CHANGELOG";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.bsd2;
+    maintainers = [ ];
   };
 }

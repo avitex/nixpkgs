@@ -1,37 +1,51 @@
-{ lib
-, fetchurl
-, buildDunePackage
-, ocaml
-, ounit
-, ppx_deriving
-, ppx_sexp_conv
-, ppxlib
-, version ? if lib.versionAtLeast ocaml.version "4.11" then "1.10.0" else "1.9.1"
+{
+  lib,
+  fetchurl,
+  fetchpatch,
+  ocaml,
+  buildDunePackage,
+  ounit,
+  ppx_deriving,
+  ppx_sexp_conv,
+  ppxlib,
+  version ?
+    if lib.versionAtLeast ppxlib.version "0.36" then
+      "1.12.0"
+    else if lib.versionAtLeast ppxlib.version "0.26" then
+      "1.11.0"
+    else if lib.versionAtLeast ppxlib.version "0.24.0" then
+      "1.9.1"
+    else
+      throw "ppx_import is not available with ppxlib-${ppxlib.version}",
 }:
 
-let param = {
-  "1.9.1" = {
-    sha256 = "sha256-0bSY4u44Ds84XPIbcT5Vt4AG/4PkzFKMl9CDGFZyIdI=";
-  };
-  "1.10.0" = {
-    sha256 = "sha256-MA8sf0F7Ch1wJDL8E8470ukKx7KieWyjWJnJQsqBVW8=";
-  };
-}."${version}"; in
-
-lib.throwIfNot (lib.versionAtLeast ppxlib.version "0.24.0")
-  "ppx_import is not available with ppxlib-${ppxlib.version}"
-
-buildDunePackage rec {
+buildDunePackage {
   pname = "ppx_import";
   inherit version;
 
-  minimalOCamlVersion = "4.05";
-  duneVersion = "3";
-
   src = fetchurl {
-    url = "https://github.com/ocaml-ppx/ppx_import/releases/download/${version}/ppx_import-${version}.tbz";
-    inherit (param) sha256;
+    url =
+      let
+        dir = if lib.versionAtLeast version "1.11" then "v${version}" else "${version}";
+      in
+      "https://github.com/ocaml-ppx/ppx_import/releases/download/${dir}/ppx_import-${version}.tbz";
+
+    hash =
+      {
+        "1.9.1" = "sha256-0bSY4u44Ds84XPIbcT5Vt4AG/4PkzFKMl9CDGFZyIdI=";
+        "1.11.0" = "sha256-Jmfv1IkQoaTkyxoxp9FI0ChNESqCaoDsA7D4ZUbOrBo=";
+        "1.12.0" = "sha256-1vpYHFl0rEdG3hE+6BCpWmfLvdLvoEx+Jxq0DFrRdJc=";
+      }
+      ."${version}";
   };
+
+  patches =
+    # Compatibility with OCaml 5.5
+    # See https://github.com/ocaml-ppx/ppx_import/pull/107
+    lib.optional (lib.versionAtLeast ocaml.version "5.5") (fetchpatch {
+      url = "https://github.com/ocaml-ppx/ppx_import/commit/ddff918dc86f3d336af60ea67de4a0b5373b7409.patch";
+      hash = "sha256-PenEGKPltvzJY//YoU5iNqZIYGz3vBGXZONBcwgQgjY=";
+    });
 
   propagatedBuildInputs = [
     ppxlib
@@ -46,7 +60,7 @@ buildDunePackage rec {
   doCheck = true;
 
   meta = {
-    description = "A syntax extension for importing declarations from interface files";
+    description = "Syntax extension for importing declarations from interface files";
     license = lib.licenses.mit;
     homepage = "https://github.com/ocaml-ppx/ppx_import";
   };

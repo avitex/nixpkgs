@@ -1,30 +1,39 @@
-{ lib, buildPythonPackage, fetchFromGitHub, pytestCheckHook, pythonOlder }:
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  pytestCheckHook,
+}:
 
 let
   pname = "translitcodec";
   version = "0.7.0";
-in buildPythonPackage {
+in
+buildPythonPackage {
   inherit pname version;
 
-  format = "setuptools";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "claudep";
-    repo = pname;
-    rev = "version-${version}";
+    repo = "translitcodec";
+    tag = "version-${version}";
     hash = "sha256-/EKquTchx9i3fZqJ6AMzHYP9yCORvwbuUQ95WJQOQbI=";
   };
+
+  build-system = [ setuptools ];
 
   nativeCheckInputs = [ pytestCheckHook ];
 
   pythonImportsCheck = [ pname ];
 
-  meta = with lib; {
+  meta = {
     description = "Unicode to 8-bit charset transliteration codec";
     homepage = "https://github.com/claudep/translitcodec";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ rycee ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ rycee ];
   };
 }

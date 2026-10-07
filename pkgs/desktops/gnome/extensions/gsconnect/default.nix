@@ -1,44 +1,49 @@
-{ stdenv
-, lib
-, fetchFromGitHub
-, fetchpatch
-, substituteAll
-, openssl
-, gsound
-, meson
-, ninja
-, pkg-config
-, gobject-introspection
-, wrapGAppsHook
-, glib
-, glib-networking
-, gtk3
-, openssh
-, gnome
-, evolution-data-server-gtk4
-, gjs
-, nixosTests
-, desktop-file-utils
+{
+  stdenv,
+  lib,
+  fetchFromGitHub,
+  replaceVars,
+  openssl,
+  gsound,
+  meson,
+  ninja,
+  pkg-config,
+  gobject-introspection,
+  wrapGAppsHook3,
+  glib,
+  glib-networking,
+  gtk3,
+  openssh,
+  gnome-shell,
+  evolution-data-server-gtk4,
+  gjs,
+  nixosTests,
+  desktop-file-utils,
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "gnome-shell-extension-gsconnect";
-  version = "56";
+  version = "72";
 
-  outputs = [ "out" "installedTests" ];
+  outputs = [
+    "out"
+    "installedTests"
+  ];
 
   src = fetchFromGitHub {
     owner = "GSConnect";
     repo = "gnome-shell-extension-gsconnect";
-    rev = "v${version}";
-    hash = "sha256-V2L65Fz1WcJE2ENE8uNgIuVSXLDHokcgM4Caz1sOdZM=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-w9MQVEUQUcO1lqftBi76w5xSTlryKuZJxE6Ogg1J+ho=";
   };
 
   patches = [
     # Make typelibs available in the extension
-    (substituteAll {
-      src = ./fix-paths.patch;
+    (replaceVars ./fix-paths.patch {
       gapplication = "${glib.bin}/bin/gapplication";
+      gjs = "${gjs}/bin/gjs";
+      # Replaced in postPatch
+      typelibPath = null;
     })
 
     # Allow installing installed tests to a separate output
@@ -50,7 +55,7 @@ stdenv.mkDerivation rec {
     ninja
     pkg-config
     gobject-introspection # for locating typelibs
-    wrapGAppsHook # for wrapping daemons
+    wrapGAppsHook3 # for wrapping daemons
     desktop-file-utils # update-desktop-database
   ];
 
@@ -64,14 +69,14 @@ stdenv.mkDerivation rec {
   ];
 
   mesonFlags = [
-    "-Dgnome_shell_libdir=${gnome.gnome-shell}/lib"
-    "-Dchrome_nmhdir=${placeholder "out"}/etc/opt/chrome/native-messaging-hosts"
-    "-Dchromium_nmhdir=${placeholder "out"}/etc/chromium/native-messaging-hosts"
-    "-Dopenssl_path=${openssl}/bin/openssl"
-    "-Dsshadd_path=${openssh}/bin/ssh-add"
-    "-Dsshkeygen_path=${openssh}/bin/ssh-keygen"
-    "-Dsession_bus_services_dir=${placeholder "out"}/share/dbus-1/services"
-    "-Dinstalled_test_prefix=${placeholder "installedTests"}"
+    (lib.mesonOption "gnome_shell_libdir" "${gnome-shell}/lib")
+    (lib.mesonOption "chrome_nmhdir" "${placeholder "out"}/etc/opt/chrome/native-messaging-hosts")
+    (lib.mesonOption "chromium_nmhdir" "${placeholder "out"}/etc/chromium/native-messaging-hosts")
+    (lib.mesonOption "openssl_path" "${openssl}/bin/openssl")
+    (lib.mesonOption "sshadd_path" "${openssh}/bin/ssh-add")
+    (lib.mesonOption "sshkeygen_path" "${openssh}/bin/ssh-keygen")
+    (lib.mesonOption "session_bus_services_dir" "${placeholder "out"}/share/dbus-1/services")
+    (lib.mesonOption "installed_test_prefix" "${placeholder "installedTests"}")
   ];
 
   postPatch = ''
@@ -79,14 +84,13 @@ stdenv.mkDerivation rec {
 
     # TODO: do not include every typelib everywhere
     # for example, we definitely do not need nautilus
-    for file in src/extension.js src/prefs.js; do
-      substituteInPlace "$file" \
-        --subst-var-by typelibPath "$GI_TYPELIB_PATH"
-    done
+    substituteInPlace src/__nix-prepend-search-paths.js \
+      --subst-var-by typelibPath "$GI_TYPELIB_PATH"
 
     # slightly janky fix for gsettings_schemadir being removed
     substituteInPlace data/config.js.in \
-      --subst-var-by GSETTINGS_SCHEMA_DIR ${glib.makeSchemaPath (placeholder "out") "${pname}-${version}"}
+      --subst-var-by GSETTINGS_SCHEMA_DIR \
+        ${glib.makeSchemaPath (placeholder "out") "${finalAttrs.pname}-${finalAttrs.version}"}
   '';
 
   postFixup = ''
@@ -114,11 +118,13 @@ stdenv.mkDerivation rec {
     };
   };
 
-  meta = with lib; {
+  meta = {
     description = "KDE Connect implementation for Gnome Shell";
     homepage = "https://github.com/GSConnect/gnome-shell-extension-gsconnect/wiki";
-    license = licenses.gpl2Plus;
-    maintainers = teams.gnome.members;
-    platforms = platforms.linux;
+    changelog = "https://github.com/GSConnect/gnome-shell-extension-gsconnect/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.gpl2Plus;
+    maintainers = with lib.maintainers; [ doronbehar ];
+    teams = [ lib.teams.gnome ];
+    platforms = lib.platforms.linux;
   };
-}
+})

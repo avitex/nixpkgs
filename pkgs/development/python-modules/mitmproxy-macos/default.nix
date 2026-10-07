@@ -1,40 +1,35 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, hatchling
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  mitmproxy-rs,
 }:
 
 buildPythonPackage rec {
   pname = "mitmproxy-macos";
-  version = "0.5.1";
-  pyproject = true;
+  inherit (mitmproxy-rs) version;
+  format = "wheel";
 
-  disabled = pythonOlder "3.10";
-
-  src = fetchFromGitHub {
-    owner = "mitmproxy";
-    repo = "mitmproxy_rs";
-    rev = "refs/tags/${version}";
-    hash = "sha256-nrm1T2yaGVmYsubwNJHPnPDC/A/jYiKVzwBKmuc9MD4=";
+  # Note: if this isn't downloading, its because mitmproxy-rs updated without also updating this.
+  src = fetchPypi {
+    pname = "mitmproxy_macos";
+    inherit version;
+    format = "wheel";
+    dist = "py3";
+    python = "py3";
+    hash = "sha256-baAfEY4hEN3wOEicgE53gY71IX003JYFyyZaNJ7U8UA=";
   };
 
-  sourceRoot = "${src.name}/mitmproxy-macos";
+  # repo has no python tests
+  doCheck = false;
 
-  nativeBuildInputs = [
-    hatchling
-  ];
+  pythonImportsCheck = [ "mitmproxy_macos" ];
 
-  pythonImportsCheck = [
-    "mitmproxy_macos"
-  ];
-
-  meta = with lib; {
-    description = "The MacOS Rust bits in mitmproxy";
+  meta = {
+    inherit (mitmproxy-rs.meta) changelog license maintainers;
+    description = "MacOS Rust bits in mitmproxy";
     homepage = "https://github.com/mitmproxy/mitmproxy_rs/tree/main/mitmproxy-macos";
-    changelog = "https://github.com/mitmproxy/mitmproxy_rs/blob/${version}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ boltzmannrain ];
-    platforms = platforms.darwin;
+    platforms = lib.platforms.darwin;
+    sourceProvenance = with lib.sourceTypes; [ binaryNativeCode ];
   };
 }

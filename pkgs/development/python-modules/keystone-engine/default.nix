@@ -1,16 +1,32 @@
-{ lib, stdenv, buildPythonPackage, fetchPypi, keystone }:
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  keystone,
+}:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "keystone-engine";
   version = "0.9.2";
-  format = "setuptools";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchPypi {
-   inherit pname version;
-   sha256 = "1xahdr6bh3dw5swrc2r8kqa8ljhqlb7k2kxv5mrw5rhcmcnzcyig";
+    inherit (finalAttrs) pname version;
+    sha256 = "1xahdr6bh3dw5swrc2r8kqa8ljhqlb7k2kxv5mrw5rhcmcnzcyig";
   };
 
-  setupPyBuildFlags = lib.optionals stdenv.isLinux [ "--plat-name" "linux" ];
+  build-system = [
+    setuptools
+  ];
+
+  setupPyBuildFlags = lib.optionals stdenv.hostPlatform.isLinux [
+    "--plat-name"
+    "linux"
+  ];
 
   preConfigure = ''
     substituteInPlace setup.py --replace \
@@ -22,10 +38,10 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "keystone" ];
 
-  meta = with lib; {
+  meta = {
     description = "Lightweight multi-platform, multi-architecture assembler framework";
     homepage = "https://www.keystone-engine.org";
-    maintainers = with maintainers; [ dump_stack ];
-    license = licenses.gpl2Only;
+    maintainers = with lib.maintainers; [ dump_stack ];
+    license = lib.licenses.gpl2Only;
   };
-}
+})

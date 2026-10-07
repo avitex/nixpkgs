@@ -20,6 +20,13 @@ from typing import Any
 
 Attrs = dict[str, Any]
 
+# mkcomposefs hard-limits inline content to LCFS_INLINE_CONTENT_MAX (5000 bytes).
+# We stay a bit below that. Files larger than this are served from the basedir
+# data-only lower layer via an overlay redirect; files at or below it are
+# embedded directly into the erofs metadata image, avoiding the redirect
+# indirection at read time and keeping the basedir empty in the common case.
+INLINE_CONTENT_MAX = 4096
+
 
 class FileType(Enum):
     """The filetype as defined by the `st_mode` stat field in octal
@@ -55,13 +62,23 @@ class ComposefsPath:
         mode: str,
         payload: str,
         path: str | None = None,
+        content: str = "-",
     ):
         if path is None:
             path = attrs["target"]
-        self.path = "/" + path
+        self.path = path
         self.size = size
         self.filetype = filetype
-        self.mode = mode
+        self.content = content
+
+        match len(mode):
+            case 3 | 4:
+                # We need to pad the mode, because we will later use the concatentation
+                # filetype|mode, which assumes that the mode has a length of 4.
+                self.mode = f"{mode:0>4}"
+            case _:
+                raise ValueError(f"mode should be 3 or 4 octal digits, got: {mode}")
+
         self.uid = attrs["uid"]
         self.gid = attrs["gid"]
         self.payload = payload
@@ -83,8 +100,49 @@ class ComposefsPath:
         return " ".join(line_list)
 
 
-def eprint(*args, **kwargs) -> None:
-    print(args, **kwargs, file=sys.stderr)
+def eprint(*args: Any, **kwargs: Any) -> None:
+    print(*args, **kwargs, file=sys.stderr)
+
+
+# Bytes that may appear unescaped in a composefs-dump field. Everything else
+# is encoded as \xHH. See composefs-dump(5).
+_DUMP_SHORT_ESCAPES: dict[int, str] = {
+    ord("\\"): r"\\",
+    ord("\n"): r"\n",
+    ord("\r"): r"\r",
+    ord("\t"): r"\t",
+}
+
+
+def escape_dump_field(data: bytes) -> str:
+    """Escape raw bytes for use as a composefs-dump field.
+
+    The dump format separates fields by a single space and lines by a single
+    newline, uses '\\' as the escape character and reserves '-' for unset
+    optional fields, so all of these (plus non-printable bytes and '=') must
+    be escaped.
+    """
+    if data == b"":
+        # An empty CONTENT field would be indistinguishable from two spaces
+        # between PAYLOAD and DIGEST; callers must emit '-' for size-0 files
+        # instead of inlining them.
+        raise ValueError("cannot escape empty content; emit '-' instead")
+    if data == b"-":
+        # A bare '-' means "unset"; escape it so it round-trips as content.
+        return r"\x2d"
+    out: list[str] = []
+    for b in data:
+        if b in _DUMP_SHORT_ESCAPES:
+            out.append(_DUMP_SHORT_ESCAPES[b])
+        elif b in (ord(" "), ord("=")) or not (0x20 <= b <= 0x7E):
+            out.append(f"\\x{b:02x}")
+        else:
+            out.append(chr(b))
+    return "".join(out)
+
+
+def normalize_path(path: str) -> str:
+    return str("/" + os.path.normpath(path).lstrip("/"))
 
 
 def leading_directories(path: str) -> list[str]:
@@ -145,6 +203,10 @@ def main() -> None:
 
     paths: dict[str, ComposefsPath] = {}
     for attrs in config:
+        # Normalize the target path to work around issues in how targets are
+        # declared in `environment.etc`.
+        attrs["target"] = normalize_path(attrs["target"])
+
         target = attrs["target"]
         source = attrs["source"]
         mode = attrs["mode"]
@@ -167,7 +229,7 @@ def main() -> None:
                 paths[glob_target] = composefs_path
                 add_leading_directories(glob_target, attrs, paths)
         else:  # Without globbing
-            if mode == "symlink":
+            if mode == "symlink" or mode == "direct-symlink":
                 composefs_path = ComposefsPath(
                     attrs,
                     # A high approximation of the size of a symlink
@@ -176,22 +238,45 @@ def main() -> None:
                     mode="0777",
                     payload=source,
                 )
+            elif os.path.isdir(source):
+                composefs_path = ComposefsPath(
+                    attrs,
+                    size=4096,
+                    filetype=FileType.directory,
+                    mode=mode,
+                    payload=source,
+                )
             else:
-                if os.path.isdir(source):
+                size = os.stat(source).st_size
+                if size <= INLINE_CONTENT_MAX:
+                    # Inline small files directly into the erofs image so they
+                    # do not need to be served from the basedir data layer via
+                    # an overlay redirect. Empty files need neither payload nor
+                    # content; mkcomposefs treats size=0 as an empty inline
+                    # file.
+                    if size > 0:
+                        with open(source, "rb") as fh:
+                            raw = fh.read()
+                        content = escape_dump_field(raw)
+                        size = len(raw)
+                    else:
+                        content = "-"
                     composefs_path = ComposefsPath(
                         attrs,
-                        size=4096,
-                        filetype=FileType.directory,
+                        size=size,
+                        filetype=FileType.file,
                         mode=mode,
-                        payload=source,
+                        payload="-",
+                        content=content,
                     )
                 else:
                     composefs_path = ComposefsPath(
                         attrs,
-                        size=os.stat(source).st_size,
+                        size=size,
                         filetype=FileType.file,
                         mode=mode,
-                        payload=target,
+                        # payload needs to be relative path in this case
+                        payload=target.lstrip("/"),
                     )
             paths[target] = composefs_path
             add_leading_directories(target, attrs, paths)

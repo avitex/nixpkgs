@@ -1,33 +1,38 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, rustPlatform
-, darwin
-, libiconv
-, makeBinaryWrapper
-, installShellFiles
-, fortuneAlias ? true
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  rustPlatform,
+  libiconv,
+  makeBinaryWrapper,
+  installShellFiles,
+  fortuneAlias ? true,
 }:
 
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "fortune-kind";
-  version = "0.1.12";
+  version = "0.1.13";
 
   src = fetchFromGitHub {
     owner = "cafkafk";
     repo = "fortune-kind";
-    rev = "v${version}";
-    hash = "sha256-1abke8wPvIFTmvEJ83TdfONFPBuJHbgmVHAoKddoTRw=";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-Tpg0Jq2EhkwQuz5ZOtv6Rb5YESSlmzLoJPTxYJNNgac=";
   };
 
-  cargoHash = "sha256-SRPhALRGkFZDl23Om/obg1Crd9yNXroN7F/7agobuqw=";
+  cargoHash = "sha256-Kp3pv9amEz9oFMDhz0IZDmhpsok5VgrvJZfwSPyz2X0=";
 
-  nativeBuildInputs = [ makeBinaryWrapper installShellFiles ];
-  buildInputs = lib.optionals stdenv.isDarwin [ libiconv darwin.apple_sdk.frameworks.Security ];
+  nativeBuildInputs = [
+    makeBinaryWrapper
+    installShellFiles
+  ];
+  buildInputs = lib.optionals stdenv.hostPlatform.isDarwin [
+    libiconv
+  ];
 
   buildNoDefaultFeatures = true;
 
-  MAN_OUT = "./man";
+  env.MAN_OUT = "./man";
 
   preBuild = ''
     mkdir -p "./$MAN_OUT";
@@ -45,13 +50,14 @@ rustPlatform.buildRustPackage rec {
 
   postInstall = ''
     wrapProgram $out/bin/fortune-kind \
-      --prefix FORTUNE_DIR : "$out/fortunes"
-  ''+ lib.optionalString fortuneAlias ''
+      --set-default FORTUNE_DIR "$out/fortunes"
+  ''
+  + lib.optionalString fortuneAlias ''
     ln -s fortune-kind $out/bin/fortune
   '';
 
-  meta = with lib; {
-    description = "A kinder, curated fortune, written in rust";
+  meta = {
+    description = "Kinder, curated fortune, written in rust";
     longDescription = ''
       Historically, contributions to fortune-mod have had a less-than ideal
       quality control process, and as such, many of the fortunes that a user may
@@ -61,10 +67,10 @@ rustPlatform.buildRustPackage rec {
       process to the fortune adoption workflow.
     '';
     homepage = "https://github.com/cafkafk/fortune-kind";
-    changelog = "https://github.com/cafkafk/fortune-kind/releases/tag/v${version}";
-    license = licenses.gpl3Only;
+    changelog = "https://github.com/cafkafk/fortune-kind/releases/tag/v${finalAttrs.version}";
+    license = lib.licenses.gpl3Only;
     mainProgram = "fortune-kind";
-    maintainers = with maintainers; [ cafkafk ];
-    platforms = platforms.unix ++ platforms.windows;
+    maintainers = with lib.maintainers; [ cafkafk ];
+    platforms = lib.platforms.unix ++ lib.platforms.windows;
   };
-}
+})

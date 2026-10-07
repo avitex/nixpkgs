@@ -1,35 +1,33 @@
-{ stdenv
-, lib
-, buildPythonPackage
-, fetchFromGitHub
-, numpy
-, pytestCheckHook
-, pythonOlder
-, scipy
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  numpy,
+  pytestCheckHook,
+  scipy,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "tensorly";
-  version = "0.8.1";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.9.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
-    owner = pname;
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-hwpdExW/ESOavFkL3old1Efo5WC+PYmcgJp5/oLelaA=";
+    owner = "tensorly";
+    repo = "tensorly";
+    tag = version;
+    hash = "sha256-A6Zlp8fa7XFgf4qpg7SEtNLlYSNtDGLuRUEfzD+crQc=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     numpy
     scipy
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   pythonImportsCheck = [
     "tensorly"
@@ -42,6 +40,7 @@ buildPythonPackage rec {
     "tensorly.tenalg"
     "tensorly.decomposition"
     "tensorly.regression"
+    "tensorly.solvers"
     "tensorly.metrics"
     "tensorly.random"
     "tensorly.datasets"
@@ -49,9 +48,7 @@ buildPythonPackage rec {
     "tensorly.contrib"
   ];
 
-  pytestFlagsArray = [
-    "tensorly"
-  ];
+  enabledTestPaths = [ "tensorly" ];
 
   disabledTests = [
     # this can fail on hydra and other peoples machines, check with others before re-enabling
@@ -59,10 +56,11 @@ buildPythonPackage rec {
     "test_svd_time"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Tensor learning in Python";
     homepage = "https://tensorly.org/";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ bcdarwin ];
+    changelog = "https://github.com/tensorly/tensorly/releases/tag/${version}";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ bcdarwin ];
   };
 }

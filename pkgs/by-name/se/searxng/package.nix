@@ -1,78 +1,102 @@
-{ lib
-, python3
-, fetchFromGitHub
+{
+  lib,
+  python3,
+  fetchFromGitHub,
+  nixosTests,
+  unstableGitUpdater,
 }:
-
-python3.pkgs.toPythonModule (python3.pkgs.buildPythonApplication rec {
-  pname = "searxng";
-  version = "unstable-2023-10-31";
-
-  src = fetchFromGitHub {
-    owner = pname;
-    repo = pname;
-    rev = "b05a15540e1dc2dfb8e4e25aa537b2a68e713844";
-    hash = "sha256-x0PyS+A4KjbBnTpca17Wx3BQjtOHvVuWpusPPc1ULnU=";
+let
+  python = python3.override {
+    packageOverrides = final: prev: { };
   };
+in
+python.pkgs.toPythonModule (
+  python.pkgs.buildPythonApplication rec {
+    pname = "searxng";
+    version = "0-unstable-2026-10-02";
+    pyproject = true;
 
-  postPatch = ''
-    sed -i 's/==.*$//' requirements.txt
-  '';
+    src = fetchFromGitHub {
+      owner = "searxng";
+      repo = "searxng";
+      rev = "19ffbcd30686e4008392e93de164200510dfb9d8";
+      hash = "sha256-iYItwi8cZvJLpnNW3VXQtTNwZMe3DKtAYe4F/VFbjhw=";
+    };
 
-  preBuild =
-    let
-      versionString = lib.concatStringsSep "." (builtins.tail (lib.splitString "-" version));
-      commitAbbrev = builtins.substring 0 8 src.rev;
-    in
-    ''
-      export SEARX_DEBUG="true";
+    nativeBuildInputs = with python.pkgs; [ pythonRelaxDepsHook ];
 
-      cat > searx/version_frozen.py <<EOF
-      VERSION_STRING="${versionString}+${commitAbbrev}"
-      VERSION_TAG="${versionString}+${commitAbbrev}"
-      DOCKER_TAG="${versionString}-${commitAbbrev}"
-      GIT_URL="https://github.com/searxng/searxng"
-      GIT_BRANCH="master"
-      EOF
+    pythonRelaxDeps = true;
+
+    preBuild =
+      let
+        versionString = lib.concatStringsSep "." (
+          map (lib.removePrefix "0") (builtins.tail (lib.splitString "-" (lib.removePrefix "0-" version)))
+        );
+        commitAbbrev = builtins.substring 0 8 src.rev;
+      in
+      ''
+        export SEARX_DEBUG="true";
+
+        cat > searx/version_frozen.py <<EOF
+        VERSION_STRING="${versionString}+${commitAbbrev}"
+        VERSION_TAG="${versionString}+${commitAbbrev}"
+        DOCKER_TAG="${versionString}-${commitAbbrev}"
+        GIT_URL="https://github.com/searxng/searxng"
+        GIT_BRANCH="master"
+        EOF
+      '';
+
+    build-system = with python.pkgs; [ setuptools ];
+
+    dependencies = with python.pkgs; [
+      babel
+      certifi
+      cloudscraper
+      curl-cffi
+      flask
+      flask-babel
+      isodate
+      jinja2
+      lxml
+      markdown-it-py
+      msgspec
+      pygments
+      python-dateutil
+      pyyaml
+      typer
+      typing-extensions
+      valkey
+      whitenoise
+    ];
+
+    # tests try to connect to network
+    doCheck = false;
+
+    postInstall = ''
+      # Create a symlink for easier access to static data
+      mkdir -p $out/share
+      ln -s ../${python.sitePackages}/searx/static $out/share/
+
+      # copy config schema for the limiter
+      cp searx/limiter.toml $out/${python.sitePackages}/searx/limiter.toml
     '';
 
-  propagatedBuildInputs = with python3.pkgs; [
-    babel
-    certifi
-    python-dateutil
-    fasttext-predict
-    flask
-    flask-babel
-    brotli
-    jinja2
-    lxml
-    pygments
-    pytomlpp
-    pyyaml
-    redis
-    uvloop
-    setproctitle
-    httpx
-    httpx-socks
-    markdown-it-py
-  ] ++ httpx.optional-dependencies.http2
-  ++ httpx-socks.optional-dependencies.asyncio;
+    passthru = {
+      tests = {
+        searxng = nixosTests.searx;
+      };
+      updateScript = unstableGitUpdater { hardcodeZeroVersion = true; };
+    };
 
-  # tests try to connect to network
-  doCheck = false;
-
-  postInstall = ''
-    # Create a symlink for easier access to static data
-    mkdir -p $out/share
-    ln -s ../${python3.sitePackages}/searx/static $out/share/
-
-    # copy config schema for the limiter
-    cp searx/botdetection/limiter.toml $out/${python3.sitePackages}/searx/botdetection/limiter.toml
-  '';
-
-  meta = with lib; {
-    homepage = "https://github.com/searxng/searxng";
-    description = "A fork of Searx, a privacy-respecting, hackable metasearch engine";
-    license = licenses.agpl3Plus;
-    maintainers = with maintainers; [ SuperSandro2000 _999eagle ];
-  };
-})
+    meta = {
+      homepage = "https://github.com/searxng/searxng";
+      description = "Fork of Searx, a privacy-respecting, hackable metasearch engine";
+      license = lib.licenses.agpl3Plus;
+      mainProgram = "searxng-run";
+      maintainers = with lib.maintainers; [
+        SuperSandro2000
+        _999eagle
+      ];
+    };
+  }
+)

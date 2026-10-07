@@ -1,69 +1,77 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, fetchpatch
-, pytestCheckHook
-, pythonOlder
-, stdenv
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-, affine
-, attrs
-, boto3
-, certifi
-, click
-, click-plugins
-, cligj
-, cython_3
-, gdal
-, hypothesis
-, ipython
-, matplotlib
-, numpy
-, oldest-supported-numpy
-, packaging
-, pytest-randomly
-, setuptools
-, shapely
-, snuggs
-, wheel
+  # build-system
+  cython,
+  numpy,
+  setuptools,
+
+  # non-Python dependencies
+  gdal-cpp,
+
+  # dependencies
+  affine,
+  attrs,
+  certifi,
+  click,
+  click-plugins,
+  cligj,
+  snuggs,
+
+  # optional-dependencies
+  ipython,
+  matplotlib,
+  boto3,
+
+  # tests
+  fsspec,
+  hypothesis,
+  packaging,
+  pytestCheckHook,
+  pytest-randomly,
+  shapely,
+  versionCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "rasterio";
-  version = "1.3.9";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "1.5.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "rasterio";
     repo = "rasterio";
-    rev = "refs/tags/${version}";
-    hash = "sha256-Tp6BSU33FaszrIXQgU0Asb7IMue0C939o/atAKz+3Q4=";
+    tag = version;
+    hash = "sha256-sg7c18+Gd6KObPQS7h9Jwj5iXUx5Cz1lcKSRERDMdL0=";
   };
 
-  patches = [
-    # fix tests failing with GDAL 3.8.0
-    (fetchpatch {
-      url = "https://github.com/rasterio/rasterio/commit/54ec554a6d9ee52207ad17dee42cbc51c613f709.diff";
-      hash = "sha256-Vjt9HRYNAWyj0myMdtSUENbcLjACfzegEClzZb4BxY8=";
-    })
-    (fetchpatch {
-      url = "https://github.com/rasterio/rasterio/commit/5a72613c58d1482bf297d08cbacf27992f52b2c4.diff";
-      hash = "sha256-bV6rh3GBmeqq9+Jff2b8/1wOuyF3Iqducu2eN4CT3lM=";
-    })
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail "cython>=3.1,<=3.2" cython
+  '';
+
+  build-system = [
+    cython
+    numpy
+    setuptools
   ];
 
   nativeBuildInputs = [
-    cython_3
-    gdal
-    numpy
-    oldest-supported-numpy
-    setuptools
-    wheel
+    gdal-cpp # for gdal-config
   ];
 
-  propagatedBuildInputs = [
+  buildInputs = [
+    gdal-cpp
+  ];
+
+  pythonRelaxDeps = [
+    "click"
+  ];
+
+  dependencies = [
     affine
     attrs
     certifi
@@ -71,54 +79,63 @@ buildPythonPackage rec {
     click-plugins
     cligj
     numpy
-    setuptools
     snuggs
   ];
 
-  passthru.optional-dependencies = {
-    ipython = [
-      ipython
-    ];
-    plot = [
-      matplotlib
-    ];
-    s3 = [
-      boto3
-    ];
+  optional-dependencies = {
+    ipython = [ ipython ];
+    plot = [ matplotlib ];
+    s3 = [ boto3 ];
   };
 
   nativeCheckInputs = [
     boto3
+    fsspec
     hypothesis
     packaging
     pytestCheckHook
     pytest-randomly
     shapely
+    versionCheckHook
   ];
-
-  doCheck = true;
 
   preCheck = ''
     rm -r rasterio # prevent importing local rasterio
   '';
 
-  pytestFlagsArray = [
-    "-m 'not network'"
-  ];
+  disabledTestMarks = [ "network" ];
 
-  disabledTests = lib.optionals stdenv.isDarwin [
-    "test_reproject_error_propagation"
-  ];
+  disabledTests = [
+    # flaky
+    "test_outer_boundless_pixel_fidelity"
+    # network access
+    "test_issue1982"
+    "test_opener_fsspec_http_fs"
+    "test_fsspec_http_msk_sidecar"
+    # expect specific magic numbers that our version of GDAL does not produce
+    "test_warp"
+    "test_warpedvrt"
+    "test_rio_warp"
 
-  pythonImportsCheck = [
-    "rasterio"
-  ];
+    # AssertionError CLI exists with non-zero error code
+    # This is a regression introduced by https://github.com/NixOS/nixpkgs/pull/448189
+    "test_sample_stdin"
+    "test_transform"
+    "test_transform_point"
+    "test_transform_point_dst_file"
+    "test_transform_point_multi"
+    "test_transform_point_src_file"
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [ "test_reproject_error_propagation" ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "rasterio" ];
+
+  meta = {
     description = "Python package to read and write geospatial raster data";
+    mainProgram = "rio";
     homepage = "https://rasterio.readthedocs.io/";
-    changelog = "https://github.com/rasterio/rasterio/blob/${version}/CHANGES.txt";
-    license = licenses.bsd3;
-    maintainers = teams.geospatial.members;
+    changelog = "https://github.com/rasterio/rasterio/blob/${src.tag}/CHANGES.txt";
+    license = lib.licenses.bsd3;
+    teams = [ lib.teams.geospatial ];
   };
 }

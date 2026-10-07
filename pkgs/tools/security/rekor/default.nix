@@ -1,16 +1,27 @@
-{ lib, buildGoModule, fetchFromGitHub, installShellFiles }:
+{
+  lib,
+  stdenv,
+  buildGoModule,
+  fetchFromGitHub,
+  installShellFiles,
+}:
 
 let
-  generic = { pname, packageToBuild, description }:
+  generic =
+    {
+      pname,
+      packageToBuild,
+      description,
+    }:
     buildGoModule rec {
       inherit pname;
-      version = "1.3.4";
+      version = "1.5.4";
 
       src = fetchFromGitHub {
         owner = "sigstore";
         repo = "rekor";
         rev = "v${version}";
-        hash = "sha256-vU/qxCMCC2XWH79Z7cGhMlqMeQOMghTPDfROWdusKX4=";
+        hash = "sha256-fF48pfbQAHk81aJ4zXDpkY7u5zFmgpr/Fg44kvlmtng=";
         # populate values that require us to use git. By doing this in postFetch we
         # can delete .git afterwards and maintain better reproducibility of the src.
         leaveDotGit = true;
@@ -23,7 +34,7 @@ let
         '';
       };
 
-      vendorHash = "sha256-qhBbzYYayRktBQi9HtzuxBIlSdNIOD/agCFFNEvlcBc=";
+      vendorHash = "sha256-XN+wyWDPep8bdvPMsQFv6I/ULf4cE2/t2NfEFyzE+aE=";
 
       nativeBuildInputs = [ installShellFiles ];
 
@@ -42,22 +53,27 @@ let
         ldflags+=" -X sigs.k8s.io/release-utils/version.buildDate=$(cat SOURCE_DATE_EPOCH)"
       '';
 
-      postInstall = ''
+      postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
         installShellCompletion --cmd ${pname} \
           --bash <($out/bin/${pname} completion bash) \
           --fish <($out/bin/${pname} completion fish) \
           --zsh <($out/bin/${pname} completion zsh)
       '';
 
-      meta = with lib; {
+      meta = {
         inherit description;
         homepage = "https://github.com/sigstore/rekor";
         changelog = "https://github.com/sigstore/rekor/releases/tag/v${version}";
-        license = licenses.asl20;
-        maintainers = with maintainers; [ lesuisse jk developer-guy ];
+        license = lib.licenses.asl20;
+        maintainers = with lib.maintainers; [
+          lesuisse
+          jk
+          developer-guy
+        ];
       };
     };
-in {
+in
+{
   rekor-cli = generic {
     pname = "rekor-cli";
     packageToBuild = "cmd/rekor-cli";

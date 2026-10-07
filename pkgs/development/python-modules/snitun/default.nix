@@ -1,64 +1,65 @@
-{ lib
-, stdenv
-, async-timeout
-, attrs
-, buildPythonPackage
-, cryptography
-, fetchFromGitHub
-, pytest-aiohttp
-, pytestCheckHook
-, pythonAtLeast
-, pythonOlder
+{
+  lib,
+  stdenv,
+  aiohttp,
+  buildPythonPackage,
+  cryptography,
+  fetchFromGitHub,
+  pytest-aiohttp,
+  pytest-codspeed,
+  pytestCheckHook,
+  setuptools,
+  trustme,
 }:
 
 buildPythonPackage rec {
   pname = "snitun";
-  version = "0.36.2";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.47.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "NabuCasa";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-ViNsmTq1iLxNujA71b9JZB5AZ79ZbiqdTyDeBGd4gUA=";
+    repo = "snitun";
+    tag = version;
+    hash = "sha256-l7iXTXY6Dq1LV4ju6/WlipTSeybne33tiFYiwgy+DuM=";
   };
 
-  propagatedBuildInputs = [
-    async-timeout
-    attrs
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail 'version = "0.0.0"' 'version = "${version}"'
+  '';
+
+  build-system = [ setuptools ];
+
+  dependencies = [
+    aiohttp
     cryptography
   ];
 
   nativeCheckInputs = [
     pytest-aiohttp
+    pytest-codspeed
     pytestCheckHook
+    trustme
   ];
 
-  disabledTests = [
-    # broke after aiohttp 3.8.5 upgrade
-    "test_client_stop_no_wait"
-  ] ++ lib.optionals stdenv.isDarwin [
+  disabledTests = lib.optionals stdenv.hostPlatform.isDarwin [
     "test_multiplexer_data_channel_abort_full" # https://github.com/NabuCasa/snitun/issues/61
     # port binding conflicts
     "test_snitun_single_runner_timeout"
     "test_snitun_single_runner_throttling"
     # ConnectionResetError: [Errno 54] Connection reset by peer
     "test_peer_listener_timeout"
-  ] ++ lib.optionals (pythonAtLeast "3.11") [
-    # TypeError: Passing coroutines is forbidden, use tasks explicitly.
-    "test_snitun_runner_updown"
   ];
 
   pythonImportsCheck = [ "snitun" ];
 
-  meta = with lib; {
-    changelog = "https://github.com/NabuCasa/snitun/releases/tag/${version}";
-    homepage = "https://github.com/nabucasa/snitun";
+  meta = {
     description = "SNI proxy with TCP multiplexer";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ Scriptkiddi ];
-    platforms = platforms.linux;
+    changelog = "https://github.com/NabuCasa/snitun/releases/tag/${src.tag}";
+    homepage = "https://github.com/nabucasa/snitun";
+    license = lib.licenses.gpl3Only;
+    maintainers = with lib.maintainers; [ Scriptkiddi ];
+    platforms = lib.platforms.linux;
   };
 }

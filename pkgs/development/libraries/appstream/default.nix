@@ -1,50 +1,66 @@
-{ lib
-, stdenv
-, substituteAll
-, fetchFromGitHub
-, meson
-, mesonEmulatorHook
-, ninja
-, pkg-config
-, gettext
-, xmlto
-, docbook-xsl-nons
-, docbook_xml_dtd_45
-, libxslt
-, libstemmer
-, glib
-, xapian
-, libxml2
-, libxmlb
-, libyaml
-, gobject-introspection
-, pcre
-, itstool
-, gperf
-, vala
-, curl
-, systemd
-, nixosTests
-, withSystemd ? lib.meta.availableOn stdenv.hostPlatform systemd
+{
+  lib,
+  stdenv,
+  buildPackages,
+  replaceVars,
+  fetchFromGitHub,
+  meson,
+  mesonEmulatorHook,
+  appstream,
+  ninja,
+  pkg-config,
+  cmake,
+  gettext,
+  xmlto,
+  docbook-xsl-ns,
+  docbook_xml_dtd_45,
+  libblake3,
+  libxslt,
+  libstemmer,
+  glib,
+  xapian,
+  libxml2,
+  libxmlb,
+  libfyaml,
+  gobject-introspection,
+  itstool,
+  gperf,
+  vala,
+  curl,
+  cairo,
+  gdk-pixbuf,
+  pango,
+  librsvg,
+  bash-completion,
+  systemdLibs,
+  nixosTests,
+  testers,
+  withIntrospection ?
+    lib.meta.availableOn stdenv.hostPlatform gobject-introspection
+    && stdenv.hostPlatform.emulatorAvailable buildPackages,
+  withSystemd ? lib.meta.availableOn stdenv.hostPlatform systemdLibs,
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "appstream";
-  version = "1.0.1";
+  version = "1.1.3";
 
-  outputs = [ "out" "dev" "installedTests" ];
+  outputs = [
+    "out"
+    "dev"
+    "installedTests"
+  ];
 
   src = fetchFromGitHub {
     owner = "ximion";
     repo = "appstream";
-    rev = "v${version}";
-    sha256 = "sha256-ULqRHepWVuAluXsXJUoqxqJfrN168MGlwdVkoLLwSN0=";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-z9HmTYOjglki+ID7GPMf3jGLOAkxLqJd4+GsIR3W3u4=";
   };
 
   patches = [
     # Fix hardcoded paths
-    (substituteAll {
-      src = ./fix-paths.patch;
+    (replaceVars ./fix-paths.patch {
       libstemmer_includedir = "${lib.getDev libstemmer}/include";
     })
 
@@ -62,48 +78,67 @@ stdenv.mkDerivation rec {
     meson
     ninja
     pkg-config
+    cmake
     gettext
     libxslt
     xmlto
-    docbook-xsl-nons
+    docbook-xsl-ns
     docbook_xml_dtd_45
-    gobject-introspection
+    glib
     itstool
-    vala
     gperf
-  ] ++ lib.optionals (!stdenv.buildPlatform.canExecute stdenv.hostPlatform) [
+  ]
+  ++ lib.optionals (!stdenv.buildPlatform.canExecute stdenv.hostPlatform) [
     mesonEmulatorHook
+  ]
+  ++ lib.optionals (!lib.systems.equals stdenv.buildPlatform stdenv.hostPlatform) [
+    appstream
+  ]
+  ++ lib.optionals withIntrospection [
+    gobject-introspection
+    vala
   ];
 
   buildInputs = [
+    libblake3
     libstemmer
-    pcre
     glib
     xapian
     libxml2
     libxmlb
-    libyaml
+    libfyaml
     curl
-  ] ++ lib.optionals withSystemd [
-    systemd
+    cairo
+    gdk-pixbuf
+    pango
+    librsvg
+    bash-completion
+  ]
+  ++ lib.optionals withSystemd [
+    systemdLibs
   ];
 
   mesonFlags = [
     "-Dapidocs=false"
+    "-Dc_args=-Wno-error=missing-include-dirs"
     "-Ddocs=false"
     "-Dvapi=true"
     "-Dinstalled_test_prefix=${placeholder "installedTests"}"
-  ] ++ lib.optionals (!withSystemd) [
+    "-Dcompose=true"
+    (lib.mesonBool "gir" withIntrospection)
+  ]
+  ++ lib.optionals (!withSystemd) [
     "-Dsystemd=false"
   ];
 
-  passthru = {
-    tests = {
-      installed-tests = nixosTests.installed-tests.appstream;
+  passthru.tests = {
+    installed-tests = nixosTests.installed-tests.appstream;
+    pkg-config = testers.hasPkgConfigModules {
+      package = finalAttrs.finalPackage;
     };
   };
 
-  meta = with lib; {
+  meta = {
     description = "Software metadata handling library";
     longDescription = ''
       AppStream is a cross-distro effort for building Software-Center applications
@@ -112,8 +147,9 @@ stdenv.mkDerivation rec {
       can be consumed by other software.
     '';
     homepage = "https://www.freedesktop.org/wiki/Distributions/AppStream/";
-    license = licenses.lgpl21Plus;
+    license = lib.licenses.lgpl21Plus;
     mainProgram = "appstreamcli";
-    platforms = platforms.unix;
+    platforms = lib.platforms.unix;
+    pkgConfigModules = [ "appstream" ];
   };
-}
+})

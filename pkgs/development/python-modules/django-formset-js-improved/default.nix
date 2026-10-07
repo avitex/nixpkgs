@@ -1,40 +1,46 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, django
-, django-jquery-js
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fetchpatch,
+  setuptools,
+  django,
+  django-jquery-js,
 }:
 
 buildPythonPackage rec {
   pname = "django-formset-js-improved";
   version = "0.5.0.3";
-  format = "setuptools";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "pretix";
     repo = "django-formset-js";
-    rev = "refs/tags/${version}";
+    tag = version;
     hash = "sha256-bOM24ldXk9WeV0jl6LIJB3BJ5hVWLA1PJTBBnJBoprU=";
   };
 
-  buildInputs = [
-    django
+  patches = [
+    (fetchpatch {
+      url = "https://github.com/pretix/django-formset-js/commit/7d8a33190d58ff9d75270264342eba82672d054e.patch";
+      hash = "sha256-eBRP0eqMnH7UM9cToR+diejO6dMDDVt2bbUHLDcaWjk=";
+    })
   ];
 
-  propagatedBuildInputs = [
-    django-jquery-js
-  ];
+  build-system = [ setuptools ];
 
-  pythonImportsCheck = [
-    "djangoformsetjs"
-  ];
+  buildInputs = [ django ];
+
+  dependencies = [ django-jquery-js ];
+
+  pythonImportsCheck = [ "djangoformsetjs" ];
 
   doCheck = false; # no tests
 
-  meta = with lib; {
-    description = "A wrapper for a JavaScript formset helper";
+  meta = {
+    description = "Wrapper for a JavaScript formset helper";
     homepage = "https://github.com/pretix/django-formset-js";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ hexa ];
+    license = lib.licenses.bsd2;
+    maintainers = with lib.maintainers; [ hexa ];
   };
 }

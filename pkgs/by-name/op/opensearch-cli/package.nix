@@ -1,16 +1,18 @@
-{ lib
-, buildGoModule
-, fetchFromGitHub
-, installShellFiles
+{
+  lib,
+  stdenv,
+  buildGoModule,
+  fetchFromGitHub,
+  installShellFiles,
 }:
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "opensearch-cli";
   version = "1.2.0";
   src = fetchFromGitHub {
     repo = "opensearch-cli";
     owner = "opensearch-project";
-    rev = version;
+    rev = finalAttrs.version;
     hash = "sha256-Ah64a9hpc2tnIXiwxg/slE6fUTAoHv9koNmlUHrVj/s=";
   };
 
@@ -18,7 +20,7 @@ buildGoModule rec {
 
   nativeBuildInputs = [ installShellFiles ];
 
-  postInstall = ''
+  postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
     export HOME="$(mktemp -d)"
     installShellCompletion --cmd opensearch-cli \
       --bash <($out/bin/opensearch-cli completion bash) \
@@ -27,12 +29,12 @@ buildGoModule rec {
   '';
 
   meta = {
-    description = "A full-featured command line interface (CLI) for OpenSearch.";
+    description = "Full-featured command line interface (CLI) for OpenSearch";
     homepage = "https://github.com/opensearch-project/opensearch-cli";
     license = lib.licenses.asl20;
     mainProgram = "opensearch-cli";
-    maintainers = with lib.maintainers; [ shyim ];
+    maintainers = [ ];
     platforms = lib.platforms.unix;
     sourceProvenance = with lib.sourceTypes; [ fromSource ];
   };
-}
+})

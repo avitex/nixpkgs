@@ -1,18 +1,16 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, libversion
-, pkg-config
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  libversion,
+  pkg-config,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "libversion";
   version = "1.2.4";
   format = "setuptools";
-
-  disabled = pythonOlder "3.6";
 
   src = fetchFromGitHub {
     owner = "repology";
@@ -26,31 +24,23 @@ buildPythonPackage rec {
       --replace "'pkg-config'" "'$(command -v $PKG_CONFIG)'"
   '';
 
-  nativeBuildInputs = [
-    pkg-config
-  ];
+  nativeBuildInputs = [ pkg-config ];
 
-  buildInputs = [
-    libversion
-  ];
+  buildInputs = [ libversion ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   preCheck = ''
     # import from $out
     rm -r libversion
   '';
 
-  pythonImportsCheck = [
-    "libversion"
-  ];
+  pythonImportsCheck = [ "libversion" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python bindings for libversion, which provides fast, powerful and correct generic version string comparison algorithm";
     homepage = "https://github.com/repology/py-libversion";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ryantm ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ ryantm ];
   };
 }

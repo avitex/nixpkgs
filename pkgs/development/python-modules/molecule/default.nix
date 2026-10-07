@@ -1,36 +1,39 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, ansible-compat
-, ansible-core
-, click-help-colors
-, enrich
-, jsonschema
-, withPlugins ? true, molecule-plugins
-, packaging
-, pluggy
-, rich
-, setuptools
-, setuptools-scm
-, yamllint
-, wcmatch
-, wheel
+{
+  lib,
+  ansible-compat,
+  ansible-core,
+  buildPythonPackage,
+  click-help-colors,
+  enrich,
+  fetchPypi,
+  jsonschema,
+  molecule,
+  packaging,
+  pluggy,
+  rich,
+  setuptools,
+  setuptools-scm,
+  testers,
+  wcmatch,
+  withPlugins ? true,
+  writableTmpDirAsHomeHook,
+  molecule-plugins,
+  yamllint,
 }:
 
 buildPythonPackage rec {
   pname = "molecule";
-  version = "6.0.3";
-  format = "pyproject";
+  version = "26.6.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-0qiBBi/MXvHgjB5RJ8BDVNLJUXGVXicL2Cs/v+9y07A=";
+    hash = "sha256-GHDF9UQkA9d7WVPTRDgiZaUh60lIiFJgwMrAhKo97AI=";
   };
 
   nativeBuildInputs = [
     setuptools
     setuptools-scm
-    wheel
   ];
 
   propagatedBuildInputs = [
@@ -44,17 +47,30 @@ buildPythonPackage rec {
     rich
     yamllint
     wcmatch
-  ] ++ lib.optional withPlugins molecule-plugins;
+  ]
+  ++ lib.optional withPlugins molecule-plugins;
 
   pythonImportsCheck = [ "molecule" ];
 
   # tests can't be easily run without installing things from ansible-galaxy
   doCheck = false;
 
-  meta = with lib; {
-    description = "Molecule aids in the development and testing of Ansible roles";
+  passthru.tests.version =
+    (testers.testVersion {
+      package = molecule;
+      command = "PY_COLORS=0 ${pname} --version";
+    }).overrideAttrs
+      (old: {
+        # workaround the error: Permission denied: '/homeless-shelter'
+        nativeBuildInputs = old.nativeBuildInputs ++ [ writableTmpDirAsHomeHook ];
+      });
+
+  meta = {
+    description = "Aids in the development and testing of Ansible roles";
     homepage = "https://github.com/ansible-community/molecule";
-    maintainers = with maintainers; [ dawidd6 ];
-    license = licenses.mit;
+    changelog = "https://github.com/ansible/molecule/releases/tag/v${version}";
+    license = lib.licenses.mit;
+    maintainers = [ ];
+    mainProgram = "molecule";
   };
 }

@@ -1,44 +1,54 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools
-, cryptography
-, pytestCheckHook
-, pefile
+{
+  lib,
+  pkgs,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitLab,
+  setuptools,
+  cryptography,
+  pytestCheckHook,
+  pefile,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "virt-firmware";
-  version = "24.1.1";
-
+  version = "25.12";
   pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-dUDfDQypP8hCo4eZcnUsOovgMksSX7hxMQI8mliCx2c=";
+  src = fetchFromGitLab {
+    owner = "kraxel";
+    repo = "virt-firmware";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-sopmWZ8CdLuc0R+QN7MSoqT9kURzOyh9CgbreKuvANw=";
   };
 
-  pythonImportsCheck = [ "virt.firmware.efi" ];
+  build-system = [ setuptools ];
 
-  nativeBuildInputs = [
-    setuptools
-  ];
-
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
-  pytestFlagsArray = ["tests/tests.py"];
-
-  propagatedBuildInputs = [
+  dependencies = [
     setuptools
     cryptography
     pefile
   ];
 
-  meta = with lib; {
+  # tests require systemd-detect-virt
+  doCheck = lib.meta.availableOn stdenv.hostPlatform pkgs.systemd;
+
+  nativeCheckInputs = [
+    pytestCheckHook
+    pkgs.systemd
+  ];
+
+  enabledTestPaths = [ "tests/tests.py" ];
+
+  pythonImportsCheck = [ "virt.firmware.efi" ];
+
+  meta = {
     description = "Tools for virtual machine firmware volumes";
     homepage = "https://gitlab.com/kraxel/virt-firmware";
-    license = licenses.gpl2;
-    maintainers = with maintainers; [ lheckemann raitobezarius ];
+    changelog = "https://gitlab.com/kraxel/virt-firmware/-/tags/${finalAttrs.src.tag}";
+    license = lib.licenses.gpl2Only;
+    maintainers = with lib.maintainers; [
+      raitobezarius
+    ];
   };
-}
+})

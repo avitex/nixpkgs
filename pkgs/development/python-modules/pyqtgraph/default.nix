@@ -1,77 +1,102 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchFromGitHub
-, scipy
-, numpy
-, pyqt5
-, pyopengl
-, qt5
-, pytestCheckHook
-, freefont_ttf
-, makeFontsConf
-, setuptools
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+
+  # dependencies
+  colorama,
+  scipy,
+  numpy,
+  pyopengl,
+
+  # buildInputs
+  pyqt6,
+
+  # tests
+  qt6,
+  pytestCheckHook,
+  freefont_ttf,
+  makeFontsConf,
 }:
 
 let
-  fontsConf = makeFontsConf {
-    fontDirectories = [ freefont_ttf ];
-  };
+  fontsConf = makeFontsConf { fontDirectories = [ freefont_ttf ]; };
 in
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pyqtgraph";
-  version = "0.13.3";
-  format = "pyproject";
+  version = "0.14.0";
+  pyproject = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "pyqtgraph";
     repo = "pyqtgraph";
-    rev = "refs/tags/pyqtgraph-${version}";
-    hash = "sha256-kFTNhv8pgIRSJX0ePmp1I0+MGfCaW8b86baIYZ2bZQM=";
+    tag = "pyqtgraph-${finalAttrs.version}";
+    hash = "sha256-T5rhaBtcKP/sYjCmYNMYR0BGttkiLhWTfEbZNeAdJJ0=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
+    colorama
     numpy
-    pyqt5
     scipy
     pyopengl
+  ];
+  buildInputs = [
+    # Not propagating it so that every consumer of this package will be able to
+    # use any of the upstream supported Qt Library, See:
+    # https://pyqtgraph.readthedocs.io/en/pyqtgraph-0.13.7/getting_started/how_to_use.html#pyqt-and-pyside
+    pyqt6
   ];
 
   nativeCheckInputs = [ pytestCheckHook ];
 
   preCheck = ''
-    export QT_PLUGIN_PATH="${qt5.qtbase.bin}/${qt5.qtbase.qtPluginPrefix}"
+    export QT_PLUGIN_PATH="${lib.getBin qt6.qtbase}/${qt6.qtbase.qtPluginPrefix}"
     export QT_QPA_PLATFORM=offscreen
     export DYLD_FRAMEWORK_PATH=/System/Library/Frameworks
     export FONTCONFIG_FILE=${fontsConf}
   '';
 
-  pytestFlagsArray = [
+  enabledTestPaths = [
     # we only want to run unittests
     "tests"
   ];
 
-  disabledTests = lib.optionals (!stdenv.hostPlatform.isx86) [
+  disabledTests = [
+    # See https://github.com/pyqtgraph/pyqtgraph/issues/3485
+    "test_maps_tick_values_to_local_times"
+    "test_maps_hour_ticks_to_local_times_when_skip_greater_than_one"
+    "test_plotscene"
+    "test_simple"
+  ]
+  ++ lib.optionals (!stdenv.hostPlatform.isx86) [
     # small precision-related differences on other architectures,
     # upstream doesn't consider it serious.
     # https://github.com/pyqtgraph/pyqtgraph/issues/2110
     "test_PolyLineROI"
-  ] ++ lib.optionals (stdenv.isLinux && stdenv.isAarch64) [
+  ]
+  ++ lib.optionals (stdenv.hostPlatform.isLinux && stdenv.hostPlatform.isAarch64) [
     # https://github.com/pyqtgraph/pyqtgraph/issues/2645
     "test_rescaleData"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Scientific Graphics and GUI Library for Python";
     homepage = "https://www.pyqtgraph.org/";
-    changelog = "https://github.com/pyqtgraph/pyqtgraph/blob/master/CHANGELOG";
-    license = licenses.mit;
-    platforms = platforms.unix;
-    maintainers = with maintainers; [ koral ];
+    changelog = "https://github.com/pyqtgraph/pyqtgraph/blob/${finalAttrs.src.tag}/CHANGELOG";
+    license = lib.licenses.mit;
+    platforms = lib.platforms.unix;
+    maintainers = with lib.maintainers; [
+      koral
+      doronbehar
+    ];
   };
-
-}
+})

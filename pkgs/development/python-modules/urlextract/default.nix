@@ -1,26 +1,27 @@
-{ lib
-, buildPythonPackage
-, dnspython
-, fetchPypi
-, filelock
-, idna
-, platformdirs
-, pytestCheckHook
-, pythonOlder
-, uritools
+{
+  lib,
+  buildPythonPackage,
+  dnspython,
+  fetchPypi,
+  filelock,
+  idna,
+  platformdirs,
+  pytestCheckHook,
+  setuptools,
+  uritools,
 }:
 
 buildPythonPackage rec {
   pname = "urlextract";
-  version = "1.8.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "1.9.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-NXP2uBKBTv4GykbpHoLZhO2qPNB9qqqilqRnrZiBoDc=";
+    hash = "sha256-cFCOArqd83LiXPBkLbNnzs4nPocSzQzngXj8XdfqANs=";
   };
+
+  nativeBuildInputs = [ setuptools ];
 
   propagatedBuildInputs = [
     filelock
@@ -43,15 +44,14 @@ buildPythonPackage rec {
     "test_dns_cache_reuse"
   ];
 
-  pythonImportsCheck = [
-    "urlextract"
-  ];
+  pythonImportsCheck = [ "urlextract" ];
 
-  meta = with lib; {
+  meta = {
     description = "Collects and extracts URLs from given text";
+    mainProgram = "urlextract";
     homepage = "https://github.com/lipoja/URLExtract";
     changelog = "https://github.com/lipoja/URLExtract/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ilkecan ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ ilkecan ];
   };
 }

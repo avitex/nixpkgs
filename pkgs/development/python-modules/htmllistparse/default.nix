@@ -1,11 +1,12 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, setuptools
-, beautifulsoup4
-, html5lib
-, requests
-, fusepy
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  beautifulsoup4,
+  html5lib,
+  requests,
+  fusepy,
 }:
 
 buildPythonPackage rec {
@@ -19,19 +20,23 @@ buildPythonPackage rec {
   };
 
   nativeBuildInputs = [ setuptools ];
-  propagatedBuildInputs = [ beautifulsoup4 html5lib requests fusepy ];
+  propagatedBuildInputs = [
+    beautifulsoup4
+    html5lib
+    requests
+    fusepy
+  ];
 
   # upstream has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "htmllistparse"
-  ];
+  pythonImportsCheck = [ "htmllistparse" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/gumblex/htmllisting-parser";
     description = "Python parser for Apache/nginx-style HTML directory listing";
-    license = licenses.mit;
-    maintainers = with maintainers; [ hexchen ];
+    mainProgram = "rehttpfs";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

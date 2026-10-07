@@ -1,65 +1,59 @@
-{ lib
-, fetchFromGitHub
-, buildPythonPackage
-, poetry-core
-, pytest
-, pytest-localserver
-, requests
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  fetchFromGitHub,
+  buildPythonPackage,
+  hatchling,
+  hatch-vcs,
+  pytest,
+  pytest-localserver,
+  pytest-metadata,
+  requests,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pytest-base-url";
-  version = "2.0.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "2.1.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "pytest-dev";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-v6pLejWNeb9Do6x2EJqmLKj8DNqcMtmYIs+7iDYsbjk=";
+    repo = "pytest-base-url";
+    tag = finalAttrs.version;
+    hash = "sha256-3P3Uk3QoznAtNODLjXFbeNn3AOfp9owWU2jqkxTEAa4=";
   };
 
   nativeBuildInputs = [
-    poetry-core
+    hatchling
+    hatch-vcs
   ];
 
-  buildInputs = [
-    pytest
-  ];
+  buildInputs = [ pytest ];
 
-  propagatedBuildInputs = [
-    requests
-  ];
+  propagatedBuildInputs = [ requests ];
 
   __darwinAllowLocalNetworking = true;
 
   nativeCheckInputs = [
     pytestCheckHook
     pytest-localserver
+    pytest-metadata
   ];
 
-  pytestFlagsArray = [
-    "tests"
-  ];
+  enabledTestPaths = [ "tests" ];
 
   disabledTests = [
     # should be xfail? or mocking doesn't work
     "test_url_fails"
   ];
 
-  pythonImportsCheck = [
-    "pytest_base_url"
-  ];
+  pythonImportsCheck = [ "pytest_base_url" ];
 
-  meta = with lib; {
-    description = "pytest plugin for URL based tests";
+  meta = {
+    description = "Pytest plugin for URL based tests";
     homepage = "https://github.com/pytest-dev/pytest-base-url";
-    changelog = "https://github.com/pytest-dev/pytest-base-url/blob/v${version}/CHANGES.rst";
-    license = licenses.mpl20;
-    maintainers = with maintainers; [ sephi ];
+    changelog = "https://github.com/pytest-dev/pytest-base-url/blob/${finalAttrs.src.rev}/CHANGES.rst";
+    license = lib.licenses.mpl20;
+    maintainers = with lib.maintainers; [ sephi ];
   };
-}
+})

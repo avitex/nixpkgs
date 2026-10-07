@@ -1,57 +1,58 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, click
-, pyscard
-, pycountry
-, terminaltables
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromCodeberg,
+  click,
+  pyscard,
+  pycountry,
+  terminaltables,
+  pytestCheckHook,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "emv";
   version = "1.0.14";
-  format = "setuptools";
+  pyproject = true;
 
-  disabled = pythonOlder "3.4";
-
-  src = fetchFromGitHub {
+  src = fetchFromCodeberg {
     owner = "russss";
     repo = "python-emv";
-    rev = "v${version}";
+    tag = "v${finalAttrs.version}";
     hash = "sha256-MnaeQZ0rA3i0CoUA6HgJQpwk5yo4rm9e+pc5XzRd1eg=";
   };
 
-  propagatedBuildInputs = [
+  pythonRelaxDeps = [
+    "click"
+    "pyscard"
+    "pycountry"
+    "terminaltables"
+  ];
+
+  pythonRemoveDeps = [
+    "enum-compat"
+    "argparse"
+  ];
+
+  build-system = [ setuptools ];
+
+  dependencies = [
     click
     pyscard
     pycountry
     terminaltables
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  postPatch = ''
-    substituteInPlace setup.py \
-      --replace '"enum-compat==0.0.3",' "" \
-      --replace '"argparse==1.4.0",' "" \
-      --replace "click==7.1.2" "click" \
-      --replace "pyscard==2.0.0" "pyscard" \
-      --replace "pycountry==20.7.3" "pycountry" \
-      --replace "terminaltables==3.1.0" "terminaltables"
-  '';
+  pythonImportsCheck = [ "emv" ];
 
-  pythonImportsCheck = [
-    "emv"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Implementation of the EMV chip-and-pin smartcard protocol";
-    homepage = "https://github.com/russss/python-emv";
-    license = licenses.mit;
-    maintainers = with maintainers; [ lukegb ];
+    homepage = "https://codeberg.org/russss/python-emv/";
+    changelog = "https://codeberg.org/russss/python-emv/releases/tag/v${finalAttrs.version}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ lukegb ];
+    mainProgram = "emvtool";
   };
-}
+})

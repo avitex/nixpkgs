@@ -1,39 +1,41 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, setuptools
-, setuptools-scm
-, libxcrypt
-, numpy
-, qt6
-, qtpy
-, pyqt6
-, pytestCheckHook
-, pytest-cov
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  setuptools-scm,
+  numpy,
+  qt6,
+  qtpy,
+  pyqt6,
+  mesa,
+  pytestCheckHook,
+  pytest-cov-stub,
 }:
 
 buildPythonPackage rec {
   pname = "echo";
-  version = "0.8.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.6";
+  version = "0.12.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "glue-viz";
-    repo = pname;
-    rev = "v${version}";
-    sha256 = "sha256-0FmUA7kOFSRZXwbj8d7asujBPOjE2pFhu6TDNSGD4r0=";
+    repo = "echo";
+    tag = "v${version}";
+    sha256 = "sha256-36uT2FpOzwuNMM4GhlTuYCSo8j7waIQgWOCN6maKaiY=";
   };
 
-  nativeBuildInputs = [ setuptools setuptools-scm qt6.wrapQtAppsHook ];
-
-  buildInputs = lib.optionals (pythonOlder "3.9") [
-    libxcrypt
+  build-system = [
+    setuptools
+    setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  nativeBuildInputs = [
+    qt6.wrapQtAppsHook
+  ];
+
+  dependencies = [
     qt6.qtconnectivity
     qt6.qtbase
     qt6.qttools
@@ -42,21 +44,24 @@ buildPythonPackage rec {
     qtpy
   ];
 
-  # collecting ... qt.qpa.xcb: could not connect to display
-  # qt.qpa.plugin: Could not load the Qt platform plugin "xcb" in "" even though it was found.
-  doCheck = false;
+  doCheck = lib.meta.availableOn stdenv.hostPlatform mesa.llvmpipeHook;
+
+  preCheck = ''
+    export QT_QPA_PLATFORM=offscreen
+  '';
 
   nativeCheckInputs = [
+    mesa.llvmpipeHook
     pytestCheckHook
-    pytest-cov
+    pytest-cov-stub
   ];
 
   pythonImportsCheck = [ "echo" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/glue-viz/echo";
     description = "Callback Properties in Python";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ifurther ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ ifurther ];
   };
 }

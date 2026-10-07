@@ -1,15 +1,16 @@
-{ lib
-, writeScript
-, fetchFromGitHub
-, substituteAll
-, inkscape
-, pdflatex
-, lualatex
-, python3
-, wrapGAppsHook
-, gobject-introspection
-, gtk3
-, gtksourceview3
+{
+  lib,
+  writeScript,
+  fetchFromGitHub,
+  replaceVars,
+  inkscape,
+  pdflatex,
+  lualatex,
+  python3,
+  wrapGAppsHook3,
+  gobject-introspection,
+  gtk3,
+  gtksourceview3,
 }:
 
 let
@@ -18,22 +19,22 @@ let
     ./__main__.py $*
   '';
 in
-python3.pkgs.buildPythonApplication rec {
+python3.pkgs.buildPythonApplication (finalAttrs: {
   pname = "textext";
-  version = "1.10.1";
+  version = "1.13.0";
+  format = "setuptools";
 
   src = fetchFromGitHub {
     owner = "textext";
     repo = "textext";
-    rev = version;
-    sha256 = "sha256-FbUfZfVOYEyQVL1YMyNwb/sIUxJ+VhevatjuJI/ocIw=";
+    tag = finalAttrs.version;
+    sha256 = "sha256-fEPSpI9uO+r3d5p+gV1XcorYvUPw0sLgG9nHUPeTtYs=";
   };
 
   patches = [
     # Make sure we can point directly to pdflatex in the extension,
     # instead of relying on the PATH (which might not have it)
-    (substituteAll {
-      src = ./fix-paths.patch;
+    (replaceVars ./fix-paths.patch {
       inherit pdflatex lualatex;
     })
 
@@ -43,7 +44,7 @@ python3.pkgs.buildPythonApplication rec {
   ];
 
   nativeBuildInputs = [
-    wrapGAppsHook
+    wrapGAppsHook3
     gobject-introspection
   ];
 
@@ -58,6 +59,7 @@ python3.pkgs.buildPythonApplication rec {
     python3.pkgs.lxml
     python3.pkgs.cssselect
     python3.pkgs.numpy
+    python3.pkgs.tinycss2
   ];
 
   # strictDeps do not play nicely with introspection setup hooks.
@@ -107,19 +109,33 @@ python3.pkgs.buildPythonApplication rec {
 
     # Include gobject-introspection typelibs in the wrapper.
     makeWrapperArgs+=("''${gappsWrapperArgs[@]}")
+
+    # TexText probes for a GUI toolkit by spawning a subprocess
+    # (`sys.executable -c "import gi; gi.require_version('Gtk', '3.0'); ..."`)
+    # instead of importing in-process. The Python wrapper makes runtime
+    # dependencies importable via a site.addsitedir preamble and deliberately
+    # does not export PYTHONPATH, so the spawned probe interpreter cannot import
+    # gi and TexText aborts with "Neither GTK nor TkInter has been found".
+    # Export PYTHONPATH so the probe subprocess inherits the dependencies too.
+    # See https://github.com/NixOS/nixpkgs/issues/384042
+    makeWrapperArgs+=(--prefix PYTHONPATH : "${
+      lib.makeSearchPath python3.sitePackages (
+        finalAttrs.propagatedBuildInputs ++ [ python3.pkgs.pycairo ]
+      )
+    }")
   '';
 
   postFixup = ''
     # Wrap the project so it can find runtime dependencies.
-    wrapPythonProgramsIn "$out/share/inkscape/extensions/textext" "$out $pythonPath"
+    wrapPythonProgramsIn "$out/share/inkscape/extensions/textext" "$out ''${pythonPath[*]}"
     cp ${launchScript} $out/share/inkscape/extensions/textext/launch.sh
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Re-editable LaTeX graphics for Inkscape";
     homepage = "https://textext.github.io/textext/";
-    license = licenses.bsd3;
-    maintainers = [ maintainers.raboof ];
-    platforms = platforms.all;
+    license = lib.licenses.bsd3;
+    maintainers = [ lib.maintainers.raboof ];
+    platforms = lib.platforms.all;
   };
-}
+})

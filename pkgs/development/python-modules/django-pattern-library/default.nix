@@ -1,45 +1,36 @@
-{ buildPythonPackage
-, fetchFromGitHub
-, fetchpatch
-, lib
+{
+  buildPythonPackage,
+  fetchFromGitHub,
+  lib,
 
-# build-system
-, poetry-core
+  # build-system
+  poetry-core,
 
-# dependencies
-, django
-, markdown
-, pyyaml
+  # dependencies
+  django,
+  markdown,
+  pyyaml,
 
-# tests
-, beautifulsoup4
-, pytestCheckHook
-, pytest-django
+  # tests
+  beautifulsoup4,
+  pytestCheckHook,
+  pytest-django,
+  mkdocs,
 }:
 
 buildPythonPackage rec {
   pname = "django-pattern-library";
-  version = "1.1.0";
-  format = "pyproject";
+  version = "1.6.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "torchbox";
     repo = "django-pattern-library";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-9uuLYwG0/NYGouncuaN8S+3CBABSxSOkcrP59p5v84U=";
+    tag = "v${version}";
+    hash = "sha256-WLGoV9xj7MpUq5gzUz225Tz/TTqMyegyuwLNkHVqQFg=";
   };
 
-  patches = [
-    (fetchpatch {
-      # https://github.com/torchbox/django-pattern-library/pull/232
-      url = "https://github.com/torchbox/django-pattern-library/commit/e7a9a8928a885941391fb584eba81578a292ee7d.patch";
-      hash = "sha256-3uUoxdVYEiF+to88qZRhOkh1++RfmsqCzO9JNMDqz6g=";
-    })
-  ];
-
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  nativeBuildInputs = [ poetry-core ];
 
   propagatedBuildInputs = [
     django
@@ -51,17 +42,18 @@ buildPythonPackage rec {
     beautifulsoup4
     pytestCheckHook
     pytest-django
+    mkdocs # only needed for jinja2, we don't build docs
   ];
 
   env.DJANGO_SETTINGS_MODULE = "tests.settings.dev";
 
   pythonImportsCheck = [ "pattern_library" ];
 
-  meta = with lib; {
+  meta = {
     description = "UI pattern libraries for Django templates";
     homepage = "https://github.com/torchbox/django-pattern-library/";
-    changelog = "https://github.com/torchbox/django-pattern-library/blob/v${version}/CHANGELOG.md";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ sephi ];
+    changelog = "https://github.com/torchbox/django-pattern-library/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ sephi ];
   };
 }

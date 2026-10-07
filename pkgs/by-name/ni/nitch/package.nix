@@ -1,4 +1,9 @@
-{ lib, buildNimPackage, fetchFromGitHub, fetchpatch }:
+{
+  lib,
+  buildNimPackage,
+  fetchFromGitHub,
+  fetchpatch,
+}:
 
 buildNimPackage {
   pname = "nitch";
@@ -13,7 +18,7 @@ buildNimPackage {
   patches = [
     (fetchpatch {
       url = "https://github.com/unxsh/nitch/commit/6831cf96144f58c4da298a0bc9b50d33056f6c08.patch";
-      sha256 = "sha256-uZUzUBLHBsssNqDxZ0NuTRMN9/gBxIlIiGgQkqCqEFc=";
+      hash = "sha256-uZUzUBLHBsssNqDxZ0NuTRMN9/gBxIlIiGgQkqCqEFc=";
     })
     (fetchpatch {
       url = "https://github.com/ssleert/nitch/commit/ff10dea47dbc4d9736bd839b87869f53166cf395.patch";
@@ -21,12 +26,12 @@ buildNimPackage {
     })
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Incredibly fast system fetch written in nim";
     homepage = "https://github.com/unxsh/nitch";
-    license = licenses.mit;
-    platforms = platforms.linux;
-    maintainers = with maintainers; [ michaelBelsanti ];
+    license = lib.licenses.mit;
+    platforms = lib.platforms.linux;
+    maintainers = with lib.maintainers; [ michaelBelsanti ];
     mainProgram = "nitch";
   };
 }

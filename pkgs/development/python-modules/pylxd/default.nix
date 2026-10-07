@@ -1,35 +1,43 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, cryptography
-, python-dateutil
-, requests
-, requests-toolbelt
-, requests-unixsocket
-, ws4py
-, ddt
-, mock-services
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  cryptography,
+  ddt,
+  fetchFromGitHub,
+  mock-services,
+  pytestCheckHook,
+  python-dateutil,
+  requests,
+  urllib3,
+  requests-toolbelt,
+  requests-unixsocket,
+  setuptools,
+  ws4py,
 }:
 
 buildPythonPackage rec {
   pname = "pylxd";
-  version = "2.3.1";
-  format = "setuptools";
+  version = "2.4.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
-    owner = "lxc";
+    owner = "canonical";
     repo = "pylxd";
-    rev = version;
-    hash = "sha256-eDRCJYjmBndMnSNuS6HD/2p/KhzqJq2qPAzMk7kC5UM=";
+    tag = version;
+    hash = "sha256-s3BdHZFNkXRT1MoLQCQ4+XPPFanZNZVgOSmYhJkx7JE=";
   };
 
-  propagatedBuildInputs = [
+  pythonRelaxDeps = [ "urllib3" ];
+
+  build-system = [ setuptools ];
+
+  dependencies = [
     cryptography
     python-dateutil
     requests
     requests-toolbelt
     requests-unixsocket
+    urllib3
     ws4py
   ];
 
@@ -46,10 +54,11 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "pylxd" ];
 
-  meta = with lib; {
-    description = "A Python library for interacting with the LXD REST API";
-    homepage = "https://pylxd.readthedocs.io/en/latest/";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+  meta = {
+    description = "Library for interacting with the LXD REST API";
+    homepage = "https://pylxd.readthedocs.io/";
+    changelog = "https://github.com/canonical/pylxd/releases/tag/${src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
 }

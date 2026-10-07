@@ -1,73 +1,139 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, hatch-jupyter-builder
-, hatchling
-, async-lru
-, packaging
-, tornado
-, ipykernel
-, jupyter-core
-, jupyter-lsp
-, jupyterlab-server
-, jupyter-server
-, notebook-shim
-, jinja2
-, tomli
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # nativeBuildInputs
+  yarn-berry_3,
+  nodejs,
+
+  # build-system
+  hatch-jupyter-builder,
+  hatchling,
+  jupyter-builder,
+
+  # dependencies
+  async-lru,
+  httpx,
+  ipykernel,
+  jinja2,
+  jupyter-core,
+  jupyter-lsp,
+  jupyter-server,
+  jupyterlab-server,
+  notebook-shim,
+  packaging,
+  tomli,
+  tornado,
+  traitlets,
+
+  # tests
+  pytest-jupyter,
+  pytestCheckHook,
+  versionCheckHook,
 }:
 
-buildPythonPackage rec {
+let
+  yarn-berry = yarn-berry_3;
+in
+buildPythonPackage (finalAttrs: {
   pname = "jupyterlab";
-  version = "4.0.11";
+  version = "4.6.4";
   pyproject = true;
+  __structuredAttrs = true;
 
-  disabled = pythonOlder "3.8";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-0a7CRxJWa8JaNiKXiCQneOSYykCIAo4vmqFWuLf9yPw=";
+  src = fetchFromGitHub {
+    owner = "jupyterlab";
+    repo = "jupyterlab";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-UEyqx8xibK2Ll1zqWJBoilAvvjypF6zuSR2ywXXseqE=";
   };
 
   nativeBuildInputs = [
-    hatch-jupyter-builder
-    hatchling
+    nodejs
+    yarn-berry.yarnBerryConfigHook
   ];
 
-  propagatedBuildInputs = [
+  build-system = [
+    hatch-jupyter-builder
+    hatchling
+    jupyter-builder
+  ];
+
+  preConfigure = ''
+    pushd jupyterlab/staging
+  '';
+
+  missingHashes = ./missing-hashes.json;
+  offlineCache = yarn-berry.fetchYarnBerryDeps {
+    inherit (finalAttrs) src missingHashes;
+    sourceRoot = "${finalAttrs.src.name}/jupyterlab/staging";
+    hash = "sha256-aGQkcZmNYS1plaZReN9oLMVwbDO6/zyQX/NUSGFzg+4=";
+  };
+
+  preBuild = ''
+    popd
+  '';
+
+  dependencies = [
     async-lru
-    packaging
-    tornado
+    httpx
     ipykernel
+    jinja2
+    jupyter-builder
     jupyter-core
     jupyter-lsp
-    jupyterlab-server
     jupyter-server
+    jupyterlab-server
     notebook-shim
-    jinja2
-  ] ++ lib.optionals (pythonOlder "3.11") [
+    packaging
     tomli
+    tornado
+    traitlets
   ];
 
   makeWrapperArgs = [
     "--set"
     "JUPYTERLAB_DIR"
-    "$out/share/jupyter/lab"
+    "${placeholder "out"}/share/jupyter/lab"
   ];
 
-  # Depends on npm
-  doCheck = false;
+  # Ship a setup hook that seeds jupyter-builder's core-meta cache for any downstream JupyterLab
+  # extension build (see the hook for details).
+  postInstall = ''
+    mkdir -p "$out/nix-support"
 
-  pythonImportsCheck = [
-    "jupyterlab"
+    substitute \
+      ${./seed-core-meta-hook.sh} \
+      "$out/nix-support/setup-hook" \
+      --subst-var out
+  '';
+
+  pythonImportsCheck = [ "jupyterlab" ];
+
+  nativeCheckInputs = [
+    pytest-jupyter
+    pytestCheckHook
+    versionCheckHook
   ];
 
-  meta = with lib; {
-    changelog = "https://github.com/jupyterlab/jupyterlab/blob/v${version}/CHANGELOG.md";
+  disabledTests = [
+    # Hang forever
+    "TestExtension"
+
+    # tornado.httpclient.HTTPClientError: HTTP 500: Internal Server Error
+    "TestBuildAPI"
+  ];
+
+  __darwinAllowLocalNetworking = true;
+
+  meta = {
     description = "Jupyter lab environment notebook server extension";
-    license = licenses.bsd3;
     homepage = "https://jupyter.org/";
-    maintainers = lib.teams.jupyter.members;
+    downloadPage = "https://github.com/jupyterlab/jupyterlab";
+    changelog = "https://github.com/jupyterlab/jupyterlab/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.bsd3;
+    teams = [ lib.teams.jupyter ];
     mainProgram = "jupyter-lab";
   };
-}
+})

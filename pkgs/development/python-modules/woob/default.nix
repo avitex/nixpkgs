@@ -1,52 +1,52 @@
-{ lib
-, babel
-, buildPythonPackage
-, fetchFromGitLab
-, fetchpatch
-, gnupg
-, html2text
-, libyaml
-, lxml
-, nose
-, packaging
-, pillow
-, prettytable
-, pycountry
-, python-dateutil
-, pythonOlder
-, pyyaml
-, requests
-, rich
-, termcolor
-, testers
-, unidecode
-, woob
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitLab,
+  babel,
+  html2text,
+  lxml,
+  packaging,
+  pillow,
+  prettytable,
+  pycountry,
+  pytestCheckHook,
+  python-dateutil,
+  python-jose,
+  pyyaml,
+  requests,
+  rich,
+  setuptools,
+  unidecode,
+  termcolor,
+  responses,
+  versionCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "woob";
-  version = "3.6";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "3.7";
+  pyproject = true;
 
   src = fetchFromGitLab {
     owner = "woob";
-    repo = pname;
-    rev = version;
-    hash = "sha256-M9AjV954H1w64YGCVxDEGGSnoEbmocG3zwltob6IW04=";
+    repo = "woob";
+    tag = finalAttrs.version;
+    hash = "sha256-EZHzw+/BIIvmDXG4fF367wsdUTVTHWYb0d0U56ZXwOs=";
   };
 
-  nativeBuildInputs = [
-    packaging
+  build-system = [ setuptools ];
+
+  pythonRelaxDeps = [
+    "packaging"
+    "rich"
+    "requests"
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     babel
     python-dateutil
-    gnupg
+    python-jose
     html2text
-    libyaml
     lxml
     packaging
     pillow
@@ -55,31 +55,30 @@ buildPythonPackage rec {
     pyyaml
     requests
     rich
-    termcolor
     unidecode
+    termcolor
   ];
 
   nativeCheckInputs = [
-    nose
+    pytestCheckHook
+    responses
+    versionCheckHook
   ];
 
-  checkPhase = ''
-    nosetests
-  '';
-
-  pythonImportsCheck = [
-    "woob"
+  disabledTests = [
+    # require networking
+    "test_ciphers"
+    "test_verify"
   ];
 
-  passthru.tests.version = testers.testVersion {
-    package = woob;
-    version = "v${version}";
-  };
+  pythonImportsCheck = [ "woob" ];
 
-  meta = with lib; {
+  meta = {
+    changelog = "https://gitlab.com/woob/woob/-/blob/${finalAttrs.src.rev}/ChangeLog";
     description = "Collection of applications and APIs to interact with websites";
+    mainProgram = "woob";
     homepage = "https://woob.tech";
-    license = licenses.lgpl3Plus;
-    maintainers = with maintainers; [ DamienCassou ];
+    license = lib.licenses.lgpl3Plus;
+    maintainers = with lib.maintainers; [ DamienCassou ];
   };
-}
+})

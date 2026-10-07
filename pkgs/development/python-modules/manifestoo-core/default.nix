@@ -1,38 +1,31 @@
-{ buildPythonPackage
-, typing-extensions
-, fetchPypi
-, lib
-, nix-update-script
-, hatch-vcs
-, pythonOlder
-, importlib-resources
+{
+  buildPythonPackage,
+  fetchPypi,
+  lib,
+  nix-update-script,
+  hatch-vcs,
 }:
 
 buildPythonPackage rec {
   pname = "manifestoo-core";
-  version = "1.4";
-  format = "pyproject";
+  version = "1.16.1";
+  pyproject = true;
 
   src = fetchPypi {
     inherit version;
     pname = "manifestoo_core";
-    hash = "sha256-ETvsxUKAP0xiFqpVO921Rup+1/A2DKyaK/oBr1K315I=";
+    hash = "sha256-T1yE+ydFvuUVek0fLwnBvt6nrXSEnUKvj+4dsgBFLs8=";
   };
 
-  nativeBuildInputs = [
-    hatch-vcs
-  ];
-
-  propagatedBuildInputs =
-    lib.optionals (pythonOlder "3.7") [ importlib-resources ]
-    ++ lib.optionals (pythonOlder "3.8") [ typing-extensions ];
+  nativeBuildInputs = [ hatch-vcs ];
 
   passthru.updateScript = nix-update-script { };
 
-  meta = with lib; {
-    description = "A library to reason about Odoo addons manifests";
+  meta = {
+    changelog = "https://github.com/acsone/manifestoo-core/blob/v${version}/HISTORY.rst";
+    description = "Library to reason about Odoo addons manifests";
     homepage = "https://github.com/acsone/manifestoo-core";
-    license = licenses.lgpl3Only;
-    maintainers = with maintainers; [ yajo ];
+    license = lib.licenses.lgpl3Only;
+    maintainers = with lib.maintainers; [ yajo ];
   };
 }

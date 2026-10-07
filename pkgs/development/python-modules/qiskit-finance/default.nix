@@ -1,57 +1,53 @@
-{ lib
-, pythonOlder
-, buildPythonPackage
-, fetchFromGitHub
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# build-system
-, setuptools
+  # build-system
+  setuptools,
 
   # Python Inputs
-, fastdtw
-, numpy
-, pandas
-, psutil
-, qiskit-terra
-, qiskit-optimization
-, scikit-learn
-, scipy
-, quandl
-, yfinance
+  fastdtw,
+  numpy,
+  pandas,
+  psutil,
+  qiskit,
+  qiskit-optimization,
+  scikit-learn,
+  scipy,
+  quandl,
+  yfinance,
   # Check Inputs
-, pytestCheckHook
-, ddt
-, pytest-timeout
-, qiskit-aer
+  pytestCheckHook,
+  ddt,
+  pytest-timeout,
+  qiskit-aer,
 }:
 
 buildPythonPackage rec {
   pname = "qiskit-finance";
-  version = "0.4.0";
+  version = "0.4.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.6";
 
   src = fetchFromGitHub {
     owner = "qiskit";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-V0o3U2Tn8OXTe2n84tqAhQql4sQ3UBZ8bLNt8S9Iz9w=";
+    repo = "qiskit-finance";
+    tag = version;
+    hash = "sha256-zYhYhojCzlENzgYSenwewjeVHUBX2X6eQbbzc9znBsk=";
   };
 
   postPatch = ''
     substituteInPlace requirements.txt --replace "pandas<1.4.0" "pandas"
   '';
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
   propagatedBuildInputs = [
     fastdtw
     numpy
     pandas
     psutil
-    qiskit-terra
+    qiskit
     qiskit-optimization
     quandl
     scikit-learn
@@ -76,16 +72,16 @@ buildPythonPackage rec {
     "test_yahoo"
     "test_wikipedia"
   ];
-  pytestFlagsArray = [
-    "--durations=10"
-  ];
+  pytestFlags = [ "--durations=10" ];
 
-  meta = with lib; {
+  meta = {
+    # broken because it depends on qiskit-algorithms which is not yet packaged in nixpkgs
+    broken = true;
     description = "Software for developing quantum computing programs";
     homepage = "https://qiskit.org";
     downloadPage = "https://github.com/QISKit/qiskit-optimization/releases";
     changelog = "https://qiskit.org/documentation/release_notes.html";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ drewrisinger ];
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
 }

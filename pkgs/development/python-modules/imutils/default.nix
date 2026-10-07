@@ -1,7 +1,8 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, opencv4
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  opencv4,
 }:
 
 buildPythonPackage rec {
@@ -27,10 +28,11 @@ buildPythonPackage rec {
     "imutils.face_utils"
   ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/jrosebr1/imutils";
-    description = "A series of convenience functions to make basic image processing functions";
-    license = licenses.mit;
+    description = "Series of convenience functions to make basic image processing functions";
+    mainProgram = "range-detector";
+    license = lib.licenses.mit;
     maintainers = [ ];
   };
 }

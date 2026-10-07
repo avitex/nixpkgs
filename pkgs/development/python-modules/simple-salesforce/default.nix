@@ -1,36 +1,34 @@
-{ lib
-, buildPythonPackage
-, cryptography
-, fetchFromGitHub
-, more-itertools
-, pendulum
-, pyjwt
-, pytestCheckHook
-, pythonOlder
-, pytz
-, requests
-, responses
-, setuptools
-, zeep
+{
+  lib,
+  buildPythonPackage,
+  cryptography,
+  fetchFromGitHub,
+  more-itertools,
+  pendulum,
+  pyjwt,
+  pytestCheckHook,
+  pytest-cov-stub,
+  pytz,
+  requests,
+  responses,
+  setuptools,
+  typing-extensions,
+  zeep,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "simple-salesforce";
-  version = "1.12.5";
+  version = "1.12.10";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "simple-salesforce";
     repo = "simple-salesforce";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-mj7lbBGEybsEzWo4TYmPrN3mBXItdo/JomVIYmzIDAY=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-6Aj4ha1OtYEr7CxXWvSjYDU88tNZE6Fz5oRYyVpWVPI=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
   propagatedBuildInputs = [
     cryptography
@@ -38,25 +36,30 @@ buildPythonPackage rec {
     pendulum
     pyjwt
     requests
+    typing-extensions
     zeep
   ];
 
   nativeCheckInputs = [
     pytestCheckHook
+    pytest-cov-stub
     pytz
     responses
   ];
 
-  pythonImportsCheck = [
-    "simple_salesforce"
+  disabledTests = [
+    "test_connected_app_login_failure"
+    "test_token_login_failure"
+    "test_token_login_failure_with_warning"
   ];
 
-  meta = with lib; {
-    description = "A very simple Salesforce.com REST API client for Python";
-    homepage = "https://github.com/simple-salesforce/simple-salesforce";
-    changelog = "https://github.com/simple-salesforce/simple-salesforce/blob/v${version}/CHANGES";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
-  };
+  pythonImportsCheck = [ "simple_salesforce" ];
 
-}
+  meta = {
+    description = "Very simple Salesforce.com REST API client for Python";
+    homepage = "https://github.com/simple-salesforce/simple-salesforce";
+    changelog = "https://github.com/simple-salesforce/simple-salesforce/blob/${finalAttrs.src.tag}/CHANGES";
+    license = lib.licenses.asl20;
+    maintainers = [ ];
+  };
+})

@@ -1,44 +1,58 @@
-{ lib
-, buildPythonPackage
-, django
-, fetchPypi
-, python
-, pythonOlder
-, setuptools-scm
+{
+  lib,
+  buildPythonPackage,
+  django,
+  fetchFromGitHub,
+  setuptools,
+  setuptools-scm,
+  pytestCheckHook,
+  pytest-django,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "django-formtools";
-  version = "2.4.1";
-  format = "setuptools";
+  version = "2.7";
+  pyproject = true;
 
-  disabled = pythonOlder "3.6";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-IfjV2sc38eY2+ooKEJacHDL1JabfonwpWSgnunDZZDo=";
+  src = fetchFromGitHub {
+    owner = "jazzband";
+    repo = "django-formtools";
+    tag = finalAttrs.version;
+    hash = "sha256-/985+Q2o3BoxxicyDFTYl4m4++d/4Vc+y5qQFpUc9RM=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
+    setuptools
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
-    django
+  dependencies = [ django ];
+
+  nativeCheckInputs = [
+    pytestCheckHook
+    pytest-django
   ];
 
-  checkPhase = ''
-    ${python.interpreter} -m django test --settings=tests.settings
+  preCheck = ''
+    export DJANGO_SETTINGS_MODULE=tests.settings
   '';
 
-  pythonImportsCheck = [
-    "formtools"
+  disabledTests = [
+    # mismatch between test collection of django and pytest-django
+    "TestStorage"
+  ]
+  ++ lib.optionals (lib.versionAtLeast django.version "6.1") [
+    # https://github.com/jazzband/django-formtools/issues/303
+    "test_manipulated_cookie"
   ];
 
-  meta = with lib; {
-    description = "A set of high-level abstractions for Django forms";
+  pythonImportsCheck = [ "formtools" ];
+
+  meta = {
+    description = "High-level abstractions for Django forms";
     homepage = "https://github.com/jazzband/django-formtools";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ greizgh schmittlauch ];
+    changelog = "https://github.com/jazzband/django-formtools/blob/${finalAttrs.src.tag}/docs/changelog.rst";
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
-}
+})

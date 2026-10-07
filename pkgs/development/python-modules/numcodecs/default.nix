@@ -1,85 +1,88 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchpatch
-, fetchPypi
-, setuptools
-, setuptools-scm
-, cython
-, numpy
-, msgpack
-, py-cpuinfo
-, pytestCheckHook
-, python
-, pythonOlder
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchPypi,
+
+  # build-system
+  setuptools,
+  setuptools-scm,
+  cython,
+  py-cpuinfo,
+
+  # dependencies
+  numpy,
+  typing-extensions,
+
+  # optional-dependencies
+  crc32c,
+  google-crc32c,
+  pcodec,
+  pyzstd,
+
+  # tests
+  msgpack,
+  python,
+  pytestCheckHook,
+  importlib-metadata,
+  zstd,
 }:
 
 buildPythonPackage rec {
   pname = "numcodecs";
-  version = "0.12.1";
+  version = "0.16.5";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-BdkaQzcz5+7yaNfoDsImoCMtokQolhSo84JpAa7BCY4=";
+    hash = "sha256-DQ+2CFL4TAvZVDzE0que79N/yO/MQQrNR3fmKh0wAxg=";
   };
 
-  patches = [
-    # https://github.com/zarr-developers/numcodecs/pull/487
-    (fetchpatch {
-      name = "fix-tests.patch";
-      url = "https://github.com/zarr-developers/numcodecs/commit/4896680087d3ff1f959401c51cf5aea0fd56554e.patch";
-      hash = "sha256-+lMWK5IsNzJ7H2SmLckgxbSSRIIcC7FtGYSBKQtuo+Y=";
-    })
-  ];
-
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     setuptools-scm
     cython
     py-cpuinfo
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     numpy
+    typing-extensions
   ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
+    crc32c = [ crc32c ];
+    google_crc32c = [ google-crc32c ];
     msgpack = [ msgpack ];
+    pcodec = [ pcodec ];
     # zfpy = [ zfpy ];
   };
 
-  preBuild = if (stdenv.hostPlatform.isx86 && !stdenv.hostPlatform.avx2Support) then ''
-    export DISABLE_NUMCODECS_AVX2=
-  '' else null;
+  preBuild = lib.optionalString (stdenv.hostPlatform.isx86 && !stdenv.hostPlatform.avx2Support) ''
+    export DISABLE_NUMCODECS_AVX2=1
+  '';
 
   nativeCheckInputs = [
     pytestCheckHook
-    msgpack
+    importlib-metadata
+    pyzstd
+    zstd
+  ]
+  ++ lib.concatAttrValues optional-dependencies;
+
+  disabledTestPaths = [
+    # https://github.com/zarr-developers/numcodecs/issues/815
+    "numcodecs/tests/test_pcodec.py"
   ];
 
-  pytestFlagsArray = [
-    "$out/${python.sitePackages}/numcodecs"
-  ];
+  # https://github.com/NixOS/nixpkgs/issues/255262
+  preCheck = "pushd $out/${python.sitePackages}";
+  postCheck = "popd";
 
-  disabledTests = [
-    "test_backwards_compatibility"
-
-    "test_encode_decode"
-    "test_legacy_codec_broken"
-    "test_bytes"
-
-    # ValueError: setting an array element with a sequence. The requested array has an inhomogeneous shape after 1 dimensions. The detected shape was (3,) + inhomogeneous part.
-    # with numpy 1.24
-    "test_non_numpy_inputs"
-  ];
-
-  meta = with lib;{
+  meta = {
     homepage = "https://github.com/zarr-developers/numcodecs";
-    license = licenses.mit;
+    license = lib.licenses.mit;
     description = "Buffer compression and transformation codecs for use in data storage and communication applications";
-    maintainers = [ ];
+    maintainers = with lib.maintainers; [ doronbehar ];
   };
 }

@@ -1,19 +1,20 @@
-{ lib
-, resholve
-, fetchFromGitHub
-, bc
-, coreutils
-, file
-, gawk
-, ghostscript
-, gnused
-, imagemagick
-, zip
-, runtimeShell
-, findutils
+{
+  lib,
+  resholve,
+  fetchFromGitHub,
+  bc,
+  coreutils,
+  file,
+  gawk,
+  ghostscript,
+  gnused,
+  imagemagick,
+  zip,
+  runtimeShell,
+  findutils,
 }:
 
-resholve.mkDerivation rec {
+resholve.mkDerivation {
   pname = "pdf2odt";
   version = "20220827";
 
@@ -28,7 +29,7 @@ resholve.mkDerivation rec {
     runHook preInstall
 
     install -Dm0555 pdf2odt           -t $out/bin
-    install -Dm0444 README.md LICENSE -t $out/share/doc/${pname}
+    install -Dm0444 README.md LICENSE -t $out/share/doc/pdf2odt
 
     ln -rs $out/bin/pdf2odt $out/bin/pdf2ods
 
@@ -49,13 +50,17 @@ resholve.mkDerivation rec {
       imagemagick
       zip
     ];
+    execer = [
+      # zip can exec; confirmed 2 invocations in pdf2odt don't
+      "cannot:${zip}/bin/zip"
+    ];
   };
 
-  meta = with lib; {
+  meta = {
     description = "PDF to ODT/ODS format converter";
     homepage = "https://github.com/gutschke/pdf2odt";
-    license = licenses.mit;
-    platforms = platforms.all;
-    maintainers = with maintainers; [ peterhoeg ];
+    license = lib.licenses.mit;
+    platforms = lib.platforms.all;
+    maintainers = with lib.maintainers; [ peterhoeg ];
   };
 }

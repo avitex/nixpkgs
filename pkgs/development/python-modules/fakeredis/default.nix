@@ -1,72 +1,82 @@
-{ lib
-, aioredis
-, buildPythonPackage
-, fetchFromGitHub
-, hypothesis
-, lupa
-, poetry-core
-, pybloom-live
-, pytest-asyncio
-, pytest-mock
-, pytestCheckHook
-, pythonOlder
-, redis
-, six
-, sortedcontainers
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  redisTestHook,
+
+  hatchling,
+  hypothesis,
+  jsonpath-ng,
+  lupa,
+  numpy,
+  pyprobables,
+  pytest-asyncio,
+  pytest-mock,
+  redis,
+  sortedcontainers,
+  valkey,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "fakeredis";
-  version = "2.20.1";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "2.36.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
-    owner = "dsoftwareinc";
+    owner = "cunla";
     repo = "fakeredis-py";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-TmgHAskR5MF/lzF0NHgXKecLsSCoc7xsm7gRgupm0Ws=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-vOQBezPsgcjSUigCiW7Q+VueUTtQm3Y7hhB0mTstwKM=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     redis
-    six
     sortedcontainers
   ];
+
+  optional-dependencies = {
+    lua = [ lupa ];
+    json = [ jsonpath-ng ];
+    bf = [ pyprobables ];
+    cf = [ pyprobables ];
+    probabilistic = [ pyprobables ];
+    valkey = [ valkey ];
+    vectorset = [
+      jsonpath-ng
+      numpy
+    ];
+  };
 
   nativeCheckInputs = [
     hypothesis
     pytest-asyncio
     pytest-mock
     pytestCheckHook
+    redisTestHook
+    valkey
   ];
 
-  passthru.optional-dependencies = {
-    lua = [
-      lupa
-    ];
-    aioredis = [
-      aioredis
-    ];
-    bf = [
-      pybloom-live
-    ];
-  };
+  pythonImportsCheck = [ "fakeredis" ];
 
-  pythonImportsCheck = [
-    "fakeredis"
+  disabledTestMarks = [ "slow" ];
+
+  disabledTests = [
+    # redis.exceptions.ResponseError: unknown command 'evalsha'
+    "test_async_lock"
   ];
 
-  meta = with lib; {
+  preCheck = ''
+    redisTestPort=6390
+  '';
+
+  meta = {
     description = "Fake implementation of Redis API";
-    homepage = "https://github.com/dsoftwareinc/fakeredis-py";
-    changelog = "https://github.com/cunla/fakeredis-py/releases/tag/v${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    homepage = "https://github.com/cunla/fakeredis-py";
+    changelog = "https://github.com/cunla/fakeredis-py/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

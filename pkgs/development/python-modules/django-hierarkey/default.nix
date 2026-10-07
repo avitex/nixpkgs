@@ -1,36 +1,42 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# propagates
-, python-dateutil
+  # build-system
+  setuptools,
 
-# tests
-, django-extensions
-, pytest-django
-, pytestCheckHook
+  # propagates
+  python-dateutil,
+
+  # tests
+  django-extensions,
+  pytest-django,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "django-hierarkey";
-  version = "1.1.0";
-  format = "setuptools";
+  version = "2.0.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "raphaelm";
     repo = "django-hierarkey";
-    # https://github.com/raphaelm/django-hierarkey/commit/c81ace02ca404a8756e2931bb6faf55b6365e140
-    rev = "c81ace02ca404a8756e2931bb6faf55b6365e140";
-    hash = "sha256-sCARyTjuuAUptlOsFmApnsQpcksP+uYnq0lukXDMcuk=";
+    tag = version;
+    hash = "sha256-ZsT696E1wBvElj99mMa6SuqVr7XD8NzJiMKGNOBOTrA=";
   };
 
-  propagatedBuildInputs = [
-    python-dateutil
-  ];
+  postPatch = ''
+    substituteInPlace tests/settings.py \
+      --replace-fail "/var/tmp" "$TMPDIR"
+  '';
 
-  pythonImportsCheck = [
-    "hierarkey"
-  ];
+  build-system = [ setuptools ];
+
+  dependencies = [ python-dateutil ];
+
+  pythonImportsCheck = [ "hierarkey" ];
 
   nativeCheckInputs = [
     django-extensions
@@ -38,16 +44,14 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  DJANGO_SETTINGS_MODULE = "tests.settings";
+  env.DJANGO_SETTINGS_MODULE = "tests.settings";
 
-  pytestFlagsArray = [
-    "tests"
-  ];
+  enabledTestPaths = [ "tests" ];
 
-  meta = with lib; {
+  meta = {
     description = "Flexible and powerful hierarchical key-value store for your Django models";
     homepage = "https://github.com/raphaelm/django-hierarkey";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ hexa ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ hexa ];
   };
 }

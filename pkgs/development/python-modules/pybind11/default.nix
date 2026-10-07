@@ -1,126 +1,121 @@
-{ stdenv
-, lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, cmake
-, boost
-, eigen
-, python
-, catch
-, numpy
-, pytestCheckHook
-, libxcrypt
-, makeSetupHook
-}: let
+{
+  stdenv,
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  cmake,
+  ninja,
+  scikit-build-core,
+  boost,
+  eigen,
+  python,
+  catch2,
+  numpy,
+  pytest,
+  makeSetupHook,
+  # Build tests to verify cross-compilation works, but only when CPU bit
+  # depth matches (otherwise Python headers cause LONG_BIT mismatch errors)
+  buildTests ? stdenv.hostPlatform.parsed.cpu.bits == stdenv.buildPlatform.parsed.cpu.bits,
+}:
+let
   setupHook = makeSetupHook {
     name = "pybind11-setup-hook";
     substitutions = {
-      out = placeholder "out";
       pythonInterpreter = python.pythonOnBuildForHost.interpreter;
-      pythonIncludeDir = "${python}/include/python${python.pythonVersion}";
+      pythonIncludeDir = "${python}/include/${python.libPrefix}";
       pythonSitePackages = "${python}/${python.sitePackages}";
     };
+    meta.license = lib.licenses.mit;
   } ./setup-hook.sh;
-
-  # clang 16 defaults to C++17, which results in the use of aligned allocations by pybind11.
-  # libc++ supports aligned allocations via `posix_memalign`, which is available since 10.6,
-  # but clang has a check hard-coded requiring 10.13 because that’s when Apple first shipped a
-  # support for C++17 aligned allocations on macOS.
-  # Tell clang we’re targeting 10.13 on x86_64-darwin while continuing to use the default SDK.
-  stdenv' = if stdenv.isDarwin && stdenv.isx86_64
-    then python.stdenv.override (oldStdenv: {
-      buildPlatform = oldStdenv.buildPlatform // { darwinMinVersion = "10.13"; };
-      targetPlatform = oldStdenv.targetPlatform // { darwinMinVersion = "10.13"; };
-      hostPlatform = oldStdenv.hostPlatform // { darwinMinVersion = "10.13"; };
-    })
-    else python.stdenv;
-in buildPythonPackage rec {
+in
+buildPythonPackage (finalAttrs: {
   pname = "pybind11";
-  version = "2.11.1";
-  format = "setuptools";
+  version = "3.0.4";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "pybind";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-sO/Fa+QrAKyq2EYyYMcjPrYI+bdJIrDoj6L3JHoDo3E=";
+    repo = "pybind11";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-QZKnIOopEDsiRFkc1qQ+DaDHoTNuEEgQVeiAL0sQqak=";
   };
 
-  postPatch = ''
-    sed -i "/^timeout/d" pyproject.toml
-  '';
-
-  nativeBuildInputs = [ cmake ];
-  buildInputs = lib.optionals (pythonOlder "3.9") [ libxcrypt ];
-  propagatedBuildInputs = [ setupHook ];
-
-  stdenv = stdenv';
-
-  dontUseCmakeBuildDir = true;
-
-  # Don't build tests if not needed, read the doInstallCheck value at runtime
-  preConfigure = ''
-    if [ -n "$doInstallCheck" ]; then
-      cmakeFlagsArray+=("-DBUILD_TESTING=ON")
-    fi
-  '';
-
-  cmakeFlags = [
-    "-DBoost_INCLUDE_DIR=${lib.getDev boost}/include"
-    "-DEIGEN3_INCLUDE_DIR=${lib.getDev eigen}/include/eigen3"
-  ] ++ lib.optionals (python.isPy3k && !stdenv.cc.isClang) [
-    "-DPYBIND11_CXX_STANDARD=-std=c++17"
+  build-system = [
+    cmake
+    ninja
+    finalAttrs.passthru.scikit-build-core-no-tests
   ];
 
-  postBuild = ''
-    # build tests
-    make -j $NIX_BUILD_CORES
-  '';
+  buildInputs = lib.optionals buildTests [
+    catch2
+    boost
+    eigen
+  ];
 
-  postInstall = ''
-    make install
-    # Symlink the CMake-installed headers to the location expected by setuptools
-    mkdir -p $out/include/${python.libPrefix}
-    ln -sf $out/include/pybind11 $out/include/${python.libPrefix}/pybind11
-  '';
+  propagatedNativeBuildInputs = [ setupHook ];
 
   nativeCheckInputs = [
-    catch
     numpy
-    pytestCheckHook
+    pytest
   ];
 
-  disabledTestPaths = [
-    # require dependencies not available in nixpkgs
-    "tests/test_embed/test_trampoline.py"
-    "tests/test_embed/test_interpreter.py"
-    # numpy changed __repr__ output of numpy dtypes
-    "tests/test_numpy_dtypes.py"
-    # no need to test internal packaging
-    "tests/extra_python_package/test_files.py"
-    # tests that try to parse setuptools stdout
-    "tests/extra_setuptools/test_setuphelper.py"
+  pypaBuildFlags = [
+    # Keep the build directory around to run the tests.
+    "-Cbuild-dir=build"
   ];
 
-  disabledTests = lib.optionals stdenv.isDarwin [
-    # expects KeyError, gets RuntimeError
-    # https://github.com/pybind/pybind11/issues/4243
-    "test_cross_module_exception_translator"
+  cmakeFlags = [
+    (lib.cmakeBool "BUILD_TESTING" buildTests)
+
+    # Override the `PYBIND11_NOPYTHON = true` in `pyproject.toml`. This
+    # is required to build the tests.
+    (lib.cmakeBool "PYBIND11_NOPYTHON" (!buildTests))
   ];
+
+  dontUseCmakeConfigure = true;
+
+  ninjaFlags = [
+    "-C"
+    "build"
+  ];
+
+  checkTarget = "check";
+
+  checkPhase = "ninjaCheckPhase";
+
+  # Make the headers and CMake/pkg-config files inside the wheel
+  # discoverable. This simulates the effect of the `pybind11[global]`
+  # installation but works better for our build.
+  postInstall = ''
+    ln -s $out/${python.sitePackages}/pybind11/{include,share} $out/
+  '';
+
+  passthru = {
+    # scikit-build-core's tests depend upon pybind11, and hence introduce
+    # infinite recursion. To avoid this, we define here a scikit-build-core
+    # derivation that doesn't depend on pybind11, and use it for pybind11's
+    # build-system.
+    scikit-build-core-no-tests = scikit-build-core.overridePythonAttrs {
+      doCheck = false;
+    };
+  };
 
   hardeningDisable = lib.optional stdenv.hostPlatform.isMusl "fortify";
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/pybind/pybind11";
-    changelog = "https://github.com/pybind/pybind11/blob/${src.rev}/docs/changelog.rst";
+    changelog = "https://github.com/pybind/pybind11/blob/${finalAttrs.src.tag}/docs/changelog.md";
     description = "Seamless operability between C++11 and Python";
+    mainProgram = "pybind11-config";
     longDescription = ''
       Pybind11 is a lightweight header-only library that exposes
       C++ types in Python and vice versa, mainly to create Python
       bindings of existing C++ code.
     '';
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ yuriaisaka dotlambda ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [
+      yuriaisaka
+      dotlambda
+    ];
   };
-}
+})

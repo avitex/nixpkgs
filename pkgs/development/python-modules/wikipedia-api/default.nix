@@ -1,35 +1,37 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, requests
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  requests,
+  setuptools,
 }:
 
 buildPythonPackage rec {
-  pname = "Wikipedia-API";
-  version = "0.6.0";
-  format = "setuptools";
+  pname = "wikipedia-api";
+  version = "0.9.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "martin-majlis";
     repo = "Wikipedia-API";
-    rev = "v${version}";
-    hash = "sha256-cmwyQhKbkIpZXkKqqT0X2Lp8OFma2joeb4uxDRPiQe8=";
+    tag = "v${version}";
+    hash = "sha256-kIZnKb0dzvXBgK1UNoG0gVIy5BvHnOjZbRo+xsLeQ/g=";
   };
 
-  propagatedBuildInputs = [
-    requests
-  ];
+  build-system = [ setuptools ];
+
+  dependencies = [ requests ];
 
   nativeCheckInputs = [ pytestCheckHook ];
 
   pythonImportsCheck = [ "wikipediaapi" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python wrapper for Wikipedia";
     homepage = "https://github.com/martin-majlis/Wikipedia-API";
-    changelog = "https://github.com/martin-majlis/Wikipedia-API/blob/${src.rev}/CHANGES.rst";
-    license = licenses.mit;
-    maintainers = with maintainers; [ mbalatsko ];
+    changelog = "https://github.com/martin-majlis/Wikipedia-API/blob/${src.tag}/CHANGES.rst";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

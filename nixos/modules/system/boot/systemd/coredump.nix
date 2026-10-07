@@ -1,47 +1,60 @@
-{ config, lib, pkgs, utils, ... }:
-
-with lib;
+{
+  config,
+  lib,
+  pkgs,
+  utils,
+  ...
+}:
 
 let
   cfg = config.systemd.coredump;
   systemd = config.systemd.package;
-in {
+in
+{
+  imports = [
+    (lib.mkRemovedOptionModule [
+      "systemd"
+      "coredump"
+      "extraConfig"
+    ] "Use systemd.coredump.settings.Coredump instead.")
+  ];
+
   options = {
-    systemd.coredump.enable = mkOption {
+    systemd.coredump.enable = lib.mkOption {
       default = true;
-      type = types.bool;
-      description = lib.mdDoc ''
+      type = lib.types.bool;
+      description = ''
         Whether core dumps should be processed by
         {command}`systemd-coredump`. If disabled, core dumps
         appear in the current directory of the crashing process.
       '';
     };
 
-    systemd.coredump.extraConfig = mkOption {
-      default = "";
-      type = types.lines;
-      example = "Storage=journal";
-      description = lib.mdDoc ''
-        Extra config options for systemd-coredump. See coredump.conf(5) man page
-        for available options.
+    systemd.coredump.settings.Coredump = lib.mkOption {
+      default = { };
+      type = lib.types.submodule {
+        freeformType = lib.types.attrsOf utils.systemdUtils.unitOptions.unitOption;
+      };
+      example = {
+        Storage = "journal";
+      };
+      description = ''
+        Settings for systemd-coredump. See {manpage}`coredump.conf(5)` for
+        available options.
       '';
     };
   };
 
-  config = mkMerge [
+  config = lib.mkMerge [
 
-    (mkIf cfg.enable {
+    (lib.mkIf cfg.enable {
       systemd.additionalUpstreamSystemUnits = [
         "systemd-coredump.socket"
         "systemd-coredump@.service"
       ];
 
       environment.etc = {
-        "systemd/coredump.conf".text =
-        ''
-          [Coredump]
-          ${cfg.extraConfig}
-        '';
+        "systemd/coredump.conf".text = utils.systemdUtils.lib.settingsToSections cfg.settings;
 
         # install provided sysctl snippets
         "sysctl.d/50-coredump.conf".source =
@@ -52,25 +65,26 @@ in {
           # See: https://github.com/NixOS/nixpkgs/issues/213408
           pkgs.substitute {
             src = "${systemd}/example/sysctl.d/50-coredump.conf";
-            replacements = [
-              "--replace"
+            substitutions = [
+              "--replace-fail"
               "${systemd}"
-              "${pkgs.symlinkJoin { name = "systemd"; paths = [ systemd ]; }}"
+              "${pkgs.symlinkJoin {
+                name = "systemd";
+                paths = [ systemd ];
+              }}"
             ];
           };
-
-        "sysctl.d/50-default.conf".source = "${systemd}/example/sysctl.d/50-default.conf";
       };
 
       users.users.systemd-coredump = {
         uid = config.ids.uids.systemd-coredump;
         group = "systemd-coredump";
       };
-      users.groups.systemd-coredump = {};
+      users.groups.systemd-coredump = { };
     })
 
-    (mkIf (!cfg.enable) {
-     boot.kernel.sysctl."kernel.core_pattern" = mkDefault "core";
+    (lib.mkIf (!cfg.enable) {
+      boot.kernel.sysctl."kernel.core_pattern" = lib.mkDefault "core";
     })
 
   ];

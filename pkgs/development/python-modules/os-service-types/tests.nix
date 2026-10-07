@@ -1,16 +1,17 @@
-{ buildPythonPackage
-, keystoneauth1
-, os-service-types
-, oslotest
-, requests-mock
-, stestr
-, testscenarios
+{
+  buildPythonPackage,
+  keystoneauth1,
+  os-service-types,
+  oslotest,
+  requests-mock,
+  stestr,
+  testscenarios,
 }:
 
 buildPythonPackage {
   pname = "os-service-types-tests";
   inherit (os-service-types) version src;
-  format = "other";
+  pyproject = false;
 
   postPatch = ''
     # only a small portion of the listed packages are actually needed for running the tests

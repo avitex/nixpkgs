@@ -1,10 +1,10 @@
-{ lib
-, buildPythonPackage
-, dnspython
-, fetchFromGitHub
-, hatchling
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  dnspython,
+  fetchFromGitHub,
+  hatchling,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
@@ -12,36 +12,26 @@ buildPythonPackage rec {
   version = "2.0.1";
   pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
   src = fetchFromGitHub {
     owner = "michaelherold";
     repo = "pyIsEmail";
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     hash = "sha256-bJCaVUhvEAoQ8zMsbcb1Et728XHt+shEPhhBzPzY/vo=";
   };
 
-  nativeBuildInputs = [
-    hatchling
-  ];
+  nativeBuildInputs = [ hatchling ];
 
-  propagatedBuildInputs = [
-    dnspython
-  ];
+  propagatedBuildInputs = [ dnspython ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "pyisemail"
-  ];
+  pythonImportsCheck = [ "pyisemail" ];
 
-  meta = with lib; {
+  meta = {
     description = "Module for email validation";
     homepage = "https://github.com/michaelherold/pyIsEmail";
     changelog = "https://github.com/michaelherold/pyIsEmail/blob/${version}/CHANGELOG.rst";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

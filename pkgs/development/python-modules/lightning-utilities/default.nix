@@ -1,43 +1,47 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# build
-, setuptools
+  # build-system
+  packaging,
+  setuptools,
 
-# runtime
-, packaging
-, typing-extensions
+  # dependencies
+  jsonargparse,
+  tomlkit,
+  typing-extensions,
 
-# tests
-, pytest-timeout
-, pytestCheckHook
+  # tests
+  pytest-timeout,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "lightning-utilities";
-  version = "0.10.1";
-  format = "pyproject";
+  version = "0.15.3";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "Lightning-AI";
     repo = "utilities";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-kP7BllA9FR/nMNTxRCxmG6IJYHz/Nxqb1HoF9KxuKl8=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-j997nvn6iRFvJeI8wJbickUDPc5Zyi1Lj4yG2JbaLU8=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
+    packaging
     setuptools
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
+    jsonargparse
     packaging
+    tomlkit
     typing-extensions
   ];
 
-  pythonImportsCheck = [
-    "lightning_utilities"
-  ];
+  pythonImportsCheck = [ "lightning_utilities" ];
 
   nativeCheckInputs = [
     pytest-timeout
@@ -45,14 +49,18 @@ buildPythonPackage rec {
   ];
 
   disabledTests = [
-    "lightning_utilities.core.enums.StrEnum"
+    # DocTestFailure
     "lightning_utilities.core.imports.RequirementCache"
+
+    # NameError: name 'operator' is not defined. Did you forget to import 'operator'
     "lightning_utilities.core.imports.compare_version"
+
+    # importlib.metadata.PackageNotFoundError: No package metadata was found for pytorch-lightning==1.8.0
     "lightning_utilities.core.imports.get_dependency_min_version_spec"
+
     # weird doctests fail on imports, but providing the dependency
     # fails another test
     "lightning_utilities.core.imports.ModuleAvailableCache"
-    "lightning_utilities.core.imports.requires"
   ];
 
   disabledTestPaths = [
@@ -61,16 +69,11 @@ buildPythonPackage rec {
     "src/lightning_utilities/install/requirements.py"
   ];
 
-  pytestFlagsArray = [
-    # warns about distutils removal in python 3.12
-    "-W" "ignore::DeprecationWarning"
-  ];
-
-  meta = with lib; {
-    changelog = "https://github.com/Lightning-AI/utilities/releases/tag/v${version}";
+  meta = {
+    changelog = "https://github.com/Lightning-AI/utilities/releases/tag/${finalAttrs.src.tag}";
     description = "Common Python utilities and GitHub Actions in Lightning Ecosystem";
     homepage = "https://github.com/Lightning-AI/utilities";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ GaetanLepage ];
   };
-}
+})

@@ -1,49 +1,49 @@
-{ lib
-, buildPythonPackage
-, cython
-, fetchFromGitHub
-, ply
-, pythonOlder
-, six
-, tornado
+{
+  lib,
+  aiohttp,
+  buildPythonPackage,
+  cython,
+  fetchFromGitHub,
+  ijson,
+  ply,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "thriftpy2";
-  version = "0.4.16";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.6";
+  version = "0.7.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "Thriftpy";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-o+h38NREnh14M23gyF2X2UdW7/spmHFo0rqvkKnmSRQ=";
+    repo = "thriftpy2";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-mpCPE1bDE4bpJMwC71QW/4aJs/82/Oj+jYloXOmZyGA=";
   };
 
-  nativeBuildInputs = [
-    cython
+  build-system = [ setuptools ];
+
+  nativeBuildInputs = [ cython ];
+
+  dependencies = [
+    ply
+    ijson
   ];
 
-  propagatedBuildInputs = [
-    ply
-    six
-    tornado
-  ];
+  optional-dependencies = {
+    aiohttp = [ aiohttp ];
+  };
 
   # Not all needed files seems to be present
   doCheck = false;
 
-  pythonImportsCheck = [
-    "thriftpy2"
-  ];
+  pythonImportsCheck = [ "thriftpy2" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python module for Apache Thrift";
     homepage = "https://github.com/Thriftpy/thriftpy2";
-    changelog = "https://github.com/Thriftpy/thriftpy2/blob/v${version}/CHANGES.rst";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/Thriftpy/thriftpy2/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

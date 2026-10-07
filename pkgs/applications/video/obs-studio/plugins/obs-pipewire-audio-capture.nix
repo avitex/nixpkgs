@@ -1,37 +1,47 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, cmake
-, ninja
-, obs-studio
-, pipewire
-, pkg-config
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  cmake,
+  ninja,
+  obs-studio,
+  pipewire,
+  pkg-config,
 }:
-
 stdenv.mkDerivation rec {
   pname = "obs-pipewire-audio-capture";
-  version = "1.1.3";
+  version = "1.2.1";
 
   src = fetchFromGitHub {
     owner = "dimtpap";
-    repo = pname;
+    repo = "obs-pipewire-audio-capture";
     rev = version;
-    sha256 = "sha256-dL/+Y1uaD+7EY0UNWbxvh1TTLYfgk07qCqLLGvfzWZk=";
+    sha256 = "sha256-GrfogPsqpQ976Gcc4JVdslAAWTj49PdspwVp/JXYXSQ=";
   };
 
-  nativeBuildInputs = [ cmake ninja pkg-config ];
-  buildInputs = [ obs-studio pipewire ];
-
-  cmakeFlags = [
-    "-DLIBOBS_INCLUDE_DIR=${obs-studio.src}/libobs"
-    "-Wno-dev"
+  nativeBuildInputs = [
+    cmake
+    ninja
+    pkg-config
+  ];
+  buildInputs = [
+    obs-studio
+    pipewire
   ];
 
-  meta = with lib; {
+  cmakeFlags = [
+    "-DCMAKE_INSTALL_LIBDIR=./lib"
+    "-DCMAKE_INSTALL_DATADIR=./share"
+  ];
+
+  meta = {
     description = "Audio device and application capture for OBS Studio using PipeWire";
     homepage = "https://github.com/dimtpap/obs-pipewire-audio-capture";
-    maintainers = with maintainers; [ Elinvention ];
-    license = licenses.gpl2Plus;
-    platforms = [ "x86_64-linux" "i686-linux" ];
+    maintainers = with lib.maintainers; [
+      Elinvention
+      fazzi
+    ];
+    license = lib.licenses.gpl2Plus;
+    inherit (obs-studio.meta) platforms;
   };
 }

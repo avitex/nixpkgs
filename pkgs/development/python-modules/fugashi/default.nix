@@ -1,35 +1,46 @@
-{ lib
-, fetchFromGitHub
-, pythonOlder
-, pytestCheckHook
-, buildPythonPackage
-, cython
-, mecab
-, setuptools-scm
-, ipadic
-, unidic
-, unidic-lite
+{
+  lib,
+  fetchFromGitHub,
+  pytestCheckHook,
+  buildPythonPackage,
+  cython,
+  mecab,
+  setuptools-scm,
+  ipadic,
+  unidic,
+  unidic-lite,
 }:
 
 buildPythonPackage rec {
   pname = "fugashi";
-  version = "1.3.0";
-  format = "setuptools";
-  disabled = pythonOlder "3.7";
+  version = "1.5.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "polm";
     repo = "fugashi";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-4i7Q+TtXTQNSJ1EIcS8KHrVPdCJAgZh86Y6lB8772XU=";
+    tag = "v${version}";
+    hash = "sha256-rkQskRz7lgVBrqBeyj9kWO2/7POrZ0TaM+Z7mhpZLvM=";
   };
 
-  nativeBuildInputs = [ cython mecab setuptools-scm ];
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail "Cython~=3.0.11" "Cython"
+  '';
 
-  nativeCheckInputs = [ ipadic pytestCheckHook ]
-    ++ passthru.optional-dependencies.unidic-lite;
+  build-system = [
+    cython
+    mecab
+    setuptools-scm
+  ];
 
-  passthru.optional-dependencies = {
+  nativeCheckInputs = [
+    ipadic
+    pytestCheckHook
+  ]
+  ++ optional-dependencies.unidic-lite;
+
+  optional-dependencies = {
     unidic-lite = [ unidic-lite ];
     unidic = [ unidic ];
   };
@@ -40,11 +51,11 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "fugashi" ];
 
-  meta = with lib; {
-    description = "A Cython MeCab wrapper for fast, pythonic Japanese tokenization and morphological analysis";
+  meta = {
+    description = "Cython MeCab wrapper for fast, pythonic Japanese tokenization and morphological analysis";
     homepage = "https://github.com/polm/fugashi";
-    changelog = "https://github.com/polm/fugashi/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ laurent-f1z1 ];
+    changelog = "https://github.com/polm/fugashi/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

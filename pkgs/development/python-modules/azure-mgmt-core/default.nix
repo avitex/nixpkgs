@@ -1,22 +1,29 @@
-{ pkgs
-, buildPythonPackage
-, fetchPypi
-, azure-core
-, typing-extensions
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  azure-core,
+  typing-extensions,
 }:
 
-buildPythonPackage rec {
-  version = "1.4.0";
-  format = "setuptools";
+buildPythonPackage (finalAttrs: {
   pname = "azure-mgmt-core";
+  version = "1.6.0";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
-    extension = "zip";
-    hash = "sha256-0ZUgg0AJT5jlpmYbeBzeb2oFHnnOMXyqvY/5cDCps64=";
+    pname = "azure_mgmt_core";
+    inherit (finalAttrs) version;
+    extension = "tar.gz";
+    hash = "sha256-smIyr4V7Ah5h2BPZ9K5TBGUlXLELPd6UWtN0P3pY55w=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     azure-core
     typing-extensions
   ];
@@ -26,12 +33,15 @@ buildPythonPackage rec {
   # not included
   doCheck = false;
 
-  pythonImportsCheck = [ "azure.mgmt.core" "azure.core" ];
+  pythonImportsCheck = [
+    "azure.mgmt.core"
+    "azure.core"
+  ];
 
-  meta = with pkgs.lib; {
+  meta = {
     description = "Microsoft Azure Management Core Library for Python";
     homepage = "https://github.com/Azure/azure-sdk-for-python";
-    license = licenses.mit;
-    maintainers = with maintainers; [ jonringer ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
-}
+})

@@ -1,58 +1,95 @@
-{ cage
-, fetchFromGitLab
-, gnome
-, lib
-, meson
-, ninja
-, python3
-, weston
-, xorg
-, xwayland
-, withMutter ? false
-, withCage ? false
+{
+  fetchFromGitLab,
+  lib,
+  meson,
+  ninja,
+  python3,
+  weston,
+  xauth,
+  xwayland,
+  withCage ? false,
+  cage,
+  withKwin ? false,
+  kdePackages,
+  withMutter ? false,
+  mutter,
+  withDbus ? withMutter,
+  phoc,
+  withPhoc ? false,
+  dbus, # Since 0.0.3, mutter compositors run with their own DBUS sessions
+  xwayland-run,
 }:
 let
-  compositors = [ weston ]
-    ++ lib.optional withMutter gnome.mutter
-    ++ lib.optional withCage cage
-  ;
+  compositors = [
+    weston
+  ]
+  ++ lib.optional withCage cage
+  ++ lib.optional withKwin kdePackages.kwin
+  ++ lib.optional withMutter mutter
+  ++ lib.optional withPhoc phoc
+  ++ lib.optional withDbus dbus;
 in
-python3.pkgs.buildPythonApplication rec {
+python3.pkgs.buildPythonApplication (finalAttrs: {
   pname = "xwayland-run";
-  version = "0.0.2";
+  version = "0.0.6";
 
   src = fetchFromGitLab {
     domain = "gitlab.freedesktop.org";
     owner = "ofourdan";
     repo = "xwayland-run";
-    rev = version;
-    hash = "sha256-+HdRLIizEdtKWD8HadQQf750e2t1AWa14U/Xwu3xPK4=";
+    rev = finalAttrs.version;
+    hash = "sha256-zrm8uEy7DduOYPrpHrynZgYwEkZr3pbDsJHdWKOUzY0=";
   };
 
   pyproject = false;
 
-  outputs = [ "out" "man" ];
+  outputs = [
+    "out"
+    "man"
+  ];
 
   nativeBuildInputs = [
     meson
     ninja
   ];
 
-
   postInstall = ''
     wrapProgram $out/bin/wlheadless-run \
       --prefix PATH : ${lib.makeBinPath compositors}
     wrapProgram $out/bin/xwayland-run \
-      --prefix PATH : ${lib.makeBinPath [ xwayland xorg.xauth ]}
+      --prefix PATH : ${
+        lib.makeBinPath [
+          xwayland
+          xauth
+        ]
+      }
     wrapProgram $out/bin/xwfb-run \
-      --prefix PATH : ${lib.makeBinPath (compositors ++ [ xwayland xorg.xauth ])}
+      --prefix PATH : ${
+        lib.makeBinPath (
+          compositors
+          ++ [
+            xwayland
+            xauth
+          ]
+        )
+      }
   '';
 
-  meta = with lib; {
-    description = "A set of small utilities revolving around running Xwayland and various Wayland compositor headless";
-    homepage = "https://gitlab.freedesktop.org/ofourdan/xwayland-run";
-    license = licenses.gpl2Only;
-    maintainers = with maintainers; [ arthsmn ];
-    platforms = platforms.linux;
+  passthru.tests = {
+    build = xwayland-run.override {
+      withCage = true;
+      withKwin = true;
+      withMutter = true;
+      withPhoc = true;
+    };
   };
-}
+
+  meta = {
+    changelog = "https://gitlab.freedesktop.org/ofourdan/xwayland-run/-/releases/${finalAttrs.src.rev}";
+    description = "Set of small utilities revolving around running Xwayland and various Wayland compositor headless";
+    homepage = "https://gitlab.freedesktop.org/ofourdan/xwayland-run";
+    license = lib.licenses.gpl2Only;
+    maintainers = [ ];
+    platforms = lib.platforms.linux;
+  };
+})

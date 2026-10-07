@@ -1,42 +1,56 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  cargo,
+  rustPlatform,
+  rustc,
+  setuptools,
+  setuptools-rust,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "patiencediff";
-  version = "0.2.14";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "0.2.19";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "breezy-team";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-KTOESjaj8fMxJZ7URqg6UMpiQppqZAlk4IPWEw4/Nvw=";
+    repo = "patiencediff";
+    tag = "v${version}";
+    hash = "sha256-xynrYf5oCIPk22jqjvXNYTyaXzVaUjRpn35vbx+t8vU=";
   };
 
+  cargoDeps = rustPlatform.fetchCargoVendor {
+    inherit pname version src;
+    hash = "sha256-JW2Oj1oxAVf9K3lyJQpbHqw9eeNYDg3Agb189bduqlI=";
+  };
+
+  # make rust bindings non-optional
+  env.CIBUILDWHEEL = "1";
+
   nativeBuildInputs = [
+    cargo
+    rustPlatform.cargoSetupHook
+    rustc
+  ];
+
+  build-system = [
     setuptools
+    setuptools-rust
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "patiencediff"
-  ];
+  pythonImportsCheck = [ "patiencediff" ];
 
-  meta = with lib; {
+  meta = {
     description = "C implementation of patiencediff algorithm for Python";
+    mainProgram = "patiencediff";
     homepage = "https://github.com/breezy-team/patiencediff";
-    changelog = "https://github.com/breezy-team/patiencediff/releases/tag/v${version}";
-    license = licenses.gpl2Plus;
-    maintainers = with maintainers; [ wildsebastian ];
+    changelog = "https://github.com/breezy-team/patiencediff/releases/tag/${src.tag}";
+    license = lib.licenses.gpl2Plus;
+    maintainers = with lib.maintainers; [ wildsebastian ];
   };
 }

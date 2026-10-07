@@ -1,27 +1,28 @@
-{ lib
-, buildPythonPackage
-, django
-, fetchFromGitHub
-, polib
-, pythonOlder
-, requests
+{
+  lib,
+  buildPythonPackage,
+  django,
+  fetchFromGitHub,
+  polib,
+  requests,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "django-rosetta";
-  version = "0.9.9";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.10.3";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "mbi";
     repo = "django-rosetta";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-OuKgqGYBlzQNKKAJYFhNi+LnONB/mxINMj4VBAVWjqI=";
+    tag = "v${version}";
+    hash = "sha256-VnKbtzLY2+3RTk4gNZASuVSDGzfgoyr06RUNB2r0eDw=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     django
     polib
     requests
@@ -30,16 +31,13 @@ buildPythonPackage rec {
   # require internet connection
   doCheck = false;
 
-  pythonImportsCheck = [
-    "rosetta"
-  ];
+  pythonImportsCheck = [ "rosetta" ];
 
-  meta = with lib; {
+  meta = {
     description = "Rosetta is a Django application that facilitates the translation process of your Django projects";
     homepage = "https://github.com/mbi/django-rosetta";
-    changelog = "https://github.com/mbi/django-rosetta/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ derdennisop ];
+    changelog = "https://github.com/mbi/django-rosetta/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ derdennisop ];
   };
 }
-

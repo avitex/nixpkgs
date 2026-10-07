@@ -1,35 +1,32 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, hatchling
-, ptyprocess
-, tornado
-, pytest-timeout
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  hatchling,
+  ptyprocess,
+  tornado,
+  pytest-timeout,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "terminado";
-  version = "0.18.0";
-  format = "pyproject";
+  version = "0.18.1";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-HqCKibg13RuMDJANkoSBR87yU3JDNhsuP03BXfm2/e0=";
+    hash = "sha256-3gnyxLhd5HZfdxRoj/9X0+dbrR+Qm1if3ogEYMdT/S4=";
   };
 
-  nativeBuildInputs = [
-    hatchling
-  ];
+  nativeBuildInputs = [ hatchling ];
 
   propagatedBuildInputs = [
     ptyprocess
     tornado
   ];
 
-  pythonImportsCheck = [
-    "terminado"
-  ];
+  pythonImportsCheck = [ "terminado" ];
 
   __darwinAllowLocalNetworking = true;
 
@@ -37,11 +34,12 @@ buildPythonPackage rec {
     pytest-timeout
     pytestCheckHook
   ];
+  pytestFlags = [ "-Wignore::pytest.PytestUnraisableExceptionWarning" ];
 
-  meta = with lib; {
+  meta = {
     description = "Terminals served by Tornado websockets";
     homepage = "https://github.com/jupyter/terminado";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.bsd2;
+    maintainers = [ ];
   };
 }

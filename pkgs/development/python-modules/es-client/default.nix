@@ -1,50 +1,50 @@
-{ lib
-, buildPythonPackage
-, certifi
-, click
-, elastic-transport
-, elasticsearch8
-, fetchFromGitHub
-, hatchling
-, mock
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, pythonRelaxDepsHook
-, pyyaml
-, requests
-, six
-, voluptuous
+{
+  lib,
+  buildPythonPackage,
+  certifi,
+  click,
+  cryptography,
+  dotmap,
+  ecs-logging,
+  elastic-transport,
+  elasticsearch8,
+  fetchFromGitHub,
+  hatchling,
+  mock,
+  pytest-asyncio,
+  pytestCheckHook,
+  pyyaml,
+  requests,
+  tiered-debug,
+  voluptuous,
 }:
 
 buildPythonPackage rec {
   pname = "es-client";
-  version = "8.11.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "9.0.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "untergeek";
     repo = "es_client";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-VsHpWe37/CZvGm3PqVq4mJCBA9juvOD9FLmDeW8OjiM=";
+    tag = "v${version}";
+    hash = "sha256-83EBDmbZuOAVT2oYn98s6XTZrB38lx03nozAkBqHfgg=";
   };
 
   pythonRelaxDeps = true;
 
-  nativeBuildInputs = [
-    hatchling
-    pythonRelaxDepsHook
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     certifi
     click
+    cryptography
+    dotmap
+    ecs-logging
     elastic-transport
     elasticsearch8
     pyyaml
-    six
+    tiered-debug
     voluptuous
   ];
 
@@ -55,24 +55,25 @@ buildPythonPackage rec {
     requests
   ];
 
-  pythonImportsCheck = [
-    "es_client"
-  ];
+  pythonImportsCheck = [ "es_client" ];
 
   disabledTests = [
-    # Tests require network access
+    # Tests require local Elasticsearch instance
     "test_bad_version_raises"
+    "test_basic_operation"
     "test_client_info"
+    "test_client_info"
+    "test_exit_if_not_master"
     "test_multiple_hosts_raises"
-    "test_non_dict_passed"
     "test_skip_version_check"
+    "TestCLIExample"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Module for building Elasticsearch client objects";
     homepage = "https://github.com/untergeek/es_client";
-    changelog = "https://github.com/untergeek/es_client/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/untergeek/es_client/releases/tag/${src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

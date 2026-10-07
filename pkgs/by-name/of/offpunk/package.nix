@@ -1,64 +1,88 @@
-{ fetchFromSourcehut
-, file
-, installShellFiles
-, less
-, lib
-, offpunk
-, python3Packages
-, testers
-, timg
-, xdg-utils
-, xsel
-,
+{
+  fetchFromSourcehut,
+  file,
+  gettext,
+  installShellFiles,
+  less,
+  lib,
+  python3Packages,
+  timg,
+  versionCheckHook,
+  xdg-utils,
+  xsel,
 }:
 
-let
-  pythonDependencies = with python3Packages; [
-    beautifulsoup4
-    chardet
-    cryptography
-    feedparser
-    pillow
-    readability-lxml
-    requests
-    setproctitle
+python3Packages.buildPythonApplication (finalAttrs: {
+  pname = "offpunk";
+  version = "3.2";
+  pyproject = true;
+
+  src = fetchFromSourcehut {
+    owner = "~lioploum";
+    repo = "offpunk";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-1S8iftZ34NkhTydnr8RJBWzAMu/uk0MGi14PANWv/lM=";
+  };
+
+  build-system = with python3Packages; [ hatchling ];
+
+  nativeBuildInputs = [
+    gettext
+    installShellFiles
   ];
-  otherDependencies = [
+
+  dependencies = [
     file
     less
     timg
     xdg-utils
     xsel
+  ]
+  ++ (with python3Packages; [
+    beautifulsoup4
+    chardet
+    cryptography
+    feedparser
+    hatch-requirements-txt
+    readability-lxml
+    requests
+    setproctitle
+  ]);
+
+  /*
+    False positive from pythonRuntimeDepsCheckHook:
+      - "bs4" is the import name for beautifulsoup4 (not the PyPI
+        package name)
+      - "file" refers to the system `file` binary, not a Python
+        package
+  */
+  pythonRemoveDeps = [
+    "bs4"
+    "file"
   ];
-in
-python3Packages.buildPythonPackage rec {
-  pname = "offpunk";
-  version = "2.1";
-  format = "pyproject";
-
-  disabled = python3Packages.pythonOlder "3.7";
-
-  src = fetchFromSourcehut {
-    owner = "~lioploum";
-    repo = "offpunk";
-    rev = "v${version}";
-    hash = "sha256-IFqasTI2dZCauLUAq6/rvwkfraVK7SGUXpHCPEgSPGk=";
-  };
-
-  nativeBuildInputs = [ python3Packages.hatchling installShellFiles ];
-  propagatedBuildInputs = otherDependencies ++ pythonDependencies;
 
   postInstall = ''
     installManPage man/*.1
   '';
 
-  passthru.tests.version = testers.testVersion { package = offpunk; };
+  doInstallCheck = true;
+  nativeInstallCheckInputs = [ versionCheckHook ];
 
-  meta = with lib; {
-    description = "An Offline-First browser for the smolnet ";
-    homepage = src.meta.homepage;
-    maintainers = with maintainers; [ DamienCassou ];
-    platforms = platforms.linux;
-    license = licenses.agpl3Plus;
+  meta = {
+    changelog = "https://git.sr.ht/~lioploum/offpunk/tree/v${finalAttrs.version}/item/CHANGELOG";
+    description = "CLI and offline-first smolnet browser/feed reader";
+    longDescription = ''
+      Offpunk allows you to browse the Web, Gemini, Gopher and
+      subscribe to RSS feeds without leaving your terminal and while
+      being offline.
+
+      The goal of Offpunk is to be able to synchronise your content
+      once (a day, a week, a month) and then browse/organise it while
+      staying disconnected.
+    '';
+    homepage = "https://offpunk.net";
+    license = lib.licenses.agpl3Plus;
+    mainProgram = "offpunk";
+    maintainers = with lib.maintainers; [ DamienCassou ];
   };
-}
+})

@@ -1,6 +1,13 @@
-{ buildDunePackage, awa
-, cstruct, mtime, lwt, mirage-flow, mirage-clock, logs
-, duration, mirage-time
+{
+  buildDunePackage,
+  awa,
+  mtime,
+  lwt,
+  mirage-flow,
+  mirage-sleep,
+  logs,
+  duration,
+  mirage-mtime,
 }:
 
 buildDunePackage {
@@ -8,11 +15,15 @@ buildDunePackage {
 
   inherit (awa) version src;
 
-  duneVersion = "3";
-
   propagatedBuildInputs = [
-    awa cstruct mtime lwt mirage-flow mirage-clock logs
-    duration mirage-time
+    awa
+    mtime
+    lwt
+    mirage-flow
+    mirage-sleep
+    logs
+    duration
+    mirage-mtime
   ];
 
   inherit (awa) meta;

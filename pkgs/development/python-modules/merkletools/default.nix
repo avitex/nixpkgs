@@ -1,8 +1,8 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
@@ -10,12 +10,10 @@ buildPythonPackage rec {
   version = "1.0.3";
   format = "setuptools";
 
-  disabled = pythonOlder "3.7";
-
   src = fetchFromGitHub {
     owner = "Tierion";
     repo = "pymerkletools";
-    rev = "refs/tags/${version}";
+    tag = version;
     hash = "sha256-pd7Wxi7Sk95RcrFOTOtl725nIXidva3ftdKSGxHYPTA=";
   };
 
@@ -25,19 +23,14 @@ buildPythonPackage rec {
       --replace "install_requires=install_requires" "install_requires=[],"
   '';
 
-  checkInputs = [
-    pytestCheckHook
-  ];
+  checkInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "merkletools"
-  ];
+  pythonImportsCheck = [ "merkletools" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python tools for creating Merkle trees, generating Merkle proofs, and verification of Merkle proofs";
     homepage = "https://github.com/Tierion/pymerkletools";
     changelog = "https://github.com/Tierion/pymerkletools/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ Madouura ];
+    license = lib.licenses.mit;
   };
 }

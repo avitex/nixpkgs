@@ -1,34 +1,31 @@
-{ lib
-, stdenv
-, boost
-, fetchFromGitHub
-, git
-, makeWrapper
-, meson
-, ninja
-, pkg-config
-, python3
-, qtbase
-, qtcharts
-, tuxclocker-plugins
-, wrapQtAppsHook
+{
+  lib,
+  stdenv,
+  boost,
+  fetchFromGitHub,
+  git,
+  makeWrapper,
+  meson,
+  ninja,
+  pkg-config,
+  python3,
+  qt5,
+  tuxclocker-plugins,
+  tuxclocker-without-unfree,
+  unstableGitUpdater,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "tuxclocker";
-  version = "1.4.0";
+  version = "1.5.1-unstable-2026-08-19";
 
   src = fetchFromGitHub {
     owner = "Lurkki14";
     repo = "tuxclocker";
     fetchSubmodules = true;
-    rev = "${finalAttrs.version}";
-    hash = "sha256-8dtuZXBWftXNQpqYgNQOayPGfvEIu9QfbqDShfkt1qA=";
+    rev = "c7c9021e6c32f3df581f266ccab4275d29810be1";
+    hash = "sha256-FMLpzt/VFzzFdn2b8MUxjPowLJu+tHiJhCDum5I6kSU=";
   };
-
-  # Meson doesn't find boost without these
-  BOOST_INCLUDEDIR = "${lib.getDev boost}/include";
-  BOOST_LIBRARYDIR = "${lib.getLib boost}/lib";
 
   nativeBuildInputs = [
     git
@@ -36,13 +33,13 @@ stdenv.mkDerivation (finalAttrs: {
     meson
     ninja
     pkg-config
-    wrapQtAppsHook
+    qt5.wrapQtAppsHook
   ];
 
   buildInputs = [
     boost
-    qtbase
-    qtcharts
+    qt5.qtbase
+    qt5.qtcharts
   ];
 
   postInstall = ''
@@ -56,11 +53,18 @@ stdenv.mkDerivation (finalAttrs: {
     "-Dplugins=false"
   ];
 
-  meta = with lib; {
+  passthru = {
+    tests = {
+      inherit tuxclocker-without-unfree;
+    };
+    updateScript = unstableGitUpdater { };
+  };
+
+  meta = {
     description = "Qt overclocking tool for GNU/Linux";
     homepage = "https://github.com/Lurkki14/tuxclocker";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ lurkki ];
-    platforms = platforms.linux;
+    license = lib.licenses.gpl3Only;
+    maintainers = with lib.maintainers; [ lurkki ];
+    platforms = lib.platforms.linux;
   };
 })

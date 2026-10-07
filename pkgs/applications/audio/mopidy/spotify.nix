@@ -1,33 +1,47 @@
-{ lib, fetchFromGitHub, pythonPackages, mopidy, unstableGitUpdater }:
+{
+  lib,
+  fetchFromGitHub,
+  pythonPackages,
+  mopidy,
+  nix-update-script,
+}:
 
-pythonPackages.buildPythonApplication rec {
+pythonPackages.buildPythonApplication (finalAttrs: {
   pname = "mopidy-spotify";
-  version = "unstable-2024-01-02";
+  version = "5.0.0a3";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "mopidy";
     repo = "mopidy-spotify";
-    rev = "ede555c4c6e5f198659a979b85c69294d148c8f3";
-    hash = "sha256-G2SPzMAfJK3mOUJ+odmaugMoAyIAU1J6OXk25J/oXI0=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-pM+kqeWYiPXv9DZDBTgwiEwC6Sbqv6uz5vJ5odcixOw=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ pythonPackages.setuptools ];
+
+  dependencies = [
     mopidy
-    pythonPackages.responses
+    pythonPackages.pykka
+    pythonPackages.requests
   ];
 
-  nativeBuildInputs = [
+  nativeCheckInputs = [
     pythonPackages.pytestCheckHook
+    pythonPackages.responses
   ];
 
   pythonImportsCheck = [ "mopidy_spotify" ];
 
-  passthru.updateScript = unstableGitUpdater { };
-
-  meta = with lib; {
-    homepage = "https://github.com/mopidy/mopidy-spotify";
-    description = "Mopidy extension for playing music from Spotify";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ lilyinstarlight ];
+  passthru = {
+    updateScript = nix-update-script { };
   };
-}
+
+  meta = {
+    description = "Mopidy extension for playing music from Spotify";
+    homepage = "https://github.com/mopidy/mopidy-spotify";
+    changelog = "https://github.com/mopidy/mopidy-spotify/releases/tag/v${finalAttrs.version}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ getchoo ];
+  };
+})

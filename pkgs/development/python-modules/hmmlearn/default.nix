@@ -1,55 +1,63 @@
-{ lib
-, fetchPypi
-, buildPythonPackage
-, numpy
-, scikit-learn
-, pybind11
-, setuptools-scm
-, cython
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  fetchPypi,
+  buildPythonPackage,
+  numpy,
+  scikit-learn,
+  scipy,
+  pybind11,
+  setuptools,
+  setuptools-scm,
+  cython,
+  pytestCheckHook,
+  stdenv, # for meta.broken
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "hmmlearn";
-  version = "0.3.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.6";
+  version = "0.3.3";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-0TqR6jaV34gUZePTYTLX7vToTUg/S6U4pLRuJLXqEA8=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-HTxdxMUlfgwjjcH+U4dwC4y5h+q4CO2z4Mc4KfHMROw=";
   };
 
-  buildInputs = [
+  build-system = [
+    setuptools
     setuptools-scm
     cython
     pybind11
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     numpy
     scikit-learn
+    scipy
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  postPatch = ''
+    substituteInPlace src/hmmlearn/utils.py \
+      --replace-fail \
+        'a_sum.shape = shape' \
+        'a_sum = np.reshape(a_sum, shape, copy=False)'
+  '';
 
-  pythonImportsCheck = [
-    "hmmlearn"
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pytestFlagsArray = [
+  pythonImportsCheck = [ "hmmlearn" ];
+
+  pytestFlags = [
     "--pyargs"
     "hmmlearn"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Hidden Markov Models in Python with scikit-learn like API";
     homepage = "https://github.com/hmmlearn/hmmlearn";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ abbradar ];
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
+    # last successful hydra build on darwin was in 2025
+    broken = stdenv.hostPlatform.isDarwin;
   };
-}
+})

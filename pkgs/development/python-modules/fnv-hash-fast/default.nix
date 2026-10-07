@@ -1,55 +1,49 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, cython
-, poetry-core
-, setuptools
-, wheel
-, fnvhash
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  cython,
+  poetry-core,
+  setuptools,
+  fnvhash,
+  pytest-codspeed,
+  pytest-cov-stub,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "fnv-hash-fast";
-  version = "0.5.0";
-  format = "pyproject";
+  version = "2.0.3";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "bdraco";
     repo = "fnv-hash-fast";
-    rev = "v${version}";
-    hash = "sha256-gAHCssJC6sTR6ftkQHrtF/5Nf9dXE4ykRhVusb0Gu3I=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-yDEgVNaSqZ1AJivpkpinZznKlPEXH6mjXBe5aVp/3hQ=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace "--cov=fnv_hash_fast --cov-report=term-missing:skip-covered" ""
-  '';
-
-  nativeBuildInputs = [
+  build-system = [
     cython
     poetry-core
     setuptools
-    wheel
   ];
 
-  propagatedBuildInputs = [
-    fnvhash
-  ];
+  dependencies = [ fnvhash ];
 
-  pythonImportsCheck = [
-    "fnv_hash_fast"
-  ];
+  pythonImportsCheck = [ "fnv_hash_fast" ];
 
   nativeCheckInputs = [
+    pytest-codspeed
+    pytest-cov-stub
     pytestCheckHook
   ];
 
-  meta = with lib; {
-    description = "A fast version of fnv1a";
+  meta = {
+    description = "Fast version of fnv1a";
     homepage = "https://github.com/bdraco/fnv-hash-fast";
-    changelog = "https://github.com/bdraco/fnv-hash-fast/blob/${src.rev}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ hexa ];
+    changelog = "https://github.com/Bluetooth-Devices/fnv-hash-fast/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ hexa ];
   };
-}
+})

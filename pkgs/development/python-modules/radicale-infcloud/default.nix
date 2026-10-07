@@ -1,9 +1,16 @@
-{ lib, fetchFromGitHub, buildPythonPackage, radicale }:
+{
+  lib,
+  fetchFromGitHub,
+  fetchpatch,
+  buildPythonPackage,
+  radicale,
+  setuptools,
+}:
 
 buildPythonPackage {
   pname = "radicale-infcloud";
   version = "unstable-2022-04-18";
-  format = "setuptools";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "Unrud";
@@ -12,17 +19,30 @@ buildPythonPackage {
     hash = "sha256-xzBWIx2OOkCtBjlff1Z0VqgMhxWtgiOKutXUadT3tIo=";
   };
 
-  propagatedBuildInputs = [ radicale ];
+  patches = [
+    # Radicale >=3.2 compatibility fix: https://github.com/Unrud/RadicaleInfCloud/pull/27
+    (fetchpatch {
+      url = "https://github.com/Unrud/RadicaleInfCloud/commit/c7487d34a544a499b751fdc92b01196edef599c6.patch";
+      sha256 = "sha256-H5cSKFYQhC7+zpdbi0ojU8UlRJnldXtxv6d8gJ8D39w=";
+    })
+  ];
+
+  build-system = [ setuptools ];
+
+  dependencies = [ radicale ];
 
   # has no tests
   doCheck = false;
 
   pythonImportsCheck = [ "radicale" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/Unrud/RadicaleInfCloud/";
     description = "Integrate InfCloud into Radicale's web interface";
-    license = with licenses; [ agpl3 gpl3 ];
-    maintainers = with maintainers; [ erictapen ];
+    license = with lib.licenses; [
+      agpl3Plus
+      gpl3Plus
+    ];
+    maintainers = with lib.maintainers; [ erictapen ];
   };
 }

@@ -1,49 +1,117 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, can
-, cobs
-, libpcap
-, nunavut
-, numpy
-, pyserial
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonAtLeast,
+
+  # build system
+  setuptools,
+
+  # dependencies
+  numpy,
+  nunavut,
+
+  # optional dependencies
+  cobs,
+  libpcap,
+  pyserial,
+  python-can,
+
+  # tests
+  pytest-asyncio,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "pycyphal";
-  version = "1.15.4";
-  format = "pyproject";
+  version = "1.24.5";
+  pyproject = true;
 
-  disabled = pythonOlder "3.8";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-0Mp8d/rNOOPLg0gUPWdOgp/d5n148dxcLceW1VtjrkQ=";
+  src = fetchFromGitHub {
+    owner = "OpenCyphal";
+    repo = "pycyphal";
+    tag = version;
+    hash = "sha256-yrGKmJW4W8bPazKHWkwgNWDPiQYg1KTEuI7hC3yOWek=";
+    fetchSubmodules = true;
   };
 
-  propagatedBuildInputs = [
-    can
-    cobs
-    libpcap
+  # Set an event loop in the doctest helper; policy.get_event_loop no longer auto-creates one on 3.14.
+  patches = lib.optional (pythonAtLeast "3.14") ./python-3.14-asyncio-loop.patch;
+
+  build-system = [ setuptools ];
+
+  pythonRelaxDeps = [ "numpy" ];
+
+  dependencies = [
     numpy
     nunavut
-    pyserial
   ];
 
-  # Can't seem to run the tests on nix
-  doCheck = false;
-  pythonImportsCheck = [
-    "pycyphal"
+  optional-dependencies = {
+    transport-can-pythoncan = [ python-can ] ++ python-can.optional-dependencies.serial;
+    transport-serial = [
+      cobs
+      pyserial
+    ];
+    transport-udp = [ libpcap ];
+  };
+
+  nativeCheckInputs = [
+    pytestCheckHook
+    pytest-asyncio
+  ]
+  ++ lib.concatAttrValues optional-dependencies;
+
+  preCheck = ''
+    export HOME=$TMPDIR
+    export PYTHONASYNCIODEBUG=1
+    python -c ${lib.escapeShellArg ''
+      import pycyphal
+      pycyphal.dsdl.compile_all(
+        [
+          "demo/public_regulated_data_types/uavcan",
+          "demo/custom_data_types/sirius_cyber_corp",
+        ],
+        output_directory=".dsdl_compiled",
+      )
+    ''}
+    export PYTHONPATH="$(pwd)/.dsdl_compiled:$PYTHONPATH"
+  '';
+
+  # These require extra permissions and/or actual hardware connected
+  disabledTestPaths = [
+    "pycyphal/application/__init__.py"
+    "pycyphal/application/_transport_factory.py"
+    "pycyphal/application/register/backend/dynamic.py"
+    "pycyphal/application/register/backend/static.py"
+    "pycyphal/transport/udp"
+    "tests/application"
+    "tests/demo"
+    "tests/dsdl"
+    "tests/presentation"
+    "tests/transport"
+    # These are flaky -- test against string representations of values
+    "pycyphal/application/register/_registry.py"
+    "pycyphal/application/register/_value.py"
   ];
 
-  meta = with lib; {
-    description = "A full-featured implementation of the Cyphal protocol stack in Python";
+  disabledTests = lib.optionals (pythonAtLeast "3.14") [
+    # leaked tasks from prior doctest's event loop break doctest stdout capture, causing "Got nothing" on REPL-style assertions
+    "MonotonicClusteringSynchronizer"
+    "TransferIDSynchronizer"
+    "PythonCANMedia"
+  ];
+
+  pythonImportsCheck = [ "pycyphal" ];
+
+  meta = {
+    description = "Full-featured implementation of the Cyphal protocol stack in Python";
     longDescription = ''
       Cyphal is an open technology for real-time intravehicular distributed computing and communication based on modern networking standards (Ethernet, CAN FD, etc.).
     '';
     homepage = "https://opencyphal.org/";
-    license = licenses.mit;
-    maintainers = teams.ororatech.members;
+    changelog = "https://github.com/OpenCyphal/pycyphal/blob/${version}/CHANGELOG.rst";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ kip93 ];
   };
 }

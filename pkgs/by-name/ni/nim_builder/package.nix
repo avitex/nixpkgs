@@ -1,4 +1,8 @@
-{ lib, stdenv, nim }:
+{
+  lib,
+  stdenv,
+  nim,
+}:
 
 stdenv.mkDerivation {
   pname = "nim_builder";
@@ -13,7 +17,13 @@ stdenv.mkDerivation {
     install -Dt $out/bin nim_builder
   '';
   meta = {
-    description = "Internal Nixpkgs utility for buildNimPackage.";
-    maintainers = [ lib.maintainers.ehmry ];
+    description = "Internal Nixpkgs utility for buildNimPackage";
+    mainProgram = "nim_builder";
+    license =
+      with lib.licenses;
+      AND [
+        mit # For the code from Nixpkgs
+        bsd3 # nim_builder.nim contains some BSD3 code from Nimble
+      ];
   };
 }

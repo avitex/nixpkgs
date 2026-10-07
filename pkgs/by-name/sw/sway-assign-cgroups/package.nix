@@ -1,20 +1,27 @@
-{ lib
-, fetchFromGitHub
-, python3Packages
+{
+  lib,
+  fetchFromGitHub,
+  python3Packages,
 }:
 
-python3Packages.buildPythonApplication rec {
+python3Packages.buildPythonApplication (finalAttrs: {
   pname = "sway-assign-cgroups";
-  version = "0.4.0";
+  version = "0.4.1";
   src = fetchFromGitHub {
     owner = "alebastr";
     repo = "sway-systemd";
-    rev = "v${version}";
-    sha256 = "sha256-wznYE1/lVJtvf5Nq96gbPYisxc2gWLahVydwcH1vwoQ=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-AJ87/sPy8IVJgb5YehfUfNTOFEDithLfiTxgZfZf238=";
   };
-  format = "other";
+  pyproject = false;
 
-  propagatedBuildInputs = with python3Packages; [ dbus-next i3ipc psutil tenacity xlib ];
+  propagatedBuildInputs = with python3Packages; [
+    dbus-next
+    i3ipc
+    psutil
+    tenacity
+    python-xlib
+  ];
 
   installPhase = ''
     runHook preInstall
@@ -23,8 +30,9 @@ python3Packages.buildPythonApplication rec {
     runHook postInstall
   '';
 
-  meta = with lib; {
-    description = "Place GUI applications into systemd scopes for systemd-oomd compatibility.";
+  meta = {
+    description = "Place GUI applications into systemd scopes for systemd-oomd compatibility";
+    mainProgram = "assign-cgroups.py";
     longDescription = ''
       Automatically assign a dedicated systemd scope to the GUI applications
       launched in the same cgroup as the compositor. This could be helpful for
@@ -36,8 +44,9 @@ python3Packages.buildPythonApplication rec {
       Therefore it's recommended to supplement the script with use of systemd user
       services for such background apps.
     '';
-    license = licenses.mit;
-    platforms = platforms.linux;
-    maintainers = with maintainers; [ nickhu ];
+    homepage = "https://github.com/alebastr/sway-systemd";
+    license = lib.licenses.mit;
+    platforms = lib.platforms.linux;
+    maintainers = with lib.maintainers; [ nickhu ];
   };
-}
+})

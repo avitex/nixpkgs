@@ -1,13 +1,20 @@
-{ lib, buildKodiAddon, fetchzip, addonUpdateScript, requests }:
+{
+  lib,
+  rel,
+  buildKodiAddon,
+  fetchzip,
+  addonUpdateScript,
+  requests,
+}:
 
 buildKodiAddon rec {
   pname = "radioparadise";
   namespace = "script.radioparadise";
-  version = "2.0.0";
+  version = "2.5.0";
 
   src = fetchzip {
-    url = "https://mirrors.kodi.tv/addons/nexus/script.radioparadise/script.radioparadise-${version}.zip";
-    sha256 = "sha256-eRCP0XMQHmyDrZ8Y6RGFfxQ1r26/bWbE/PJz4PET7D8=";
+    url = "https://mirrors.kodi.tv/addons/${lib.toLower rel}/script.radioparadise/script.radioparadise-${version}.zip";
+    sha256 = "sha256-7mBKWgyjXcGPbUknE7F7czxicMDoYmv06Am1RgbOjgE=";
   };
 
   propagatedBuildInputs = [
@@ -21,10 +28,10 @@ buildKodiAddon rec {
     };
   };
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/alxndr42/script.radioparadise";
     description = "Radio Paradise addon for Kodi";
-    license = licenses.gpl3Plus;
-    maintainers = teams.kodi.members;
+    license = lib.licenses.gpl3Plus;
+    teams = [ lib.teams.kodi ];
   };
 }

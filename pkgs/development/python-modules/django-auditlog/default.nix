@@ -1,35 +1,37 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools
-, setuptools-scm
-, django
-, python-dateutil
-, freezegun
-, psycopg2
-, postgresql
-, postgresqlTestHook
-, python
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  setuptools-scm,
+  django,
+  python-dateutil,
+  freezegun,
+  psycopg2,
+  postgresql,
+  postgresqlTestHook,
+  python,
 }:
 
 buildPythonPackage rec {
   pname = "django-auditlog";
-  version = "2.2.2";
+  version = "3.4.1";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "jazzband";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-QHSGqtpkOgltAg+RlG/Ik3DfEjtSWt45sqlD+Zw4Bh0=";
+    repo = "django-auditlog";
+    tag = "v${version}";
+    hash = "sha256-/IOzMGRR8EP/AGP7fcqwP4GeSKXPwE6NF6AZmiF1+lA=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     django
     python-dateutil
   ];
@@ -41,25 +43,32 @@ buildPythonPackage rec {
     postgresqlTestHook
   ];
 
+  doCheck = stdenv.hostPlatform.isLinux; # postgres fails to allocate shm on darwin
+
   postgresqlTestUserOptions = "LOGIN SUPERUSER";
 
   checkPhase = ''
     runHook preCheck
 
+    cd auditlog_tests
+    # strip escape codes otherwise tests fail
+    # see https://github.com/jazzband/django-auditlog/issues/644
     TEST_DB_USER=$PGUSER \
     TEST_DB_HOST=$PGHOST \
-    ${python.interpreter} runtests.py
+    ${python.interpreter} ./manage.py test | cat
+    cd ..
 
     runHook postCheck
   '';
 
   pythonImportsCheck = [ "auditlog" ];
 
-  meta = with lib; {
-    changelog = "https://github.com/jazzband/django-auditlog/blob/v${version}/CHANGELOG.md";
-    description = "A Django app that keeps a log of changes made to an object";
+  meta = {
+    changelog = "https://github.com/jazzband/django-auditlog/blob/${src.tag}/CHANGELOG.md";
+    description = "Django app that keeps a log of changes made to an object";
+    homepage = "https://github.com/jazzband/django-auditlog";
     downloadPage = "https://github.com/jazzband/django-auditlog";
-    license = licenses.mit;
-    maintainers = with maintainers; [ leona ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ leona ];
   };
 }

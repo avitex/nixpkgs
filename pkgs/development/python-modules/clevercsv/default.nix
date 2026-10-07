@@ -1,42 +1,48 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-# propagates
-, chardet
-, regex
-, packaging
+  # build-system
+  setuptools,
 
-# optionals
-, faust-cchardet
-, pandas
-, tabview
-# TODO: , wilderness
+  # dependencies
+  chardet_5,
+  regex,
+  packaging,
 
-# tests
-, python
-, pytestCheckHook
+  # optionals
+  faust-cchardet,
+  pandas,
+  tabview,
+  # TODO: , wilderness
+
+  # tests
+  python,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "clevercsv";
-  version = "0.8.2";
-  format = "setuptools";
+  version = "0.8.5";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "alan-turing-institute";
     repo = "CleverCSV";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-yyPUNFDq9W5OW1muHtQ10QgAHhXI8w7CY77fsWhIy0k=";
+    tag = "v${version}";
+    hash = "sha256-XbRydL/4EzsKKlxtMnuv5HLB0VAThRAjH0IDCfRFFTc=";
   };
 
-  propagatedBuildInputs = [
-    chardet
+  build-system = [ setuptools ];
+
+  dependencies = [
+    chardet_5
     regex
     packaging
   ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     full = [
       faust-cchardet
       pandas
@@ -45,9 +51,7 @@ buildPythonPackage rec {
     ];
   };
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ] ++ passthru.optional-dependencies.full;
+  nativeCheckInputs = [ pytestCheckHook ] ++ optional-dependencies.full;
 
   pythonImportsCheck = [
     "clevercsv"
@@ -61,17 +65,16 @@ buildPythonPackage rec {
   '';
 
   # their ci only runs unit tests, there are also integration and fuzzing tests
-  pytestFlagsArray = [
-    "./tests/test_unit"
-  ];
+  enabledTestPaths = [ "./tests/test_unit" ];
 
   disabledTestPaths = [
     # ModuleNotFoundError: No module named 'wilderness'
     "tests/test_unit/test_console.py"
   ];
 
-  meta = with lib; {
-    description = "CleverCSV is a Python package for handling messy CSV files";
+  meta = {
+    description = "Python package for handling messy CSV files";
+    mainProgram = "clevercsv";
     longDescription = ''
       CleverCSV is a Python package for handling messy CSV files. It provides
       a drop-in replacement for the builtin CSV module with improved dialect
@@ -80,7 +83,7 @@ buildPythonPackage rec {
     '';
     homepage = "https://github.com/alan-turing-institute/CleverCSV";
     changelog = "https://github.com/alan-turing-institute/CleverCSV/blob/${src.rev}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ hexa ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ hexa ];
   };
 }

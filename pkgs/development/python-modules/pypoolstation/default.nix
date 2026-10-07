@@ -1,30 +1,26 @@
-{ lib
-, aiohttp
-, backoff
-, buildPythonPackage
-, fetchPypi
-, importlib-metadata
-, poetry-core
-, pythonOlder
+{
+  lib,
+  aiohttp,
+  backoff,
+  buildPythonPackage,
+  fetchPypi,
+  importlib-metadata,
+  hatchling,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pypoolstation";
-  version = "0.5.3";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "0.8.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-hszGCA2DDGQSh37lxp8G0bqHliH/+i2so5imDyzyOJw=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-wg7bFdK5FkTqKoGXRdBD9MKwLRm9mHvBVVne/CONb1k=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
     backoff
     importlib-metadata
@@ -33,14 +29,12 @@ buildPythonPackage rec {
   # Project has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "pypoolstation"
-  ];
+  pythonImportsCheck = [ "pypoolstation" ];
 
-  meta = with lib; {
-    description = "Python library to interact the the Poolstation platform";
+  meta = {
+    description = "Python library to interact with the Poolstation platform";
     homepage = "https://github.com/cibernox/PyPoolstation";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

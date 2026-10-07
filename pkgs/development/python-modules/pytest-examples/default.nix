@@ -1,72 +1,75 @@
-{ lib
-, black
-, buildPythonPackage
-, fetchFromGitHub
-, hatchling
-, pytest
-, pytestCheckHook
-, pythonOlder
-, pythonRelaxDepsHook
-, ruff
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fetchpatch,
+  hatchling,
+  pytest,
+  black,
+  ruff,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "pytest-examples";
-  version = "0.0.10";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "0.0.18";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "pydantic";
     repo = "pytest-examples";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-jCxOGDJlFkMH9VtaaPsE5zt+p3Z/mrVzhdNSI51/nVM=";
+    tag = "v${version}";
+    hash = "sha256-ZnDl0B7/oLX6PANrqsWtVJwe4E/+7inCgOpo7oSeZlw=";
   };
 
-  postPatch = ''
-    # ruff binary is used directly, the ruff Python package is not needed
-    substituteInPlace pytest_examples/lint.py \
-      --replace "'ruff'" "'${ruff}/bin/ruff'"
-  '';
-
-  pythonRemoveDeps = [
-    "ruff"
+  patches = [
+    (fetchpatch {
+      url = "https://github.com/pydantic/pytest-examples/pull/65/commits/60ae70d05ee345b38c2d2048d36b4a4545c98b6b.diff";
+      hash = "sha256-Rhrg0zVChwwa7Gk+WYrCu44VgUQmxLBeq8pWSF6Nzdo=";
+    })
   ];
 
-  nativeBuildInputs = [
+  build-system = [
     hatchling
-    pythonRelaxDepsHook
   ];
 
-  buildInputs = [
-    pytest
-  ];
+  buildInputs = [ pytest ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     black
     ruff
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "pytest_examples"
+  pythonImportsCheck = [ "pytest_examples" ];
+
+  pytestFlags = [
+    "-Wignore::pytest.PytestRemovedIn10Warning"
   ];
 
   disabledTests = [
-    # Test fails with latest ruff v0.1.2
-    # See https://github.com/pydantic/pytest-examples/issues/26
+    # Fails with AssertionError because formatting is different than expected
+    "test_black_error"
+    "test_black_error_dot_space"
+    "test_black_error_multiline"
+    # Breaks with ruff 0.16.
+    # https://github.com/pydantic/pytest-examples/issues/69
+    "test_ruff_ok"
     "test_ruff_error"
+    "test_ruff_config"
   ];
 
-  meta = with lib; {
+  disabledTestPaths = [
+    # assert 1 + 2 == 4
+    "tests/test_run_examples.py::test_run_example_ok_fail"
+  ];
+
+  meta = {
     description = "Pytest plugin for testing examples in docstrings and markdown files";
     homepage = "https://github.com/pydantic/pytest-examples";
-    changelog = "https://github.com/pydantic/pytest-examples/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/pydantic/pytest-examples/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

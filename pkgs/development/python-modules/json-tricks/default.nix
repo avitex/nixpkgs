@@ -1,11 +1,11 @@
-{ lib
-, fetchFromGitHub
-, buildPythonPackage
-, pythonOlder
-, pytestCheckHook
-, numpy
-, pandas
-, pytz
+{
+  lib,
+  fetchFromGitHub,
+  buildPythonPackage,
+  pytest7CheckHook,
+  numpy,
+  pandas,
+  pytz,
 }:
 
 buildPythonPackage rec {
@@ -13,12 +13,10 @@ buildPythonPackage rec {
   version = "3.17.3";
   format = "setuptools";
 
-  disabled = pythonOlder "3.7";
-
   src = fetchFromGitHub {
     owner = "mverleg";
     repo = "pyjson_tricks";
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     hash = "sha256-xddMc4PvVI+mqB3eeVqECZmdeSKAURsdbOnUAXahqM0=";
   };
 
@@ -26,17 +24,15 @@ buildPythonPackage rec {
     numpy
     pandas
     pytz
-    pytestCheckHook
+    pytest7CheckHook
   ];
 
-  pythonImportsCheck = [
-    "json_tricks"
-  ];
+  pythonImportsCheck = [ "json_tricks" ];
 
-  meta = with lib; {
+  meta = {
     description = "Extra features for Python JSON handling";
     homepage = "https://github.com/mverleg/pyjson_tricks";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ bcdarwin ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ bcdarwin ];
   };
 }

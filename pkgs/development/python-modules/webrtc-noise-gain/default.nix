@@ -1,56 +1,63 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, stdenv
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  stdenv,
 
-# build-system
-, pybind11
-, setuptools
+  # build-system
+  pybind11,
+  setuptools,
 
-# native dependencies
-, abseil-cpp
-, darwin
+  # native dependencies
+  abseil-cpp,
 
-# tests
-, pytestCheckHook
+  # tests
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "webrtc-noise-gain";
-  version = "1.2.3";
+  version = "1.3.0";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "rhasspy";
     repo = "webrtc-noise-gain";
-    rev = "v${version}";
-    hash = "sha256-DFEtuO49zXNixLwBjQ/WOiARDhMAXVH+5hfc3eSdPIo=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-EfMqmtdW7k7DDPWxpOOsnpH9H4ifGQORnNlO+pnoLRk=";
   };
 
-  nativeBuildInputs = [
-    pybind11
-    setuptools
+  patches = [
+    ./0001-fix-missing-cstdint-include.patch
   ];
 
-  buildInputs = [
-    abseil-cpp
-  ] ++ lib.optionals (stdenv.isDarwin) [
-    darwin.apple_sdk.frameworks.CoreServices
-  ];
+  postPatch = with stdenv.hostPlatform.uname; ''
+    # Configure the correct host platform for cross builds
+    substituteInPlace setup.py --replace-fail \
+      "system = platform.system().lower()" \
+      'system = "${lib.toLower system}"'
+    substituteInPlace setup.py --replace-fail \
+      "machine = platform.machine().lower()" \
+      'machine = "${lib.toLower processor}"'
+  '';
 
-  pythonImportsCheck = [
-    "webrtc_noise_gain"
-  ];
+  build-system = [ setuptools ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  buildInputs = [ abseil-cpp ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "webrtc_noise_gain" ];
+
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  preCheck = ''
+    rm -rf webrtc_noise_gain
+  '';
+
+  meta = {
     description = "Tiny wrapper around webrtc-audio-processing for noise suppression/auto gain only";
     homepage = "https://github.com/rhasspy/webrtc-noise-gain";
-    changelog = "https://github.com/rhasspy/webrtc-noise-gain/blob/${src.rev}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ hexa ];
+    changelog = "https://github.com/rhasspy/webrtc-noise-gain/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ hexa ];
   };
-}
+})

@@ -1,52 +1,87 @@
-{ stdenv
-, lib
-, fetchFromGitHub
-, gfortran
-, cmake
-, mctc-lib
-, mstore
-, toml-f
-, blas
+{
+  stdenv,
+  lib,
+  fetchFromGitHub,
+  gfortran,
+  meson,
+  ninja,
+  cmake,
+  pkg-config,
+  mctc-lib,
+  mstore,
+  toml-f,
+  blas,
+  buildType ? "meson",
 }:
 
 assert !blas.isILP64;
+assert (
+  builtins.elem buildType [
+    "meson"
+    "cmake"
+  ]
+);
 
 stdenv.mkDerivation rec {
   pname = "simple-dftd3";
-  version = "1.0.0";
+  version = "1.6.0";
 
   src = fetchFromGitHub {
     owner = "dftd3";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-dfXiKKCGJ69aExSKpVC3Bp//COy256R9PDyxCNmDsfo=";
+    repo = "simple-dftd3";
+    tag = "v${version}";
+    hash = "sha256-THl8sUY7pLxFz4mY7FMj/c1hwzqLaaNNMq0qkxWkUzw=";
   };
 
-  nativeBuildInputs = [ cmake gfortran ];
-
-  buildInputs = [ mctc-lib mstore toml-f blas ];
-
-  outputs = [ "out" "dev" ];
-
-  # Fix the Pkg-Config files for doubled store paths
+  # set_model_ghost_index was not declared as part of the public api, leading
+  # to link errors with gfortran 16.
   postPatch = ''
-    substituteInPlace config/template.pc \
-      --replace "\''${prefix}/" ""
+    substituteInPlace src/dftd3/api.f90 --replace-fail \
+      "public :: set_model_ewald, set_model_work_partition" \
+      "public :: set_model_ewald, set_model_ghost_index, set_model_work_partition"
   '';
+
+  patches = [
+    ./cmake.patch
+  ];
+
+  nativeBuildInputs = [
+    gfortran
+    pkg-config
+  ]
+  ++ lib.optionals (buildType == "meson") [
+    meson
+    ninja
+  ]
+  ++ lib.optional (buildType == "cmake") cmake;
+
+  buildInputs = [
+    mctc-lib
+    mstore
+    toml-f
+    blas
+  ];
+
+  outputs = [
+    "out"
+    "dev"
+  ];
+
   cmakeFlags = [
-    "-DBUILD_SHARED_LIBS=${if stdenv.hostPlatform.isStatic then "OFF" else "ON"}"
+    (lib.strings.cmakeBool "BUILD_SHARED_LIBS" (!stdenv.hostPlatform.isStatic))
   ];
 
   doCheck = true;
-  preCheck = ''
-    export OMP_NUM_THREADS=2
-  '';
 
-  meta = with lib; {
+  meta = {
     description = "Reimplementation of the DFT-D3 program";
-    license = with licenses; [ lgpl3Only gpl3Only ];
+    mainProgram = "s-dftd3";
+    license = with lib.licenses; [
+      lgpl3Only
+      gpl3Only
+    ];
     homepage = "https://github.com/dftd3/simple-dftd3";
-    platforms = [ "x86_64-linux" ];
-    maintainers = [ maintainers.sheepforce ];
+    platforms = lib.platforms.linux;
+    maintainers = [ lib.maintainers.sheepforce ];
   };
 }

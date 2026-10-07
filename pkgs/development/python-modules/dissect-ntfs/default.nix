@@ -1,56 +1,58 @@
-{ lib
-, buildPythonPackage
-, dissect-cstruct
-, dissect-util
-, fetchFromGitHub
-, setuptools
-, setuptools-scm
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  dissect-cstruct,
+  dissect-util,
+  fetchFromGitHub,
+  setuptools,
+  setuptools-scm,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "dissect-ntfs";
-  version = "3.8";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "3.16";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "fox-it";
     repo = "dissect.ntfs";
-    rev = "refs/tags/${version}";
-    hash = "sha256-BmXYnN8B7r/gz+zEWWS7ClOv29QOiHrm7g2ZNZXlnGU=";
+    tag = version;
+    hash = "sha256-5B27K6HPxSgdYLp0rJ1ld37xS3JXGqGlS/nlx4HBsVY=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     dissect-cstruct
     dissect-util
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "dissect.ntfs"
-  ];
+  pythonImportsCheck = [ "dissect.ntfs" ];
 
   disabledTestPaths = [
     # Test is very time consuming
     "tests/test_index.py"
   ];
 
-  meta = with lib; {
+  disabledTests = [
+    # Issue with archive
+    "test_mft"
+    "test_ntfs"
+    "test_secure"
+    "test_fragmented_mft"
+  ];
+
+  meta = {
     description = "Dissect module implementing a parser for the NTFS file system";
     homepage = "https://github.com/fox-it/dissect.ntfs";
-    changelog = "https://github.com/fox-it/dissect.ntfs/releases/tag/${version}";
-    license = licenses.agpl3Only;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/fox-it/dissect.ntfs/releases/tag/${src.tag}";
+    license = lib.licenses.agpl3Only;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

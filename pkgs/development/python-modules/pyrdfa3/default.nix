@@ -1,62 +1,41 @@
-{ lib
-, buildPythonPackage
-, fetchpatch
-, fetchPypi
-, html5lib
-, pythonOlder
-, rdflib
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  html5lib,
+  rdflib,
+  requests,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pyrdfa3";
-  version = "3.5.3";
+  version = "3.6.5";
   pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
   src = fetchPypi {
-    inherit version;
-    pname = "pyRdfa3";
-    hash = "sha256-FXZjqSuH3zRbb2m94jXf9feXiRYI4S/h5PqNrWhxMa4=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-D8KP8UJq+AWxAK/3Fi22pD+iFeN/krzpsRO0Zf61Y+o=";
   };
 
-  patches = [
-    (fetchpatch {
-      # https://github.com/RDFLib/pyrdfa3/pull/40
-      name = "CVE-2022-4396.patch";
-      url = "https://github.com/RDFLib/pyrdfa3/commit/ffd1d62dd50d5f4190013b39cedcdfbd81f3ce3e.patch";
-      hash = "sha256-prRrOwylYcEqKLr/8LIpyJ5Yyt+6+HTUqH5sQXU8tqc=";
-    })
-  ];
+  build-system = [ setuptools ];
 
-  postPatch = ''
-    substituteInPlace setup.py \
-      --replace "'html = pyRdfa.rdflibparsers:StructuredDataParser'" "'html = pyRdfa.rdflibparsers:StructuredDataParser'," \
-      --replace "'hturtle = pyRdfa.rdflibparsers:HTurtleParser'" "'hturtle = pyRdfa.rdflibparsers:HTurtleParser',"
-    # https://github.com/RDFLib/pyrdfa3/issues/31
-    substituteInPlace pyRdfa/utils.py \
-      --replace "imp," ""
-  '';
-
-  nativeBuildInputs = [
-    setuptools
-  ];
-
-  propagatedBuildInputs = [
+  dependencies = [
     rdflib
     html5lib
+    requests
   ];
 
-  pythonImportsCheck = [
-    "pyRdfa"
-  ];
+  # Module has no tests
+  doCheck = false;
 
-  meta = with lib; {
+  pythonImportsCheck = [ "pyRdfa" ];
+
+  meta = {
     description = "RDFa 1.1 distiller/parser library";
     homepage = "https://github.com/prrvchr/pyrdfa3/";
-    changelog = "https://github.com/prrvchr/pyrdfa3/releases/tag/v${version}";
-    license = licenses.w3c;
-    maintainers = with maintainers; [ ambroisie ];
+    changelog = "https://github.com/prrvchr/pyrdfa3/releases/tag/v${finalAttrs.version}";
+    license = lib.licenses.w3c;
+    maintainers = with lib.maintainers; [ ambroisie ];
   };
-}
+})

@@ -1,7 +1,8 @@
-{ buildPythonPackage
-, fetchPypi
-, future
-, lib
+{
+  buildPythonPackage,
+  fetchPypi,
+  future,
+  lib,
 }:
 
 buildPythonPackage rec {
@@ -22,10 +23,10 @@ buildPythonPackage rec {
   # Verify import still works.
   pythonImportsCheck = [ "monkeyhex" ];
 
-  meta = with lib; {
-    description = "A small library to assist users of the python shell who work in contexts where printed numbers are more usefully viewed in hexadecimal";
+  meta = {
+    description = "Small library to assist users of the python shell who work in contexts where printed numbers are more usefully viewed in hexadecimal";
     homepage = "https://github.com/rhelmot/monkeyhex";
-    license = licenses.mit;
-    maintainers = [ maintainers.pamplemousse ];
+    license = lib.licenses.mit;
+    maintainers = [ lib.maintainers.pamplemousse ];
   };
 }

@@ -1,29 +1,29 @@
-{ lib
-, buildNpmPackage
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, hatch-vcs
-, hatchling
-, jinja2
-, pytest
-, pytest-metadata
+{
+  lib,
+  buildNpmPackage,
+  buildPythonPackage,
+  fetchPypi,
+  hatch-vcs,
+  hatchling,
+  jinja2,
+  pytest,
+  pytest-metadata,
 }:
 let
   pname = "pytest-html";
-  version = "4.1.1";
+  version = "4.2.0";
 
   src = fetchPypi {
     pname = "pytest_html";
     inherit version;
-    hash = "sha256-cKAeiuWAD0oHS1akyxAlyPT5sDi7pf4x48mOuZZobwc=";
+    hash = "sha256-tqiMulB1ANhwmVkgHi51fTlB6Fn9F8/U7Yexb8DGeRI=";
   };
 
   web-assets = buildNpmPackage {
     pname = "${pname}-web-assets";
     inherit version src;
 
-    npmDepsHash = "sha256-aRod+SzVSb4bqEJzthfl/mH+DpbIe+j2+dNtrrhO2xU=";
+    npmDepsHash = "sha256-WJ0Ff0Y1u4EiIauEDGeOqLwY5Wk9wgjIvOGUmDog8rQ=";
 
     installPhase = ''
       runHook preInstall
@@ -37,16 +37,20 @@ in
 
 buildPythonPackage {
   inherit pname version src;
-  format = "pyproject";
-
-  disabled = pythonOlder "3.6";
+  pyproject = true;
 
   nativeBuildInputs = [
     hatch-vcs
     hatchling
   ];
-  buildInputs = [ pytest web-assets ];
-  propagatedBuildInputs = [ jinja2 pytest-metadata ];
+  buildInputs = [
+    pytest
+    web-assets
+  ];
+  propagatedBuildInputs = [
+    jinja2
+    pytest-metadata
+  ];
 
   env.HATCH_BUILD_NO_HOOKS = true;
 
@@ -57,14 +61,12 @@ buildPythonPackage {
   # tests require network access
   doCheck = false;
 
-  pythonImportsCheck = [
-    "pytest_html"
-  ];
+  pythonImportsCheck = [ "pytest_html" ];
 
-  meta = with lib; {
+  meta = {
     description = "Plugin for generating HTML reports";
     homepage = "https://github.com/pytest-dev/pytest-html";
-    license = licenses.mpl20;
-    maintainers = with maintainers; [ mpoquet ];
+    license = lib.licenses.mpl20;
+    maintainers = with lib.maintainers; [ mpoquet ];
   };
 }

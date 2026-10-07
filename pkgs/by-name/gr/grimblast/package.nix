@@ -1,27 +1,32 @@
-{ lib
-, stdenvNoCC
-, fetchFromGitHub
-, makeWrapper
-, scdoc
-, coreutils
-, grim
-, hyprland
-, hyprpicker
-, jq
-, libnotify
-, slurp
-, wl-clipboard
+{
+  lib,
+  stdenvNoCC,
+  fetchFromGitHub,
+  makeWrapper,
+  scdoc,
+  coreutils,
+  grim,
+  hyprland,
+  hyprpicker,
+  jq,
+  libnotify,
+  slurp,
+  wl-clipboard,
+  unixtools,
+  glib,
+  bash,
+  nix-update-script,
 }:
 
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "grimblast";
-  version = "unstable-2024-01-11";
+  version = "0.1-unstable-2026-08-21";
 
   src = fetchFromGitHub {
     owner = "hyprwm";
     repo = "contrib";
-    rev = "89c56351e48785070b60e224ea1717ac50c3befb";
-    hash = "sha256-EjdQsk5VIQs7INBugbgX1I9Q3kPAOZSwkXXqEjZL0E0=";
+    rev = "57baf317e5196a8286b80976771ef55febad8660";
+    hash = "sha256-qSzrIIqQUtEVeVZxQLj/L4p7+xKBEtPhgMTzFW2c6P8=";
   };
 
   strictDeps = true;
@@ -31,6 +36,8 @@ stdenvNoCC.mkDerivation (finalAttrs: {
     scdoc
   ];
 
+  buildInputs = [ bash ];
+
   makeFlags = [
     "PREFIX=$(out)"
   ];
@@ -39,23 +46,30 @@ stdenvNoCC.mkDerivation (finalAttrs: {
 
   postInstall = ''
     wrapProgram $out/bin/grimblast --prefix PATH ':' \
-      "${lib.makeBinPath [
-        coreutils
-        grim
-        hyprland
-        hyprpicker
-        jq
-        libnotify
-        slurp
-        wl-clipboard
-      ]}"
+      "${
+        lib.makeBinPath [
+          coreutils
+          grim
+          hyprland
+          hyprpicker
+          jq
+          libnotify
+          slurp
+          wl-clipboard
+          unixtools.getopt
+          glib
+        ]
+      }"
   '';
 
-  meta = with lib; {
-    description = "A helper for screenshots within Hyprland, based on grimshot";
-    license = licenses.mit;
-    platforms = platforms.unix;
-    maintainers = with maintainers; [ donovanglover ];
+  passthru.updateScript = nix-update-script { extraArgs = [ "--version=branch" ]; };
+
+  meta = {
+    description = "Helper for screenshots within Hyprland, based on grimshot";
+    homepage = "https://github.com/hyprwm/contrib";
+    license = lib.licenses.mit;
+    platforms = lib.platforms.unix;
+    teams = [ lib.teams.hyprland ];
     mainProgram = "grimblast";
   };
 })

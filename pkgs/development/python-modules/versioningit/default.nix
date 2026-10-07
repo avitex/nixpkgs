@@ -1,49 +1,38 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchPypi
-, importlib-metadata
-, packaging
-, setuptools
-, tomli
-, pytestCheckHook
-, build
-, hatchling
-, pydantic
-, pytest-mock
-, git
-, mercurial
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  packaging,
+  pytestCheckHook,
+  build,
+  hatchling,
+  pydantic,
+  pytest-cov-stub,
+  pytest-mock,
+  setuptools,
+  gitMinimal,
+  mercurial,
 }:
 
 buildPythonPackage rec {
   pname = "versioningit";
-  version = "2.3.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "3.3.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-HQ1xz6PCvE+N+z1KFcFE64qmoJ2dqYkj1BCZSi74Juo=";
+    hash = "sha256-uRrX1z5z0hIg5pVA8gIT8rcpofmzXATp4Tfq8o0iFNo=";
   };
 
   postPatch = ''
     substituteInPlace tox.ini \
-      --replace "--cov=versioningit" "" \
-      --replace "--cov-config=tox.ini" "" \
-      --replace "--no-cov-on-fail" ""
+      --replace-fail "ignore:.*No source for code:coverage.exceptions.CoverageWarning" ""
   '';
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     packaging
-  ] ++ lib.optionals (pythonOlder "3.10") [
-    importlib-metadata
-  ] ++ lib.optionals (pythonOlder "3.11") [
-    tomli
   ];
 
   nativeCheckInputs = [
@@ -51,25 +40,33 @@ buildPythonPackage rec {
     build
     hatchling
     pydantic
+    pytest-cov-stub
     pytest-mock
-    git
+    setuptools
+    gitMinimal
     mercurial
+  ];
+
+  pytestFlags = [
+    "-Wignore::pytest.PytestRemovedIn10Warning"
   ];
 
   disabledTests = [
     # wants to write to the Nix store
     "test_editable_mode"
+    # network access
+    "test_install_from_git_url"
+    "test_install_from_zip_url"
   ];
 
-  pythonImportsCheck = [
-    "versioningit"
-  ];
+  pythonImportsCheck = [ "versioningit" ];
 
-  meta = with lib; {
-    description = "setuptools plugin for determining package version from VCS";
+  meta = {
+    description = "Setuptools plugin for determining package version from VCS";
+    mainProgram = "versioningit";
     homepage = "https://github.com/jwodder/versioningit";
     changelog = "https://versioningit.readthedocs.io/en/latest/changelog.html";
-    license     = licenses.mit;
-    maintainers = with maintainers; [ DeeUnderscore ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ DeeUnderscore ];
   };
 }

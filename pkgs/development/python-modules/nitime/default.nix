@@ -1,37 +1,30 @@
-{ stdenv
-, lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, pytestCheckHook
-, cython
-, setuptools
-, setuptools-scm
-, wheel
-, numpy
-, scipy
-, matplotlib
-, networkx
-, nibabel
+{
+  stdenv,
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pytestCheckHook,
+  pytest-cov-stub,
+  cython,
+  setuptools,
+  setuptools-scm,
+  wheel,
+  numpy,
+  scipy,
+  matplotlib,
+  networkx,
+  nibabel,
 }:
 
 buildPythonPackage rec {
   pname = "nitime";
-  version = "0.10.2";
-  disabled = pythonOlder "3.7";
-  format = "pyproject";
+  version = "0.12.1";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-NCaWr7ZqL1XV0QfUD+4+Yn33N1cCP33ib5oJ91OtJLU=";
+    hash = "sha256-Esv0iLBlXcBaoYoMpZgt6XAwJgTkYfyS6H69m3U5tv8=";
   };
-
-  # Upstream wants to build against the oldest version of numpy possible, but
-  # we only want to build against the most recent version.
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace "numpy==" "numpy>="
-  '';
 
   nativeBuildInputs = [
     cython
@@ -48,16 +41,28 @@ buildPythonPackage rec {
     nibabel
   ];
 
-  nativeCheckInputs = [ pytestCheckHook ];
+  nativeCheckInputs = [
+    pytestCheckHook
+    pytest-cov-stub
+  ];
 
-  doCheck = !stdenv.isDarwin;  # tests hang indefinitely
+  doCheck = !stdenv.hostPlatform.isDarwin; # tests hang indefinitely
+
+  disabledTests = [
+    # [doctest] nitime.tests.test_timeseries.test_UniformTime_repr
+    # Expected:
+    #     UniformTime([    0.,  1000.,  2000.,  3000.,  4000.], time_unit='ms')
+    # Got:
+    #     UniformTime([   0., 1000., 2000., 3000., 4000.], time_unit='ms')
+    "test_UniformTime_repr"
+  ];
 
   pythonImportsCheck = [ "nitime" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://nipy.org/nitime";
     description = "Algorithms and containers for time-series analysis in time and spectral domains";
-    license = licenses.bsd3;
-    maintainers = [ maintainers.bcdarwin ];
+    license = lib.licenses.bsd3;
+    maintainers = [ lib.maintainers.bcdarwin ];
   };
 }

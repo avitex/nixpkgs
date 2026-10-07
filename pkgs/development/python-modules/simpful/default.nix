@@ -1,34 +1,30 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchFromGitHub
-, matplotlib
-, numpy
-, pytestCheckHook
-, pythonOlder
-, requests
-, scipy
-, seaborn
-, setuptools
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  matplotlib,
+  numpy,
+  pytestCheckHook,
+  requests,
+  scipy,
+  seaborn,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "simpful";
-  version = "2.11.1";
+  version = "2.12.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "aresio";
     repo = "simpful";
-    rev = "refs/tags/${version}";
-    hash = "sha256-54WkKnPB3xA2CaOpmasqxgDoga3uAqoC1nOivytXmGY=";
+    tag = version;
+    hash = "sha256-NtTw7sF1WfVebUk1wHrM8FHAe3/FXDcMApPkDbw0WXo=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
   propagatedBuildInputs = [
     numpy
@@ -36,7 +32,7 @@ buildPythonPackage rec {
     requests
   ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     plotting = [
       matplotlib
       seaborn
@@ -45,18 +41,17 @@ buildPythonPackage rec {
 
   nativeCheckInputs = [
     pytestCheckHook
-  ] ++ lib.flatten (builtins.attrValues passthru.optional-dependencies);
+  ]
+  ++ lib.concatAttrValues optional-dependencies;
 
-  pythonImportsCheck = [
-    "simpful"
-  ];
+  pythonImportsCheck = [ "simpful" ];
 
-  meta = with lib; {
+  meta = {
     description = "Library for fuzzy logic";
     homepage = "https://github.com/aresio/simpful";
     changelog = "https://github.com/aresio/simpful/releases/tag/${version}";
-    license = with licenses; [ lgpl3Only ];
-    maintainers = with maintainers; [ fab ];
-    broken = stdenv.isDarwin;
+    license = lib.licenses.lgpl3Only;
+    maintainers = with lib.maintainers; [ fab ];
+    broken = stdenv.hostPlatform.isDarwin;
   };
 }

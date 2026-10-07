@@ -1,4 +1,8 @@
-{ lib, buildPythonPackage, fetchPypi }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+}:
 
 buildPythonPackage rec {
   pname = "npyscreen";
@@ -6,17 +10,17 @@ buildPythonPackage rec {
   format = "setuptools";
 
   src = fetchPypi {
-   inherit pname version;
-   sha256 = "0vhjwn0dan3zmffvh80dxb4x67jysvvf1imp6pk4dsfslpwy0bk2";
+    inherit pname version;
+    sha256 = "0vhjwn0dan3zmffvh80dxb4x67jysvvf1imp6pk4dsfslpwy0bk2";
   };
 
   # Tests are outdated
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "Framework for developing console applications using Python and curses";
-    homepage = "http://www.npcole.com/npyscreen/";
-    maintainers = with maintainers; [ dump_stack ];
-    license = licenses.bsd3;
+    homepage = "https://www.npcole.com/npyscreen/";
+    maintainers = with lib.maintainers; [ dump_stack ];
+    license = lib.licenses.bsd3;
   };
 }

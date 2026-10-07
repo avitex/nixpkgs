@@ -1,64 +1,56 @@
-{ lib
-, stdenv
-, fetchurl
-, meson
-, pkg-config
-, ninja
-, wayland-scanner
-, expat
-, libxml2
-, withLibraries ? stdenv.isLinux || stdenv.isDarwin
-, withTests ? stdenv.isLinux
-, libffi
-, epoll-shim
-, withDocumentation ? withLibraries && stdenv.hostPlatform == stdenv.buildPlatform
-, graphviz-nox
-, doxygen
-, libxslt
-, xmlto
-, python3
-, docbook_xsl
-, docbook_xml_dtd_45
-, docbook_xml_dtd_42
+{
+  lib,
+  stdenv,
+  fetchurl,
+  meson,
+  mdbook,
+  pkg-config,
+  ninja,
+  wayland-scanner,
+  withTests ? stdenv.hostPlatform.isLinux,
+  libffi,
+  epoll-shim,
+  withDocumentation ? stdenv.hostPlatform == stdenv.buildPlatform,
+  graphviz-nox,
+  doxygen,
+  libxslt,
+  xmlto,
+  python3,
+  docbook_xsl,
+  docbook_xml_dtd_45,
+  docbook_xml_dtd_42,
+  testers,
 }:
 
-# Documentation is only built when building libraries.
-assert withDocumentation -> withLibraries;
-
-# Tests are only built when building libraries.
-assert withTests -> withLibraries;
-
-let
-  isCross = stdenv.buildPlatform != stdenv.hostPlatform;
-in
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "wayland";
-  version = "1.22.0";
+  version = "1.26.0";
 
   src = fetchurl {
-    url = "https://gitlab.freedesktop.org/wayland/wayland/-/releases/${version}/downloads/${pname}-${version}.tar.xz";
-    hash = "sha256-FUCvHqaYpHHC2OnSiDMsfg/TYMjx0Sk267fny8JCWEI=";
+    url =
+      with finalAttrs;
+      "https://gitlab.freedesktop.org/wayland/wayland/-/releases/${version}/downloads/${pname}-${version}.tar.xz";
+    hash = "sha256-ZBduqkbklpkD4ob45e+DMa/8F/3wOsm1g4HSsjFit6M=";
   };
-
-  patches = [
-    ./darwin.patch
-  ];
 
   postPatch = lib.optionalString withDocumentation ''
     patchShebangs doc/doxygen/gen-doxygen.py
-  '' + lib.optionalString stdenv.hostPlatform.isStatic ''
-    # delete line containing os-wrappers-test, disables
-    # the building of os-wrappers-test
-    sed -i '/os-wrappers-test/d' tests/meson.build
   '';
 
-  outputs = [ "out" "bin" "dev" ] ++ lib.optionals withDocumentation [ "doc" "man" ];
+  outputs = [
+    "out"
+    "dev"
+  ]
+  ++ lib.optionals withDocumentation [
+    "doc"
+    "man"
+  ];
   separateDebugInfo = true;
 
   mesonFlags = [
-    "-Ddocumentation=${lib.boolToString withDocumentation}"
-    "-Dlibraries=${lib.boolToString withLibraries}"
-    "-Dtests=${lib.boolToString withTests}"
+    (lib.mesonBool "documentation" withDocumentation)
+    (lib.mesonBool "tests" withTests)
+    (lib.mesonBool "scanner" false) # wayland-scanner is a separate derivation
   ];
 
   depsBuildBuild = [
@@ -69,46 +61,38 @@ stdenv.mkDerivation rec {
     meson
     pkg-config
     ninja
-  ] ++ lib.optionals isCross [
     wayland-scanner
-  ] ++ lib.optionals withDocumentation [
+  ]
+  ++ lib.optionals withDocumentation [
     (graphviz-nox.override { pango = null; }) # To avoid an infinite recursion
     doxygen
     libxslt
     xmlto
     python3
+    mdbook
     docbook_xml_dtd_45
     docbook_xsl
   ];
 
   buildInputs = [
-    expat
-    libxml2
-  ] ++ lib.optionals withLibraries [
     libffi
-  ] ++ lib.optionals (withLibraries && !stdenv.hostPlatform.isLinux) [
+  ]
+  ++ lib.optionals (!stdenv.hostPlatform.isLinux) [
     epoll-shim
-  ] ++ lib.optionals withDocumentation [
+  ]
+  ++ lib.optionals withDocumentation [
     docbook_xsl
     docbook_xml_dtd_45
     docbook_xml_dtd_42
   ];
 
-  postFixup = ''
-    # The pkg-config file is required for cross-compilation:
-    mkdir -p $bin/lib/pkgconfig/
-    cat <<EOF > $bin/lib/pkgconfig/wayland-scanner.pc
-    wayland_scanner=$bin/bin/wayland-scanner
+  passthru = {
+    tests.pkg-config = testers.hasPkgConfigModules {
+      package = finalAttrs.finalPackage;
+    };
+  };
 
-    Name: Wayland Scanner
-    Description: Wayland scanner
-    Version: ${version}
-    EOF
-  '';
-
-  passthru = { inherit withLibraries; };
-
-  meta = with lib; {
+  meta = {
     description = "Core Wayland window system code and protocol";
     longDescription = ''
       Wayland is a project to define a protocol for a compositor to talk to its
@@ -119,8 +103,22 @@ stdenv.mkDerivation rec {
       rendering).
     '';
     homepage = "https://wayland.freedesktop.org/";
-    license = licenses.mit; # Expat version
-    platforms = platforms.unix;
-    maintainers = with maintainers; [ primeos codyopel qyliss ];
+    license = lib.licenses.mit; # Expat version
+    platforms = lib.platforms.unix;
+    # Builds with a large downstream patch, but breaks at least the
+    # `qt6Packages.qtbase` build. Please audit Wayland availability
+    # checks throughout the tree before enabling (and work with
+    # upstream if you want sustainable Wayland support on macOS).
+    badPlatforms = lib.platforms.darwin;
+    maintainers = with lib.maintainers; [
+      qyliss
+    ];
+    pkgConfigModules = [
+      "wayland-client"
+      "wayland-cursor"
+      "wayland-egl"
+      "wayland-egl-backend"
+      "wayland-server"
+    ];
   };
-}
+})

@@ -1,63 +1,54 @@
-{ lib
-, bleak
-, bleak-retry-connector
-, boto3
-, buildPythonPackage
-, cryptography
-, fetchFromGitHub
-, pyopenssl
-, pythonOlder
-, pytestCheckHook
-, requests
-, setuptools
+{
+  lib,
+  aiohttp,
+  bleak-retry-connector,
+  bleak,
+  buildPythonPackage,
+  cryptography,
+  fetchFromGitHub,
+  poetry-core,
+  pyopenssl,
+  pytest-asyncio,
+  pytest-cov-stub,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pyswitchbot";
-  version = "0.44.1";
+  version = "2.10.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "Danielhiversen";
     repo = "pySwitchbot";
-    rev = "refs/tags/${version}";
-    hash = "sha256-i3OQ2QOBMaiNTyq44wbnHZ2iqAXEYB16NWKWzOza1Jo=";
+    tag = finalAttrs.version;
+    hash = "sha256-mDwzFwh5H2u+FAAdzzCylLxTxhgC1iFADxZqaAziIqs=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
+  dependencies = [
+    aiohttp
     bleak
     bleak-retry-connector
-    boto3
     cryptography
     pyopenssl
-    requests
   ];
 
   nativeCheckInputs = [
+    pytest-asyncio
+    pytest-cov-stub
     pytestCheckHook
   ];
 
-  disabledTests = [
-    # mismatch in expected data structure
-    "test_parse_advertisement_data_curtain"
-  ];
+  pythonImportsCheck = [ "switchbot" ];
 
-  pythonImportsCheck = [
-    "switchbot"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Python library to control Switchbot IoT devices";
     homepage = "https://github.com/Danielhiversen/pySwitchbot";
-    changelog = "https://github.com/Danielhiversen/pySwitchbot/releases/tag/${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
-    platforms = platforms.linux;
+    changelog = "https://github.com/Danielhiversen/pySwitchbot/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
+    platforms = lib.platforms.linux;
   };
-}
+})

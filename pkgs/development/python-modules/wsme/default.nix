@@ -1,73 +1,57 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonAtLeast
-, pbr
-, setuptools
-, six
-, simplegeneric
-, netaddr
-, pytz
-, webob
-# Test inputs
-, cherrypy
-, flask
-, flask-restful
-, glibcLocales
-, nose
-, pecan
-, sphinx
-, transaction
-, webtest
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pbr,
+  webob,
+  simplegeneric,
+  netaddr,
+  importlib-metadata,
+  # Test inputs
+  transaction,
+  pecan,
+  sphinx,
+  flask,
+  flask-restful,
+  webtest,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "wsme";
-  version = "0.12.1";
+  version = "0.13.0";
   pyproject = true;
 
-  disabled = pythonAtLeast "3.9";
-
   src = fetchPypi {
-    pname = "WSME";
-    inherit version;
-    hash = "sha256-m36yJErzxwSskUte0iGVS7aK3QqLKy84okSwZ7M3mS0=";
+    pname = "wsme";
+    inherit (finalAttrs) version;
+    hash = "sha256-W/MgEO2UPs+z8IeVpGAuJoPfXV6ozHHq8evj9EnzmDM=";
   };
 
-  nativeBuildInputs = [
-    pbr
-    setuptools
-  ];
+  build-system = [ pbr ];
 
-  propagatedBuildInputs = [
-    netaddr
-    pytz
-    simplegeneric
-    six
+  dependencies = [
     webob
+    simplegeneric
+    netaddr
+    importlib-metadata
   ];
 
   nativeCheckInputs = [
-    nose
-    cherrypy
-    flask
-    flask-restful
-    glibcLocales
+    transaction
     pecan
     sphinx
-    transaction
+    flask
+    flask-restful
     webtest
+    pytestCheckHook
   ];
 
-  # from tox.ini, tests don't work with pytest
-  checkPhase = ''
-    nosetests wsme/tests tests/pecantest tests/test_sphinxext.py tests/test_flask.py --verbose
-  '';
-
-  meta = with lib; {
+  meta = {
     description = "Simplify the writing of REST APIs, and extend them with additional protocols";
     homepage = "https://pythonhosted.org/WSME/";
     changelog = "https://pythonhosted.org/WSME/changes.html";
-    license = licenses.mit;
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ sigmanificient ];
   };
-}
+})

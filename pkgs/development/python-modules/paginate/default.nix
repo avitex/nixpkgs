@@ -1,38 +1,33 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonAtLeast
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonAtLeast,
 
-# build-system
-, setuptools
+  # build-system
+  setuptools,
 
-# tests
-, pytestCheckHook
+  # tests
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "paginate";
-  version = "0.5.6";
+  version = "0.5.7";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "Pylons";
     repo = "paginate";
     rev = version;
-    hash = "sha256-HZWwOYOCk4mAmz8OnM9hhlf8HA+jC75dYVeo0l4a09o=";
+    hash = "sha256-+zX9uGNWcV4BWbD2lcd1u9zZ4m7CnbsYZnc99HNaF8I=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
-  pythonImportsCheck = [
-    "paginate"
-  ];
+  pythonImportsCheck = [ "paginate" ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   disabledTests = lib.optionals (pythonAtLeast "3.12") [
     # https://github.com/Pylons/paginate/issues/19
@@ -40,11 +35,11 @@ buildPythonPackage rec {
     "test_unsliceable_sequence3"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Python pagination module";
     homepage = "https://github.com/Pylons/paginate";
     changelog = "https://github.com/Pylons/paginate/blob/${src.rev}/CHANGELOG.txt";
-    license = licenses.mit;
-    maintainers = with maintainers; [ hexa ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ hexa ];
   };
 }

@@ -1,42 +1,38 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pyserial
-, pyserial-asyncio
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, setuptools
-, zigpy
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pyprojectVersionPatchHook,
+  pytest-asyncio,
+  pytestCheckHook,
+  setuptools,
+  zigpy,
 }:
 
 buildPythonPackage rec {
   pname = "zigpy-xbee";
-  version = "0.20.1";
+  version = "0.22.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "zigpy";
     repo = "zigpy-xbee";
-    rev = "refs/tags/${version}";
-    hash = "sha256-H0rs4EOzz2Nx5YuwqTZp2FGF1z2phBgSIyraKHHx4RA=";
+    tag = version;
+    hash = "sha256-ni+YY8MGPik8/qxAKlY1loAbRBFcdOch1qT4xvN1Kyc=";
   };
 
   postPatch = ''
     substituteInPlace pyproject.toml \
-      --replace ', "setuptools-git-versioning<2"' "" \
-      --replace 'dynamic = ["version"]' 'version = "${version}"'
+      --replace-fail ', "setuptools-git-versioning<2"' ""
   '';
 
+  build-system = [ setuptools ];
+
   nativeBuildInputs = [
-    setuptools
+    pyprojectVersionPatchHook
   ];
 
-  propagatedBuildInputs = [
-    pyserial
-    pyserial-asyncio
+  dependencies = [
     zigpy
   ];
 
@@ -46,16 +42,15 @@ buildPythonPackage rec {
   ];
 
   disabledTests = [
-    # fixed in https://github.com/zigpy/zigpy-xbee/commit/f85233fc28ae01c08267965e99a29e43b00e1561
-    "test_shutdown"
+    "test_connect" # Attempts to test ioctl
   ];
 
-  meta = with lib; {
+  meta = {
     changelog = "https://github.com/zigpy/zigpy-xbee/releases/tag/${version}";
-    description = "A library which communicates with XBee radios for zigpy";
+    description = "Library which communicates with XBee radios for zigpy";
     homepage = "https://github.com/zigpy/zigpy-xbee";
-    license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ mvnetbiz ];
-    platforms = platforms.linux;
+    license = lib.licenses.gpl3Plus;
+    maintainers = with lib.maintainers; [ mvnetbiz ];
+    platforms = lib.platforms.linux;
   };
 }

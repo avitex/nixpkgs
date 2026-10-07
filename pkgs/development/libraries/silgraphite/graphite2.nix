@@ -1,28 +1,47 @@
-{ lib
-, stdenv
-, fetchurl
-, pkg-config
-, freetype
-, cmake
-, static ? stdenv.hostPlatform.isStatic
+{
+  lib,
+  stdenv,
+  llvmPackages,
+  python3,
+  fetchurl,
+  pkg-config,
+  freetype,
+  cmake,
+  static ? stdenv.hostPlatform.isStatic,
+  testers,
 }:
 
-stdenv.mkDerivation rec {
-  version = "1.3.14";
+stdenv.mkDerivation (finalAttrs: {
+  version = "1.3.15";
   pname = "graphite2";
 
   src = fetchurl {
-    url = "https://github.com/silnrsi/graphite/releases/download/"
-      + "${version}/graphite2-${version}.tgz";
-    sha256 = "1790ajyhk0ax8xxamnrk176gc9gvhadzy78qia4rd8jzm89ir7gr";
+    url =
+      with finalAttrs;
+      "https://github.com/silnrsi/graphite/releases/download/${version}/${pname}-${version}.tgz";
+    hash = "sha256-xryLQlJyRmUpf3ytDFWJcoXGc/m45ts1IqzoM1k/4LE=";
   };
 
-  outputs = [ "out" "dev" ];
+  outputs = [
+    "out"
+    "dev"
+  ];
 
-  nativeBuildInputs = [ pkg-config cmake ];
-  buildInputs = [ freetype ];
+  nativeBuildInputs = [
+    pkg-config
+    (python3.withPackages (ps: [ ps.fonttools ]))
+    cmake
+  ];
+  buildInputs = [
+    freetype
+  ]
+  ++ lib.optional (stdenv.targetPlatform.useLLVM or false) (
+    llvmPackages.compiler-rt.override {
+      doFakeLibgcc = true;
+    }
+  );
 
-  patches = lib.optionals stdenv.isDarwin [ ./macosx.patch ];
+  patches = lib.optionals stdenv.hostPlatform.isDarwin [ ./macosx.patch ];
   postPatch = ''
     # disable broken 'nametabletest' test, fails on gcc-13:
     #   https://github.com/silnrsi/graphite/pull/74
@@ -32,6 +51,10 @@ stdenv.mkDerivation rec {
     # support cross-compilation by using target readelf binary:
     substituteInPlace Graphite.cmake \
       --replace 'readelf' "${stdenv.cc.targetPrefix}readelf"
+
+    # headers are located in the dev output:
+    substituteInPlace CMakeLists.txt \
+      --replace-fail ' ''${CMAKE_INSTALL_PREFIX}/include' " ${placeholder "dev"}/include"
   '';
 
   cmakeFlags = lib.optionals static [
@@ -46,12 +69,19 @@ stdenv.mkDerivation rec {
 
   doCheck = true;
 
-  meta = with lib; {
-    description = "An advanced font engine";
-    homepage = "https://graphite.sil.org/";
-    license = licenses.lgpl21;
-    maintainers = [ maintainers.raskin ];
-    mainProgram = "gr2fonttest";
-    platforms = platforms.unix ++ platforms.windows;
+  passthru.tests = {
+    pkg-config = testers.hasPkgConfigModules {
+      package = finalAttrs.finalPackage;
+    };
   };
-}
+
+  meta = {
+    description = "Advanced font engine";
+    homepage = "https://graphite.sil.org/";
+    license = lib.licenses.lgpl21;
+    maintainers = [ lib.maintainers.raskin ];
+    pkgConfigModules = [ "graphite2" ];
+    mainProgram = "gr2fonttest";
+    platforms = lib.platforms.unix ++ lib.platforms.windows;
+  };
+})

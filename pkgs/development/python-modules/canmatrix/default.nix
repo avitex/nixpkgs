@@ -1,99 +1,86 @@
-{ lib
-, attrs
-, buildPythonPackage
-, click
-, fetchFromGitHub
-, future
-, importlib-metadata
-, ldfparser
-, lxml
-, openpyxl
-, pytestCheckHook
-, pythonOlder
-, pyyaml
-, six
-, xlrd
-, xlwt
+{
+  lib,
+  attrs,
+  buildPythonPackage,
+  click,
+  fetchFromGitHub,
+  ldfparser,
+  lxml,
+  openpyxl,
+  pytest-cov-stub,
+  pytest-timeout,
+  pytestCheckHook,
+  pyyaml,
+  setuptools,
+  xlrd,
+  xlwt,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "canmatrix";
-  version = "1.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "1.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "ebroecker";
     repo = "canmatrix";
-    rev = "refs/tags/${version}";
-    hash = "sha256-UUJnLVt+uOj8Eav162btprkUeTemItGrSnBBB9UhJJI=";
+    tag = finalAttrs.version;
+    hash = "sha256-PfegsFha7ernSqnMeaDoLf1jLx1CiOoiYi34dESEgBY=";
   };
 
   postPatch = ''
+    # Allows to skip versioneer and use the version from nixpkgs instead
     substituteInPlace setup.py \
-      --replace "version = versioneer.get_version()" 'version = "${version}"'
+      --replace-fail 'version = versioneer.get_version(),' 'version = "${finalAttrs.version}",'
   '';
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     attrs
     click
-    future
-    six
-  ] ++ lib.optionals (pythonOlder "3.8") [
-    importlib-metadata
   ];
 
-  passthru.optional-dependencies = {
-    arxml = [
-      lxml
-    ];
-    fibex = [
-      lxml
-    ];
-    kcd = [
-      lxml
-    ];
-    ldf = [
-      ldfparser
-    ];
-    odx = [
-      lxml
-    ];
+  optional-dependencies = {
+    arxml = [ lxml ];
+    fibex = [ lxml ];
+    kcd = [ lxml ];
+    ldf = [ ldfparser ];
+    odx = [ lxml ];
     xls = [
       xlrd
       xlwt
     ];
-    xlsx = [
-      openpyxl
-    ];
-    yaml = [
-      pyyaml
-    ];
+    xlsx = [ openpyxl ];
+    yaml = [ pyyaml ];
   };
 
   nativeCheckInputs = [
+    pytest-cov-stub
+    pytest-timeout
     pytestCheckHook
-  ] ++ lib.flatten (builtins.attrValues passthru.optional-dependencies);
+  ]
+  ++ lib.flatten (builtins.attrValues finalAttrs.passthru.optional-dependencies);
 
-  pytestFlagsArray = [
+  pytestFlags = [
     # long_envvar_name_imports requires stable key value pair ordering
-    "-s src/canmatrix"
+    "-s"
   ];
 
-  disabledTests = [
-    "long_envvar_name_imports"
+  enabledTestPaths = [
+    "src/canmatrix"
+    "tests/"
   ];
 
-  pythonImportsCheck = [
-    "canmatrix"
-  ];
+  disabledTests = [ "long_envvar_name_imports" ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "canmatrix" ];
+
+  meta = {
     description = "Support and convert several CAN (Controller Area Network) database formats";
     homepage = "https://github.com/ebroecker/canmatrix";
-    changelog = "https://github.com/ebroecker/canmatrix/releases/tag/${version}";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ sorki ];
+    changelog = "https://github.com/ebroecker/canmatrix/releases/tag/${finalAttrs.version}";
+    license = lib.licenses.bsd2;
+    maintainers = with lib.maintainers; [ sorki ];
   };
-}
+})

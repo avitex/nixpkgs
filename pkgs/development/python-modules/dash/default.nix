@@ -1,85 +1,83 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-, setuptools
-, nodejs
-, yarn
-, prefetch-yarn-deps
-, fetchYarnDeps
+  yarnConfigHook,
+  fetchYarnDeps,
+  nodejs,
 
-, flask
-, werkzeug
-, plotly
-, dash-html-components
-, dash-core-components
-, dash-table
-, importlib-metadata
-, typing-extensions
-, requests
-, retrying
-, ansi2html
-, nest-asyncio
+  setuptools,
 
-, celery
-, redis
-, diskcache
-, multiprocess
-, psutil
-, flask-compress
+  flask,
+  werkzeug,
+  plotly,
+  dash-html-components,
+  dash-core-components,
+  dash-table,
+  importlib-metadata,
+  typing-extensions,
+  requests,
+  retrying,
+  nest-asyncio,
 
-, pytestCheckHook
-, pytest-mock
-, mock
-, pyyaml
+  celery,
+  kombu,
+  redis,
+  diskcache,
+  multiprocess,
+  psutil,
+  flask-compress,
+
+  flaky,
+  numpy,
+  pytestCheckHook,
+  pytest-mock,
+  mock,
+  pyyaml,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "dash";
-  version = "2.14.2";
+  version = "3.4.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.6";
 
   src = fetchFromGitHub {
     owner = "plotly";
     repo = "dash";
-    rev = "v${version}";
-    hash = "sha256-EFEsFgd3VbzlIUiz1fBIsKHywgWrL74taDFx0yIM/Ks=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-8LR0iNc8lJBKzbJuvZ8jzta1G3TbQ9yIBSXFvvyeqmI=";
   };
 
   nativeBuildInputs = [
-    setuptools
+    yarnConfigHook
     nodejs
-    yarn
-    prefetch-yarn-deps
   ];
 
   yarnOfflineCache = fetchYarnDeps {
-    yarnLock = "${src}/@plotly/dash-jupyterlab/yarn.lock";
-    hash = "sha256-mkiyrA0jGiP0zbabSjgHFLEUX3f+LZdJ8eARI5QA8CU=";
+    yarnLock = "${finalAttrs.src}/@plotly/dash-jupyterlab/yarn.lock";
+    hash = "sha256-Nvm9BS55q/HW9ArpHD01F5Rmx8PLS3yqaz1yDK8Sg68=";
   };
 
-  preBuild = ''
+  # as of writing this yarnConfigHook has no parameter that changes in which directory it will be run
+  # until then we use preConfigure for entering the directory and preBuild for exiting it
+  preConfigure = ''
     pushd @plotly/dash-jupyterlab
 
-    export HOME=$(mktemp -d)
+    substituteInPlace package.json \
+        --replace-fail 'jlpm' 'yarn'
+  '';
 
-    yarn config --offline set yarn-offline-mirror ${yarnOfflineCache}
-    fixup-yarn-lock yarn.lock
-
-    substituteInPlace package.json --replace jlpm yarn
-    yarn install --offline --frozen-lockfile --ignore-engines --ignore-scripts
-    patchShebangs node_modules
-
-    # Generates the jupyterlab extension files
-    yarn run build:pack
+  preBuild = ''
+    # Generate the jupyterlab extension files
+    yarn --offline run build:pack
 
     popd
   '';
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     flask
     werkzeug
     plotly
@@ -90,45 +88,56 @@ buildPythonPackage rec {
     typing-extensions
     requests
     retrying
-    ansi2html
     nest-asyncio
   ];
 
-  passthru.optional-dependencies = {
+  pythonRelaxDeps = [
+    "werkzeug"
+    "flask"
+  ];
+
+  optional-dependencies = {
     celery = [
       celery
+      kombu
       redis
-    ];
+    ]
+    ++ celery.optional-dependencies.redis;
     diskcache = [
       diskcache
       multiprocess
       psutil
     ];
-    compress = [
-      flask-compress
-    ];
+    compress = [ flask-compress ];
   };
 
   nativeCheckInputs = [
+    flaky
+    numpy
+    psutil
     pytestCheckHook
     pytest-mock
     mock
     pyyaml
+    redis
+  ];
+
+  enabledTestPaths = [
+    "tests/unit"
   ];
 
   disabledTestPaths = [
     "tests/unit/test_browser.py"
     "tests/unit/test_app_runners.py" # Uses selenium
-    "tests/integration"
   ];
 
   pythonImportsCheck = [ "dash" ];
 
   meta = {
-    changelog = "https://github.com/plotly/dash/blob/${src.rev}/CHANGELOG.md";
+    changelog = "https://github.com/plotly/dash/blob/${finalAttrs.src.rev}/CHANGELOG.md";
     description = "Python framework for building analytical web applications";
     homepage = "https://dash.plot.ly/";
     license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ antoinerg tomasajt ];
+    maintainers = with lib.maintainers; [ tomasajt ];
   };
-}
+})

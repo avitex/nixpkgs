@@ -1,49 +1,47 @@
-{ lib
-, azure-mgmt-common
-, azure-mgmt-core
-, buildPythonPackage
-, fetchPypi
-, isodate
-, pythonOlder
-, typing-extensions
+{
+  lib,
+  azure-mgmt-common,
+  azure-mgmt-core,
+  buildPythonPackage,
+  fetchPypi,
+  isodate,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "azure-mgmt-compute";
-  version = "30.5.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "37.1.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-7T6jS3mdsNUu5V4vGrSw8J+koI814GHsuarZ+1ohiEQ=";
+    pname = "azure_mgmt_compute";
+    inherit version;
+    hash = "sha256-V67UT4TCpTMj4Rw3MUhd176ZruDdGnT1+nffYHlD00o=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     azure-mgmt-common
     azure-mgmt-core
     isodate
-  ]  ++ lib.optionals (pythonOlder "3.8") [
-    typing-extensions
   ];
 
-  pythonNamespaces = [
-    "azure.mgmt"
-  ];
+  pythonNamespaces = [ "azure.mgmt" ];
 
   # Module has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "azure.mgmt.compute"
-  ];
+  pythonImportsCheck = [ "azure.mgmt.compute" ];
 
-  meta = with lib; {
+  meta = {
     description = "This is the Microsoft Azure Compute Management Client Library";
-    homepage = "https://github.com/Azure/azure-sdk-for-python";
+    homepage = "https://github.com/Azure/azure-sdk-for-python/tree/main/sdk/compute/azure-mgmt-compute";
     changelog = "https://github.com/Azure/azure-sdk-for-python/blob/azure-mgmt-compute_${version}/sdk/compute/azure-mgmt-compute/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ olcai maxwilson ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [
+      olcai
+      maxwilson
+    ];
   };
 }

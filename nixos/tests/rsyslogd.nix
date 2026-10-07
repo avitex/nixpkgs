@@ -1,6 +1,7 @@
-{ system ? builtins.currentSystem,
-  config ? {},
-  pkgs ? import ../.. { inherit system config; }
+{
+  system ? builtins.currentSystem,
+  config ? { },
+  pkgs ? import ../.. { inherit system config; },
 }:
 
 with import ../lib/testing-python.nix { inherit system pkgs; };
@@ -11,10 +12,13 @@ with pkgs.lib;
     name = "rsyslogd-test1";
     meta.maintainers = [ pkgs.lib.maintainers.aanderse ];
 
-    nodes.machine = { config, pkgs, ... }: {
-      services.rsyslogd.enable = true;
-      services.journald.forwardToSyslog = false;
-    };
+    nodes.machine =
+      { lib, ... }:
+      {
+        services.rsyslogd.enable = true;
+        # Verify that the module's option default remains overridable by downstream defaults.
+        services.journald.settings.Journal.ForwardToSyslog = lib.mkDefault false;
+      };
 
     # ensure rsyslogd isn't receiving messages from journald if explicitly disabled
     testScript = ''
@@ -27,9 +31,11 @@ with pkgs.lib;
     name = "rsyslogd-test2";
     meta.maintainers = [ pkgs.lib.maintainers.aanderse ];
 
-    nodes.machine = { config, pkgs, ... }: {
-      services.rsyslogd.enable = true;
-    };
+    nodes.machine =
+      { ... }:
+      {
+        services.rsyslogd.enable = true;
+      };
 
     # ensure rsyslogd is receiving messages from journald
     testScript = ''

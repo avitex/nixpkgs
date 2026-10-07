@@ -1,13 +1,13 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, cython
-, openems
-, csxcad
-, boost
-, python-csxcad
-, numpy
-, h5py
+{
+  lib,
+  buildPythonPackage,
+  cython_0,
+  openems,
+  csxcad,
+  boost,
+  python-csxcad,
+  numpy,
+  h5py,
 }:
 
 buildPythonPackage rec {
@@ -20,7 +20,7 @@ buildPythonPackage rec {
   sourceRoot = "${src.name}/python";
 
   nativeBuildInputs = [
-    cython
+    cython_0
     boost
   ];
 
@@ -32,14 +32,18 @@ buildPythonPackage rec {
     h5py
   ];
 
-  setupPyBuildFlags = [ "-I${openems}/include" "-L${openems}/lib" "-R${openems}/lib" ];
+  setupPyBuildFlags = [
+    "-I${openems}/include"
+    "-L${openems}/lib"
+    "-R${openems}/lib"
+  ];
   pythonImportsCheck = [ "openEMS" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python interface to OpenEMS";
     homepage = "http://openems.de/index.php/Main_Page.html";
-    license = licenses.gpl3;
-    maintainers = with maintainers; [ matthuszagh ];
-    platforms = platforms.linux;
+    license = lib.licenses.gpl3;
+    maintainers = with lib.maintainers; [ matthuszagh ];
+    platforms = lib.platforms.linux;
   };
 }

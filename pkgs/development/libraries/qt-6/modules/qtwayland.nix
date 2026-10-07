@@ -1,23 +1,30 @@
-{ qtModule
-, qtbase
-, qtdeclarative
-, wayland
-, pkg-config
-, libdrm
-, fetchpatch
+{
+  pkgsBuildBuild,
+  stdenv,
+  lib,
+  qtModule,
+  qtbase,
+  qtdeclarative,
+  pkg-config,
+  libdrm,
 }:
 
 qtModule {
   pname = "qtwayland";
-  propagatedBuildInputs = [ qtbase qtdeclarative ];
-  buildInputs = [ wayland libdrm ];
-  nativeBuildInputs = [ pkg-config ];
-  patches = [
-    # Fix potential crash issues when some submenus are expanded
-    # https://codereview.qt-project.org/c/qt/qtwayland/+/519344/
-    (fetchpatch {
-      url = "https://code.qt.io/cgit/qt/qtwayland.git/patch/?id=aae65c885d8e38d8abc2959cded7b5e9e5fc88b3";
-      hash = "sha256-FD1VaiTgl9Z1y+5EDpWYShM1ULoFdET86FoFfqDmjyo=";
-    })
+
+  propagatedBuildInputs = [
+    qtbase
+    qtdeclarative
   ];
+  buildInputs = [ libdrm ];
+  nativeBuildInputs = [ pkg-config ];
+
+  cmakeFlags = lib.optionals (!stdenv.buildPlatform.canExecute stdenv.hostPlatform) [
+    "-DQt6WaylandScannerTools_DIR=${pkgsBuildBuild.qt6.qtbase}/lib/cmake/Qt6WaylandScannerTools"
+  ];
+
+  meta = {
+    platforms = lib.platforms.unix;
+    badPlatforms = lib.platforms.darwin;
+  };
 }

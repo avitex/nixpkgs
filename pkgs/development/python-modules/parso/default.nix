@@ -1,34 +1,31 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, fetchpatch
-, pythonAtLeast
-, pythonOlder
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "parso";
-  version = "0.8.3";
-  format = "setuptools";
-  disabled = pythonOlder "3.6";
+  version = "0.8.7";
+  pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-jAe+KQu1nwNYiRWSHinopQACrK8s3F+g4BFPkXCfr6A=";
+  src = fetchFromGitHub {
+    owner = "davidhalter";
+    repo = "parso";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-vpWoxLIvNt4QQh/r57iAvX3Zebet3mihb5efOWLhYI8=";
   };
+
+  build-system = [ setuptools ];
 
   nativeCheckInputs = [ pytestCheckHook ];
 
-  disabledTests = lib.optionals (pythonAtLeast "3.10") [
-    # python changed exception message format in 3.10, 3.10 not yet supported
-    "test_python_exception_matches"
-  ];
-
-  meta = with lib; {
-    description = "A Python Parser";
+  meta = {
+    description = "Python Parser";
     homepage = "https://parso.readthedocs.io/en/latest/";
-    changelog = "https://github.com/davidhalter/parso/blob/master/CHANGELOG.rst";
-    license = licenses.mit;
+    changelog = "https://github.com/davidhalter/parso/blob/${finalAttrs.src.tag}/CHANGELOG.rst";
+    license = lib.licenses.mit;
   };
-}
+})

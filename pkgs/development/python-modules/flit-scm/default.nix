@@ -1,49 +1,41 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitLab
-, pythonOlder
-, flit-core
-, setuptools-scm
-, tomli
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitLab,
+  flit-core,
+  setuptools-scm,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "flit-scm";
   version = "1.7.0";
-  format = "pyproject";
+  pyproject = true;
 
   src = fetchFromGitLab {
     owner = "WillDaSilva";
     repo = "flit_scm";
-    rev = "refs/tags/${version}";
+    tag = finalAttrs.version;
     hash = "sha256-2nx9kWq/2TzauOW+c67g9a3JZ2dhBM4QzKyK/sqWOPo=";
   };
 
   nativeBuildInputs = [
     flit-core
     setuptools-scm
-  ] ++ lib.optionals (pythonOlder "3.11") [
-    tomli
   ];
 
   propagatedBuildInputs = [
     flit-core
     setuptools-scm
-  ] ++ lib.optionals (pythonOlder "3.11") [
-    tomli
   ];
 
-  pythonImportsCheck = [
-    "flit_scm"
-  ];
-
+  pythonImportsCheck = [ "flit_scm" ];
 
   doCheck = false; # no tests
 
-  meta = with lib; {
-    description = "A PEP 518 build backend that uses setuptools_scm to generate a version file from your version control system, then flit to build the package.";
+  meta = {
+    description = "PEP 518 build backend that uses setuptools_scm to generate a version file from your version control system, then flit to build the package";
     homepage = "https://gitlab.com/WillDaSilva/flit_scm";
-    license = licenses.mit;
-    maintainers = with maintainers; [ cpcloud ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ cpcloud ];
   };
-}
+})

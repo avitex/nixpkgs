@@ -1,9 +1,9 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, python-json-logger
-, pythonOlder
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  python-json-logger,
+  setuptools,
 }:
 
 buildPythonPackage rec {
@@ -11,34 +11,26 @@ buildPythonPackage rec {
   version = "0.1.7";
   pyproject = true;
 
-  disabled = pythonOlder "3.8";
-
   src = fetchFromGitHub {
     owner = "logmatic";
     repo = "logmatic-python";
-    rev = "refs/tags/${version}";
+    tag = version;
     hash = "sha256-UYKm00KhXnPQDkKJVm7s0gOwZ3GNY07O0oKbzPhAdVE=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
-  propagatedBuildInputs = [
-    python-json-logger
-  ];
+  propagatedBuildInputs = [ python-json-logger ];
 
   # Only functional tests, no unit tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "logmatic"
-  ];
+  pythonImportsCheck = [ "logmatic" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python helpers to send logs to Logmatic.io";
     homepage = "https://github.com/logmatic/logmatic-python";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

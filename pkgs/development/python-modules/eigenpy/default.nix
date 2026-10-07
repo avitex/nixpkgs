@@ -1,32 +1,56 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, cmake
-, boost
-, eigen
-, numpy
+{
+  lib,
+
+  buildPythonPackage,
+  fetchFromGitHub,
+  fontconfig,
+
+  # nativeBuildInputs
+  scipy,
+
+  # buildInputs
+  boost,
+  jrl-cmakemodules,
+
+  # propagatedBuildInputs
+  eigen,
+  numpy,
 }:
 
-stdenv.mkDerivation (finalAttrs: {
+buildPythonPackage (finalAttrs: {
   pname = "eigenpy";
-  version = "3.3.0";
+  version = "3.13.0";
+  pyproject = false; # Built with cmake
 
   src = fetchFromGitHub {
     owner = "stack-of-tasks";
-    repo = finalAttrs.pname;
-    rev = "v${finalAttrs.version}";
-    fetchSubmodules = true;
-    hash = "sha256-INOg1oL5APMI2YZDe4yOJadhMsG7b+NfEcSr9FsdqeU=";
+    repo = "eigenpy";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-05G0U1RjVwggfnABxZH+9kxDIo7M9rgxHCcTvNgTZCQ=";
   };
 
-  strictDeps = true;
+  outputs = [
+    "dev"
+    "doc"
+    "out"
+  ];
 
-  nativeBuildInputs = [
-    cmake
+  cmakeFlags = jrl-cmakemodules.docsCmakeFlags ++ [
+    "-DINSTALL_DOCUMENTATION=ON"
+    "-DBUILD_TESTING=ON"
+    "-DBUILD_TESTING_SCIPY=ON"
+  ];
+
+  # Fontconfig error: Cannot load default config file: No such file: (null)
+  env.FONTCONFIG_FILE = "${fontconfig.out}/etc/fonts/fonts.conf";
+
+  nativeBuildInputs = jrl-cmakemodules.docsNativeBuildInputs ++ [
+    scipy
   ];
 
   buildInputs = [
     boost
+    jrl-cmakemodules
   ];
 
   propagatedBuildInputs = [
@@ -34,17 +58,21 @@ stdenv.mkDerivation (finalAttrs: {
     numpy
   ];
 
-  doCheck = true;
-  pythonImportsCheck = [
-    "eigenpy"
-  ];
+  preInstallCheck = ''
+    make test
+  '';
 
-  meta = with lib; {
+  pythonImportsCheck = [ "eigenpy" ];
+
+  meta = {
     description = "Bindings between Numpy and Eigen using Boost.Python";
     homepage = "https://github.com/stack-of-tasks/eigenpy";
-    changelog = "https://github.com/stack-of-tasks/eigenpy/releases/tag/v${version}";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ nim65s wegank ];
-    platforms = platforms.unix;
+    changelog = "https://github.com/stack-of-tasks/eigenpy/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.bsd2;
+    maintainers = with lib.maintainers; [
+      nim65s
+      wegank
+    ];
+    platforms = lib.platforms.unix;
   };
 })

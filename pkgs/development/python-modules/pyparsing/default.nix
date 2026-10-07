@@ -1,28 +1,27 @@
-{ buildPythonPackage
-, fetchFromGitHub
-, lib
-, flit-core
-, jinja2
-, pytestCheckHook
-, railroad-diagrams
-, pyparsing
+{
+  buildPythonPackage,
+  fetchFromGitHub,
+  lib,
+  flit-core,
+  jinja2,
+  pytestCheckHook,
+  railroad-diagrams,
+  pyparsing,
 }:
 
 buildPythonPackage rec {
   pname = "pyparsing";
-  version = "3.1.1";
-  format = "pyproject";
+  version = "3.3.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "pyparsing";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-54XMw5ahMZH4cevTFg2GXhgSu0QX1mfITWFezWirt1E=";
+    repo = "pyparsing";
+    tag = version;
+    hash = "sha256-TlYl57JdMJzpCUkHMLiQuCb24UXoNFFTShfqcgrmZm8=";
   };
 
-  nativeBuildInputs = [
-    flit-core
-  ];
+  nativeBuildInputs = [ flit-core ];
 
   # circular dependencies with pytest if enabled by default
   doCheck = false;
@@ -35,10 +34,12 @@ buildPythonPackage rec {
   pythonImportsCheck = [ "pyparsing" ];
 
   passthru.tests = {
-    check = pyparsing.overridePythonAttrs (_: { doCheck = true; });
+    check = pyparsing.overridePythonAttrs (_: {
+      doCheck = true;
+    });
   };
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/pyparsing/pyparsing";
     description = "Python library for creating PEG parsers";
     longDescription = ''
@@ -46,8 +47,8 @@ buildPythonPackage rec {
       simple grammars, vs. the traditional lex/yacc approach, or the use of
       regular expressions. The pyparsing module provides a library of classes
       that client code uses to construct the grammar directly in Python code.
-   '';
-    license = licenses.mit;
-    maintainers = with maintainers; [ kamadorueda ];
+    '';
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ kamadorueda ];
   };
 }

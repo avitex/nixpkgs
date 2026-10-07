@@ -1,60 +1,65 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, agate
-, dbt-core
-, google-cloud-bigquery
-, google-cloud-storage
-, google-cloud-dataproc
-, pytestCheckHook
-, pythonRelaxDepsHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+
+  # dependencies
+  agate,
+  dbt-adapters,
+  dbt-common,
+  dbt-core,
+  google-cloud-bigquery,
+  google-cloud-dataproc,
+  google-cloud-storage,
+
+  # tests
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "dbt-bigquery";
-  version = "1.7.2";
-  format = "setuptools";
+  version = "1.9.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "dbt-labs";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-CzRcnS/aECBq/9L8U+mLuHYo00HyBtKK6jmU8S03feM=";
+    repo = "dbt-bigquery";
+    tag = "v${version}";
+    hash = "sha256-YZA8lcUGoq5jMNS1GlbBd036X2F3khsZWr5Pv65zpPI=";
   };
-
-  nativeBuildInputs = [
-    pythonRelaxDepsHook
-  ];
 
   pythonRelaxDeps = [
     "agate"
+    "google-cloud-storage"
   ];
 
-  propagatedBuildInputs = [
+  build-system = [
+    setuptools
+  ];
+
+  dependencies = [
     agate
+    dbt-adapters
+    dbt-common
     dbt-core
     google-cloud-bigquery
-    google-cloud-storage
     google-cloud-dataproc
+    google-cloud-storage
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pytestFlagsArray = [
-    "tests/unit"
-  ];
+  enabledTestPaths = [ "tests/unit" ];
 
-  pythonImportsCheck = [
-    "dbt.adapters.bigquery"
-  ];
+  pythonImportsCheck = [ "dbt.adapters.bigquery" ];
 
-  meta = with lib; {
+  meta = {
     description = "Plugin enabling dbt to operate on a BigQuery database";
     homepage = "https://github.com/dbt-labs/dbt-bigquery";
-    changelog = "https://github.com/dbt-labs/dbt-bigquery/blob/${version}/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ tjni ];
+    changelog = "https://github.com/dbt-labs/dbt-bigquery/blob/v${version}/CHANGELOG.md";
+    license = lib.licenses.asl20;
   };
 }

@@ -1,82 +1,44 @@
-{ stdenv, lib, fetchFromGitHub
-, cmake, pkg-config, qttools
-, libxcb, libXau, pam, qtbase, wrapQtAppsHook, qtdeclarative
-, qtquickcontrols2 ? null, systemd, xkeyboardconfig
+{
+  lib,
+  callPackage,
+  runCommand,
+  wrapQtAppsHook,
+  sddm-unwrapped,
+  extraPackages ? [ ],
 }:
-let
-  isQt6 = lib.versions.major qtbase.version == "6";
-in stdenv.mkDerivation {
-  pname = "sddm";
-  version = "0.20.0-unstable-2023-12-29";
+runCommand "sddm-wrapped"
+  {
+    pname = "sddm";
+    inherit (sddm-unwrapped) version outputs;
 
-  src = fetchFromGitHub {
-    owner = "sddm";
-    repo = "sddm";
-    rev = "501129294be1487f753482c29949fc1c19ef340e";
-    hash = "sha256-mLm987Ah0X9s0tBK2a45iERwYoh5JzWb3TFlSoxi8CA=";
-  };
+    buildInputs = sddm-unwrapped.buildInputs ++ extraPackages;
+    nativeBuildInputs = [ wrapQtAppsHook ];
 
-  patches = [
-    ./sddm-ignore-config-mtime.patch
-    ./sddm-default-session.patch
-  ];
+    strictDeps = true;
 
-  postPatch = ''
-    substituteInPlace src/greeter/waylandkeyboardbackend.cpp \
-      --replace "/usr/share/X11/xkb/rules/evdev.xml" "${xkeyboardconfig}/share/X11/xkb/rules/evdev.xml"
-  '';
+    passthru = {
+      unwrapped = sddm-unwrapped;
+      inherit (sddm-unwrapped.passthru) tests;
+    };
 
-  nativeBuildInputs = [ wrapQtAppsHook cmake pkg-config qttools ];
+    meta = sddm-unwrapped.meta;
+  }
+  ''
+    mkdir -p $out/bin
 
-  buildInputs = [
-    libxcb
-    libXau
-    pam
-    qtbase
-    qtdeclarative
-    qtquickcontrols2
-    systemd
-  ];
+    cd ${sddm-unwrapped}
 
-  cmakeFlags = [
-    (lib.cmakeBool "BUILD_WITH_QT6" isQt6)
-    "-DCONFIG_FILE=/etc/sddm.conf"
-    "-DCONFIG_DIR=/etc/sddm.conf.d"
-
-    # Set UID_MIN and UID_MAX so that the build script won't try
-    # to read them from /etc/login.defs (fails in chroot).
-    # The values come from NixOS; they may not be appropriate
-    # for running SDDM outside NixOS, but that configuration is
-    # not supported anyway.
-    "-DUID_MIN=1000"
-    "-DUID_MAX=29999"
-
-    # we still want to run the DM on VT 7 for the time being, as 1-6 are
-    # occupied by getties by default
-    "-DSDDM_INITIAL_VT=7"
-
-    "-DQT_IMPORTS_DIR=${placeholder "out"}/${qtbase.qtQmlPrefix}"
-    "-DCMAKE_INSTALL_SYSCONFDIR=${placeholder "out"}/etc"
-    "-DSYSTEMD_SYSTEM_UNIT_DIR=${placeholder "out"}/lib/systemd/system"
-    "-DSYSTEMD_SYSUSERS_DIR=${placeholder "out"}/lib/sysusers.d"
-    "-DSYSTEMD_TMPFILES_DIR=${placeholder "out"}/lib/tmpfiles.d"
-    "-DDBUS_CONFIG_DIR=${placeholder "out"}/share/dbus-1/system.d"
-  ];
-
-  postInstall = ''
-    # remove empty scripts
-    rm "$out/share/sddm/scripts/Xsetup" "$out/share/sddm/scripts/Xstop"
-    for f in $out/share/sddm/themes/**/theme.conf ; do
-      substituteInPlace $f \
-        --replace 'background=' "background=$(dirname $f)/"
+    for i in *; do
+      if [ "$i" == "bin" ]; then
+        continue
+      fi
+      ln -s ${sddm-unwrapped}/$i $out/$i
     done
-  '';
 
-  meta = with lib; {
-    description = "QML based X11 display manager";
-    homepage    = "https://github.com/sddm/sddm";
-    maintainers = with maintainers; [ abbradar ttuegel ];
-    platforms   = platforms.linux;
-    license     = licenses.gpl2Plus;
-  };
-}
+    for i in bin/*; do
+      makeQtWrapper ${sddm-unwrapped}/$i $out/$i --set SDDM_GREETER_DIR $out/bin
+    done
+
+    mkdir -p $man
+    ln -s ${lib.getMan sddm-unwrapped}/* $man/
+  ''

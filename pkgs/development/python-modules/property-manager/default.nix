@@ -1,4 +1,13 @@
-{ lib, buildPythonPackage, fetchFromGitHub, humanfriendly, verboselogs, coloredlogs, pytest, pytest-cov }:
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  humanfriendly,
+  verboselogs,
+  coloredlogs,
+  pytestCheckHook,
+  pytest-cov-stub,
+}:
 
 buildPythonPackage rec {
   pname = "property-manager";
@@ -12,13 +21,20 @@ buildPythonPackage rec {
     sha256 = "1v7hjm7qxpgk92i477fjhpcnjgp072xgr8jrgmbrxfbsv4cvl486";
   };
 
-  propagatedBuildInputs = [ coloredlogs humanfriendly verboselogs ];
-  nativeCheckInputs = [ pytest pytest-cov ];
+  propagatedBuildInputs = [
+    coloredlogs
+    humanfriendly
+    verboselogs
+  ];
+  nativeCheckInputs = [
+    pytestCheckHook
+    pytest-cov-stub
+  ];
 
-  meta = with lib; {
+  meta = {
     description = "Useful property variants for Python programming";
     homepage = "https://github.com/xolox/python-property-manager";
-    license = licenses.mit;
-    maintainers = with maintainers; [ eyjhb ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ eyjhb ];
   };
 }

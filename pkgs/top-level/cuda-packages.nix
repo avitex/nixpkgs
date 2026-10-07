@@ -1,117 +1,235 @@
-# Notes:
-#
-# Silvan (Tweag) covered some things on recursive attribute sets in the Nix Hour:
-# https://www.youtube.com/watch?v=BgnUFtd1Ivs
-#
-# I (@connorbaker) highly recommend watching it.
-#
-# Most helpful comment regarding recursive attribute sets:
-#
-# https://github.com/NixOS/nixpkgs/pull/256324#issuecomment-1749935979
-#
-# To summarize:
-#
-# - `prev` should only be used to access attributes which are going to be overriden.
-# - `final` should only be used to access `callPackage` to build new packages.
-# - Attribute names should be computable without relying on `final`.
-#   - Extensions should take arguments to build attribute names before relying on `final`.
-#
-# Silvan's recommendation then is to explicitly use `callPackage` to provide everything our extensions need
-# to compute the attribute names, without relying on `final`.
-#
-# I've (@connorbaker) attempted to do that, though I'm unsure of how this will interact with overrides.
 {
+  _cuda,
   callPackage,
-  cudaVersion,
+  config,
   lib,
-  newScope,
-  pkgs,
-  __attrsFailEvaluation ? true,
 }:
 let
-  inherit (lib)
-    attrsets
-    customisation
-    fixedPoints
-    strings
-    versions
-    ;
-  # Backbone
-  gpus = builtins.import ../development/cuda-modules/gpus.nix;
-  nvccCompatibilities = builtins.import ../development/cuda-modules/nvcc-compatibilities.nix;
-  flags = callPackage ../development/cuda-modules/flags.nix {inherit cudaVersion gpus;};
-  passthruFunction =
-    final:
-    (
-      {
-        inherit cudaVersion lib pkgs;
-        inherit gpus nvccCompatibilities flags;
-        cudaMajorVersion = versions.major cudaVersion;
-        cudaMajorMinorVersion = versions.majorMinor cudaVersion;
-        cudaOlder = strings.versionOlder cudaVersion;
-        cudaAtLeast = strings.versionAtLeast cudaVersion;
+  mkCudaPackages =
+    manifestVersions:
+    callPackage ../development/cuda-modules {
+      manifests = _cuda.lib.selectManifests manifestVersions;
+    };
 
-        # Maintain a reference to the final cudaPackages.
-        # Without this, if we use `final.callPackage` and a package accepts `cudaPackages` as an argument,
-        # it's provided with `cudaPackages` from the top-level scope, which is not what we want. We want to
-        # provide the `cudaPackages` from the final scope -- that is, the *current* scope.
-        cudaPackages = final;
+  # NOTE:
+  # The manifests are largely the same except for:
+  # - TensorRT:
+  #   - linux-x86_64 is generally the best supported and can use the latest release
+  #   - linux-sbsa (post-Orin Jetson and ARM) comes in second; NVIDIA dropped support for CUDA 12 with 10.13.2 (there is no
+  #     10.13.1), so we use 10.13.0 for all CUDA 12 releases.
+  #   - linux-aarch64 (pre-Thor Jetson) is historically least supported; we use the latest release available.
+  # - cudnn:
+  #   - NVIDIA dropped linux-aarch64 (pre-Thor Jetson) support after 9.13.0, so we keep 9.13.0 for pre-Thor
+  #     Jetson and use the latest release everywhere else.
 
-        # TODO(@connorbaker): `cudaFlags` is an alias for `flags` which should be removed in the future.
-        cudaFlags = flags;
+  cudaPackages_12_6 =
+    let
+      inherit (cudaPackages_12_6.backendStdenv) hasJetsonCudaCapability hostPlatform;
+    in
+    mkCudaPackages {
+      cublasmp = "0.8.1";
+      cuda = "12.6.3";
+      cudnn = if hasJetsonCudaCapability then "9.13.0" else "9.22.0";
+      cudss = "0.6.0";
+      cuquantum = "25.09.0";
+      cusolvermp = "0.8.0";
+      cusparselt = "0.6.3";
+      cutensor = "2.3.1";
+      nppplus = "0.10.0";
+      nvcomp = "5.0.0.6";
+      nvjpeg2000 = "0.9.0";
+      nvpl = "25.5";
+      nvtiff = "0.5.1";
+      tensorrt =
+        if hasJetsonCudaCapability then
+          "10.7.0"
+        else if hostPlatform.isAarch64 then
+          "10.13.0"
+        else
+          "10.16.1";
+    };
 
-        # Exposed as cudaPackages.backendStdenv.
-        # This is what nvcc uses as a backend,
-        # and it has to be an officially supported one (e.g. gcc11 for cuda11).
-        #
-        # It, however, propagates current stdenv's libstdc++ to avoid "GLIBCXX_* not found errors"
-        # when linked with other C++ libraries.
-        # E.g. for cudaPackages_11_8 we use gcc11 with gcc12's libstdc++
-        # Cf. https://github.com/NixOS/nixpkgs/pull/218265 for context
-        backendStdenv = final.callPackage ../development/cuda-modules/backend-stdenv.nix {};
+  cudaPackages_12_8 =
+    let
+      inherit (cudaPackages_12_8.backendStdenv) hasJetsonCudaCapability hostPlatform;
+    in
+    mkCudaPackages {
+      cublasmp = "0.8.1";
+      cuda = "12.8.2";
+      cudnn = if hasJetsonCudaCapability then "9.13.0" else "9.22.0";
+      cudss = "0.6.0";
+      cuquantum = "25.09.0";
+      cusolvermp = "0.8.0";
+      cusparselt = "0.8.1";
+      cutensor = "2.3.1";
+      nppplus = "0.10.0";
+      nvcomp = "5.0.0.6";
+      nvjpeg2000 = "0.9.0";
+      nvpl = "25.5";
+      nvtiff = "0.5.1";
+      tensorrt =
+        if hasJetsonCudaCapability then
+          "10.7.0"
+        else if hostPlatform.isAarch64 then
+          "10.13.0"
+        else
+          "10.16.1";
+    };
 
-        # Loose packages
-        cudatoolkit = final.callPackage ../development/cuda-modules/cudatoolkit {};
-        saxpy = final.callPackage ../development/cuda-modules/saxpy {};
-        nccl = final.callPackage ../development/cuda-modules/nccl {};
-        nccl-tests = final.callPackage ../development/cuda-modules/nccl-tests {};
-      }
-    );
+  cudaPackages_12_9 =
+    let
+      inherit (cudaPackages_12_9.backendStdenv) hasJetsonCudaCapability hostPlatform;
+    in
+    mkCudaPackages {
+      cublasmp = "0.8.1";
+      cuda = "12.9.2";
+      cudnn = if hasJetsonCudaCapability then "9.13.0" else "9.22.0";
+      cudss = "0.6.0";
+      cuquantum = "25.09.0";
+      cusolvermp = "0.8.0";
+      cusparselt = "0.8.1";
+      cutensor = "2.3.1";
+      nppplus = "0.10.0";
+      nvcomp = "5.0.0.6";
+      nvjpeg2000 = "0.9.0";
+      nvpl = "25.5";
+      nvtiff = "0.5.1";
+      tensorrt =
+        if hasJetsonCudaCapability then
+          "10.7.0"
+        else if hostPlatform.isAarch64 then
+          "10.13.0"
+        else
+          "10.16.1";
+    };
 
-  mkVersionedPackageName =
-    name: version:
-    strings.concatStringsSep "_" [
-      name
-      (strings.replaceStrings ["."] ["_"] (versions.majorMinor version))
-    ];
+  # NOTE: Thor is supported from CUDA 13.0, so our check needs to capture whether pre-Thor devices were selected.
+  hasPreThorJetsonCudaCapability = lib.any (lib.flip lib.versionOlder "10.1");
 
-  composedExtension = fixedPoints.composeManyExtensions [
-    (import ../development/cuda-modules/setup-hooks/extension.nix)
-    (callPackage ../development/cuda-modules/cuda/extension.nix {inherit cudaVersion;})
-    (callPackage ../development/cuda-modules/cuda/overrides.nix {inherit cudaVersion;})
-    (callPackage ../development/cuda-modules/generic-builders/multiplex.nix {
-      inherit cudaVersion flags mkVersionedPackageName;
-      pname = "cudnn";
-      releasesModule = ../development/cuda-modules/cudnn/releases.nix;
-      shimsFn = ../development/cuda-modules/cudnn/shims.nix;
-      fixupFn = ../development/cuda-modules/cudnn/fixup.nix;
-    })
-    (callPackage ../development/cuda-modules/cutensor/extension.nix {
-      inherit cudaVersion flags mkVersionedPackageName;
-    })
-    (callPackage ../development/cuda-modules/generic-builders/multiplex.nix {
-      inherit cudaVersion flags mkVersionedPackageName;
-      pname = "tensorrt";
-      releasesModule = ../development/cuda-modules/tensorrt/releases.nix;
-      shimsFn = ../development/cuda-modules/tensorrt/shims.nix;
-      fixupFn = ../development/cuda-modules/tensorrt/fixup.nix;
-    })
-    (callPackage ../development/cuda-modules/cuda-samples/extension.nix {inherit cudaVersion;})
-    (callPackage ../development/cuda-modules/cuda-library-samples/extension.nix {})
-  ];
+  cudaPackages_13_0 =
+    let
+      inherit (cudaPackages_13_0.backendStdenv) requestedJetsonCudaCapabilities;
+    in
+    mkCudaPackages {
+      cublasmp = "0.8.1";
+      cuda = "13.0.3";
+      cudnn =
+        if hasPreThorJetsonCudaCapability requestedJetsonCudaCapabilities then "9.13.0" else "9.22.0";
+      cudss = "0.6.0";
+      cuquantum = "25.09.0";
+      cusolvermp = "0.8.0";
+      cusparselt = "0.8.1";
+      cutensor = "2.3.1";
+      nppplus = "0.10.0";
+      nvcomp = "5.0.0.6";
+      nvjpeg2000 = "0.9.0";
+      nvpl = "25.5";
+      nvtiff = "0.5.1";
+      tensorrt =
+        if hasPreThorJetsonCudaCapability requestedJetsonCudaCapabilities then "10.7.0" else "10.16.1";
+    };
 
-  cudaPackages = customisation.makeScope newScope (
-    fixedPoints.extends composedExtension passthruFunction
-  );
+  cudaPackages_13_1 =
+    let
+      inherit (cudaPackages_13_1.backendStdenv) requestedJetsonCudaCapabilities;
+    in
+    mkCudaPackages {
+      cublasmp = "0.8.1";
+      cuda = "13.1.2";
+      cudnn =
+        if hasPreThorJetsonCudaCapability requestedJetsonCudaCapabilities then "9.13.0" else "9.22.0";
+      cudss = "0.6.0";
+      cuquantum = "25.09.0";
+      cusolvermp = "0.8.0";
+      cusparselt = "0.8.1";
+      cutensor = "2.3.1";
+      nppplus = "0.10.0";
+      nvcomp = "5.0.0.6";
+      nvjpeg2000 = "0.9.0";
+      nvpl = "25.5";
+      nvtiff = "0.5.1";
+      tensorrt =
+        if hasPreThorJetsonCudaCapability requestedJetsonCudaCapabilities then "10.7.0" else "10.16.1";
+    };
+
+  cudaPackages_13_2 =
+    let
+      inherit (cudaPackages_13_2.backendStdenv) requestedJetsonCudaCapabilities;
+    in
+    mkCudaPackages {
+      cublasmp = "0.8.1";
+      cuda = "13.2.2";
+      cudnn =
+        if hasPreThorJetsonCudaCapability requestedJetsonCudaCapabilities then "9.13.0" else "9.22.0";
+      cudss = "0.6.0";
+      cuquantum = "25.09.0";
+      cusolvermp = "0.8.0";
+      cusparselt = "0.8.1";
+      cutensor = "2.3.1";
+      nppplus = "0.10.0";
+      nvcomp = "5.0.0.6";
+      nvjpeg2000 = "0.9.0";
+      nvpl = "25.5";
+      nvtiff = "0.5.1";
+      tensorrt =
+        if hasPreThorJetsonCudaCapability requestedJetsonCudaCapabilities then "10.7.0" else "10.16.1";
+    };
+
+  cudaPackages_13_3 =
+    let
+      inherit (cudaPackages_13_3.backendStdenv) requestedJetsonCudaCapabilities;
+    in
+    mkCudaPackages {
+      cublasmp = "0.8.1";
+      cuda = "13.3.1";
+      cudnn =
+        if hasPreThorJetsonCudaCapability requestedJetsonCudaCapabilities then "9.13.0" else "9.22.0";
+      cudss = "0.6.0";
+      cuquantum = "25.09.0";
+      cusolvermp = "0.8.0";
+      cusparselt = "0.8.1";
+      cutensor = "2.3.1";
+      nppplus = "0.10.0";
+      nvcomp = "5.0.0.6";
+      nvjpeg2000 = "0.9.0";
+      nvpl = "25.5";
+      nvtiff = "0.5.1";
+      tensorrt =
+        if hasPreThorJetsonCudaCapability requestedJetsonCudaCapabilities then "10.7.0" else "10.16.1";
+    };
+
+  cudaPackages_13_4 =
+    let
+      inherit (cudaPackages_13_4.backendStdenv) requestedJetsonCudaCapabilities;
+    in
+    mkCudaPackages {
+      cublasmp = "0.8.1";
+      cuda = "13.4.2";
+      cudnn =
+        if hasPreThorJetsonCudaCapability requestedJetsonCudaCapabilities then "9.13.0" else "9.22.0";
+      cudss = "0.6.0";
+      cuquantum = "25.09.0";
+      cusolvermp = "0.8.0";
+      cusparselt = "0.8.1";
+      cutensor = "2.3.1";
+      nppplus = "0.10.0";
+      nvcomp = "5.0.0.6";
+      nvjpeg2000 = "0.9.0";
+      nvpl = "25.5";
+      nvtiff = "0.5.1";
+      tensorrt =
+        if hasPreThorJetsonCudaCapability requestedJetsonCudaCapabilities then "10.7.0" else "10.16.1";
+    };
 in
-cudaPackages // { inherit __attrsFailEvaluation; }
+{
+  inherit
+    cudaPackages_12_6
+    cudaPackages_12_8
+    cudaPackages_12_9
+    cudaPackages_13_0
+    cudaPackages_13_1
+    cudaPackages_13_2
+    cudaPackages_13_3
+    cudaPackages_13_4
+    ;
+}

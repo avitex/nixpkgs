@@ -1,42 +1,39 @@
-{ lib
-, astor
-, buildPythonPackage
-, fetchFromGitHub
-, funcparserlib
-, hy
-, pytestCheckHook
-, python
-, pythonOlder
-, testers
+{
+  lib,
+  astor,
+  buildPythonPackage,
+  fetchFromGitHub,
+  funcparserlib,
+  pytestCheckHook,
+  python,
+  setuptools,
+  versionCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "hy";
-  version = "0.28.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "1.3.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "hylang";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-XH8qZ6OsTrFXcv/8ZyrTtN6l50JXIUcHJbfCRXHzSTs=";
+    repo = "hy";
+    tag = finalAttrs.version;
+    hash = "sha256-qNgPuFG/j/q1osu/IJ8JbF+l/XiCphdhUYPOKbLEgTk=";
   };
 
   # https://github.com/hylang/hy/blob/1.0a4/get_version.py#L9-L10
-  HY_VERSION = version;
+  env.HY_VERSION = finalAttrs.version;
 
-  propagatedBuildInputs = [
-    funcparserlib
-  ] ++
-  lib.optionals (pythonOlder "3.9") [
-    astor
-  ];
+  build-system = [ setuptools ];
+
+  dependencies = [ funcparserlib ];
 
   nativeCheckInputs = [
     pytestCheckHook
+    versionCheckHook
   ];
+  versionCheckProgramArg = "-v";
 
   preCheck = ''
     # For test_bin_hy
@@ -46,28 +43,26 @@ buildPythonPackage rec {
   pythonImportsCheck = [ "hy" ];
 
   passthru = {
-    tests.version = testers.testVersion {
-      package = hy;
-      command = "hy -v";
-    };
     # For backwards compatibility with removed pkgs/development/interpreters/hy
     # Example usage:
     #   hy.withPackages (ps: with ps; [ hyrule requests ])
-    withPackages = python-packages:
-      (python.withPackages
-        (ps: (python-packages ps) ++ [ ps.hy ])).overrideAttrs (old: {
-          name = "${hy.name}-env";
-          meta = lib.mergeAttrs (builtins.removeAttrs hy.meta [ "license" ]) {
-            mainProgram = "hy";
-          };
-        });
+    withPackages =
+      python-packages:
+      (python.withPackages (ps: (python-packages ps) ++ [ ps.hy ])).overrideAttrs (old: {
+        name = "${finalAttrs.finalPackage.name}-env";
+        meta = removeAttrs finalAttrs.finalPackage.meta [ "license" ];
+      });
   };
 
-  meta = with lib; {
-    description = "A LISP dialect embedded in Python";
+  meta = {
+    description = "LISP dialect embedded in Python";
     homepage = "https://hylang.org/";
-    changelog = "https://github.com/hylang/hy/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab mazurel nixy thiagokokada ];
+    changelog = "https://github.com/hylang/hy/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    mainProgram = "hy";
+    maintainers = with lib.maintainers; [
+      mazurel
+      nixy
+    ];
   };
-}
+})

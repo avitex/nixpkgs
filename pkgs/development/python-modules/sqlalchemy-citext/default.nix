@@ -1,21 +1,27 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, psycopg2
-, sqlalchemy
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  psycopg2,
+  sqlalchemy,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "sqlalchemy-citext";
   version = "1.8.0";
-  format = "setuptools";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
-    sha256 = "a1740e693a9a334e7c8f60ae731083fe75ce6c1605bb9ca6644a6f1f63b15b77";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-oXQOaTqaM058j2CucxCD/nXObBYFu5ymZEpvH2OxW3c=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     sqlalchemy
 
     # not listed in `install_requires`, but is imported in citext/__init__.py
@@ -27,10 +33,10 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "citext" ];
 
-  meta = with lib; {
-    description = "A sqlalchemy plugin that allows postgres use of CITEXT";
+  meta = {
+    description = "Sqlalchemy plugin that allows postgres use of CITEXT";
     homepage = "https://github.com/mahmoudimus/sqlalchemy-citext";
-    license = licenses.mit;
+    license = lib.licenses.mit;
     maintainers = [ ];
   };
-}
+})

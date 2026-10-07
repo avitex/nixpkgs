@@ -1,38 +1,77 @@
-{ lib, stdenv, fetchCrate, rustPlatform, pkg-config, openssl, Security }:
+{
+  fetchCrate,
+  lib,
+  openssl,
+  pkg-config,
+  rustPlatform,
+}:
 
 let
-  pname = "cargo-pgrx";
-  version = "0.11.2";
+  generic =
+    {
+      version,
+      hash,
+      cargoHash,
+    }:
+    rustPlatform.buildRustPackage {
+      pname = "cargo-pgrx";
+
+      inherit version;
+
+      __structuredAttrs = true;
+
+      src = fetchCrate {
+        inherit version hash;
+        pname = "cargo-pgrx";
+      };
+
+      inherit cargoHash;
+
+      nativeBuildInputs = [
+        pkg-config
+      ];
+
+      buildInputs = [
+        openssl
+      ];
+
+      preCheck = ''
+        export PGRX_HOME=$(mktemp -d)
+      '';
+
+      checkFlags = [
+        # requires pgrx to be properly initialized with cargo pgrx init
+        "--skip=object_utils::tests::parses_managed_postmasters"
+        # test name in versions < 0.18
+        "--skip=command::schema::tests::test_parse_managed_postmasters"
+        # requires tests/fixtures/workspace, which is not in the crate
+        "--skip=command::upgrade::tests::find_package_manifest_in_workspace"
+        "--skip=command::upgrade::tests::process_workspace_manifest"
+        "--skip=command::upgrade::tests::process_workspace_package_manifest"
+      ];
+
+      meta = {
+        description = "Build Postgres Extensions with Rust";
+        homepage = "https://github.com/pgcentralfoundation/pgrx";
+        changelog = "https://github.com/pgcentralfoundation/pgrx/releases/tag/v${version}";
+        license = lib.licenses.mit;
+        maintainers = with lib.maintainers; [
+          happysalada
+          matthiasbeyer
+          anish
+        ];
+        mainProgram = "cargo-pgrx";
+      };
+    };
 in
-rustPlatform.buildRustPackage rec {
-  inherit version pname;
-
-  src = fetchCrate {
-    inherit version pname;
-    hash = "sha256-8NlpMDFaltTIA8G4JioYm8LaPJ2RGKH5o6sd6lBHmmM=";
-  };
-
-  cargoHash = "sha256-qTb3JV3u42EilaK2jP9oa5D09mkuHyRbGGRs9Rg4TzI=";
-
-  nativeBuildInputs = [ pkg-config ];
-
-  buildInputs = [ openssl ]
-    ++ lib.optionals stdenv.isDarwin [ Security ];
-
-  preCheck = ''
-    export PGRX_HOME=$(mktemp -d)
-  '';
-
-  checkFlags = [
-    # requires pgrx to be properly initialized with cargo pgrx init
-    "--skip=command::schema::tests::test_parse_managed_postmasters"
-  ];
-
-  meta = with lib; {
-    description = "Build Postgres Extensions with Rust!";
-    homepage = "https://github.com/tcdi/pgrx";
-    changelog = "https://github.com/tcdi/pgrx/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ happysalada ];
+{
+  # Default version for direct usage.
+  # Not to be used with buildPgrxExtension, where it should be pinned.
+  # When you make an extension use the latest version, *copy* this to a separate pinned attribute.
+  cargo-pgrx = generic {
+    version = "0.19.3";
+    hash = "sha256-TyViMU+ZLUHNK5CRi8CN3tThFNUJQnuWTeCxT2JTYG0=";
+    cargoHash = "sha256-43B3zl/mJXuBD/w8x+lek7Wtg/lZ/bZWuJdv5v9ImSE=";
   };
 }
+// lib.mapAttrs (_: generic) (import ./pinned.nix)

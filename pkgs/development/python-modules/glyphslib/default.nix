@@ -1,35 +1,36 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, fonttools
-, openstep-plist
-, ufolib2
-, pytestCheckHook
-, unicodedata2
-, setuptools-scm
-, ufonormalizer
-, xmldiff
-, defcon
-, ufo2ft
-, skia-pathops
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fonttools,
+  openstep-plist,
+  ufolib2,
+  pytestCheckHook,
+  unicodedata2,
+  setuptools-scm,
+  ufonormalizer,
+  xmldiff,
+  defcon,
+  ufo2ft,
+  skia-pathops,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "glyphslib";
-  version = "6.6.0";
+  version = "6.15.0";
 
-  format = "pyproject";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "googlefonts";
     repo = "glyphsLib";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-2Y7JhaZJXKERQXEI9cDCx7m95El6AicU0t+X3Gntbxk=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-R1A3Uw7uozFbJ/PVRR1L8DU9bugzhkuW2rxohdN/G5w=";
   };
 
-  nativeBuildInputs = [ setuptools-scm ];
+  build-system = [ setuptools-scm ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     fonttools
     openstep-plist
     ufolib2
@@ -53,7 +54,8 @@ buildPythonPackage rec {
   meta = {
     description = "Bridge from Glyphs source files (.glyphs) to UFOs and Designspace files via defcon and designspaceLib";
     homepage = "https://github.com/googlefonts/glyphsLib";
+    changelog = "https://github.com/googlefonts/glyphsLib/releases/tag/${finalAttrs.src.tag}";
     license = lib.licenses.asl20;
-    maintainers = [ lib.maintainers.BarinovMaxim ];
+    maintainers = [ ];
   };
-}
+})

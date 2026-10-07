@@ -1,18 +1,23 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   cfg = config.services.journald.upload;
-  format = pkgs.formats.systemd;
+  format = pkgs.formats.systemd { };
 in
 {
-  meta.maintainers = [ lib.maintainers.raitobezarius ];
+  meta.maintainers = [ ];
   options.services.journald.upload = {
     enable = lib.mkEnableOption "uploading the systemd journal to a remote server";
 
     settings = lib.mkOption {
       default = { };
 
-      description = lib.mdDoc ''
+      description = ''
         Configuration for journal-upload. See {manpage}`journal-upload.conf(5)`
         for available options.
       '';

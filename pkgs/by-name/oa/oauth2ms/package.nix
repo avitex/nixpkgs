@@ -1,4 +1,9 @@
-{ lib, stdenv, fetchFromGitHub, python3 }:
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  python3,
+}:
 
 stdenv.mkDerivation {
   pname = "oauth2ms";
@@ -12,11 +17,13 @@ stdenv.mkDerivation {
   };
 
   buildInputs = [
-    (python3.withPackages (ps: with ps; [
-      pyxdg
-      msal
-      python-gnupg
-    ]))
+    (python3.withPackages (
+      ps: with ps; [
+        pyxdg
+        msal
+        python-gnupg
+      ]
+    ))
   ];
 
   installPhase = ''
@@ -25,11 +32,12 @@ stdenv.mkDerivation {
     runHook postInstall
   '';
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/harishkrupo/oauth2ms";
     description = "XOAUTH2 compatible Office365 token fetcher";
-    platforms = platforms.all;
-    license = licenses.asl20;
-    maintainers = with maintainers; [ wentasah ];
+    mainProgram = "oauth2ms";
+    platforms = lib.platforms.all;
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ wentasah ];
   };
 }

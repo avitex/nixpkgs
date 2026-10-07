@@ -1,32 +1,39 @@
-{ lib, buildGoModule, fetchFromGitHub, yt-dlp, ffmpeg, mpv }:
+{
+  lib,
+  buildGoModule,
+  fetchFromGitHub,
+  yt-dlp,
+  ffmpeg,
+  mpv,
+}:
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "invidtui";
-  version = "0.3.7";
+  version = "0.4.6";
 
   src = fetchFromGitHub {
     owner = "darkhz";
     repo = "invidtui";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-bzstO6xaVdu7u1vBgwUjnJ9CEep0UHT73FbybBRd8y8=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-C465lzbZIh8LYDUHNa5u66nFteFsKAffilvy1Danfpg=";
   };
 
-  vendorHash = "sha256-F0Iyy8H6ZRYiAlMdYGQS2p2hFN9ICmfTiRP/F9kpW7c=";
+  vendorHash = "sha256-C7O2GJuEdO8geRPfHx1Sq6ZveDE/u65JBx/Egh3cnK4=";
 
   doCheck = true;
 
   postPatch = ''
-        substituteInPlace cmd/flags.go \
-          --replace "\"ffmpeg\"" "\"${lib.getBin ffmpeg}/bin/ffmpeg\"" \
-          --replace "\"mpv\"" "\"${lib.getBin mpv}/bin/mpv\"" \
-          --replace "\"yt-dlp\"" "\"${lib.getBin yt-dlp}/bin/yt-dlp\""
+    substituteInPlace cmd/flags.go \
+      --replace "\"ffmpeg\"" "\"${lib.getBin ffmpeg}/bin/ffmpeg\"" \
+      --replace "\"mpv\"" "\"${lib.getBin mpv}/bin/mpv\"" \
+      --replace "\"yt-dlp\"" "\"${lib.getBin yt-dlp}/bin/yt-dlp\""
   '';
 
-  meta = with lib; {
+  meta = {
     homepage = "https://darkhz.github.io/invidtui/";
-    description = "An invidious TUI client";
-    license = licenses.mit;
-    maintainers = with maintainers; [ rettetdemdativ ];
+    description = "Invidious TUI client";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ rettetdemdativ ];
     mainProgram = "invidtui";
   };
-}
+})

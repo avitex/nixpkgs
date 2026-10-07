@@ -1,63 +1,60 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, mock
-, pillow
-, pypng
-, pytestCheckHook
-, pythonAtLeast
-, qrcode
-, setuptools
-, testers
-, typing-extensions
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonAtLeast,
+
+  # build-system
+  poetry-core,
+
+  # dependencies
+  pillow,
+  pypng,
+
+  # tests
+  mock,
+  pytestCheckHook,
+  versionCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "qrcode";
-  version = "7.4.2";
+  version = "8.2";
   pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-ndlpRUgn4Sfb2TaWsgdHI55tVA4IKTfJDxSslbMPWEU=";
+  __structuredAttrs = true;
+
+  src = fetchFromGitHub {
+    owner = "lincolnloop";
+    repo = "python-qrcode";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-qLIYUFnBJQGidnfC0bQAkO/aUmT94uXFMeMhnUgUnfQ=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
-    typing-extensions
-    pypng
-    # imports pkg_resouces in console_scripts.py
-    setuptools
-  ];
-
-  passthru.optional-dependencies.pil = [
-    pillow
-  ];
+  optional-dependencies = {
+    pil = [ pillow ];
+    png = [ pypng ];
+    all = [
+      pypng
+      pillow
+    ];
+  };
 
   nativeCheckInputs = [
     mock
     pytestCheckHook
-  ] ++ passthru.optional-dependencies.pil;
+    versionCheckHook
+  ]
+  ++ lib.concatAttrValues finalAttrs.passthru.optional-dependencies;
 
-  passthru.tests = {
-    version = testers.testVersion {
-      package = qrcode;
-      command = "qr --version";
-    };
-  };
-
-  disabledTests = lib.optionals (pythonAtLeast "3.12") [
-    "test_change"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Python QR Code image generator";
+    mainProgram = "qr";
     homepage = "https://github.com/lincolnloop/python-qrcode";
-    changelog = "https://github.com/lincolnloop/python-qrcode/blob/v${version}/CHANGES.rst";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/lincolnloop/python-qrcode/blob/v${finalAttrs.version}/CHANGES.rst";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ attila ];
   };
-}
+})

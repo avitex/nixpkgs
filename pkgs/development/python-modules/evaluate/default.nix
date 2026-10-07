@@ -1,45 +1,36 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, pythonRelaxDepsHook
-, pytestCheckHook
-, cookiecutter
-, datasets
-, dill
-, fsspec
-, huggingface-hub
-, importlib-metadata
-, multiprocess
-, numpy
-, packaging
-, pandas
-, pyarrow
-, requests
-, responses
-, tqdm
-, xxhash
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  datasets,
+  dill,
+  fsspec,
+  huggingface-hub,
+  multiprocess,
+  numpy,
+  packaging,
+  pandas,
+  requests,
+  setuptools,
+  tqdm,
+  xxhash,
 }:
 
 buildPythonPackage rec {
   pname = "evaluate";
-  version = "0.4.1";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.4.6";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "huggingface";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-axcJg0ZalEd4FOySCiFReKL7wmTCtLaw71YqyLHq8fc=";
+    repo = "evaluate";
+    tag = "v${version}";
+    hash = "sha256-wK50bPJSwCNFJO0l6+15+GrbaFQNfAr/djn9JTOlwpw=";
   };
 
-  nativeBuildInputs = [ pythonRelaxDepsHook ];
-  pythonRelaxDeps = [ "responses" ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
-    cookiecutter
+  dependencies = [
     datasets
     numpy
     dill
@@ -51,25 +42,19 @@ buildPythonPackage rec {
     fsspec
     huggingface-hub
     packaging
-    pyarrow
-    responses
-  ] ++ lib.optionals (pythonOlder "3.8") [
-    importlib-metadata
   ];
 
   # most tests require internet access.
   doCheck = false;
 
-  pythonImportsCheck = [
-    "evaluate"
-  ];
+  pythonImportsCheck = [ "evaluate" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://huggingface.co/docs/evaluate/index";
     description = "Easily evaluate machine learning models and datasets";
-    changelog = "https://github.com/huggingface/evaluate/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ bcdarwin ];
+    changelog = "https://github.com/huggingface/evaluate/releases/tag/${src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ bcdarwin ];
     mainProgram = "evaluate-cli";
   };
 }

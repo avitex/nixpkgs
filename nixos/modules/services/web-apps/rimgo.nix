@@ -10,14 +10,13 @@ let
     mkOption
     mkEnableOption
     mkPackageOption
-    mkDefault
     mkIf
     types
     literalExpression
     optionalString
     getExe
     mapAttrs
-  ;
+    ;
 in
 {
   options.services.rimgo = {

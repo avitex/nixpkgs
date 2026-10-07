@@ -1,26 +1,31 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, beautifulsoup4
-, demjson3
-, html5lib
-, lxml
-, requests
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  beautifulsoup4,
+  demjson3,
+  html5lib,
+  lxml,
+  requests,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "bandcamp-api";
   version = "0.2.3";
+  pyproject = true;
 
-  format = "setuptools";
+  __structuredAttrs = true;
 
   src = fetchPypi {
     pname = "bandcamp_api";
-    inherit version;
+    inherit (finalAttrs) version;
     hash = "sha256-7/WXMo7fCDMHATp4hEB8b7fNJWisUv06hbP+O878Phs=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     beautifulsoup4
     demjson3
     html5lib
@@ -39,4 +44,4 @@ buildPythonPackage rec {
     license = lib.licenses.gpl3Only;
     maintainers = with lib.maintainers; [ dotlambda ];
   };
-}
+})

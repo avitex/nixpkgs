@@ -1,53 +1,48 @@
-{ lib
-, attrs
-, buildPythonPackage
-, bson
-, boto3
-, botocore
-, cattrs
-, fetchFromGitHub
-, itsdangerous
-, platformdirs
-, poetry-core
-, psutil
-, pymongo
-, pytestCheckHook
-, pytest-rerunfailures
-, pytest-xdist
-, pythonOlder
-, pyyaml
-, redis
-, requests
-, requests-mock
-, responses
-, rich
-, tenacity
-, time-machine
-, timeout-decorator
-, ujson
-, urllib3
-, url-normalize
+{
+  lib,
+  attrs,
+  buildPythonPackage,
+  hatchling,
+  boto3,
+  botocore,
+  cattrs,
+  fetchFromGitHub,
+  itsdangerous,
+  platformdirs,
+  psutil,
+  pymongo,
+  pytestCheckHook,
+  pytest-rerunfailures,
+  pytest-xdist,
+  pyyaml,
+  redis,
+  requests,
+  requests-mock,
+  responses,
+  rich,
+  tenacity,
+  time-machine,
+  ujson,
+  orjson,
+  urllib3,
+  url-normalize,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "requests-cache";
-  version = "1.1.1";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "1.3.3";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "requests-cache";
     repo = "requests-cache";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-0KBx6nplD/l8GZfMbyUtgHj2e4/vH9EAgdyNFm+kPyM=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-iqoP7NalipY3BXMQkh+lrzPtPQehYg3bB/3azgx0iuo=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     attrs
     cattrs
     platformdirs
@@ -56,29 +51,20 @@ buildPythonPackage rec {
     url-normalize
   ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     dynamodb = [
       boto3
       botocore
     ];
-    mongodbo = [
-      pymongo
-    ];
-    redis = [
-      redis
-    ];
-    bson = [
-      bson
-    ];
-    json = [
+    mongodb = [ pymongo ];
+    redis = [ redis ];
+    security = [ itsdangerous ];
+    yaml = [ pyyaml ];
+    all = [
+      orjson
       ujson
-    ];
-    security = [
-      itsdangerous
-    ];
-    yaml = [
-      pyyaml
-    ];
+    ]
+    ++ lib.concatAttrValues (lib.removeAttrs finalAttrs.passthru.optional-dependencies [ "all" ]);
   };
 
   nativeCheckInputs = [
@@ -91,37 +77,29 @@ buildPythonPackage rec {
     rich
     tenacity
     time-machine
-    timeout-decorator
-  ]
-  ++ passthru.optional-dependencies.json
-  ++ passthru.optional-dependencies.security;
+  ];
 
   preCheck = ''
     export HOME=$(mktemp -d);
   '';
 
-  pytestFlagsArray = [
+  enabledTestPaths = [
     # Integration tests require local DBs
     "tests/unit"
   ];
 
   disabledTests = [
-    # Tests are flaky in the sandbox
-    "test_remove_expired_responses"
-    # Tests that broke with urllib 2.0.5
+    # Flaky
     "test_request_only_if_cached__stale_if_error__expired"
-    "test_stale_if_error__error_code"
   ];
 
-  pythonImportsCheck = [
-    "requests_cache"
-  ];
+  pythonImportsCheck = [ "requests_cache" ];
 
-  meta = with lib; {
+  meta = {
     description = "Persistent cache for requests library";
     homepage = "https://github.com/reclosedev/requests-cache";
-    changelog = "https://github.com/requests-cache/requests-cache/blob/v${version}/HISTORY.md";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/requests-cache/requests-cache/blob/v${finalAttrs.version}/HISTORY.md";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

@@ -1,41 +1,46 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, mdformat
-, poetry-core
-, pythonOlder
+{
+  lib,
+  alejandra,
+  buildPythonPackage,
+  fetchFromGitHub,
+  mdformat,
+  poetry-core,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "mdformat-nix-alejandra";
   version = "0.1.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "aldoborrero";
-    repo = pname;
-    rev = "${version}";
+    repo = "mdformat-nix-alejandra";
+    tag = finalAttrs.version;
     hash = "sha256-jUXApGsxCA+pRm4m4ZiHWlxmVkqCPx3A46oQdtyKz5g=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  postPatch = ''
+    substituteInPlace mdformat_nix_alejandra/__init__.py \
+      --replace-fail '"alejandra"' '"${lib.getExe alejandra}"'
+  '';
 
-  buildInputs = [
-    mdformat
-  ];
+  build-system = [ poetry-core ];
 
-  pythonImportsCheck = [
-    "mdformat_nix_alejandra"
+  pythonRelaxDeps = [
+    "mdformat"
   ];
+  dependencies = [ mdformat ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "mdformat_nix_alejandra" ];
+
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  meta = {
     description = "Mdformat plugin format Nix code blocks with alejandra";
+    changelog = "https://github.com/aldoborrero/mdformat-nix-alejandra/releases/tag/${finalAttrs.src.tag}";
     homepage = "https://github.com/aldoborrero/mdformat-nix-alejandra";
-    license = licenses.mit;
-    maintainers = with maintainers; [ aldoborrero ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ aldoborrero ];
   };
-}
+})

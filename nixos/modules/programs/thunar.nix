@@ -1,45 +1,54 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
-with lib;
-
-let cfg = config.programs.thunar;
-
-in {
+let
+  cfg = config.programs.thunar;
+in
+{
   meta = {
-    maintainers = teams.xfce.members;
+    teams = [ lib.teams.xfce ];
   };
 
   options = {
     programs.thunar = {
-      enable = mkEnableOption (lib.mdDoc "Thunar, the Xfce file manager");
+      enable = lib.mkEnableOption "Thunar, the Xfce file manager";
 
-      plugins = mkOption {
-        default = [];
-        type = types.listOf types.package;
-        description = lib.mdDoc "List of thunar plugins to install.";
-        example = literalExpression "with pkgs.xfce; [ thunar-archive-plugin thunar-volman ]";
+      package = lib.mkPackageOption pkgs "thunar" { };
+
+      finalPackage = lib.mkOption {
+        type = lib.types.package;
+        default = cfg.package.override { thunarPlugins = cfg.plugins; };
+        visible = false;
+        readOnly = true;
+        description = "The resulting Thunar package, bundled with plugins";
       };
 
+      plugins = lib.mkOption {
+        default = [ ];
+        type = lib.types.listOf lib.types.package;
+        description = "List of thunar plugins to install.";
+        example = lib.literalExpression "with pkgs; [ thunar-archive-plugin thunar-volman ]";
+      };
     };
   };
 
-  config = mkIf cfg.enable (
-    let package = pkgs.xfce.thunar.override { thunarPlugins = cfg.plugins; };
+  config = lib.mkIf cfg.enable {
+    environment.systemPackages = [
+      cfg.finalPackage
+    ];
 
-    in {
-      environment.systemPackages = [
-        package
-      ];
+    services.dbus.packages = [
+      cfg.finalPackage
+    ];
 
-      services.dbus.packages = [
-        package
-      ];
+    systemd.packages = [
+      cfg.finalPackage
+    ];
 
-      systemd.packages = [
-        package
-      ];
-
-      programs.xfconf.enable = true;
-    }
-  );
+    programs.xfconf.enable = true;
+  };
 }

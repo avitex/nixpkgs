@@ -1,32 +1,43 @@
-{ lib, fetchFromGitLab, buildDunePackage, findlib, dune-configurator, cppo
-, graphics, lablgtk, stdio
+{
+  lib,
+  fetchFromGitLab,
+  buildDunePackage,
+  findlib,
+  dune-configurator,
+  cppo,
+  graphics,
+  stdio,
 }:
 
-buildDunePackage rec {
+buildDunePackage (finalAttrs: {
   pname = "camlimages";
-  version = "5.0.4";
-
-  minimalOCamlVersion = "4.07";
+  version = "5.0.5";
 
   src = fetchFromGitLab {
     owner = "camlspotter";
-    repo = pname;
-    rev = version;
-    sha256 = "1m2c76ghisg73dikz2ifdkrbkgiwa0hcmp21f2fm2rkbf02rq3f4";
+    repo = "camlimages";
+    rev = finalAttrs.version;
+    hash = "sha256-/Dkj8IBVPjGCJCXrLOuJtuaa+nD/a9e8/N+TN9ukw4k=";
   };
 
-  postPatch = ''
-    substituteInPlace core/{images,units}.ml --replace String.lowercase String.lowercase_ascii
-  '';
+  # stdio v0.17 compatibility
+  patches = [ ./camlimages.patch ];
 
   nativeBuildInputs = [ cppo ];
-  buildInputs = [ dune-configurator findlib graphics lablgtk stdio ];
+  buildInputs = [
+    dune-configurator
+    findlib
+    graphics
+    stdio
+  ];
 
-  meta = with lib; {
+  meta = {
     branch = "5.0";
-    inherit (src.meta) homepage;
+    homepage = "https://gitlab.com/camlspotter/camlimages";
     description = "OCaml image processing library";
-    license = licenses.lgpl2;
-    maintainers = [ maintainers.vbgl maintainers.mt-caret ];
+    license = lib.licenses.lgpl2;
+    maintainers = [
+      lib.maintainers.mt-caret
+    ];
   };
-}
+})

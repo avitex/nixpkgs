@@ -1,19 +1,21 @@
-{ lib
-, buildPlatform
-, hostPlatform
-, fetchurl
-, bash
-, gcc
-, musl
-, binutils
-, gnumake
-, gnused
-, gnugrep
-, gawk
-, gzip
-, gnutarBoot
+{
+  lib,
+  buildPlatform,
+  hostPlatform,
+  fetchurl,
+  bash,
+  gcc,
+  musl,
+  binutils,
+  gnumake,
+  gnused,
+  gnugrep,
+  gawk,
+  gzip,
+  gnutarBoot,
 }:
 let
+  inherit (import ./common.nix { inherit lib; }) meta;
   pname = "gnutar";
   version = "1.35";
 
@@ -22,50 +24,45 @@ let
     hash = "sha256-FNVeMgY+qVJuBX+/Nfyr1TN452l4fv95GcN1WwLStX4=";
   };
 in
-bash.runCommand "${pname}-${version}" {
-  inherit pname version;
+bash.runCommand "${pname}-${version}"
+  {
+    inherit pname version meta;
 
-  nativeBuildInputs = [
-    gcc
-    musl
-    binutils
-    gnumake
-    gnused
-    gnugrep
-    gawk
-    gzip
-    gnutarBoot
-  ];
+    nativeBuildInputs = [
+      gcc
+      musl
+      binutils
+      gnumake
+      gnused
+      gnugrep
+      gawk
+      gzip
+      gnutarBoot
+    ];
 
-  passthru.tests.get-version = result:
-    bash.runCommand "${pname}-get-version-${version}" {} ''
-      ${result}/bin/tar --version
-      mkdir $out
-    '';
+    passthru.tests.get-version =
+      result:
+      bash.runCommand "${pname}-get-version-${version}" { } ''
+        ${result}/bin/tar --version
+        mkdir $out
+      '';
+  }
+  ''
+    # Unpack
+    tar xzf ${src}
+    cd tar-${version}
 
-  meta = with lib; {
-    description = "GNU implementation of the `tar' archiver";
-    homepage = "https://www.gnu.org/software/tar";
-    license = licenses.gpl3Plus;
-    maintainers = teams.minimal-bootstrap.members;
-    mainProgram = "tar";
-    platforms = platforms.unix;
-  };
-} ''
-  # Unpack
-  tar xzf ${src}
-  cd tar-${version}
+    # Configure
+    bash ./configure \
+      --prefix=$out \
+      --build=${buildPlatform.config} \
+      --host=${hostPlatform.config} \
+      --disable-dependency-tracking \
+      CC=musl-gcc
 
-  # Configure
-  bash ./configure \
-    --prefix=$out \
-    --build=${buildPlatform.config} \
-    --host=${hostPlatform.config} \
-    CC=musl-gcc
+    # Build
+    make -j $NIX_BUILD_CORES
 
-  # Build
-  make -j $NIX_BUILD_CORES
-
-  # Install
-  make -j $NIX_BUILD_CORES install
-''
+    # Install
+    make -j $NIX_BUILD_CORES install
+  ''

@@ -1,39 +1,44 @@
-{ lib,
+{
+  lib,
   buildPythonPackage,
   fetchPypi,
+
+  # build-system
   setuptools,
   setuptools-scm,
+
+  # dependencies
   asteval,
+  dill,
   numpy,
   scipy,
   uncertainties,
+
+  # tests
   pytestCheckHook,
-  pandas,
+  pytest-cov-stub,
   matplotlib,
+  pandas,
 }:
 
 buildPythonPackage rec {
   pname = "lmfit";
-  version = "1.2.2";
-
-  format = "pyproject";
+  version = "1.3.4";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-BEoFKhGmHaBXYnRQTBfrfigDtBEo4lgh6WYyIH8jyIw=";
+    hash = "sha256-PCLCjEP3F/bFtKO9geiTohSXOcJqWSwEby4zwjz75Jc=";
   };
 
-  postPatch = ''
-    substituteInPlace setup.cfg --replace "--cov=lmfit --cov-report html" ""
-  '';
-
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     asteval
+    dill
     numpy
     scipy
     uncertainties
@@ -41,21 +46,20 @@ buildPythonPackage rec {
 
   nativeCheckInputs = [
     pytestCheckHook
-    pandas
+    pytest-cov-stub
     matplotlib
+    pandas
   ];
 
-  disabledTests = [
-    # https://github.com/lmfit/lmfit-py/issues/878
-    "test_emcee_multiprocessing"
-    "test_explicit_independent_vars"
-    "test_result_eval_custom_x"
-  ];
+  pythonImportsCheck = [ "lmfit" ];
 
-  meta = with lib; {
+  disabledTests = [ "test_check_ast_errors" ];
+
+  meta = {
     description = "Least-Squares Minimization with Bounds and Constraints";
-    homepage = "https://lmfit-py.readthedocs.io/";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ nomeata ];
+    homepage = "https://lmfit.github.io/lmfit-py/";
+    changelog = "https://github.com/lmfit/lmfit-py/releases/tag/${version}";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ doronbehar ];
   };
 }

@@ -1,67 +1,75 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, buildPythonPackage
-, isPyPy
-, pythonAtLeast
+{
+  lib,
+  fetchFromGitHub,
+  buildPythonPackage,
+  isPyPy,
 
-# build-system
-, llvm
-, setuptools
+  # build-system
+  cmake,
+  ninja,
+  setuptools,
 
-# tests
-, python
+  # buildInputs
+  libxml2,
+  llvm_22,
+
+  # tests
+  pytestCheckHook,
+
+  withStaticLLVM ? true,
 }:
 
-buildPythonPackage rec {
-  pname = "llvmlite";
-  version = "0.41.1";
-  pyproject = true;
+let
+  llvm = llvm_22;
+in
 
-  # uses distutils in setup.py
-  disabled = isPyPy || pythonAtLeast "3.12";
+buildPythonPackage (finalAttrs: {
+  pname = "llvmlite";
+  version = "0.49.0";
+  pyproject = true;
+  __structuredAttrs = true;
+
+  disabled = isPyPy;
 
   src = fetchFromGitHub {
     owner = "numba";
     repo = "llvmlite";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-RBgs8L5kOJ8BhEDLB8r8/iVhwuVIPT/rUSmwmBWm4D0=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-AUte9llrcPl2z4ipkZ3PGeryDveZ9vj5oaBQtzGaT+w=";
   };
 
-  nativeBuildInputs = [
-    llvm
+  build-system = [
+    cmake
+    ninja
     setuptools
   ];
+  dontUseCmakeConfigure = true;
 
-  # Disable static linking
-  # https://github.com/numba/llvmlite/issues/93
-  postPatch = ''
-    substituteInPlace ffi/Makefile.linux --replace "-static-libstdc++" ""
+  buildInputs = [
+    llvm
+  ]
+  ++ lib.optionals withStaticLLVM [ libxml2.dev ];
 
-    substituteInPlace llvmlite/tests/test_binding.py --replace "test_linux" "nope"
+  env.LLVMLITE_SHARED = !withStaticLLVM;
+
+  pythonImportsCheck = [ "llvmlite" ];
+
+  nativeCheckInputs = [
+    pytestCheckHook
+  ];
+
+  # https://github.com/NixOS/nixpkgs/issues/255262
+  preCheck = ''
+    cd $out
   '';
 
-  # Set directory containing llvm-config binary
-  preConfigure = ''
-    export LLVM_CONFIG=${llvm.dev}/bin/llvm-config
-  '';
+  passthru = lib.optionalAttrs (!withStaticLLVM) { inherit llvm; };
 
-  checkPhase = ''
-    runHook preCheck
-    ${python.executable} runtests.py
-    runHook postCheck
-  '';
-
-  __impureHostDeps = lib.optionals stdenv.isDarwin [ "/usr/lib/libm.dylib" ];
-
-  passthru.llvm = llvm;
-
-  meta = with lib; {
-    changelog = "https://github.com/numba/llvmlite/blob/v${version}/CHANGE_LOG";
-    description = "A lightweight LLVM python binding for writing JIT compilers";
+  meta = {
+    description = "Lightweight LLVM python binding for writing JIT compilers";
+    homepage = "https://llvmlite.pydata.org/";
     downloadPage = "https://github.com/numba/llvmlite";
-    homepage = "http://llvmlite.pydata.org/";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ fridh ];
+    changelog = "https://github.com/numba/llvmlite/blob/${finalAttrs.src.tag}/CHANGE_LOG";
+    license = lib.licenses.bsd2;
   };
-}
+})

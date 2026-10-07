@@ -1,19 +1,24 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 with lib;
 
 let
 
-  inInitrd = any (fs: fs == "vboxsf") config.boot.initrd.supportedFilesystems;
+  inInitrd = config.boot.initrd.supportedFilesystems.vboxsf or false;
 
   package = pkgs.runCommand "mount.vboxsf" { preferLocalBuild = true; } ''
     mkdir -p $out/bin
-    cp ${pkgs.linuxPackages.virtualboxGuestAdditions}/bin/mount.vboxsf $out/bin
+    cp ${config.virtualisation.virtualbox.guest.package}/bin/mount.vboxsf $out/bin
   '';
 in
 
 {
-  config = mkIf (any (fs: fs == "vboxsf") config.boot.supportedFilesystems) {
+  config = mkIf (config.boot.supportedFilesystems.vboxsf or false) {
 
     system.fsPackages = [ package ];
 

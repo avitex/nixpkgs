@@ -1,44 +1,42 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
-, pythonOlder
-, nix-update-script
-, hatch-vcs
-, hatchling
-, langcodes
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  nix-update-script,
+  uv-build,
+  langcodes,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "unidata-blocks";
-  version = "0.0.9";
+  version = "0.0.28";
+  pyproject = true;
 
-  disabled = pythonOlder "3.11";
-
-  src = fetchPypi {
-    pname = "unidata_blocks";
-    inherit version;
-    hash = "sha256-OuIhajgUyO5qdcxJCO06Q1xNbeSNGzlbaWnAqXORm9g=";
+  src = fetchFromGitHub {
+    owner = "TakWolf";
+    repo = "unidata-blocks";
+    tag = finalAttrs.version;
+    hash = "sha256-gN/hoYrlSKFqctUyP24Y4UT8UDg3sPY5X33JxFZ7Y4c=";
   };
 
-  format = "pyproject";
+  build-system = [ uv-build ];
 
-  nativeBuildInputs = [
-    hatch-vcs
-    hatchling
-  ];
-
-  propagatedBuildInputs = [ langcodes ];
+  dependencies = [ langcodes ];
 
   nativeCheckInputs = [ pytestCheckHook ];
+
+  pythonImportsCheck = [ "unidata_blocks" ];
 
   passthru.updateScript = nix-update-script { };
 
   meta = {
+    description = "Library that helps query unicode blocks by Blocks.txt";
     homepage = "https://github.com/TakWolf/unidata-blocks";
-    description = "A library that helps query unicode blocks by Blocks.txt";
-    platforms = lib.platforms.all;
     license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ h7x4 ];
+    maintainers = with lib.maintainers; [
+      TakWolf
+      h7x4
+    ];
   };
-}
+})

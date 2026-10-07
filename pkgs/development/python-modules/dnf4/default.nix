@@ -1,13 +1,15 @@
-{ lib
-, buildPythonPackage
-, cmake
-, fetchFromGitHub
-, gettext
-, libcomps
-, libdnf
-, python
-, rpm
-, sphinx
+{
+  lib,
+  buildPythonPackage,
+  cmake,
+  fetchFromGitHub,
+  gettext,
+  libcomps,
+  libdnf,
+  python,
+  rpm,
+  sphinx,
+  nix-update-script,
 }:
 
 let
@@ -16,21 +18,23 @@ in
 
 buildPythonPackage rec {
   pname = "dnf4";
-  version = "4.18.2";
-  format = "other";
+  version = "4.24.0";
+  pyproject = false;
 
-  outputs = [ "out" "man" "py" ];
+  outputs = [
+    "out"
+    "man"
+    "py"
+  ];
 
   src = fetchFromGitHub {
     owner = "rpm-software-management";
     repo = "dnf";
-    rev = version;
-    hash = "sha256-WOLVKsrHp0V0wMXXRf1hrxsxuVv2bFOKIw8Aitz0cac=";
+    tag = version;
+    hash = "sha256-zzWOc2I9YW5gjsS2Umfx6GGgY4B3pdia0E2KHHtAH2s=";
   };
 
-  patches = [
-    ./fix-python-install-dir.patch
-  ];
+  patches = [ ./fix-python-install-dir.patch ];
 
   postPatch = ''
     substituteInPlace CMakeLists.txt \
@@ -58,9 +62,7 @@ buildPythonPackage rec {
     rpm
   ];
 
-  cmakeFlags = [
-    "-DPYTHON_DESIRED=${pyMajor}"
-  ];
+  cmakeFlags = [ "-DPYTHON_DESIRED=${pyMajor}" ];
 
   dontWrapPythonPrograms = true;
 
@@ -79,7 +81,8 @@ buildPythonPackage rec {
     ln -s dnf-${pyMajor} $out/bin/yum
 
     mkdir -p $out/share/bash-completion/completions
-    mv $out/etc/bash_completion.d/dnf $out/share/bash-completion/completions/dnf
+    mv $out/etc/bash_completion.d/dnf-3 $out/share/bash-completion/completions/dnf4
+    ln -s $out/share/bash-completion/completions/dnf4 $out/share/bash-completion/completions/dnf
     rm -r $out/etc/bash_completion.d
   '';
 
@@ -87,13 +90,15 @@ buildPythonPackage rec {
     moveToOutput "lib/${python.libPrefix}" "$py"
   '';
 
-  meta = with lib; {
+  passthru.updateScript = nix-update-script { };
+
+  meta = {
     description = "Package manager based on libdnf and libsolv. Replaces YUM";
     homepage = "https://github.com/rpm-software-management/dnf";
     changelog = "https://github.com/rpm-software-management/dnf/releases/tag/${version}";
-    license = licenses.gpl2Only;
-    maintainers = with maintainers; [ katexochen ];
+    license = lib.licenses.gpl2Only;
+    maintainers = with lib.maintainers; [ katexochen ];
     mainProgram = "dnf";
-    platforms = platforms.unix;
+    platforms = lib.platforms.unix;
   };
 }

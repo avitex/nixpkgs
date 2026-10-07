@@ -1,4 +1,8 @@
-{ lib, buildDunePackage, ringo }:
+{
+  lib,
+  buildDunePackage,
+  ringo,
+}:
 
 buildDunePackage {
   pname = "aches";
@@ -10,6 +14,7 @@ buildDunePackage {
 
   meta = {
     description = "Caches (bounded-size stores) for in-memory values and for resources";
+    homepage = "https://gitlab.com/nomadic-labs/ringo";
     license = lib.licenses.mit;
     maintainers = [ lib.maintainers.ulrikstrid ];
   };

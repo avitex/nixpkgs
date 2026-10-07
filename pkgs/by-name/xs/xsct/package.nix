@@ -1,25 +1,26 @@
-{ stdenv
-, lib
-, fetchFromGitHub
-, gitUpdater
-, libX11
-, libXrandr
+{
+  stdenv,
+  lib,
+  fetchFromGitHub,
+  gitUpdater,
+  libx11,
+  libxrandr,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "xsct";
-  version = "2.2";
+  version = "2.3";
 
   src = fetchFromGitHub {
     owner = "faf0";
     repo = "sct";
-    rev = finalAttrs.version;
-    hash = "sha256-PDkbZTtl14wYdfALv43SIU9MKhbfiYlRqkI1mFn1qa4=";
+    tag = finalAttrs.version;
+    hash = "sha256-L93Gk7/jcRoUWogWhrOiBvWCCj+EbyGKxBR5oOVjPPU=";
   };
 
   buildInputs = [
-    libX11
-    libXrandr
+    libx11
+    libxrandr
   ];
 
   makeFlags = [
@@ -28,11 +29,13 @@ stdenv.mkDerivation (finalAttrs: {
 
   passthru.updateScript = gitUpdater { };
 
-  meta = with lib; {
+  meta = {
     description = "Set color temperature of screen";
+    mainProgram = "xsct";
     homepage = "https://github.com/faf0/sct";
-    license = licenses.unlicense;
-    maintainers = with maintainers; [ OPNA2608 ];
-    platforms = with platforms; linux ++ freebsd ++ openbsd;
+    changelog = "https://github.com/faf0/sct/blob/${finalAttrs.version}/CHANGELOG";
+    license = lib.licenses.unlicense;
+    maintainers = with lib.maintainers; [ OPNA2608 ];
+    platforms = with lib.platforms; linux ++ freebsd ++ openbsd;
   };
 })

@@ -1,39 +1,38 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, git
-, mock
-, pep440
-, pip
-, pytestCheckHook
-, pythonOlder
-, setuptools-scm
-, six
-, wheel
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  git,
+  mock,
+  pep440,
+  pip,
+  pytestCheckHook,
+  setuptools,
+  six,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "setupmeta";
-  version = "3.6.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.6";
+  version = "3.9.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "codrsquad";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-OI7PU5LQ6w0iAbK7nsP+6RizsEWjKP9nec2J6n0xUhI=";
+    repo = "setupmeta";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-ONl+hFvMkUmPbzbeduCrqidGrKZvbWE0wTvaZMhs64w=";
   };
 
-  preBuild = ''
-    export PYGRADLE_PROJECT_VERSION=${version};
+  postPatch = ''
+    substituteInPlace setup.py \
+      --replace-fail 'args["versioning"] = "dev"' 'args["version"] = "${finalAttrs.version}"'
   '';
 
-  nativeBuildInputs = [
-    setuptools-scm
-    wheel
-  ];
+  preBuild = ''
+    export PYGRADLE_PROJECT_VERSION=${finalAttrs.version};
+  '';
+
+  build-system = [ setuptools ];
 
   nativeCheckInputs = [
     git
@@ -59,14 +58,12 @@ buildPythonPackage rec {
     "test_brand_new_project"
   ];
 
-  pythonImportsCheck = [
-    "setupmeta"
-  ];
+  pythonImportsCheck = [ "setupmeta" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python module to simplify setup.py files";
     homepage = "https://github.com/codrsquad/setupmeta";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

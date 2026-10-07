@@ -1,87 +1,105 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, boost
-, cmake
-, discord-rpc
-, freetype
-, hidapi
-, libpng
-, libsamplerate
-, minizip
-, nasm
-, pkg-config
-, qt6Packages
-, SDL2
-, speexdsp
-, vulkan-headers
-, vulkan-loader
-, which
-, xdg-user-dirs
-, zlib
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  gitUpdater,
+  boost,
+  cmake,
+  discord-rpc,
+  freetype,
+  hidapi,
+  libpng,
+  libsamplerate,
+  libusb1,
+  minizip,
+  nasm,
+  pkg-config,
+  qt6Packages,
+  sdl3,
+  speexdsp,
+  vulkan-headers,
+  vulkan-loader,
+  which,
+  xdg-user-dirs,
+  zlib,
+  withWayland ? false,
+  # Affects final license
+  withAngrylionRdpPlus ? false,
+  withDiscordRpc ? false,
 }:
 
-let
-  inherit (qt6Packages) qtbase qtsvg wrapQtAppsHook;
-in
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "rmg";
-  version = "0.5.5";
+  version = "0.9.0";
 
   src = fetchFromGitHub {
     owner = "Rosalie241";
     repo = "RMG";
-    rev = "v${version}";
-    hash = "sha256-au5GDyfW9+drkDNBWNbPY5Bgbow/hQmvP5pWJsYKbYs=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-7ULpuecg8n5AEpWEYIln2SQV6CsGKMyO9ZHT71bDcIg=";
   };
 
   nativeBuildInputs = [
     cmake
     nasm
     pkg-config
-    wrapQtAppsHook
+    qt6Packages.wrapQtAppsHook
     which
   ];
 
   buildInputs = [
     boost
-    discord-rpc
     freetype
     hidapi
     libpng
     libsamplerate
+    libusb1
     minizip
-    qtbase
-    qtsvg
-    SDL2
+    sdl3
     speexdsp
     vulkan-headers
     vulkan-loader
     xdg-user-dirs
     zlib
-  ];
+  ]
+  ++ lib.optional withDiscordRpc discord-rpc
+  ++ (
+    with qt6Packages;
+    [
+      qtbase
+      qtsvg
+      qtwebsockets
+    ]
+    ++ lib.optional withWayland qtwayland
+  );
 
   cmakeFlags = [
-    "-DPORTABLE_INSTALL=OFF"
+    (lib.cmakeBool "PORTABLE_INSTALL" false)
     # mupen64plus-input-gca is written in Rust, so we can't build it with
     # everything else.
-    "-DNO_RUST=ON"
+    (lib.cmakeBool "NO_RUST" true)
+    (lib.cmakeBool "USE_ANGRYLION" withAngrylionRdpPlus)
+    (lib.cmakeBool "DISCORD_RPC" withDiscordRpc) # Remove with 0.8.4 update
   ];
 
-  qtWrapperArgs = lib.optionals stdenv.isLinux [
-    "--prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath [ vulkan-loader ]}"
-  ];
+  qtWrapperArgs =
+    lib.optionals stdenv.hostPlatform.isLinux [
+      "--prefix LD_LIBRARY_PATH : ${lib.makeLibraryPath [ vulkan-loader ]}"
+    ]
+    ++ lib.optional withWayland "--set RMG_ALLOW_WAYLAND 1";
 
-  meta = with lib; {
+  passthru.updateScript = gitUpdater { rev-prefix = "v"; };
+
+  meta = {
     homepage = "https://github.com/Rosalie241/RMG";
+    changelog = "https://github.com/Rosalie241/RMG/releases/tag/v${finalAttrs.version}";
     description = "Rosalie's Mupen GUI";
     longDescription = ''
       Rosalie's Mupen GUI is a free and open-source mupen64plus front-end
       written in C++. It offers a simple-to-use user interface.
     '';
-    license = licenses.gpl3;
-    platforms = platforms.linux;
+    license = if withAngrylionRdpPlus then lib.licenses.unfree else lib.licenses.gpl3Only;
+    platforms = lib.platforms.linux;
     mainProgram = "RMG";
-    maintainers = with maintainers; [ slam-bert ];
   };
-}
+})

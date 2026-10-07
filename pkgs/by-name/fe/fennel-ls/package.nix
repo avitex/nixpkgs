@@ -1,29 +1,43 @@
-{ lib
-, stdenv
-, fetchFromSourcehut
-, lua
-, luaPackages
+{
+  lib,
+  stdenv,
+  fetchFromSourcehut,
+  lua5_5,
+  pandoc,
 }:
+
+let
+  lua = lua5_5;
+  luaPackages = lua.pkgs;
+in
 stdenv.mkDerivation (finalAttrs: {
   pname = "fennel-ls";
-  version = "0.1.0";
+  version = "0.2.4";
 
   src = fetchFromSourcehut {
     owner = "~xerool";
     repo = "fennel-ls";
     rev = finalAttrs.version;
-    hash = "sha256-RW3WFJGwascD4YnnrAm/2LFnVigzgtfzVubLMDW9J5s=";
+    hash = "sha256-RIkwL/nF0LwQZOXlUidyQVfRWuFBO5TobNTZrUFuJ64=";
   };
-  buildInputs = [ lua luaPackages.fennel ];
+  buildInputs = [
+    lua
+    luaPackages.fennel
+  ];
+  nativeBuildInputs = [ pandoc ];
   makeFlags = [ "PREFIX=$(out)" ];
   installFlags = [ "PREFIX=$(out)" ];
 
-  meta = with lib; {
-    description = "A language server for intelligent editing of the Fennel Programming Language";
+  meta = {
+    description = "Language server for intelligent editing of the Fennel Programming Language";
     homepage = "https://git.sr.ht/~xerool/fennel-ls/";
-    license = licenses.mit;
-    maintainers = with maintainers; [ yisraeldov ];
-    platforms = lua.meta.platforms;
+    license = lib.licenses.mit;
+    changelog = "https://git.sr.ht/~xerool/fennel-ls/refs/${finalAttrs.version}";
+    maintainers = with lib.maintainers; [
+      luftmensch-luftmensch
+      yisraeldov
+    ];
+    inherit (lua.meta) platforms;
     mainProgram = "fennel-ls";
   };
 })

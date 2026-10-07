@@ -1,76 +1,72 @@
 { version, hash }:
 
-{ callPackage
-, lib
-, stdenv
-, fetchurl
-, fetchpatch
+{
+  callPackage,
+  lib,
+  stdenv,
+  fetchurl,
+  fetchpatch,
 
-# build time
-, buildPackages
-, cargo
-, m4
-, perl
-, pkg-config
-, python3
-, python39
-, rustc
-, which
-, zip
-, autoconf213
-, yasm
-, xcbuild
+  # build time
+  apple-sdk_14,
+  apple-sdk_15,
+  buildPackages,
+  cargo,
+  m4,
+  perl,
+  pkg-config,
+  python313,
+  rust-cbindgen,
+  rustPlatform,
+  rustc,
+  which,
+  zip,
 
-# runtime
-, icu
-, icu67
-, nspr
-, readline
-, zlib
-, libobjc
-, libiconv
+  # runtime
+  icu75,
+  icu77,
+  nspr,
+  readline,
+  zlib,
+  libiconv,
 }:
 
-stdenv.mkDerivation (finalAttrs: rec {
+let
+  apple-sdk = (if (lib.versionAtLeast version "140") then apple-sdk_15 else apple-sdk_14);
+in
+stdenv.mkDerivation (finalAttrs: {
   pname = "spidermonkey";
   inherit version;
 
-  outputs = [ "out" "dev" ];
+  outputs = [
+    "out"
+    "dev"
+  ];
 
   src = fetchurl {
     url = "mirror://mozilla/firefox/releases/${version}esr/source/firefox-${version}esr.source.tar.xz";
     inherit hash;
   };
 
-  patches = lib.optionals (lib.versionOlder version "91") [
-    # Fix build failure on armv7l using Debian patch
-    # Upstream bug: https://bugzilla.mozilla.org/show_bug.cgi?id=1526653
-    (fetchpatch {
-      url = "https://salsa.debian.org/mozilla-team/firefox/commit/fd6847c9416f9eebde636e21d794d25d1be8791d.patch";
-      hash = "sha512-K8U3Qyo7g4si2r/8kJdXyRoTrDHAY48x/YJ7YL+YBwlpfNQcHxX+EZvhRzW8FHYW+f7kOnJu9QykhE8PhSQ9zQ==";
-    })
-
-    # Remove this when updating to 79 - The patches are already applied upstream
-    # https://bugzilla.mozilla.org/show_bug.cgi?id=1318905
-
-    # Combination of 3 changesets, modified to apply on 78:
-    # - https://hg.mozilla.org/mozilla-central/rev/06d7e1b6b7e7
-    # - https://hg.mozilla.org/mozilla-central/rev/ec48f15d085c
-    # - https://hg.mozilla.org/mozilla-central/rev/6803dda74d33
-    ./add-riscv64-support.patch
-  ] ++ lib.optionals (lib.versionAtLeast version "102") [
-    # use pkg-config at all systems
-    ./always-check-for-pkg-config.patch
-    ./allow-system-s-nspr-and-icu-on-bootstrapped-sysroot.patch
-  ] ++ lib.optionals (lib.versionAtLeast version "91" && stdenv.hostPlatform.system == "i686-linux") [
+  patches = [
+    # use pkg-config for all systems
+    ./always-check-for-pkg-config-128.patch
+    ./allow-system-s-nspr-and-icu-on-bootstrapped-sysroot-128.patch
+  ]
+  ++ lib.optionals (stdenv.hostPlatform.system == "i686-linux") [
     # Fixes i686 build, https://bugzilla.mozilla.org/show_bug.cgi?id=1729459
     ./fix-float-i686.patch
-  ] ++ lib.optionals (lib.versionAtLeast version "91" && lib.versionOlder version "102") [
-    # Fix 91 compatibility with python311
+  ]
+  ++ lib.optionals (lib.versionAtLeast version "140") [
+    # mozjs-140.pc does not contain -DXP_UNIX on Linux
+    # https://bugzilla.mozilla.org/show_bug.cgi?id=1973994
     (fetchpatch {
-      url = "https://src.fedoraproject.org/rpms/mozjs91/raw/rawhide/f/0001-Python-Build-Use-r-instead-of-rU-file-read-modes.patch";
-      hash = "sha256-WgDIBidB9XNQ/+HacK7jxWnjOF8PEUt5eB0+Aubtl48=";
+      url = "https://src.fedoraproject.org/rpms/mozjs140/raw/49492baa47bc1d7b7d5bc738c4c81b4661302f27/f/9aa8b4b051dd539e0fbd5e08040870b3c712a846.patch";
+      hash = "sha256-SsyO5g7wlrxE7y2+VTHfmUDamofeZVqge8fv2y0ZhuU=";
     })
+  ]
+  ++ lib.optionals (lib.versionAtLeast version "140" && stdenv.hostPlatform.is32bit) [
+    ./fix-32bit-build.patch
   ];
 
   nativeBuildInputs = [
@@ -78,27 +74,24 @@ stdenv.mkDerivation (finalAttrs: rec {
     m4
     perl
     pkg-config
-    # 78 requires python up to 3.9
-    (if lib.versionOlder version "91" then python39 else python3)
+    python313
     rustc
     rustc.llvmPackages.llvm # for llvm-objdump
     which
     zip
-  ] ++ lib.optionals (lib.versionOlder version "91") [
-    autoconf213
-    yasm # to buid icu? seems weird
-  ] ++ lib.optionals stdenv.isDarwin [
-    xcbuild
+    rust-cbindgen
+    rustPlatform.bindgenHook
   ];
 
   buildInputs = [
-    (if lib.versionOlder version "91" then icu67 else icu)
+    (if (lib.versionAtLeast version "140") then icu77 else icu75)
     nspr
     readline
     zlib
-  ] ++ lib.optionals stdenv.isDarwin [
-    libobjc
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
     libiconv
+    apple-sdk
   ];
 
   depsBuildBuild = [
@@ -119,13 +112,21 @@ stdenv.mkDerivation (finalAttrs: rec {
     "--enable-readline"
     "--enable-release"
     "--enable-shared-js"
-  ] ++ lib.optionals (lib.versionAtLeast version "91") [
     "--disable-debug"
-  ] ++ [
+  ]
+  ++ lib.optionals (lib.versionAtLeast version "140") [
+    # For pkgconfig file.
+    # https://bugzilla.mozilla.org/show_bug.cgi?id=1907030
+    # https://bugzilla.mozilla.org/show_bug.cgi?id=1957023
+    "--includedir=${placeholder "dev"}/include"
+  ]
+  ++ lib.optionals (stdenv.hostPlatform.isDarwin) [
+    "--with-macos-sdk=${apple-sdk.sdkroot}"
+  ]
+  ++ [
     "--disable-jemalloc"
     "--disable-strip"
     "--disable-tests"
-  ] ++ lib.optionals (stdenv.hostPlatform != stdenv.buildPlatform) [
     # Spidermonkey seems to use different host/build terminology for cross
     # compilation here.
     "--host=${stdenv.buildPlatform.config}"
@@ -138,44 +139,25 @@ stdenv.mkDerivation (finalAttrs: rec {
 
   enableParallelBuilding = true;
 
-  # cc-rs insists on using -mabi=lp64 (soft-float) for riscv64,
-  # while we have a double-float toolchain
-  env.NIX_CFLAGS_COMPILE = lib.optionalString (with stdenv.hostPlatform; isRiscV && is64bit && lib.versionOlder version "91") "-mabi=lp64d";
-
-  postPatch = lib.optionalString (lib.versionOlder version "102") ''
-    # This patch is a manually applied fix of
-    #   https://bugzilla.mozilla.org/show_bug.cgi?id=1644600
-    # Once that bug is fixed, this can be removed.
-    # This is needed in, for example, `zeroad`.
-    substituteInPlace js/public/StructuredClone.h \
-         --replace "class SharedArrayRawBufferRefs {" \
-                   "class JS_PUBLIC_API SharedArrayRawBufferRefs {"
-  '';
-
-  preConfigure = lib.optionalString (lib.versionOlder version "91") ''
-    export CXXFLAGS="-fpermissive"
-  '' + ''
+  preConfigure = ''
+    export MOZBUILD_STATE_PATH=$TMPDIR/mozbuild
     export LIBXUL_DIST=$out
     export PYTHON="${buildPackages.python3.interpreter}"
-  '' + lib.optionalString (lib.versionAtLeast version "91") ''
     export M4=m4
     export AWK=awk
     export AS=$CC
     export AC_MACRODIR=$PWD/build/autoconf/
-
-  '' + lib.optionalString (lib.versionAtLeast version "91" && lib.versionOlder version "115") ''
-    pushd js/src
-    sh ../../build/autoconf/autoconf.sh --localdir=$PWD configure.in > configure
-    chmod +x configure
-    popd
-  '' + lib.optionalString (lib.versionAtLeast version "115") ''
     patchShebangs build/cargo-linker
-  '' + ''
     # We can't build in js/src/, so create a build dir
     mkdir obj
     cd obj/
     configureScript=../js/src/configure
   '';
+
+  env = lib.optionalAttrs (lib.versionAtLeast version "140") {
+    # '-Wformat-security' ignored without '-Wformat'
+    NIX_CFLAGS_COMPILE = "-Wformat";
+  };
 
   # Remove unnecessary static lib
   preFixup = ''
@@ -184,16 +166,21 @@ stdenv.mkDerivation (finalAttrs: rec {
     ln -s $out/bin/js${lib.versions.major version} $out/bin/js
   '';
 
-  passthru.tests.run = callPackage ./test.nix {
-    spidermonkey = finalAttrs.finalPackage;
+  passthru = {
+    tests.run = callPackage ./test.nix {
+      spidermonkey = finalAttrs.finalPackage;
+    };
+    updateScript = lib.getExe (callPackage ./update.nix { version = lib.versions.major version; });
   };
 
-  meta = with lib; {
+  meta = {
+    changelog = "https://www.firefox.com/en-US/firefox/${version}/releasenotes/";
     description = "Mozilla's JavaScript engine written in C/C++";
     homepage = "https://spidermonkey.dev/";
-    license = licenses.mpl20; # TODO: MPL/GPL/LGPL tri-license for 78.
-    maintainers = with maintainers; [ abbradar lostnet catap ];
-    broken = stdenv.isDarwin && versionAtLeast version "115"; # Requires SDK 13.3 (see #242666).
-    platforms = platforms.unix;
+    license = lib.licenses.mpl20;
+    maintainers = with lib.maintainers; [
+      bobby285271
+    ];
+    platforms = lib.platforms.unix;
   };
 })

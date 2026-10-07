@@ -1,44 +1,30 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
-, pythonOlder
-, pyyaml
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pytestCheckHook,
+  pyyaml,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "python-hosts";
-  version = "1.0.5";
+  version = "1.1.2";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-xabbGnvzXNiE0koQVq9dmEib5Cv7kg1JjpZAyb7IZM0=";
+    hash = "sha256-XiU6aO6EhFVgj1g7TYMdbgg7IvjkU2DFoiwYikrB13A=";
   };
 
-  # win_inet_pton is required for Windows support
-  prePatch = ''
-    substituteInPlace setup.py \
-      --replace "install_requires=['win_inet_pton']," ""
-    substituteInPlace python_hosts/utils.py \
-      --replace "import win_inet_pton" ""
-  '';
-
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
   nativeCheckInputs = [
     pyyaml
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "python_hosts"
-  ];
+  pythonImportsCheck = [ "python_hosts" ];
 
   disabledTests = [
     # Tests require network access
@@ -48,7 +34,7 @@ buildPythonPackage rec {
     "test_import_from_url"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Library for managing a hosts file";
     longDescription = ''
       python-hosts is a Python library for managing a hosts file. It enables you to add
@@ -56,8 +42,7 @@ buildPythonPackage rec {
     '';
     homepage = "https://github.com/jonhadfield/python-hosts";
     changelog = "https://github.com/jonhadfield/python-hosts/blob/${version}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ psyanticy ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ psyanticy ];
   };
 }
-

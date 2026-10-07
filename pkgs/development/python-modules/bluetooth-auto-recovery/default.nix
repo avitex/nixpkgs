@@ -1,36 +1,32 @@
-{ lib
-, async-timeout
-, bluetooth-adapters
-, btsocket
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, pyric
-, pytestCheckHook
-, pythonOlder
-, usb-devices
+{
+  lib,
+  bluetooth-adapters,
+  btsocket,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  pyric,
+  pytest-asyncio,
+  pytest-cov-stub,
+  pytestCheckHook,
+  usb-devices,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "bluetooth-auto-recovery";
-  version = "1.3.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.9";
+  version = "1.6.4";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "Bluetooth-Devices";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-4DFi7UrEQgU7dckUuGxj/sWyystx8NYb6xK4hyurKKo=";
+    repo = "bluetooth-auto-recovery";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-fb83M2V4q4ncmIIMM6BhNDBg8DSjBmYNE+4Qj22wTEE=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
-    async-timeout
+  dependencies = [
     bluetooth-adapters
     btsocket
     pyric
@@ -38,23 +34,18 @@ buildPythonPackage rec {
   ];
 
   nativeCheckInputs = [
+    pytest-asyncio
+    pytest-cov-stub
     pytestCheckHook
   ];
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace " --cov=bluetooth_auto_recovery --cov-report=term-missing:skip-covered" ""
-  '';
+  pythonImportsCheck = [ "bluetooth_auto_recovery" ];
 
-  pythonImportsCheck = [
-    "bluetooth_auto_recovery"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Library for recovering Bluetooth adapters";
     homepage = "https://github.com/Bluetooth-Devices/bluetooth-auto-recovery";
-    changelog = "https://github.com/Bluetooth-Devices/bluetooth-auto-recovery/blob/v${version}/CHANGELOG.md";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/Bluetooth-Devices/bluetooth-auto-recovery/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

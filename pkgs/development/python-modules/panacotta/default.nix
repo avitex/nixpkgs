@@ -1,15 +1,13 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 }:
 
 buildPythonPackage rec {
   pname = "panacotta";
   version = "0.2";
   format = "setuptools";
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "u1f35c";
@@ -21,14 +19,12 @@ buildPythonPackage rec {
   # Project has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "panacotta"
-  ];
+  pythonImportsCheck = [ "panacotta" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python API for controlling Panasonic Blu-Ray players";
     homepage = "https://github.com/u1f35c/python-panacotta";
-    license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.gpl3Plus;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

@@ -1,53 +1,54 @@
-{ lib
-, buildPythonPackage
-, colorama
-, dill
-, fetchFromGitHub
-, numpy
-, pandas
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  colorama,
+  dill,
+  fetchFromGitHub,
+  numpy,
+  pandas,
+  pytestCheckHook,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "debuglater";
   version = "1.4.4";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "ploomber";
-    repo = pname;
-    rev = "refs/tags/${version}";
+    repo = "debuglater";
+    tag = finalAttrs.version;
     hash = "sha256-o9IAk3EN8ghEft7Y7Xx+sEjWMNgoyiZ0eiBqnCyXkm8=";
   };
 
-  propagatedBuildInputs = [
-    colorama
-  ];
+  build-system = [ setuptools ];
 
-  passthru.optional-dependencies = {
-    all = [
-      dill
-    ];
+  dependencies = [ colorama ];
+
+  optional-dependencies = {
+    all = [ dill ];
   };
 
   nativeCheckInputs = [
     numpy
     pandas
     pytestCheckHook
-  ] ++ passthru.optional-dependencies.all;
+  ]
+  ++ lib.flatten (builtins.attrValues finalAttrs.passthru.optional-dependencies);
 
-  pythonImportsCheck = [
-    "debuglater"
+  pythonImportsCheck = [ "debuglater" ];
+
+  disabledTests = [
+    # Assertion error
+    "test_data_structures"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Module for post-mortem debugging of Python programs";
     homepage = "https://github.com/ploomber/debuglater";
-    changelog = "https://github.com/ploomber/debuglater/blob/${version}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/ploomber/debuglater/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

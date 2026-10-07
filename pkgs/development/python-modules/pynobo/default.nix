@@ -1,35 +1,34 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pynobo";
-  version = "1.7.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "1.9.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "echoromeo";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-LJS4NJM+f+j53YzH8LradBDzHAsOprd4F7nH1cfC3B0=";
+    repo = "pynobo";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-7saIhGkcRkT+HATpnL+DcIWarZue7UCp1lTyfgzLfl8=";
   };
+
+  build-system = [ setuptools ];
 
   # Project has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "pynobo"
-  ];
+  pythonImportsCheck = [ "pynobo" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python TCP/IP interface for Nobo Hub/Nobo Energy Control devices";
     homepage = "https://github.com/echoromeo/pynobo";
-    changelog = "https://github.com/echoromeo/pynobo/releases/tag/v${version}";
-    license = with licenses; [ gpl3Plus ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/echoromeo/pynobo/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.gpl3Plus;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

@@ -4,26 +4,26 @@
   fetchFromGitHub,
   emacs,
 }:
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "emacs-lsp-booster";
-  version = "0.2.0";
+  version = "0.2.1";
 
   src = fetchFromGitHub {
     owner = "blahgeek";
     repo = "emacs-lsp-booster";
-    rev = "v${version}";
-    hash = "sha256-DmEnuAR/OtTdKApEWCdOPAJplT29kuM6ZSHeOnQVo/c=";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-uP/xJfXQtk8oaG5Zk+dw+C2fVFdjpUZTDASFuj1+eYs=";
   };
 
-  cargoHash = "sha256-2wXsPkBl4InjbdYUiiQ+5fZFanLA88t5ApGZ4psfDqk=";
+  cargoHash = "sha256-BR0IELLzm+9coaiLXQn+Rw6VLyiFEAk/nkO08qPwAac=";
 
-  nativeCheckInputs = [emacs]; # tests/bytecode_test
+  nativeCheckInputs = [ emacs ]; # tests/bytecode_test
 
-  meta = with lib; {
+  meta = {
     description = "Emacs LSP performance booster";
     homepage = "https://github.com/blahgeek/emacs-lsp-booster";
-    license = licenses.mit;
-    maintainers = with maintainers; [icy-thought];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ icy-thought ];
     mainProgram = "emacs-lsp-booster";
   };
-}
+})

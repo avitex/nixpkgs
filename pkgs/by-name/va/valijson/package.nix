@@ -1,28 +1,29 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, cmake
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  cmake,
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "valijson";
-  version = "1.0.2";
+  version = "1.1.3";
 
   src = fetchFromGitHub {
     owner = "tristanpenman";
     repo = "valijson";
-    rev = "v${version}";
-    hash = "sha256-wvFdjsDtKH7CpbEpQjzWtLC4RVOU9+D2rSK0Xo1cJqo=";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-1bZPc+oSaKy7OuHqXDbswbVhNPm6273IeCh/Q48STZI=";
   };
 
   nativeBuildInputs = [
     cmake
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Header-only C++ library for JSON Schema validation, with support for many popular parsers";
     homepage = "https://github.com/tristanpenman/valijson";
-    license = licenses.bsd2;
-    platforms = platforms.all;
+    license = lib.licenses.bsd2;
+    platforms = lib.platforms.all;
   };
-}
+})

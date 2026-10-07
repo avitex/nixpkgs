@@ -1,38 +1,40 @@
-{ stdenv
-, lib
-, fetchbzr
-, testers
-, cmake
-, cmake-extras
-, dbus
-, dbus-test-runner
-, gtest
-, libqtdbustest
-, networkmanager
-, pkg-config
-, procps
-, python3
-, qtbase
+{
+  stdenv,
+  lib,
+  fetchFromGitLab,
+  testers,
+  cmake,
+  cmake-extras,
+  dbus,
+  dbus-test-runner,
+  gtest,
+  libqtdbustest,
+  networkmanager,
+  pkg-config,
+  procps,
+  python3,
+  qtbase,
 }:
 
+let
+  withQt6 = lib.strings.versionAtLeast qtbase.version "6";
+in
 stdenv.mkDerivation (finalAttrs: {
   pname = "libqtdbusmock";
-  version = "unstable-2017-03-16";
+  version = "0.10.0";
 
-  src = fetchbzr {
-    url = "lp:libqtdbusmock";
-    rev = "49";
-    sha256 = "sha256-q3jL8yGLgcNxXHPh9M9cTVtUvonrBUPNxuPJIvu7Q/s=";
+  src = fetchFromGitLab {
+    owner = "ubports";
+    repo = "development/core/libqtdbusmock";
+    rev = finalAttrs.version;
+    hash = "sha256-6xOTqynuYmSpFJ8FJwKcTxhoddlSJuHuvlXRWmSjdeI=";
   };
 
   postPatch = ''
-    # Look for the new(?) name
-    substituteInPlace CMakeLists.txt \
-      --replace 'NetworkManager' 'libnm'
-
     # Workaround for "error: expected unqualified-id before 'public'" on "**signals"
     sed -i -e '/add_definitions/a -DQT_NO_KEYWORDS' CMakeLists.txt
-  '' + lib.optionalString (!finalAttrs.finalPackage.doCheck) ''
+  ''
+  + lib.optionalString (!finalAttrs.finalPackage.doCheck) ''
     # Don't build tests when we're not running them
     sed -i -e '/add_subdirectory(tests)/d' CMakeLists.txt
   '';
@@ -55,9 +57,11 @@ stdenv.mkDerivation (finalAttrs: {
     dbus
     dbus-test-runner
     procps
-    (python3.withPackages (ps: with ps; [
-      python-dbusmock
-    ]))
+    (python3.withPackages (
+      ps: with ps; [
+        python-dbusmock
+      ]
+    ))
   ];
 
   checkInputs = [
@@ -65,6 +69,10 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   dontWrapQtApps = true;
+
+  cmakeFlags = [
+    (lib.cmakeBool "ENABLE_QT6" withQt6)
+  ];
 
   doCheck = stdenv.buildPlatform.canExecute stdenv.hostPlatform;
 
@@ -80,14 +88,17 @@ stdenv.mkDerivation (finalAttrs: {
 
   passthru.tests.pkg-config = testers.testMetaPkgConfig finalAttrs.finalPackage;
 
-  meta = with lib; {
+  meta = {
     description = "Library for mocking DBus interactions using Qt";
-    homepage = "https://launchpad.net/libqtdbusmock";
-    license = licenses.lgpl3Only;
-    platforms = platforms.unix;
-    maintainers = teams.lomiri.members;
+    homepage = "https://gitlab.com/ubports/development/core/libqtdbusmock";
+    changelog = "https://gitlab.com/ubports/development/core/libqtdbusmock/-/blob/${
+      if (!isNull finalAttrs.src.tag) then finalAttrs.src.tag else finalAttrs.src.rev
+    }/ChangeLog";
+    license = lib.licenses.lgpl3Only;
+    platforms = lib.platforms.unix;
+    teams = [ lib.teams.lomiri ];
     pkgConfigModules = [
-      "libqtdbusmock-1"
+      "libqtdbusmock${lib.optionalString withQt6 "-qt6"}-1"
     ];
   };
 })

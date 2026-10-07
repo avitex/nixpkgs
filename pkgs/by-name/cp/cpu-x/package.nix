@@ -1,53 +1,105 @@
-{ lib, stdenv, fetchFromGitHub, cmake, pkg-config, gtk3, ncurses
-, libcpuid, pciutils, procps, wrapGAppsHook, nasm, makeWrapper
-, opencl-headers, ocl-icd
-, vulkan-headers, vulkan-loader, glfw
-, libXdmcp, pcre, util-linux
-, libselinux, libsepol
-, libthai, libdatrie, libxkbcommon, libepoxy
-, dbus, at-spi2-core
-, libXtst
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  cmake,
+  pkg-config,
+  gtk3,
+  ncurses,
+  libcpuid,
+  pciutils,
+  procps,
+  wrapGAppsHook3,
+  nasm,
+  opencl-headers,
+  ocl-icd,
+  vulkan-headers,
+  vulkan-loader,
+  glfw,
+  libxdmcp,
+  util-linux,
+  libselinux,
+  libsepol,
+  libthai,
+  libdatrie,
+  libxkbcommon,
+  libepoxy,
+  dbus,
+  at-spi2-core,
+  libxtst,
+  gtkmm3,
+  versionCheckHook,
 }:
 
-# Known issues:
-# - The daemon can't be started from the GUI, because pkexec requires a shell
-#   registered in /etc/shells. The nix's bash is not in there when running
-#   cpu-x from nixpkgs.
-
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "cpu-x";
-  version = "5.0.3";
+  version = "5.4.0";
+
+  strictDeps = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
-    owner = "X0rg";
+    owner = "TheTumultuousUnicornOfDarkness";
     repo = "CPU-X";
-    rev = "v${version}";
-    sha256 = "sha256-iaqqBeoack41D07Bbr0Fo1JXfF2ksXbqS5V5Ymt6Qvg=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-db7NxoVZgnYb1MZKfiFINx00JqDnf/TvwumBp6qDooQ=";
   };
 
-  nativeBuildInputs = [ cmake pkg-config wrapGAppsHook nasm makeWrapper ];
-  buildInputs = [
-    gtk3 ncurses libcpuid pciutils procps
-    vulkan-headers vulkan-loader glfw
-    opencl-headers ocl-icd
-    libXdmcp pcre util-linux
-    libselinux libsepol
-    libthai libdatrie libxkbcommon libepoxy
-    dbus at-spi2-core
-    libXtst
-  ];
-
-  postInstall = ''
-    wrapProgram $out/bin/cpu-x \
-      --prefix PATH : ${lib.makeBinPath [ stdenv.cc ]} \
-      --prefix LD_LIBRARY_PATH : ${vulkan-loader}/lib
+  postPatch = ''
+    # https://github.com/TheTumultuousUnicornOfDarkness/CPU-X/pull/402
+    # FIXME: remove in the next version
+    substituteInPlace src/core/bandwidth/{OOC/utility,routines}-x86-64bit.asm \
+      --replace-fail "cpu	ia64" "cpu	default"
   '';
 
-  meta = with lib; {
+  nativeBuildInputs = [
+    cmake
+    pkg-config
+    wrapGAppsHook3
+    nasm
+  ];
+
+  buildInputs = [
+    gtk3
+    gtkmm3
+    ncurses
+    libcpuid
+    pciutils
+    procps
+    vulkan-headers
+    vulkan-loader
+    glfw
+    opencl-headers
+    ocl-icd
+    libxdmcp
+    util-linux
+    libselinux
+    libsepol
+    libthai
+    libdatrie
+    libxkbcommon
+    libepoxy
+    dbus
+    at-spi2-core
+    libxtst
+  ];
+
+  preFixup = ''
+    gappsWrapperArgs+=(
+      --prefix PATH : ${lib.makeBinPath [ stdenv.cc ]}
+      --prefix LD_LIBRARY_PATH : ${vulkan-loader}/lib
+    )
+  '';
+
+  nativeInstallCheckInputs = [ versionCheckHook ];
+  doInstallCheck = true;
+
+  meta = {
     description = "Free software that gathers information on CPU, motherboard and more";
+    mainProgram = "cpu-x";
     homepage = "https://thetumultuousunicornofdarkness.github.io/CPU-X";
-    license = licenses.gpl3Plus;
+    license = lib.licenses.gpl3Plus;
     platforms = [ "x86_64-linux" ];
-    maintainers = with maintainers; [ viraptor ];
+    maintainers = with lib.maintainers; [ viraptor ];
   };
-}
+})

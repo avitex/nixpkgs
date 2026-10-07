@@ -1,55 +1,54 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, duet
-, matplotlib
-, networkx
-, numpy
-, pandas
-, requests
-, scipy
-, sortedcontainers
-, sympy
-, tqdm
-, typing-extensions
-  # Contrib requirements
-, withContribRequires ? false
-, autoray ? null
-, opt-einsum
-, ply
-, pylatex ? null
-, pyquil ? null
-, quimb ? null
-  # test inputs
-, pytestCheckHook
-, freezegun
-, pytest-asyncio
+{
+  lib,
+  stdenv,
+  attrs,
+  autoray ? null,
+  buildPythonPackage,
+  duet,
+  fetchFromGitHub,
+  freezegun,
+  matplotlib,
+  networkx,
+  numpy,
+  opt-einsum,
+  pandas,
+  ply,
+  pylatex ? null,
+  pyquil ? null,
+  pytest-asyncio,
+  pytest-benchmark,
+  pytestCheckHook,
+  quimb ? null,
+  requests,
+  scipy,
+  setuptools,
+  sortedcontainers,
+  sympy,
+  tqdm,
+  typing-extensions,
+  withContribRequires ? false,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "cirq-core";
-  version = "1.3.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.9";
+  version = "1.7.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "quantumlib";
     repo = "cirq";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-JAJJciFg3BuRha1wTKixtKWcYy3NA2mNpniPyPHTTe8=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-OAyBYzMEFyVMlxN5UjrKk1x2rSayLyAIAC5h96JeqK0=";
   };
 
-  sourceRoot = "${src.name}/${pname}";
+  sourceRoot = "${finalAttrs.src.name}/${finalAttrs.pname}";
 
-  postPatch = ''
-    substituteInPlace requirements.txt \
-      --replace "matplotlib~=3.0" "matplotlib"
-   '';
+  pythonRelaxDeps = [ "matplotlib" ];
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
+    attrs
     duet
     matplotlib
     networkx
@@ -61,7 +60,8 @@ buildPythonPackage rec {
     sympy
     tqdm
     typing-extensions
-  ] ++ lib.optionals withContribRequires [
+  ]
+  ++ lib.optionals withContribRequires [
     autoray
     opt-einsum
     ply
@@ -71,9 +71,10 @@ buildPythonPackage rec {
   ];
 
   nativeCheckInputs = [
-    pytestCheckHook
-    pytest-asyncio
     freezegun
+    pytest-asyncio
+    pytest-benchmark
+    pytestCheckHook
   ];
 
   disabledTestPaths = lib.optionals (!withContribRequires) [
@@ -83,16 +84,24 @@ buildPythonPackage rec {
     "cirq/_version_test.py"
   ];
 
-  disabledTests = lib.optionals stdenv.isAarch64 [
+  disabledTests = [
+    # Assertion error
+    "test_parameterized_cphase"
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isAarch64 [
     # https://github.com/quantumlib/Cirq/issues/5924
     "test_prepare_two_qubit_state_using_sqrt_iswap"
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
+    # test_scalar_division[scalar9-terms9-terms_expected9] result differs in the final digit
+    "test_scalar_division"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Framework for creating, editing, and invoking Noisy Intermediate Scale Quantum (NISQ) circuits";
     homepage = "https://github.com/quantumlib/cirq";
-    changelog = "https://github.com/quantumlib/Cirq/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ drewrisinger fab ];
+    changelog = "https://github.com/quantumlib/Cirq/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

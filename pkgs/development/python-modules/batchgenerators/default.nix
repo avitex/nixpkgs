@@ -1,33 +1,33 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, pytestCheckHook
-, future
-, numpy
-, pillow
-, fetchpatch
-, scipy
-, scikit-learn
-, scikit-image
-, threadpoolctl
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  pytestCheckHook,
+  future,
+  numpy,
+  pillow,
+  scipy,
+  scikit-learn,
+  scikit-image,
+  threadpoolctl,
 }:
 
 buildPythonPackage rec {
   pname = "batchgenerators";
-  version = "0.25";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.25.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "MIC-DKFZ";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-L2mWH2t8PN9o1M67KDdl1Tj2ZZ02MY4icsJY2VNrj3A=";
+    repo = "batchgenerators";
+    tag = "v${version}";
+    hash = "sha256-lvsen2AFRwFjLMgxXBQ9/xxmCOBx2D2PBIl0KpOzR70=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     future
     numpy
     pillow
@@ -38,14 +38,9 @@ buildPythonPackage rec {
   ];
 
   # see https://github.com/MIC-DKFZ/batchgenerators/pull/78
-  postPatch = ''
-    substituteInPlace setup.py \
-      --replace '"unittest2",' ""
-  '';
+  pythonRemoveDeps = [ "unittest2" ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   # see https://github.com/MIC-DKFZ/batchgenerators/pull/78
   disabledTestPaths = [ "tests/test_axis_mirroring.py" ];
@@ -59,10 +54,10 @@ buildPythonPackage rec {
     "batchgenerators.utilities"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "2D and 3D image data augmentation for deep learning";
     homepage = "https://github.com/MIC-DKFZ/batchgenerators";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ bcdarwin ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ bcdarwin ];
   };
 }

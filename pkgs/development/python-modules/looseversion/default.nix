@@ -1,34 +1,34 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
-, hatchling
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  hatchling,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "looseversion";
   version = "1.3.0";
-  format = "pyproject";
+  pyproject = true;
 
   src = fetchPypi {
     inherit version pname;
-    sha256 = "sha256-695l8/a7lTGoEBbG/vPrlaYRga3Ee3+UnpwOpHkRZp4=";
+    hash = "sha256-695l8/a7lTGoEBbG/vPrlaYRga3Ee3+UnpwOpHkRZp4=";
   };
 
-  nativeBuildInputs = [
-    hatchling
-  ];
+  build-system = [ hatchling ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
-  pytestFlagsArray = [ "tests.py" ];
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  enabledTestPaths = [ "tests.py" ];
+
   pythonImportsCheck = [ "looseversion" ];
 
-  meta = with lib; {
+  meta = {
     description = "Version numbering for anarchists and software realists";
     homepage = "https://github.com/effigies/looseversion";
-    license = licenses.psfl;
-    maintainers = with maintainers; [ pelme ];
+    changelog = "https://github.com/effigies/looseversion/blob/${version}/CHANGES.md";
+    license = lib.licenses.psfl;
+    maintainers = with lib.maintainers; [ pelme ];
   };
 }

@@ -1,67 +1,72 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, diff-cover
-, graphviz
-, hatchling
-, hatch-vcs
-, pytest-mock
-, pytestCheckHook
-, pip
-, virtualenv
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  graphviz,
+  hatchling,
+  hatch-vcs,
+  packaging,
+  pip-requirements-parser,
+  pytestCheckHook,
+  pytest-mock,
+  pytest-subprocess,
+  rich,
+  virtualenv,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pipdeptree";
-  version = "2.13.2";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "3.1.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "tox-dev";
     repo = "pipdeptree";
-    rev = "refs/tags/${version}";
-    hash = "sha256-eDgulAKq78HRW/7GhO40hxr+F1hOfgXqAzaCw5pFjD8=";
+    tag = finalAttrs.version;
+    hash = "sha256-EDpKJBDb3CkTMfiLyYMakbm5riIHsf+49yM99uQDPT8=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     hatchling
     hatch-vcs
   ];
 
-  propagatedBuildInputs = [
-    pip
-  ];
+  dependencies = [ packaging ];
 
-  passthru.optional-dependencies = {
-    graphviz = [
-      graphviz
+  optional-dependencies = {
+    graphviz = [ graphviz ];
+    index = [
+      # nab-index # Unstable + not packaged yet
+      # nab-python # Same
+      pip-requirements-parser
     ];
+    rich = [ rich ];
   };
 
   nativeCheckInputs = [
-    diff-cover
     pytest-mock
+    pytest-subprocess
     pytestCheckHook
     virtualenv
-  ] ++ lib.flatten (builtins.attrValues passthru.optional-dependencies);
+  ]
+  ++ lib.concatAttrValues finalAttrs.passthru.optional-dependencies;
 
-  pythonImportsCheck = [
-    "pipdeptree"
-  ];
+  pythonImportsCheck = [ "pipdeptree" ];
 
   disabledTests = [
     # Don't run console tests
     "test_console"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Command line utility to show dependency tree of packages";
     homepage = "https://github.com/tox-dev/pipdeptree";
-    changelog = "https://github.com/tox-dev/pipdeptree/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ charlesbaynham ];
+    changelog = "https://github.com/tox-dev/pipdeptree/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [
+      charlesbaynham
+      mdaniels5757
+    ];
+    mainProgram = "pipdeptree";
   };
-}
+})

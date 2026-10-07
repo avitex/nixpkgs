@@ -1,16 +1,25 @@
-{ lib, stdenv, fetchFromGitHub, faust2jaqt, faust2lv2 }:
-stdenv.mkDerivation rec {
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  faust2jaqt,
+  faust2lv2,
+}:
+stdenv.mkDerivation (finalAttrs: {
   pname = "shelfMultiBand";
   version = "0.6.1";
 
   src = fetchFromGitHub {
     owner = "magnetophon";
     repo = "shelfMultiBand";
-    rev = "V${version}";
+    rev = "V${finalAttrs.version}";
     sha256 = "1b1h4z5fs2xm7wvw11p9wnd0bxs3m88124f5phh0gwvpsdrd0im5";
   };
 
-  buildInputs = [ faust2jaqt faust2lv2 ];
+  buildInputs = [
+    faust2jaqt
+    faust2lv2
+  ];
 
   dontWrapQtApps = true;
 
@@ -32,9 +41,9 @@ stdenv.mkDerivation rec {
   '';
 
   meta = {
-    description = "A multiband compressor made from shelving filters.";
+    description = "Multiband compressor made from shelving filters";
     homepage = "https://github.com/magnetophon/shelfMultiBand";
     license = lib.licenses.gpl3;
     maintainers = [ lib.maintainers.magnetophon ];
   };
-}
+})

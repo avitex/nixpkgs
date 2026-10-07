@@ -1,14 +1,20 @@
-{ stdenv, fetchFromGitHub, makeWrapper, mono, lib }:
+{
+  stdenv,
+  fetchFromGitHub,
+  makeWrapper,
+  mono,
+  lib,
+}:
 
-stdenv.mkDerivation (attrs: {
+stdenv.mkDerivation (finalAttrs: {
   pname = "Nuget";
   version = "6.6.1.2";
 
   src = fetchFromGitHub {
     owner = "mono";
     repo = "linux-packaging-nuget";
-    rev = "upstream/${attrs.version}.bin";
-    sha256 = "sha256-9/dSeVshHbpYIgGE/8OzrB4towrWVB3UxDi8Esmbu7Y=";
+    rev = "upstream/${finalAttrs.version}.bin";
+    hash = "sha256-9/dSeVshHbpYIgGE/8OzrB4towrWVB3UxDi8Esmbu7Y=";
   };
 
   nativeBuildInputs = [
@@ -18,20 +24,21 @@ stdenv.mkDerivation (attrs: {
   installPhase = ''
     runHook preInstall
 
-    mkdir -p $out/lib/${attrs.pname}
-    cp -r . $out/lib/${attrs.pname}/
+    mkdir -p $out/lib/${finalAttrs.pname}
+    cp -r . $out/lib/${finalAttrs.pname}/
 
     mkdir -p $out/bin
     makeWrapper \
       "${mono}/bin/mono" \
       "$out/bin/nuget" \
-      --add-flags "$out/lib/${attrs.pname}/nuget.exe"
+      --add-flags "$out/lib/${finalAttrs.pname}/nuget.exe"
 
     runHook postInstall
   '';
 
-  meta = with lib; {
-    description = "A package manager for the .NET platform";
+  meta = {
+    description = "Package manager for the .NET platform";
+    mainProgram = "nuget";
     homepage = "https://www.mono-project.com/";
     longDescription = ''
       NuGet is the package manager for the .NET platform.
@@ -42,9 +49,9 @@ stdenv.mkDerivation (attrs: {
       packages functionality built-in.
     '';
     # https://learn.microsoft.com/en-us/nuget/resources/nuget-faq#what-is-the-license-for-nuget-exe-
-    license = licenses.mit;
-    sourceProvenance = [ sourceTypes.binaryBytecode ];
-    maintainers = [ maintainers.mdarocha ];
+    license = lib.licenses.mit;
+    sourceProvenance = [ lib.sourceTypes.binaryBytecode ];
+    maintainers = [ lib.maintainers.mdarocha ];
     inherit (mono.meta) platforms;
   };
 })

@@ -1,50 +1,39 @@
-{ stdenv
-, lib
-, buildPythonPackage
-, docutils
-, fetchFromGitHub
-, importlib-metadata
-, mock
-, pydantic
-, pytest-mock
-, pytestCheckHook
-, pythonOlder
-, setuptools
-, setuptools-scm
-, typing-extensions
-, wheel
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  docutils,
+  fetchFromGitHub,
+  mock,
+  pydantic,
+  pytest-mock,
+  pytestCheckHook,
+  setuptools,
+  setuptools-scm,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "rstcheck-core";
-  version = "1.2.0";
+  version = "1.3.2";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "rstcheck";
     repo = "rstcheck-core";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-cKJNktIB4vXt1MPRgYrJQ0aksmrVu7Y2uTyUjdx5YdA=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-Tz6saJfGlP6h21Jckyw4LBgcRALwFvlV+z+cAis2j5s=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     setuptools-scm
-    wheel
   ];
 
-  env = {
-    NIX_CFLAGS_COMPILE = lib.optionalString stdenv.cc.isClang "-Wno-strict-prototypes";
-  };
+  env.NIX_CFLAGS_COMPILE = lib.optionalString stdenv.cc.isClang "-Wno-strict-prototypes";
 
-  propagatedBuildInputs = [
+  dependencies = [
     docutils
     pydantic
-  ] ++ lib.optionals (pythonOlder "3.9") [
-    importlib-metadata
-    typing-extensions
   ];
 
   nativeCheckInputs = [
@@ -54,19 +43,17 @@ buildPythonPackage rec {
   ];
 
   disabledTests = [
-    # https://github.com/rstcheck/rstcheck-core/issues/84
-    "test_check_yaml_returns_error_on_bad_code_block"
+    # severity was bumped from severe/4 to error/3
+    "test_include_directive_error_without_sphinx"
   ];
 
-  pythonImportsCheck = [
-    "rstcheck_core"
-  ];
+  pythonImportsCheck = [ "rstcheck_core" ];
 
-  meta = with lib; {
+  meta = {
     description = "Library for checking syntax of reStructuredText";
     homepage = "https://github.com/rstcheck/rstcheck-core";
-    changelog = "https://github.com/rstcheck/rstcheck-core/blob/v${version}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/rstcheck/rstcheck-core/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

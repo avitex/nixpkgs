@@ -1,8 +1,9 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, docopt
-, requests
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  docopt,
+  requests,
 }:
 
 buildPythonPackage rec {
@@ -21,10 +22,9 @@ buildPythonPackage rec {
     sed -i 's/==/>=/' setup.py
   '';
 
-  meta = with lib; {
-    description = "A CLI client and Python API library for the MailChimp email platform";
+  meta = {
+    description = "CLI client and Python API library for the MailChimp email platform";
     homepage = "http://apidocs.mailchimp.com/api/2.0/";
-    license = licenses.mit;
+    license = lib.licenses.mit;
   };
-
 }

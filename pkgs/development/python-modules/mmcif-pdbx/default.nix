@@ -1,42 +1,34 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, setuptools
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "mmcif-pdbx";
-  version = "2.0.1";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.5";
+  version = "2.1.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "Electrostatics";
     repo = "mmcif_pdbx";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-ymMQ/q4IMoq+B8RvIdL0aqolKxyE/4rnVfd4bUV5OUY=";
+    tag = "v${version}";
+    hash = "sha256-HzRJ8bzUHAmF7WA20DefvgSNDxMaqJCxfgqTHrS0BqU=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "pdbx"
-  ];
+  pythonImportsCheck = [ "pdbx" ];
 
-  meta = with lib; {
+  meta = {
     description = "Yet another version of PDBx/mmCIF Python implementation";
     homepage = "https://github.com/Electrostatics/mmcif_pdbx";
     changelog = "https://github.com/Electrostatics/mmcif_pdbx/releases/tag/v${version}";
-    license = licenses.cc0;
-    maintainers = with maintainers; [ natsukium ];
+    license = lib.licenses.cc0;
+    maintainers = with lib.maintainers; [ natsukium ];
   };
 }

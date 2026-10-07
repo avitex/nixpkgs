@@ -1,21 +1,20 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchPypi
-, file
-, pythonOlder
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchPypi,
+  file,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "sqlmap";
-  version = "1.8";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "1.10.9";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-jbsgTuNuV8Ej/1DwQjRRdN/SYvPtCgRO2NclE3lHK6E=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-YiColRzO57wX5CRkB/++LJSGiagxkvIZTDVInHolUHY=";
   };
 
   postPatch = ''
@@ -27,18 +26,19 @@ buildPythonPackage rec {
     echo 'LAST_UPDATE_NAGGING_DAYS = float("inf")' >> sqlmap/lib/core/settings.py
   '';
 
+  build-system = [ setuptools ];
+
   # No tests in archive
   doCheck = false;
 
-  pythonImportsCheck = [
-    "sqlmap"
-  ];
+  pythonImportsCheck = [ "sqlmap" ];
 
-  meta = with lib; {
+  meta = {
     description = "Automatic SQL injection and database takeover tool";
     homepage = "https://sqlmap.org";
-    changelog = "https://github.com/sqlmapproject/sqlmap/releases/tag/${version}";
-    license = licenses.gpl2Plus;
-    maintainers = with maintainers; [ bennofs ];
+    changelog = "https://github.com/sqlmapproject/sqlmap/releases/tag/${finalAttrs.version}";
+    license = lib.licenses.gpl2Plus;
+    maintainers = with lib.maintainers; [ bennofs ];
+    mainProgram = "sqlmap";
   };
-}
+})

@@ -1,78 +1,77 @@
-{ lib
-, aiohttp
-, asn1crypto
-, buildPythonPackage
-, certomancer
-, click
-, cryptography
-, defusedxml
-, fetchFromGitHub
-, fonttools
-, freezegun
-, oscrypto
-, pillow
-, pyhanko-certvalidator
-, pytest-aiohttp
-, pytestCheckHook
-, python-barcode
-, python-pae
-, python-pkcs11
-, pythonOlder
-, pytz
-, pyyaml
-, qrcode
-, requests
-, requests-mock
-, setuptools
-, tzlocal
-, uharfbuzz
-, wheel
-, xsdata
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pyprojectVersionPatchHook,
+  stdenv,
+
+  # build-system
+  setuptools,
+
+  # dependencies
+  asn1crypto,
+  cryptography,
+  lxml,
+  pyhanko-certvalidator,
+  requests,
+  tzlocal,
+
+  # optional-dependencies
+  fonttools,
+  uharfbuzz,
+  pillow,
+  python-barcode,
+  python-pkcs11,
+  aiohttp,
+  xsdata,
+  qrcode,
+
+  # tests
+  certomancer,
+  freezegun,
+  pytest-aiohttp,
+  pytestCheckHook,
+  python-pae,
+  requests-mock,
+  signxml,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pyhanko";
-  version = "0.21.0";
+  version = "0.36.2";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "MatthiasValvekens";
     repo = "pyHanko";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-+RlrXuKMY89mO4iuFw7RLQABy+wLrAeHlEvTDCpBSqU=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-Dv1Pz4ri574vh50ter9TbFSvQ+0Mbbifw8kjjv04qs8=";
   };
 
+  sourceRoot = "${finalAttrs.src.name}/pkgs/pyhanko";
+
   postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace ' "pytest-runner",' ""
+    substituteInPlace src/pyhanko/version/__init__.py \
+      --replace-fail "0.0.0.dev1" "${finalAttrs.version}" \
+      --replace-fail "(0, 0, 0, 'dev1')" "tuple(\"${finalAttrs.version}\".split(\".\"))"
   '';
 
+  build-system = [ setuptools ];
+
   nativeBuildInputs = [
-    setuptools
-    wheel
+    pyprojectVersionPatchHook
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     asn1crypto
-    click
     cryptography
+    lxml
     pyhanko-certvalidator
-    pytz
-    pyyaml
-    qrcode
     requests
     tzlocal
   ];
 
-  passthru.optional-dependencies = {
-    extra-pubkey-algs = [
-      oscrypto
-    ];
-    xmp = [
-      defusedxml
-    ];
+  optional-dependencies = {
     opentype = [
       fonttools
       uharfbuzz
@@ -81,30 +80,31 @@ buildPythonPackage rec {
       pillow
       python-barcode
     ];
-    pkcs11 = [
-      python-pkcs11
-    ];
-    async-http = [
-      aiohttp
-    ];
+    pkcs11 = [ python-pkcs11 ];
+    async-http = [ aiohttp ];
     etsi = [
       xsdata
+      signxml
     ];
+    qr = [ qrcode ];
   };
 
   nativeCheckInputs = [
     aiohttp
     certomancer
     freezegun
-    python-pae
     pytest-aiohttp
-    requests-mock
     pytestCheckHook
-  ] ++ lib.flatten (lib.attrValues passthru.optional-dependencies);
+    python-pae
+    requests-mock
+    finalAttrs.passthru.testData
+    signxml
+  ]
+  ++ lib.concatAttrValues finalAttrs.passthru.optional-dependencies;
 
   disabledTestPaths = [
     # ModuleNotFoundError: No module named 'csc_dummy'
-    "pyhanko_tests/test_csc.py"
+    "tests/test_csc.py"
   ];
 
   disabledTests = [
@@ -133,15 +133,44 @@ buildPythonPackage rec {
     "test_ts_fetch_requests"
   ];
 
-  pythonImportsCheck = [
-    "pyhanko"
-  ];
+  __darwinAllowLocalNetworking = true;
 
-  meta = with lib; {
+  pythonImportsCheck = [ "pyhanko" ];
+
+  passthru = {
+    testData = buildPythonPackage {
+      pname = "common-test-utils";
+      inherit (finalAttrs) version src;
+      pyproject = true;
+
+      sourceRoot = "${finalAttrs.src.name}/internal/common-test-utils";
+      # Include the test pdf/xml files etc. in the build output
+      postPatch = ''
+        echo "graft src/pyhanko_testing_commons/test_data" > MANIFEST.in
+      '';
+
+      build-system = [ setuptools ];
+
+      nativeBuildInputs = [
+        pyprojectVersionPatchHook
+      ];
+
+      dependencies = [
+        certomancer
+        pyhanko-certvalidator
+      ];
+
+      pythonRemoveDeps = [ "pyhanko" ];
+    };
+  };
+
+  meta = {
     description = "Sign and stamp PDF files";
     homepage = "https://github.com/MatthiasValvekens/pyHanko";
-    changelog = "https://github.com/MatthiasValvekens/pyHanko/blob/v${version}/docs/changelog.rst";
-    license = licenses.mit;
-    maintainers = with maintainers; [ wolfangaukang ];
+    changelog = "https://github.com/MatthiasValvekens/pyHanko/blob/${finalAttrs.src.tag}/docs/changelog.rst#pyhanko";
+    license = lib.licenses.mit;
+    maintainers = [ lib.maintainers.antonmosich ];
+    # OSError: One or more parameters passed to a function were not valid.
+    broken = stdenv.hostPlatform.isDarwin;
   };
-}
+})

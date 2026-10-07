@@ -1,43 +1,37 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonAtLeast
-, pythonOlder
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "overrides";
-  version = "7.4.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "7.7.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "mkorpela";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-7fbuBcb47BTVxAoKokZmGdIwHSyfyfSiCAZ4XZjWz60=";
+    repo = "overrides";
+    tag = version;
+    hash = "sha256-gQDw5/RpAFNYWFOuxIAArPkCOoBYWUnsDtv1FEFteHo=";
   };
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  # https://github.com/mkorpela/overrides/pull/136
+  patches = [ ./pytest9-compat.patch ];
 
-  disabledTests = lib.optionals (pythonAtLeast "3.12") [
-    # KeyError: 'assertRaises'
-    "test_enforcing_when_incompatible"
-  ];
+  build-system = [ setuptools ];
 
-  pythonImportsCheck = [
-    "overrides"
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "overrides" ];
+
+  meta = {
     description = "Decorator to automatically detect mismatch when overriding a method";
     homepage = "https://github.com/mkorpela/overrides";
     changelog = "https://github.com/mkorpela/overrides/releases/tag/${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

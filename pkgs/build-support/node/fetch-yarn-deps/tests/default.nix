@@ -9,6 +9,11 @@
     yarnLock = ./simple.lock;
     sha256 = "sha256-FRrt8BixleILmFB2ZV8RgPNLqgS+dlH5nWoPgeaaNQ8=";
   };
+  mirrorUrl = testers.invalidateFetcherByDrvHash fetchYarnDeps {
+    yarnLock = ./simple.lock;
+    mirrorUrl = "https://registry.npmjs.com/";
+    sha256 = "sha256-FRrt8BixleILmFB2ZV8RgPNLqgS+dlH5nWoPgeaaNQ8=";
+  };
   gitDep = testers.invalidateFetcherByDrvHash fetchYarnDeps {
     yarnLock = ./git.lock;
     sha256 = "sha256-f90IiEzHDiBdswWewRBHcJfqqpPipaMg8N0DVLq2e8Q=";
@@ -16,6 +21,10 @@
   githubDep = testers.invalidateFetcherByDrvHash fetchYarnDeps {
     yarnLock = ./github.lock;
     sha256 = "sha256-DIKrhDKoqm7tHZmcuh9eK9VTqp6BxeW0zqDUpY4F57A=";
+  };
+  githubReleaseDep = testers.invalidateFetcherByDrvHash fetchYarnDeps {
+    yarnLock = ./github-release.lock;
+    sha256 = "sha256-g+y/H6k8LZ+IjWvkkwV7JhKQH1ycfeqzsIonNv4fDq8=";
   };
   gitUrlDep = testers.invalidateFetcherByDrvHash fetchYarnDeps {
     yarnLock = ./giturl.lock;

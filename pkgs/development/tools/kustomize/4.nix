@@ -1,4 +1,10 @@
-{ lib, buildGoModule, fetchFromGitHub, installShellFiles }:
+{
+  lib,
+  stdenv,
+  buildGoModule,
+  fetchFromGitHub,
+  installShellFiles,
+}:
 
 buildGoModule rec {
   pname = "kustomize_4";
@@ -13,7 +19,10 @@ buildGoModule rec {
 
   # rev is the commit of the tag, mainly for kustomize version command output
   rev = "56d82a8378dfc8dc3b3b1085e5a6e67b82966bd7";
-  ldflags = let t = "sigs.k8s.io/kustomize/api/provenance"; in
+  ldflags =
+    let
+      t = "sigs.k8s.io/kustomize/api/provenance";
+    in
     [
       "-s"
       "-X ${t}.version=${version}"
@@ -27,22 +36,29 @@ buildGoModule rec {
 
   nativeBuildInputs = [ installShellFiles ];
 
-  postInstall = ''
+  postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
     installShellCompletion --cmd kustomize \
       --bash <($out/bin/kustomize completion bash) \
       --fish <($out/bin/kustomize completion fish) \
       --zsh <($out/bin/kustomize completion zsh)
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Customization of kubernetes YAML configurations";
+    mainProgram = "kustomize";
     longDescription = ''
       kustomize lets you customize raw, template-free YAML files for
       multiple purposes, leaving the original YAML untouched and usable
       as is.
     '';
     homepage = "https://github.com/kubernetes-sigs/kustomize";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ carlosdagos vdemeester periklis zaninime Chili-Man saschagrunert ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [
+      carlosdagos
+      vdemeester
+      zaninime
+      Chili-Man
+      saschagrunert
+    ];
   };
 }

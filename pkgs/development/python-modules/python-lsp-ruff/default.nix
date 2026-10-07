@@ -1,53 +1,78 @@
-{ lib
-, pythonOlder
-, buildPythonPackage
-, fetchPypi
-, ruff
-, cattrs
-, lsprotocol
-, python-lsp-server
-, tomli
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  ruff,
+
+  # dependencies
+  cattrs,
+  lsprotocol,
+  python-lsp-server,
+
+  # checks
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "python-lsp-ruff";
-  version = "2.0.2";
+  version = "2.3.4";
   pyproject = true;
-  disabled = pythonOlder "3.8";
+  __structuredAttrs = true;
 
-  src = fetchPypi {
-    inherit version;
-    pname = "python-lsp-ruff";
-    hash = "sha256-tKYhkRnXPZF1/9iK6ssNtoWa5y9gYVj9zFUOEFlXyOA=";
+  src = fetchFromGitHub {
+    owner = "python-lsp";
+    repo = "python-lsp-ruff";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-9VRbQvQCVqB92jx7E7QF1xHW3n6lO0ScFr7FhDw9Jgg=";
   };
 
-  postPatch = ''
-    # ruff binary is used directly, the ruff python package is not needed
-    sed -i '/"ruff>=/d' pyproject.toml
-    sed -i 's|sys.executable, "-m", "ruff"|"${ruff}/bin/ruff"|' pylsp_ruff/plugin.py
-    sed -i -e '/sys.executable/,+2c"${ruff}/bin/ruff",' -e 's|assert "ruff" in call_args|assert "${ruff}/bin/ruff" in call_args|' tests/test_ruff_lint.py
-    # Nix builds everything in /build/ but ruff somehow doesn't run on files in /build/ and outputs empty results.
-    sed -i -e "s|workspace.root_path|'/tmp/'|g" tests/*.py
-  '';
+  postPatch =
+    let
+      ruffBin = lib.getExe ruff;
+    in
+    ''
+      substituteInPlace pylsp_ruff/plugin.py \
+        --replace-fail \
+          "*find_executable(executable)" \
+          '"${ruffBin}"'
 
-  propagatedBuildInputs = [
+      substituteInPlace tests/test_ruff_lint.py \
+        --replace-fail "str(sys.executable)" '"${ruffBin}"' \
+        --replace-fail '"-m",' "" \
+        --replace-fail '"ruff",' "" \
+        --replace-fail \
+          'assert "ruff" in call_args' \
+          'assert "${ruffBin}" in call_args' \
+        --replace-fail \
+          'ruff_executable = ruff_exe.name' \
+          'ruff_executable = "${ruffBin}"' \
+        --replace-fail 'os.chmod(ruff_executable, st.st_mode | stat.S_IEXEC)' ""
+    ''
+    # Nix builds everything in /build/ but ruff somehow doesn't run on files in /build/ and outputs empty results.
+    + ''
+      substituteInPlace tests/*.py \
+        --replace-fail "workspace.root_path" '"/tmp/"'
+    '';
+
+  pythonRemoveDeps = [
+    # ruff binary is used directly, the ruff python package is not needed
+    "ruff"
+  ];
+
+  dependencies = [
     cattrs
     lsprotocol
     python-lsp-server
-  ] ++ lib.optionals (pythonOlder "3.11") [
-    tomli
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/python-lsp/python-lsp-ruff";
     description = "Ruff linting plugin for pylsp";
-    changelog = "https://github.com/python-lsp/python-lsp-ruff/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ linsui ];
+    changelog = "https://github.com/python-lsp/python-lsp-ruff/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ linsui ];
   };
-}
+})

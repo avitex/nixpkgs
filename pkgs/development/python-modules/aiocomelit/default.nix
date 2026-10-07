@@ -1,56 +1,51 @@
-{ lib
-, aiohttp
-, buildPythonPackage
-, colorlog
-, fetchFromGitHub
-, pint
-, poetry-core
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  aiohttp,
+  aioresponses,
+  anyio,
+  buildPythonPackage,
+  fetchFromGitHub,
+  orjson,
+  pint,
+  pytestCheckHook,
+  setuptools,
+  writableTmpDirAsHomeHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "aiocomelit";
-  version = "0.8.2";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.10";
+  version = "2.0.7";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "chemelli74";
     repo = "aiocomelit";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-SjyC/KiszQVVmctyqCn3i0DureuCtDlUhJTHC6+PQ2c=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-T48aRtuF9eNrW5L97CGkjc2PCdRzbuGCvhdWCuqe7yk=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace " --cov=aiocomelit --cov-report=term-missing:skip-covered" ""
-  '';
+  build-system = [ setuptools ];
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
-
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
+    orjson
     pint
   ];
 
   nativeCheckInputs = [
-    colorlog
+    aioresponses
+    anyio
     pytestCheckHook
+    writableTmpDirAsHomeHook
   ];
 
-  pythonImportsCheck = [
-    "aiocomelit"
-  ];
+  pythonImportsCheck = [ "aiocomelit" ];
 
-  meta = with lib; {
+  meta = {
     description = "Library to control Comelit Simplehome";
     homepage = "https://github.com/chemelli74/aiocomelit";
-    changelog = "https://github.com/chemelli74/aiocomelit/blob/${version}/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/chemelli74/aiocomelit/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

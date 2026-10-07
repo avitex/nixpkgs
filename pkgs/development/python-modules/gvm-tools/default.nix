@@ -1,55 +1,45 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, pytestCheckHook
-, python-gvm
-, pythonAtLeast
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  pytestCheckHook,
+  python-gvm,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "gvm-tools";
-  version = "24.1.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "25.4.9";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "greenbone";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-4uYOhsnprYybt5EB/b4LW8/9cn0Nahc1lYQ+DwPNlOU=";
+    repo = "gvm-tools";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-dt7njGUqi6zfwUz0gSdOHWnSUJ+yJ7qJ3RttoPweR3c=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  __darwinAllowLocalNetworking = true;
 
-  propagatedBuildInputs = [
-    python-gvm
-  ];
+  nativeBuildInputs = [ poetry-core ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  propagatedBuildInputs = [ python-gvm ];
+
+  nativeCheckInputs = [ pytestCheckHook ];
 
   disabledTests = [
     # Don't test sending
     "SendTargetTestCase"
-  ] ++ lib.optionals (pythonAtLeast "3.10") [
     "HelpFormattingParserTestCase"
   ];
 
-  pythonImportsCheck = [
-    "gvmtools"
-  ];
+  pythonImportsCheck = [ "gvmtools" ];
 
-  meta = with lib; {
+  meta = {
     description = "Collection of APIs that help with remote controlling a Greenbone Security Manager";
     homepage = "https://github.com/greenbone/gvm-tools";
-    changelog = "https://github.com/greenbone/gvm-tools/releases/tag/v${version}";
-    license = with licenses; [ gpl3Plus ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/greenbone/gvm-tools/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.gpl3Plus;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

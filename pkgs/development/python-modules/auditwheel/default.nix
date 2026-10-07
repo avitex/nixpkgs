@@ -1,50 +1,45 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchPypi
-, setuptools-scm
-, pyelftools
-, importlib-metadata
-, pretend
-, pytestCheckHook
-# non-python dependencies
-, bzip2
-, gnutar
-, patchelf
-, unzip
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  jsonschema,
+  packaging,
+  pretend,
+  pyelftools,
+  pytestCheckHook,
+  setuptools-scm,
+  # non-python dependencies
+  bzip2,
+  gnutar,
+  patchelf,
+  unzip,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "auditwheel";
-  version = "5.4.0";
+  version = "6.8.2";
   pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-qvgVOreinMmaZjziSYgE2vGIfqG3oyMboNP+5oo8zxk=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-0AfE/YycS1ETaQqwsVngXFqpstMbae/ECHWCbMCVWUs=";
   };
 
-  nativeBuildInputs = [
-    setuptools-scm
-  ];
+  build-system = [ setuptools-scm ];
 
-  propagatedBuildInputs = [
+  dependencies = [
+    packaging
     pyelftools
-  ] ++ lib.optionals (pythonOlder "3.8") [
-    importlib-metadata
   ];
 
   nativeCheckInputs = [
+    jsonschema
     pretend
     pytestCheckHook
   ];
 
   # Integration tests require docker and networking
-  disabledTestPaths = [
-    "tests/integration"
-  ];
+  disabledTestPaths = [ "tests/integration" ];
 
   # Ensure that there are no undeclared deps
   postCheck = ''
@@ -52,20 +47,28 @@ buildPythonPackage rec {
   '';
 
   makeWrapperArgs = [
-    "--prefix" "PATH" ":" (lib.makeBinPath [ bzip2 gnutar patchelf unzip ])
+    "--prefix"
+    "PATH"
+    ":"
+    (lib.makeBinPath [
+      bzip2
+      gnutar
+      patchelf
+      unzip
+    ])
   ];
 
-  meta = with lib; {
-    changelog = "https://github.com/pypa/auditwheel/blob/${version}/CHANGELOG.md";
+  meta = {
+    changelog = "https://github.com/pypa/auditwheel/blob/${finalAttrs.version}/CHANGELOG.md";
     description = "Auditing and relabeling cross-distribution Linux wheels";
     homepage = "https://github.com/pypa/auditwheel";
-    license = with licenses; [
-      mit  # auditwheel and nibabel
-      bsd2  # from https://github.com/matthew-brett/delocate
-      bsd3  # from https://sources.gentoo.org/cgi-bin/viewvc.cgi/gentoo-projects/pax-utils/lddtree.py
+    license = with lib.licenses; [
+      mit # auditwheel and nibabel
+      bsd2 # from https://github.com/matthew-brett/delocate
+      bsd3 # from https://sources.gentoo.org/cgi-bin/viewvc.cgi/gentoo-projects/pax-utils/lddtree.py
     ];
     mainProgram = "auditwheel";
-    maintainers = with maintainers; [ davhau ];
-    platforms = platforms.linux;
+    maintainers = with lib.maintainers; [ davhau ];
+    platforms = lib.platforms.linux;
   };
-}
+})

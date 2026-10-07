@@ -1,18 +1,39 @@
-{ lib, stdenv, fetchurl }:
+{
+  directoryListingUpdater,
+  fetchurl,
+  lib,
+  stdenvNoCC,
+  coreutils,
+  kmod,
+}:
 
-stdenv.mkDerivation rec {
+stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "alsa-ucm-conf";
-  version = "1.2.10";
+  version = "1.2.16.1";
 
   src = fetchurl {
-    url = "mirror://alsa/lib/${pname}-${version}.tar.bz2";
-    hash = "sha256-nCHj8B/wC6p1jfF+hnzTbiTrtBpr7ElzfpkQXhbyrpc=";
+    url = "mirror://alsa/lib/alsa-ucm-conf-${finalAttrs.version}.tar.bz2";
+    hash = "sha256-zz0cB+CJqDxOziwg8F3WqKq3/NEIdow4gROGiAV1SSs=";
   };
+
+  patches = [
+
+  ];
 
   dontBuild = true;
 
   installPhase = ''
     runHook preInstall
+
+    substituteInPlace ucm2/lib/card-init.conf \
+      --replace-fail "/bin/rm" "${coreutils}/bin/rm" \
+      --replace-fail "/bin/mkdir" "${coreutils}/bin/mkdir"
+  ''
+  + lib.optionalString stdenvNoCC.hostPlatform.isLinux ''
+    substituteInPlace ucm2/common/ctl/led.conf \
+      --replace-fail '/sbin/modprobe' '${kmod}/bin/modprobe'
+  ''
+  + ''
 
     mkdir -p $out/share/alsa
     cp -r ucm ucm2 $out/share/alsa
@@ -20,8 +41,13 @@ stdenv.mkDerivation rec {
     runHook postInstall
   '';
 
-  meta = with lib; {
+  passthru.updateScript = directoryListingUpdater {
+    url = "https://www.alsa-project.org/files/pub/lib/";
+  };
+
+  meta = {
     homepage = "https://www.alsa-project.org/";
+    changelog = "https://github.com/alsa-project/alsa-ucm-conf/releases/tag/v${finalAttrs.version}";
     description = "ALSA Use Case Manager configuration";
 
     longDescription = ''
@@ -29,8 +55,12 @@ stdenv.mkDerivation rec {
       MIDI functionality to the Linux-based operating system.
     '';
 
-    license = licenses.bsd3;
-    maintainers = [ maintainers.roastiek ];
-    platforms = platforms.linux;
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [
+      roastiek
+      nick-linux
+    ];
+
+    platforms = lib.platforms.linux ++ lib.platforms.freebsd;
   };
-}
+})

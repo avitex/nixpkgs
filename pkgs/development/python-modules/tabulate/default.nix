@@ -1,23 +1,23 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, setuptools-scm
-, setuptools
-, wcwidth
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools-scm,
+  setuptools,
+  wcwidth,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
-  version = "0.9.0";
+buildPythonPackage (finalAttrs: {
+  version = "0.10.0";
   pname = "tabulate";
-  format = "pyproject";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-AJWxK/WWbeUpwP6x+ghnFnGzNo7sd9fverEUviwGizw=";
+  src = fetchFromGitHub {
+    owner = "astanin";
+    repo = "python-tabulate";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-JnwkABtIgPqANuv3lo8e8zr8m6a/qnxz4w1QvTVZFxg=";
   };
 
   nativeBuildInputs = [
@@ -25,18 +25,20 @@ buildPythonPackage rec {
     setuptools-scm
   ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     widechars = [ wcwidth ];
   };
 
   nativeCheckInputs = [
     pytestCheckHook
-  ] ++ lib.flatten (builtins.attrValues passthru.optional-dependencies);
+  ]
+  ++ lib.concatAttrValues finalAttrs.finalPackage.optional-dependencies;
 
   meta = {
     description = "Pretty-print tabular data";
+    mainProgram = "tabulate";
     homepage = "https://github.com/astanin/python-tabulate";
     license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ fridh ];
+    maintainers = with lib.maintainers; [ doronbehar ];
   };
-}
+})

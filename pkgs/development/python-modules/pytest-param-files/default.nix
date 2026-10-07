@@ -1,48 +1,39 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, flit-core
-, ruamel-yaml
-, pytest
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  flit-core,
+  ruamel-yaml,
+  pytest,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "pytest-param-files";
   version = "0.6.0";
-  format = "pyproject";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "chrisjsewell";
-    repo = pname;
-    rev = "refs/tags/v${version}";
+    repo = "pytest-param-files";
+    tag = "v${version}";
     hash = "sha256-hgEEfKf9Kmah5WDNHoFWQJKLOs9Z5BDHiebXCdDc1zE=";
   };
 
-  nativeBuildInputs = [
-    flit-core
-  ];
+  nativeBuildInputs = [ flit-core ];
 
-  buildInputs = [
-    pytest
-  ];
+  buildInputs = [ pytest ];
 
-  propagatedBuildInputs = [
-    ruamel-yaml
-  ];
+  propagatedBuildInputs = [ ruamel-yaml ];
 
-  pythonImportsCheck = [
-    "pytest_param_files"
-  ];
+  pythonImportsCheck = [ "pytest_param_files" ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  meta = with lib; {
+  meta = {
     description = "Package to generate parametrized pytests from external files";
     homepage = "https://github.com/chrisjsewell/pytest-param-files";
-    license = licenses.mit;
-    maintainers = with maintainers; [ loicreynier ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ loicreynier ];
   };
 }

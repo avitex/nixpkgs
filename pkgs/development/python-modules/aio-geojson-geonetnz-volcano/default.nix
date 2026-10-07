@@ -1,45 +1,41 @@
-{ lib
-, aio-geojson-client
-, aiohttp
-, aioresponses
-, mock
-, buildPythonPackage
-, fetchFromGitHub
-, pytest-asyncio
-, pytest-xdist
-, pytestCheckHook
-, pytz
-, pythonOlder
-, setuptools
+{
+  lib,
+  aio-geojson-client,
+  aiohttp,
+  aiointercept,
+  aioresponses,
+  mock,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytest-asyncio,
+  pytest-xdist,
+  pytestCheckHook,
+  pytz,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "aio-geojson-geonetnz-volcano";
-  version = "0.9";
+  version = "2026.6.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "exxamalte";
     repo = "python-aio-geojson-geonetnz-volcano";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-ZmGDO9EROFMlxdj5txNh719M+3l/0jRFbB2h2AyZAdI=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-BA8ejjzwonIYsLrBP3MGBfZ3bKoj2h/Qe4TcjL16FOA=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     aio-geojson-client
     aiohttp
     pytz
   ];
 
-  __darwinAllowLocalNetworking = true;
-
   nativeCheckInputs = [
+    aiointercept
     aioresponses
     mock
     pytest-asyncio
@@ -47,15 +43,15 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "aio_geojson_geonetnz_volcano"
-  ];
+  pythonImportsCheck = [ "aio_geojson_geonetnz_volcano" ];
 
-  meta = with lib; {
+  __darwinAllowLocalNetworking = true;
+
+  meta = {
     description = "Python module for accessing the GeoNet NZ Volcanic GeoJSON feeds";
     homepage = "https://github.com/exxamalte/python-aio-geojson-geonetnz-volcano";
-    changelog = "https://github.com/exxamalte/python-aio-geojson-geonetnz-volcano/blob/v${version}/CHANGELOG.md";
-    license = with licenses; [ asl20 ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/exxamalte/python-aio-geojson-geonetnz-volcano/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

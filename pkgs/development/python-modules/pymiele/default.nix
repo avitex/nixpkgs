@@ -1,45 +1,38 @@
-{ lib
-, aiohttp
-, async-timeout
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, setuptools
+{
+  lib,
+  aiohttp,
+  buildPythonPackage,
+  fetchPypi,
+  pythonOlder,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "pymiele";
-  version = "0.1.7";
+  version = "0.6.2";
   pyproject = true;
 
-  disabled = pythonOlder "3.9";
+  disabled = pythonOlder "3.13";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-nlilHcBdWpCIknhE/RRvcmuz1waNdmcPt++Vi3amvHg=";
+    hash = "sha256-jf1132tFwrP2yXtq9lRIq4rMLwQtz5U7p67Dke7FYaQ=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
-    aiohttp
-    async-timeout
-  ];
+  dependencies = [ aiohttp ];
 
   # No tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "pymiele"
-  ];
+  pythonImportsCheck = [ "pymiele" ];
 
-  meta = with lib; {
+  meta = {
     changelog = "https://github.com/astrandb/pymiele/releases/tag/v${version}";
     description = "Lib for Miele integration with Home Assistant";
     homepage = "https://github.com/astrandb/pymiele";
-    license = licenses.mit;
-    maintainers = with maintainers; [ jamiemagee ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ jamiemagee ];
   };
 }

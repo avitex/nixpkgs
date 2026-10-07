@@ -1,51 +1,46 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchPypi
-, cython
-, oldest-supported-numpy
-, packaging
-, setuptools
-, setuptools-scm
-, wheel
-, numpy
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  numpy,
+  pot,
+  pytestCheckHook,
+  pythonOlder,
+  setuptools-scm,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pyemd";
-  version = "1.0.0";
+  version = "2.0.0";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
+  __structuredAttrs = true;
 
-  format = "pyproject";
+  disabled = pythonOlder "3.12";
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-tCta57LRWx1N7mOBDqeYo5IX6Kdre0nA62OoTg/ZAP4=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-FZaflENcK+mOajakkwfINm49/BpnASrMMG6SyQtQP+U=";
   };
 
-  nativeBuildInputs = [
-    cython
-    numpy
-    oldest-supported-numpy
-    packaging
+  build-system = [
     setuptools
     setuptools-scm
-    wheel
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     numpy
+    pot
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  meta = with lib; {
-    description = "A Python wrapper for Ofir Pele and Michael Werman's implementation of the Earth Mover's Distance";
+  meta = {
+    description = "Python wrapper for Ofir Pele and Michael Werman's implementation of the Earth Mover's Distance";
     homepage = "https://github.com/wmayner/pyemd";
-    license = licenses.mit;
+    changelog = "https://github.com/wmayner/pyemd/blob/v${finalAttrs.version}/CHANGELOG.rst";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
-}
+})

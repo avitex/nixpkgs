@@ -1,29 +1,58 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, ply
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  flit-core,
+  jinja2,
+  lark,
+  pyprojectVersionPatchHook,
+  pysmi,
+  pysnmp,
+  pytestCheckHook,
+  requests,
 }:
 
-buildPythonPackage rec {
-  version = "0.3.4";
-  format = "setuptools";
+buildPythonPackage (finalAttrs: {
   pname = "pysmi";
+  version = "2.0.2";
+  pyproject = true;
 
- src = fetchPypi {
-    inherit pname version;
-    sha256 = "bd15a15020aee8376cab5be264c26330824a8b8164ed0195bd402dd59e4e8f7c";
+  src = fetchFromGitHub {
+    owner = "lextudio";
+    repo = "pysmi";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-ft8R73eUgb+pnr35ZVc2Br3BGHhUDHEcQ9k/K6tjYBk=";
   };
 
-  propagatedBuildInputs = [ ply ];
+  build-system = [ flit-core ];
+
+  nativeBuildInputs = [
+    pyprojectVersionPatchHook
+  ];
+
+  dependencies = [
+    jinja2
+    lark
+    requests
+  ];
+
+  nativeCheckInputs = [
+    pysnmp
+    pytestCheckHook
+  ];
 
   # Tests require pysnmp, which in turn requires pysmi => infinite recursion
   doCheck = false;
 
-  meta = with lib; {
-    homepage = "http://pysmi.sf.net";
-    description = "SNMP SMI/MIB Parser";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ koral ];
-  };
+  pythonImportsCheck = [ "pysmi" ];
 
-}
+  passthru.tests.pytest = pysmi.overridePythonAttrs { doCheck = true; };
+
+  meta = {
+    description = "SNMP MIB parser";
+    homepage = "https://github.com/lextudio/pysmi";
+    changelog = "https://github.com/lextudio/pysmi/blob/${finalAttrs.src.tag}/CHANGES.rst";
+    license = lib.licenses.bsd2;
+    maintainers = with lib.maintainers; [ fab ];
+  };
+})

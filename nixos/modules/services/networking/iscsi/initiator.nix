@@ -1,22 +1,46 @@
-{ config, lib, pkgs, ... }: with lib;
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+with lib;
 let
   cfg = config.services.openiscsi;
 in
 {
   options.services.openiscsi = with types; {
-    enable = mkEnableOption (lib.mdDoc "the openiscsi iscsi daemon");
-    enableAutoLoginOut = mkEnableOption (lib.mdDoc ''
+    enable = mkEnableOption "the openiscsi iscsi daemon";
+    enableAutoLoginOut = mkEnableOption ''
       automatic login and logout of all automatic targets.
       You probably do not want this
-    '');
+    '';
     discoverPortal = mkOption {
       type = nullOr str;
       default = null;
-      description = lib.mdDoc "Portal to discover targets on";
+      description = "Portal to discover targets on";
     };
+
+    discoverType = mkOption {
+      description = ''
+        Target discovery type.
+        Change this if you want to discover your targes via an iSNS server
+        or use the targets provided via firmware settings.
+        See {manpage}`iscsiadm(8)`.
+      '';
+      default = "sendtargets";
+      example = "sendtargets";
+      type = enum [
+        "st"
+        "sendtargets"
+        "isns"
+        "fw"
+      ];
+    };
+
     name = mkOption {
       type = str;
-      description = lib.mdDoc "Name of this iscsi initiator";
+      description = "Name of this iscsi initiator";
       example = "iqn.2020-08.org.linux-iscsi.initiatorhost:example";
     };
     package = mkPackageOption pkgs "openiscsi" { };
@@ -24,11 +48,11 @@ in
     extraConfig = mkOption {
       type = str;
       default = "";
-      description = lib.mdDoc "Lines to append to default iscsid.conf";
+      description = "Lines to append to default iscsid.conf";
     };
 
     extraConfigFile = mkOption {
-      description = lib.mdDoc ''
+      description = ''
         Append an additional file's contents to /etc/iscsid.conf. Use a non-store path
         and store passwords in this file.
       '';
@@ -38,7 +62,7 @@ in
   };
 
   config = mkIf cfg.enable {
-    environment.etc."iscsi/iscsid.conf.fragment".source = pkgs.runCommand "iscsid.conf" {} ''
+    environment.etc."iscsi/iscsid.conf.fragment".source = pkgs.runCommand "iscsid.conf" { } ''
       cat "${cfg.package}/etc/iscsi/iscsid.conf" > $out
       cat << 'EOF' >> $out
       ${cfg.extraConfig}
@@ -61,7 +85,8 @@ in
               echo "Warning: services.openiscsi.extraConfigFile ${cfg.extraConfigFile} does not exist!" >&2
             fi
           '';
-        in ''
+        in
+        ''
           (
             cat ${config.environment.etc."iscsi/iscsid.conf.fragment".source}
             ${extraCfgDumper}
@@ -72,7 +97,9 @@ in
 
     systemd.services."iscsi" = mkIf cfg.enableAutoLoginOut {
       wantedBy = [ "remote-fs.target" ];
-      serviceConfig.ExecStartPre = mkIf (cfg.discoverPortal != null) "${cfg.package}/bin/iscsiadm --mode discoverydb --type sendtargets --portal ${escapeShellArg cfg.discoverPortal} --discover";
+      serviceConfig.ExecStartPre =
+        mkIf (cfg.discoverPortal != null)
+          "${cfg.package}/bin/iscsiadm --mode discoverydb --type ${cfg.discoverType} --portal ${escapeShellArg cfg.discoverPortal} --discover";
     };
 
     environment.systemPackages = [ cfg.package ];

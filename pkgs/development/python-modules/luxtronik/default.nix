@@ -1,17 +1,13 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, poetry-core
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 }:
 
 buildPythonPackage rec {
   pname = "luxtronik";
   version = "0.3.14";
   format = "setuptools";
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "Bouni";
@@ -23,14 +19,12 @@ buildPythonPackage rec {
   # Project has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "luxtronik"
-  ];
+  pythonImportsCheck = [ "luxtronik" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python library to interact with Luxtronik heatpump controllers";
     homepage = "https://github.com/Bouni/python-luxtronik";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

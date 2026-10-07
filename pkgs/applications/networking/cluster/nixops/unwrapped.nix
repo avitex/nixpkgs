@@ -1,30 +1,33 @@
-{ lib
-, buildPythonApplication
-, fetchFromGitHub
-, unstableGitUpdater
-, poetry-core
-, sphinx
-, pluggy
-, prettytable
-, typeguard
-, typing-extensions
-, nixosTests
+{
+  lib,
+  buildPythonApplication,
+  fetchFromGitHub,
+  unstableGitUpdater,
+  poetry-core,
+  sphinx,
+  pluggy,
+  prettytable,
+  typeguard,
+  typing-extensions,
+  nixosTests,
 }:
 
 buildPythonApplication rec {
   pname = "nixops";
-  version = "unstable-2023-12-17";
+  version = "2.0.0-unstable-2025-12-28";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "NixOS";
     repo = "nixops";
-    rev = "053668e849bb369973cf265b7e8f38e66ef70138";
-    hash = "sha256-Kus1Ls1tT8fVGLX0NakRXmjuz5/J/tfqU4TLOkiZqvo=";
+    rev = "fd4b8031dbaf753545188b7c380194e47604dbac";
+    hash = "sha256-BYCCULov1/Mu5Tp4N1voQFPVWsWVyKhlQoH+I7IJnuE=";
   };
 
   postPatch = ''
-    substituteInPlace nixops/args.py --replace "@version@" "${version}-pre-${lib.substring 0 7 src.rev or "dirty"}"
+    substituteInPlace nixops/args.py --replace-fail "@version@" "${version}-pre-${
+      lib.substring 0 7 src.rev or "dirty"
+    }"
   '';
 
   nativeBuildInputs = [
@@ -50,15 +53,20 @@ buildPythonApplication rec {
   pythonImportsCheck = [ "nixops" ];
 
   passthru = {
-    tests.nixops = nixosTests.nixops.unstable;
-    updateScript = unstableGitUpdater {};
+    tests.nixos = nixosTests.nixops.unstable;
+    updateScript = unstableGitUpdater {
+      tagPrefix = "v";
+    };
   };
 
-  meta = with lib; {
-    description = "A tool for deploying to NixOS machines in a network or cloud";
+  meta = {
+    description = "Tool for deploying to NixOS machines in a network or cloud";
     homepage = "https://github.com/NixOS/nixops";
-    license = licenses.lgpl3Only;
-    maintainers = with lib.maintainers; [ aminechikhaoui roberth ];
+    license = lib.licenses.lgpl3Only;
+    maintainers = with lib.maintainers; [
+      aminechikhaoui
+      roberth
+    ];
     platforms = lib.platforms.unix;
     mainProgram = "nixops";
   };

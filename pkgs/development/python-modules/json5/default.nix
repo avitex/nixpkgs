@@ -1,35 +1,35 @@
-{ buildPythonPackage
-, fetchFromGitHub
-, hypothesis
-, lib
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "json5";
-  version = "0.9.14";
-  format = "setuptools";
+  version = "0.13.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "dpranke";
     repo = "pyjson5";
-    rev = "v${version}";
-    hash = "sha256-cshP1kraLENqWuQTlm4HPAP/0ywRRLFOJI8mteWcjR4=";
+    tag = "v${version}";
+    hash = "sha256-KL5YsWSHS8xI+lQB+ZtdEKUHGKICOduZsBd51z4jItw=";
   };
 
-  nativeCheckInputs = [
-    hypothesis
-    pytestCheckHook
-  ];
+  build-system = [ setuptools ];
 
-  pythonImportsCheck = [
-    "json5"
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "json5" ];
+
+  meta = {
+    description = "Python implementation of the JSON5 data format";
     homepage = "https://github.com/dpranke/pyjson5";
-    description = "A Python implementation of the JSON5 data format";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ veehaitch ];
+    changelog = "https://github.com/dpranke/pyjson5/releases/tag/${src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ veehaitch ];
+    mainProgram = "pyjson5";
   };
 }

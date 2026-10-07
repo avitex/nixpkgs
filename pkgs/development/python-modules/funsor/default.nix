@@ -1,44 +1,55 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, makefun
-, multipledispatch
-, numpy
-, opt-einsum
-, typing-extensions
-, pyro-ppl
-, torch
-, pandas
-, pillow
-, pyro-api
-, pytest
-, pytest-xdist
-, requests
-, scipy
-, torchvision
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+
+  # dependencies
+  makefun,
+  multipledispatch,
+  numpy,
+  opt-einsum,
+  typing-extensions,
+
+  # tests
+  pyro-ppl,
+  torch,
+  pandas,
+  pillow,
+  pyro-api,
+  pytestCheckHook,
+  pytest-xdist,
+  requests,
+  scipy,
+  torchvision,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "funsor";
-  version = "0.4.6";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.4.8";
+  pyproject = true;
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "pyro-ppl";
     repo = "funsor";
-    rev = "refs/tags/${version}";
-    hash = "sha256-Prj1saT0yoPAP8rDE0ipBEpR3QMk4PS12VSJlxc22p8=";
+    tag = finalAttrs.version;
+    hash = "sha256-iTkDd6vz4wesY3jABSMxLtTKioP98DhGB0plLL+vhNY=";
   };
 
-  # Disable the tests that rely on downloading assets from the internet as well as the linting checks.
   patches = [
-    ./patch-makefile-for-tests.patch
+    # Compatibility with torch >= 2.5, where `Uniform.arg_constraints` is a property.
+    # Remaining part of the pending upstream PR https://github.com/pyro-ppl/funsor/pull/610
+    # (the `Uniform` parameter registration was already merged as part of
+    # https://github.com/pyro-ppl/funsor/pull/614).
+    ./torch-arg-constraints-property.patch
   ];
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     makefun
     multipledispatch
     numpy
@@ -54,26 +65,24 @@ buildPythonPackage rec {
     pandas
     pillow
     pyro-api
-    pytest
+    pytestCheckHook
     pytest-xdist
     requests
     scipy
     torchvision
   ];
 
-  # Use the included Makefile to run the tests.
-  checkPhase = ''
+  preCheck = ''
     export FUNSOR_BACKEND=torch
-    make test
   '';
 
   pythonImportsCheck = [ "funsor" ];
 
-  meta = with lib; {
+  meta = {
     description = "Functional tensors for probabilistic programming";
     homepage = "https://funsor.pyro.ai";
-    changelog = "https://github.com/pyro-ppl/funsor/releases/tag/${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ GaetanLepage ];
+    changelog = "https://github.com/pyro-ppl/funsor/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ GaetanLepage ];
   };
-}
+})

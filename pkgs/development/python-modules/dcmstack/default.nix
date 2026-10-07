@@ -1,38 +1,49 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, pytestCheckHook
-, nibabel
-, pydicom
-, pylibjpeg-libjpeg
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  nibabel,
+  pydicom,
+  pylibjpeg,
+  pint,
+  pytestCheckHook,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage {
   pname = "dcmstack";
-  version = "0.9";
-  format = "setuptools";
-  disabled = pythonOlder "3.7";
+  version = "0.9-unstable-2024-12-05";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "moloney";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-GVzih9H2m2ZGSuZMRuaDG78b95PI3j0WQw5M3l4KNCs=";
+    repo = "dcmstack";
+    rev = "68575996c8956152865e3598b15f621d7c803a96";
+    hash = "sha256-QXnBtlXkxYDJFdjiqCoEuBMcHnq+87YmHX8j5EPW7HU=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     nibabel
     pydicom
-    pylibjpeg-libjpeg
+    pylibjpeg
+    pint
   ];
 
   nativeCheckInputs = [ pytestCheckHook ];
 
-  meta = with lib; {
-    homepage = "https://github.com/moloney/dcmstack";
+  pythonImportsCheck = [ "dcmstack" ];
+
+  disabledTestPaths = [
+    # AttributeError: 'TestNitoolCli' object has no attribute 'out_dir'
+    "test/test_cli.py"
+  ];
+
+  meta = {
     description = "DICOM to Nifti conversion preserving metadata";
-    license = licenses.mit;
-    maintainers = with maintainers; [ bcdarwin ];
+    homepage = "https://github.com/moloney/dcmstack";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ bcdarwin ];
   };
 }

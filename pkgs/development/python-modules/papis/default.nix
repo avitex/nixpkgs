@@ -1,121 +1,135 @@
-{ lib
-, stdenv
-, arxiv2bib
-, beautifulsoup4
-, bibtexparser
-, buildPythonPackage
-, chardet
-, click
-, colorama
-, configparser
-, dominate
-, fetchFromGitHub
-, filetype
-, habanero
-, isbnlib
-, lxml
-, prompt-toolkit
-, pygments
-, pyparsing
-, pytestCheckHook
-, python-doi
-, python-slugify
-, pythonAtLeast
-, pythonOlder
-, pyyaml
-, requests
-, stevedore
-, tqdm
-, typing-extensions
-, whoosh
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  hatchling,
+
+  # dependencies
+  arxiv,
+  beautifulsoup4,
+  bibtexparser,
+  click,
+  colorama,
+  dominate,
+  filetype,
+  habanero,
+  lark,
+  lxml,
+  platformdirs,
+  prompt-toolkit,
+  pygments,
+  python-doi,
+  python-slugify,
+  pyyaml,
+  requests,
+
+  # optional dependencies
+  chardet,
+  citeproc-py,
+  jinja2,
+  markdownify,
+  whoosh,
+
+  # switch for optional dependencies
+  withOptDeps ? false,
+
+  # tests
+  docutils,
+  git,
+  pytestCheckHook,
+  pytest-cov-stub,
+  sphinx,
+  sphinx-click,
+  writableTmpDirAsHomeHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "papis";
-  version = "0.13";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.16.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "papis";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-iRrf37hq+9D01JRaQIqg7yTPbLX6I0ZGnzG3r1DX464=";
+    repo = "papis";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-ZDGcuOCmddPaX6CldPf7YGHyIZfrG62ZQ6NXzFPDVAM=";
   };
 
-  propagatedBuildInputs = [
-    arxiv2bib
+  build-system = [ hatchling ];
+
+  dependencies = [
+    arxiv
     beautifulsoup4
     bibtexparser
-    chardet
     click
     colorama
-    configparser
     dominate
     filetype
     habanero
-    isbnlib
+    lark
     lxml
+    platformdirs
     prompt-toolkit
     pygments
-    pyparsing
     python-doi
     python-slugify
     pyyaml
     requests
-    stevedore
-    tqdm
-    typing-extensions
-    whoosh
-  ];
+  ]
+  ++ lib.optionals withOptDeps finalAttrs.passthru.optional-dependencies.complete;
 
-  postPatch = ''
-    substituteInPlace setup.cfg \
-      --replace "--cov=papis" ""
-  '';
+  optional-dependencies = {
+    complete = [
+      chardet
+      citeproc-py
+      jinja2
+      markdownify
+      whoosh
+    ];
+  };
+
+  pythonImportsCheck = [ "papis" ];
 
   nativeCheckInputs = [
+    docutils
+    git
     pytestCheckHook
+    pytest-cov-stub
+    sphinx
+    sphinx-click
+    writableTmpDirAsHomeHook
   ];
 
-  preCheck = ''
-    export HOME=$(mktemp -d);
-  '';
-
-  pytestFlagsArray = [
-    "papis tests"
-  ];
-
-  disabledTestPaths = [
-    "tests/downloaders"
-    "papis/downloaders/usenix.py"
+  enabledTestPaths = [
+    "papis"
+    "tests"
   ];
 
   disabledTests = [
-    "get_document_url"
-    "match"
-    "test_doi_to_data"
-    "test_downloader_getter"
-    "test_general"
-    "test_get_config_dirs"
-    "test_get_data"
-    "test_valid_dblp_key"
-    "test_validate_arxivid"
-    "test_yaml"
-  ] ++ lib.optionals stdenv.isDarwin [
-    "test_default_opener"
+    # Require network access
+    "test_add_folder_name_cli"
+    "test_add_link_cli"
+    "test_download_document"
+    "test_get_matching_importers_by_name"
+    "test_matching_importers_by_uri"
+    "test_yaml_unicode_dump"
+  ]
+  ++ lib.optionals withOptDeps [
+    # Require network access
+    "test_csl_style_download"
   ];
 
-  pythonImportsCheck = [
-    "papis"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Powerful command-line document and bibliography manager";
+    mainProgram = "papis";
     homepage = "https://papis.readthedocs.io/";
-    changelog = "https://github.com/papis/papis/blob/v${version}/CHANGELOG.md";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ nico202 teto marsam ];
+    changelog = "https://github.com/papis/papis/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.gpl3Only;
+    maintainers = with lib.maintainers; [
+      nico202
+      octvs
+    ];
   };
-}
+})

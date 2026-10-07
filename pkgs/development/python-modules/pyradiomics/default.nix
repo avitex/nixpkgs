@@ -1,33 +1,36 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, pytestCheckHook
-, numpy
-, pykwalify
-, pywavelets
-, setuptools
-, simpleitk
-, six
-, versioneer
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pyprojectVersionPatchHook,
+  pytestCheckHook,
+  numpy,
+  pykwalify,
+  pywavelets,
+  setuptools,
+  simpleitk,
+  six,
+  versioneer,
 }:
 
 buildPythonPackage rec {
   pname = "pyradiomics";
   version = "3.1.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.6";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "AIM-Harvard";
     repo = "pyradiomics";
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     hash = "sha256-/qFNN63Bbq4DUZDPmwUGj1z5pY3ujsbqFJpVXbO+b8E=";
     name = "pyradiomics";
   };
 
-  nativeBuildInputs = [ setuptools versioneer ];
+  nativeBuildInputs = [
+    pyprojectVersionPatchHook
+    setuptools
+    versioneer
+  ];
 
   propagatedBuildInputs = [
     numpy
@@ -51,21 +54,15 @@ buildPythonPackage rec {
     "lung1_shape2D-original_shape2D"
     "lung2_shape2D-original_shape2D"
   ];
-  # note the above elements of disabledTests are patterns, not exact tests,
-  # so simply setting `disabledTests` does not suffice:
-  pytestFlagsArray = [
-    "-k '${toString (lib.intersperse "and" (lib.forEach disabledTests (t: "not ${t}")))}'"
-  ];
 
-  pythonImportsCheck = [
-    "radiomics"
-  ];
+  pythonImportsCheck = [ "radiomics" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://pyradiomics.readthedocs.io";
     description = "Extraction of Radiomics features from 2D and 3D images and binary masks";
+    mainProgram = "pyradiomics";
     changelog = "https://github.com/AIM-Harvard/pyradiomics/releases/tag/v${version}";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ bcdarwin ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ bcdarwin ];
   };
 }

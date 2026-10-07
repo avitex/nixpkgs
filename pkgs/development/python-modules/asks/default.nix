@@ -1,21 +1,20 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, anyio
-, async-generator
-, h11
-, curio
-, overly
-, pytestCheckHook
-, trio
+{
+  lib,
+  buildPythonPackage,
+  pythonAtLeast,
+  fetchFromGitHub,
+  anyio,
+  async-generator,
+  h11,
+  curio,
+  overly,
+  pytestCheckHook,
+  trio,
 }:
 
 buildPythonPackage rec {
   pname = "asks";
   version = "3.0.0";
-
-  disabled = pythonOlder "3.6";
 
   format = "setuptools";
 
@@ -37,6 +36,12 @@ buildPythonPackage rec {
     overly
     pytestCheckHook
     trio
+  ];
+
+  disabledTests = lib.optionals (pythonAtLeast "3.12") [
+    # stuck in threading waiter.acquire()
+    "test_https_get"
+    "test_https_get_checks_cert"
   ];
 
   pythonImportsCheck = [ "asks" ];

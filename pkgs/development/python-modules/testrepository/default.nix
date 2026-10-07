@@ -1,36 +1,51 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, testtools
-, testresources
-, pbr
-, subunit
-, fixtures
-, python
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fixtures,
+  hatch-vcs,
+  hatchling,
+  python-subunit,
+  python,
+  testresources,
+  testtools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "testrepository";
-  version = "0.0.20";
-  format = "setuptools";
+  version = "0.0.22";
+  pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "1ssqb07c277010i6gzzkbdd46gd9mrj0bi0i8vn560n2k2y4j93m";
+  src = fetchFromGitHub {
+    owner = "testing-cabal";
+    repo = "testrepository";
+    tag = finalAttrs.version;
+    hash = "sha256-t5cTVMtzYIu4AIQVUVz3odvj+qFeYyUxIroB3yb0bFQ=";
   };
 
+  build-system = [
+    hatch-vcs
+    hatchling
+  ];
+
+  dependencies = [
+    fixtures
+    python-subunit
+    testtools
+  ];
+
   nativeCheckInputs = [ testresources ];
-  buildInputs = [ pbr ];
-  propagatedBuildInputs = [ fixtures subunit testtools ];
 
   checkPhase = ''
     ${python.interpreter} ./testr
   '';
 
-  meta = with lib; {
-    description = "A database of test results which can be used as part of developer workflow";
-    homepage = "https://pypi.python.org/pypi/testrepository";
-    license = licenses.bsd2;
+  meta = {
+    description = "Database of test results which can be used as part of developer workflow";
+    homepage = "https://github.com/testing-cabal/testrepository";
+    changelog = "https://github.com/testing-cabal/testrepository/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.bsd2;
+    maintainers = [ ];
+    mainProgram = "testr";
   };
-
-}
+})

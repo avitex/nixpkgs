@@ -1,55 +1,87 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, pytestCheckHook
-, hatch-vcs
-, lxml
-, matplotlib
-, nibabel
-, numpy
-, pandas
-, scikit-learn
-, scipy
-, joblib
-, requests
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  hatch-vcs,
+  hatchling,
+
+  # dependencies
+  joblib,
+  nibabel,
+  numpy,
+  pandas,
+  requests,
+  scikit-learn,
+  jinja2,
+  scipy,
+  packaging,
+
+  pytestCheckHook,
+  pytest-timeout,
+  pytest-rerunfailures,
+  numpydoc,
+  polars,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "nilearn";
-  version = "0.10.2";
+  version = "0.14.1";
   pyproject = true;
+  __structuredAttrs = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-A+9Npy0a6HsuPyi3cdx+BUZKoXliblfDAFlWJahlQnM=";
+  src = fetchFromGitHub {
+    owner = "nilearn";
+    repo = "nilearn";
+    tag = finalAttrs.version;
+    hash = "sha256-z/U2ZfAuyFYhkSCv0X2ZRqUPFt8HM4X8NBntELccBO4=";
   };
 
-  nativeBuildInputs = [ hatch-vcs ];
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail " --template=maint_tools/templates/index.html" ""
+  '';
 
-  nativeCheckInputs = [ pytestCheckHook ];
-  disabledTests = [ "test_clean_confounds" ];  # https://github.com/nilearn/nilearn/issues/2608
-  # do subset of tests which don't fetch resources
-  pytestFlagsArray = [ "nilearn/connectome/tests" ];
+  build-system = [
+    hatchling
+    hatch-vcs
+  ];
 
-  propagatedBuildInputs = [
+  # nilearn excludes scikit-learn 1.9.0 due to a sluggish HTML repr bug,
+  # which is fixed by the patch applied to python3Packages.scikit-learn.
+  pythonRelaxDeps = [
+    "scikit-learn"
+  ];
+
+  dependencies = [
     joblib
-    lxml
-    matplotlib
     nibabel
     numpy
     pandas
     requests
     scikit-learn
+    jinja2
     scipy
+    packaging
   ];
 
-  meta = with lib; {
+  nativeCheckInputs = [
+    pytestCheckHook
+    pytest-timeout
+    pytest-rerunfailures
+    numpydoc
+    polars
+  ];
+
+  # do subset of tests which don't fetch resources
+  enabledTestPaths = [ "nilearn/connectome/tests" ];
+
+  meta = {
+    description = "Module for statistical learning on neuroimaging data";
     homepage = "https://nilearn.github.io";
-    description = "A module for statistical learning on neuroimaging data";
-    changelog = "https://github.com/nilearn/nilearn/releases/tag/${version}";
-    license = licenses.bsd3;
+    changelog = "https://github.com/nilearn/nilearn/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ GaetanLepage ];
   };
-}
+})

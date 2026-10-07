@@ -1,11 +1,12 @@
-import ./make-test-python.nix ({ pkgs, lib, ... }: {
+{ pkgs, lib, ... }:
+{
   name = "containers-physical_interfaces";
   meta = {
-    maintainers = with lib.maintainers; [ kampfschlaefer ];
   };
 
   nodes = {
-    server = { ... }:
+    server =
+      { ... }:
       {
         virtualisation.vlans = [ 1 ];
 
@@ -15,69 +16,114 @@ import ./make-test-python.nix ({ pkgs, lib, ... }: {
 
           config = {
             networking.interfaces.eth1.ipv4.addresses = [
-              { address = "10.10.0.1"; prefixLength = 24; }
+              {
+                address = "10.10.0.1";
+                prefixLength = 24;
+              }
             ];
             networking.firewall.enable = false;
+            nix.enable = false; # disabled by default on the test's host. See all-tests.nix / tag(no-nix-by-default)
           };
         };
       };
-    bridged = { ... }: {
-      virtualisation.vlans = [ 1 ];
+    autoStart =
+      { ... }:
+      {
+        virtualisation.vlans = [ 1 ];
 
-      containers.bridged = {
-        privateNetwork = true;
-        interfaces = [ "eth1" ];
+        networking.useNetworkd = true;
 
-        config = {
-          networking.bridges.br0.interfaces = [ "eth1" ];
-          networking.interfaces.br0.ipv4.addresses = [
-            { address = "10.10.0.2"; prefixLength = 24; }
-          ];
-          networking.firewall.enable = false;
+        systemd.network.netdevs."20-dummy-test".netdevConfig = {
+          Name = "dummy-test";
+          Kind = "dummy";
         };
-      };
-    };
 
-    bonded = { ... }: {
-      virtualisation.vlans = [ 1 ];
+        containers.autoStart = {
+          autoStart = true;
+          privateNetwork = true;
+          interfaces = [ "dummy-test" ];
 
-      containers.bonded = {
-        privateNetwork = true;
-        interfaces = [ "eth1" ];
-
-        config = {
-          networking.bonds.bond0 = {
-            interfaces = [ "eth1" ];
-            driverOptions.mode = "active-backup";
+          config = {
+            networking.firewall.enable = false;
+            nix.enable = false; # disabled by default on the test's host. See all-tests.nix / tag(no-nix-by-default)
           };
-          networking.interfaces.bond0.ipv4.addresses = [
-            { address = "10.10.0.3"; prefixLength = 24; }
-          ];
-          networking.firewall.enable = false;
         };
       };
-    };
+    bridged =
+      { ... }:
+      {
+        virtualisation.vlans = [ 1 ];
 
-    bridgedbond = { ... }: {
-      virtualisation.vlans = [ 1 ];
+        containers.bridged = {
+          privateNetwork = true;
+          interfaces = [ "eth1" ];
 
-      containers.bridgedbond = {
-        privateNetwork = true;
-        interfaces = [ "eth1" ];
-
-        config = {
-          networking.bonds.bond0 = {
-            interfaces = [ "eth1" ];
-            driverOptions.mode = "active-backup";
+          config = {
+            networking.bridges.br0.interfaces = [ "eth1" ];
+            networking.interfaces.br0.ipv4.addresses = [
+              {
+                address = "10.10.0.2";
+                prefixLength = 24;
+              }
+            ];
+            networking.firewall.enable = false;
+            nix.enable = false; # disabled by default on the test's host. See all-tests.nix / tag(no-nix-by-default)
           };
-          networking.bridges.br0.interfaces = [ "bond0" ];
-          networking.interfaces.br0.ipv4.addresses = [
-            { address = "10.10.0.4"; prefixLength = 24; }
-          ];
-          networking.firewall.enable = false;
         };
       };
-    };
+
+    bonded =
+      { ... }:
+      {
+        virtualisation.vlans = [ 1 ];
+
+        containers.bonded = {
+          privateNetwork = true;
+          interfaces = [ "eth1" ];
+
+          config = {
+            networking.bonds.bond0 = {
+              interfaces = [ "eth1" ];
+              driverOptions.mode = "active-backup";
+            };
+            networking.interfaces.bond0.ipv4.addresses = [
+              {
+                address = "10.10.0.3";
+                prefixLength = 24;
+              }
+            ];
+            networking.firewall.enable = false;
+            nix.enable = false; # disabled by default on the test's host. See all-tests.nix / tag(no-nix-by-default)
+          };
+        };
+      };
+
+    bridgedbond =
+      { ... }:
+      {
+        virtualisation.vlans = [ 1 ];
+
+        containers.bridgedbond = {
+          privateNetwork = true;
+          interfaces = [ "eth1" ];
+
+          config = {
+            networking.bonds.bond0 = {
+              interfaces = [ "eth1" ];
+              driverOptions.mode = "active-backup";
+            };
+            networking.bridges.br0.interfaces = [ "bond0" ];
+            networking.interfaces.br0.ipv4.addresses = [
+              {
+                address = "10.10.0.4";
+                prefixLength = 24;
+              }
+            ];
+            networking.firewall.enable = false;
+            nix.enable = false; # disabled by default on the test's host. See all-tests.nix / tag(no-nix-by-default)
+          };
+        };
+      };
   };
 
   testScript = ''
@@ -97,6 +143,16 @@ import ./make-test-python.nix ({ pkgs, lib, ... }: {
         # The other tests will ping this container on its ip. Here we just check
         # that the device is present in the container.
         server.succeed("nixos-container run server -- ip a show dev eth1 >&2")
+
+    with subtest("Simple dummy interface is up, with autoStart enabled"):
+        autoStart.wait_for_unit("container@autoStart")
+
+        # Check if any dependency of container@autoStart.service timed out.
+        # If a non-existing .device dependency is set in Wants, systemd will
+        # wait until that unit times out, resulting a delay of the container.
+        autoStart.fail("journalctl _PID=1 | grep sys-subsystem-net-devices | grep 'timed out'")
+
+        autoStart.succeed("nixos-container run autoStart -- ip a show dev dummy-test >&2")
 
     with subtest("Physical device in bridge in container can ping server"):
         bridged.wait_for_unit("default.target")
@@ -128,4 +184,4 @@ import ./make-test-python.nix ({ pkgs, lib, ... }: {
             "nixos-container run bridgedbond -- ping -w 10 -c 1 -n 10.10.0.1",
         )
   '';
-})
+}

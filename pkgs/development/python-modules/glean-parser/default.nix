@@ -1,54 +1,44 @@
-{ lib
-, appdirs
-, buildPythonPackage
-, click
-, diskcache
-, fetchPypi
-, jinja2
-, jsonschema
-, pytestCheckHook
-, pythonOlder
-, pyyaml
-, setuptools-scm
-, yamllint
+{
+  lib,
+  buildPythonPackage,
+  click,
+  diskcache,
+  fetchPypi,
+  hatchling,
+  hatch-vcs,
+  jinja2,
+  jsonschema,
+  platformdirs,
+  pytestCheckHook,
+  pyyaml,
 }:
 
 buildPythonPackage rec {
   pname = "glean-parser";
-  version = "10.0.3";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.6";
+  version = "20.0.1";
+  pyproject = true;
 
   src = fetchPypi {
     pname = "glean_parser";
     inherit version;
-    hash = "sha256-1XNZYp0pX57lcAaKKEaWaJLj/ttyIlnsvNjMN20pm1E=";
+    hash = "sha256-e6d4QMqOR8/7F/Tstk7cH/aj1s4AZyI+BS5AnewePKk=";
   };
 
-  postPatch = ''
-    substituteInPlace setup.py \
-      --replace "pytest-runner" "" \
-      --replace "MarkupSafe>=1.1.1,<=2.0.1" "MarkupSafe>=1.1.1"
-  '';
-
-  nativeBuildInputs = [
-    setuptools-scm
+  build-system = [
+    hatchling
+    hatch-vcs
   ];
 
-  propagatedBuildInputs = [
-    appdirs
+  dependencies = [
     click
     diskcache
     jinja2
     jsonschema
     pyyaml
-    yamllint
+    platformdirs
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   preCheck = ''
     export HOME=$TMPDIR
@@ -57,19 +47,19 @@ buildPythonPackage rec {
   disabledTests = [
     # Network access
     "test_validate_ping"
+    "test_logging"
     # Fails since yamllint 1.27.x
     "test_yaml_lint"
   ];
 
-  pythonImportsCheck = [
-    "glean_parser"
-  ];
+  pythonImportsCheck = [ "glean_parser" ];
 
-  meta = with lib; {
+  meta = {
     description = "Tools for parsing the metadata for Mozilla's glean telemetry SDK";
+    mainProgram = "glean_parser";
     homepage = "https://github.com/mozilla/glean_parser";
     changelog = "https://github.com/mozilla/glean_parser/blob/v${version}/CHANGELOG.md";
-    license = licenses.mpl20;
-    maintainers = with maintainers; [];
+    license = lib.licenses.mpl20;
+    maintainers = [ ];
   };
 }

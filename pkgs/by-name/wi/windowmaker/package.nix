@@ -1,25 +1,26 @@
-{ lib
-, stdenv
-, fetchFromRepoOrCz
-, autoreconfHook
-, callPackage
-, pkg-config
-, imagemagick
-, libX11
-, libXext
-, libXft
-, libXinerama
-, libXmu
-, libXpm
-, libXrandr
-, libXres
-, libexif
-, libjpeg
-, libpng
-, libtiff
-, giflib
-, libwebp
-, pango
+{
+  lib,
+  stdenv,
+  fetchFromRepoOrCz,
+  autoreconfHook,
+  callPackage,
+  pkg-config,
+  imagemagick,
+  libx11,
+  libxext,
+  libxft,
+  libxinerama,
+  libxmu,
+  libxpm,
+  libxrandr,
+  libxres,
+  libexif,
+  libjpeg,
+  libpng,
+  libtiff,
+  giflib,
+  libwebp,
+  pango,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
@@ -40,14 +41,14 @@ stdenv.mkDerivation (finalAttrs: {
   buildInputs = [
     giflib
     imagemagick
-    libX11
-    libXext
-    libXft
-    libXinerama
-    libXmu
-    libXpm
-    libXrandr
-    libXres
+    libx11
+    libxext
+    libxft
+    libxinerama
+    libxmu
+    libxpm
+    libxrandr
+    libxres
     libexif
     libjpeg
     libpng
@@ -81,7 +82,7 @@ stdenv.mkDerivation (finalAttrs: {
     changelog = "https://www.windowmaker.org/news/";
     license = lib.licenses.gpl2Plus;
     mainProgram = "wmaker";
-    maintainers = [ lib.maintainers.AndersonTorres ];
-    platforms = lib.platforms.linux;
+    maintainers = [ ];
+    platforms = lib.platforms.unix;
   };
 })

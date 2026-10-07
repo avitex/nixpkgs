@@ -1,4 +1,8 @@
-{ lib, buildPythonPackage, fetchPypi }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+}:
 
 buildPythonPackage rec {
   pname = "ipaddr";
@@ -14,10 +18,10 @@ buildPythonPackage rec {
     python ipaddr_test.py
   '';
 
-  meta = with lib; {
+  meta = {
     description = "IP address manipulation library";
     homepage = "https://github.com/google/ipaddr-py";
-    license = licenses.asl20;
-    maintainers = [ maintainers.astro ];
+    license = lib.licenses.asl20;
+    maintainers = [ lib.maintainers.astro ];
   };
 }

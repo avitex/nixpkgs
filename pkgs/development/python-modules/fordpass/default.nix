@@ -1,15 +1,14 @@
-{ lib
-, requests
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
+{
+  lib,
+  requests,
+  buildPythonPackage,
+  fetchFromGitHub,
 }:
 
 buildPythonPackage rec {
   pname = "fordpass";
   version = "0.0.4";
   format = "setuptools";
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "clarkd";
@@ -18,19 +17,18 @@ buildPythonPackage rec {
     sha256 = "0i1dlswxc2bv1smc5d4r1adbxbl7sgr1swh2cjfajp73vs43xa0m";
   };
 
-  propagatedBuildInputs = [
-    requests
-  ];
+  propagatedBuildInputs = [ requests ];
 
   # Project has no tests
   doCheck = false;
 
   pythonImportsCheck = [ "fordpass" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python module for the FordPass API";
+    mainProgram = "demo.py";
     homepage = "https://github.com/clarkd/fordpass-python";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

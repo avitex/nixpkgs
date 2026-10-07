@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   cfg = config.programs.sniffnet;
@@ -7,11 +12,13 @@ in
 {
   options = {
     programs.sniffnet = {
-      enable = lib.mkEnableOption (lib.mdDoc "sniffnet");
+      enable = lib.mkEnableOption "sniffnet, a network traffic monitor application";
     };
   };
 
   config = lib.mkIf cfg.enable {
+    environment.systemPackages = [ pkgs.sniffnet ];
+
     security.wrappers.sniffnet = {
       owner = "root";
       group = "root";
@@ -20,5 +27,5 @@ in
     };
   };
 
-  meta.maintainers = with lib.maintainers; [ figsoda ];
+  meta.maintainers = [ ];
 }

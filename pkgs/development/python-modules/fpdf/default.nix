@@ -1,4 +1,8 @@
-{ lib, buildPythonPackage, fetchPypi }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+}:
 
 buildPythonPackage rec {
   pname = "fpdf";
@@ -17,6 +21,6 @@ buildPythonPackage rec {
     homepage = "https://github.com/reingart/pyfpdf";
     description = "Simple PDF generation for Python";
     license = lib.licenses.lgpl3;
-    maintainers = with lib.maintainers; [ oxzi ];
+    maintainers = [ ];
   };
 }

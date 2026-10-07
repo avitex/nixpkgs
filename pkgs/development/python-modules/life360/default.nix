@@ -1,41 +1,37 @@
-{ lib
-, aiohttp
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  aiohttp,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "life360";
-  version = "6.0.1";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.8";
+  version = "7.2.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "pnbruckner";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-USqSkjOHlH0K/RlRYpn/gz6dHW8/uEVpsc4HeUZ3Emg=";
+    repo = "life360";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-ySa84lUyx8D7Dgg/hdZ4o/+Znn3CR0O9rdeXBrj/k5U=";
   };
 
-  propagatedBuildInputs = [
-    aiohttp
-  ];
+  build-system = [ setuptools ];
 
-  # Project has no tests
+  dependencies = [ aiohttp ];
+
+  # Module has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "life360"
-  ];
+  pythonImportsCheck = [ "life360" ];
 
-  meta = with lib; {
-    description = "Python module to interact with Life360";
+  meta = {
+    description = "Module to interact with Life360";
     homepage = "https://github.com/pnbruckner/life360";
-    changelog = "https://github.com/pnbruckner/life360/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/pnbruckner/life360/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

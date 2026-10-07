@@ -1,16 +1,17 @@
-{ lib
-, stdenv
-, fetchurl
-, ncurses
+{
+  lib,
+  stdenv,
+  fetchurl,
+  ncurses,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "cdk";
-  version = "5.0-20230201";
+  version = "5.0-20260119";
 
   src = fetchurl {
     url = "https://invisible-mirror.net/archives/cdk/cdk-${finalAttrs.version}.tgz";
-    hash = "sha256-oxJ7Wf5QX16Jjao90VsM9yShJ0zmgWW3eb4vKdTE8vY=";
+    hash = "sha256-RrtoRB5pinsfZC4lZJaKdwCv7wOGRCr9XPLnspbTDuU=";
   };
 
   buildInputs = [
@@ -21,10 +22,13 @@ stdenv.mkDerivation (finalAttrs: {
 
   meta = {
     description = "Curses development kit";
+    mainProgram = "cdk5-config";
     homepage = "https://invisible-island.net/cdk/";
     changelog = "https://invisible-island.net/cdk/CHANGES.html";
     license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ raskin AndersonTorres ];
+    maintainers = with lib.maintainers; [
+      raskin
+    ];
     inherit (ncurses.meta) platforms;
   };
 })

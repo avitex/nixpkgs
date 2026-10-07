@@ -1,73 +1,57 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, click
-, click-log
-, click-threading
-, requests-toolbelt
-, requests
-, atomicwrites
-, hypothesis
-, pytestCheckHook
-, pytest-subtesthack
-, setuptools
-, setuptools-scm
-, wheel
-, aiostream
-, aiohttp-oauthlib
-, aiohttp
-, pytest-asyncio
-, trustme
-, aioresponses
-, vdirsyncer
-, testers
-, pythonRelaxDepsHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  fetchpatch,
+  click,
+  click-log,
+  requests,
+  hypothesis,
+  pytestCheckHook,
+  pytest-cov-stub,
+  setuptools,
+  setuptools-scm,
+  aiostream,
+  aiohttp-oauthlib,
+  aiohttp,
+  pytest-asyncio,
+  trustme,
+  aioresponses,
+  nixosTests,
+  versionCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "vdirsyncer";
-  version = "0.19.2";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "0.20.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-/QWM7quCk0WaBGbNmw5Ks7OUYsbgiaDwrDfDB0INgro=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-/rGlM1AKlcFP0VVzOhBW/jWRklU9gsB8a6BPy/xAsS0=";
   };
 
-  postPatch = ''
-    sed -i -e '/--cov/d' -e '/--no-cov/d' pyproject.toml
-  '';
-
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     setuptools-scm
-    wheel
-    pythonRelaxDepsHook
   ];
 
-  pythonRelaxDeps = [
-    "aiostream"
-  ];
-
-  propagatedBuildInputs = [
-    atomicwrites
+  dependencies = [
     click
     click-log
-    click-threading
     requests
-    requests-toolbelt
     aiostream
     aiohttp
-    aiohttp-oauthlib
   ];
+
+  optional-dependencies = {
+    google = [ aiohttp-oauthlib ];
+  };
 
   nativeCheckInputs = [
     hypothesis
     pytestCheckHook
-    pytest-subtesthack
+    pytest-cov-stub
     pytest-asyncio
     trustme
     aioresponses
@@ -83,14 +67,20 @@ buildPythonPackage rec {
     "test_verbosity"
   ];
 
-  passthru.tests.version = testers.testVersion { package = vdirsyncer; };
+  nativeInstallCheckInputs = [
+    versionCheckHook
+  ];
 
-  meta = with lib; {
+  passthru.tests = {
+    inherit (nixosTests) vdirsyncer;
+  };
+
+  meta = {
     description = "Synchronize calendars and contacts";
     homepage = "https://github.com/pimutils/vdirsyncer";
-    changelog = "https://github.com/pimutils/vdirsyncer/blob/v${version}/CHANGELOG.rst";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ loewenheim ];
+    changelog = "https://github.com/pimutils/vdirsyncer/blob/v${finalAttrs.version}/CHANGELOG.rst";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ stephen-huan ];
     mainProgram = "vdirsyncer";
   };
-}
+})

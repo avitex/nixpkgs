@@ -1,62 +1,81 @@
-{ lib
-, buildPythonPackage
-, defusedxml
-, dissect-cstruct
-, dissect-util
-, fetchFromGitHub
-, pycryptodome
-, pytestCheckHook
-, pythonOlder
-, rich
-, setuptools
-, setuptools-scm
+{
+  lib,
+  backports-zstd,
+  buildPythonPackage,
+  defusedxml,
+  dissect-cstruct,
+  dissect-util,
+  fetchFromGitHub,
+  fetchpatch2,
+  pycryptodome,
+  pytestCheckHook,
+  setuptools,
+  setuptools-scm,
+  zstandard,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "dissect-hypervisor";
-  version = "3.11";
+  version = "3.21";
   pyproject = true;
-
-  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
     owner = "fox-it";
     repo = "dissect.hypervisor";
-    rev = "refs/tags/${version}";
-    hash = "sha256-x7C2h9NZRlkJWAe0+PCmOhOpfHM2/4vc7oEGQqGEPq8=";
+    tag = finalAttrs.version;
+    fetchLFS = true;
+    hash = "sha256-T6dv8TtGTwjOVoGplgBJgRmFRst4Q0EMYgPheGSAEU4=";
   };
 
-  nativeBuildInputs = [
+  patches = [
+    # Fix vmtar compat with python 3.13.13+ tarfile refactor.
+    (fetchpatch2 {
+      url = "https://github.com/fox-it/dissect.hypervisor/commit/8baa8f6ac1ae9a7cfd99095472d9f8e933d290f5.patch?full_index=1";
+      excludes = [ "tests/util/test_vmtar.py" ];
+      hash = "sha256-Ot0rV1j+yQrXi7v1ARX+Pamnbr+/Q7T1YidY80QdgDo=";
+    })
+  ];
+
+  postPatch = ''
+    substituteInPlace tests/util/test_vmtar.py \
+      --replace-fail '"test/file1",' '"test", "test/file1",'
+  '';
+
+  build-system = [
     setuptools
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     defusedxml
     dissect-cstruct
     dissect-util
   ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     full = [
+      backports-zstd
       pycryptodome
-      rich
     ];
   };
 
   nativeCheckInputs = [
     pytestCheckHook
+  ]
+  ++ lib.concatAttrValues finalAttrs.passthru.optional-dependencies;
+
+  pythonImportsCheck = [ "dissect.hypervisor" ];
+
+  disabledTests = [
+    # Read error
+    "test_vmtar"
   ];
 
-  pythonImportsCheck = [
-    "dissect.hypervisor"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Dissect module implementing parsers for various hypervisor disk, backup and configuration files";
     homepage = "https://github.com/fox-it/dissect.hypervisor";
-    changelog = "https://github.com/fox-it/dissect.hypervisor/releases/tag/${version}";
-    license = licenses.agpl3Only;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/fox-it/dissect.hypervisor/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.agpl3Only;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

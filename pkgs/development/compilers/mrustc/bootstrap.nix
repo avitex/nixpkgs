@@ -1,27 +1,28 @@
-{ lib, stdenv
-, fetchurl
-, mrustc
-, mrustc-minicargo
-, llvm_12
-, llvmPackages_12
-, libffi
-, cmake
-, python3
-, zlib
-, libxml2
-, openssl
-, pkg-config
-, curl
-, which
-, time
+{
+  lib,
+  stdenv,
+  fetchurl,
+  mrustc,
+  mrustc-minicargo,
+  llvm_20,
+  libffi,
+  cmake,
+  perl,
+  python3,
+  zlib,
+  libxml2,
+  pkg-config,
+  curl,
+  which,
+  time,
 }:
 
 let
-  mrustcTargetVersion = "1.54";
-  rustcVersion = "1.54.0";
+  mrustcTargetVersion = "1.90";
+  rustcVersion = "1.90.0";
   rustcSrc = fetchurl {
     url = "https://static.rust-lang.org/dist/rustc-${rustcVersion}-src.tar.gz";
-    sha256 = "0xk9dhfff16caambmwij67zgshd8v9djw6ha0fnnanlv7rii31dc";
+    hash = "sha256-eZqfnLpO1TUeBxBIvPa1VgdV2QCWSN7zOkB91JYfm34=";
   };
   rustcDir = "rustc-${rustcVersion}-src";
   outputDir = "output-${rustcVersion}";
@@ -55,6 +56,7 @@ stdenv.mkDerivation rec {
     cmake
     mrustc
     mrustc-minicargo
+    perl
     pkg-config
     python3
     time
@@ -62,17 +64,19 @@ stdenv.mkDerivation rec {
   ];
   buildInputs = [
     # for rustc
-    llvm_12 libffi zlib libxml2
+    llvm_20
+    libffi
+    zlib
+    libxml2
     # for cargo
-    openssl
-    (curl.override { inherit openssl; })
+    curl
   ];
 
   makeFlags = [
     # Use shared mrustc/minicargo/llvm instead of rebuilding them
     "MRUSTC=${mrustc}/bin/mrustc"
     #"MINICARGO=${mrustc-minicargo}/bin/minicargo"  # FIXME: we need to rebuild minicargo locally so --manifest-overrides is applied
-    "LLVM_CONFIG=${llvm_12.dev}/bin/llvm-config"
+    "LLVM_CONFIG=${llvm_20.dev}/bin/llvm-config"
     "RUSTC_TARGET=${stdenv.targetPlatform.rust.rustcTarget}"
   ];
 
@@ -132,16 +136,22 @@ stdenv.mkDerivation rec {
     runHook postInstall
   '';
 
-  meta = with lib; {
+  meta = {
     inherit (src.meta) homepage;
-    description = "A minimal build of Rust";
+    description = "Minimal build of Rust";
     longDescription = ''
       A minimal build of Rust, built from source using mrustc.
       This is useful for bootstrapping the main Rust compiler without
       an initial binary toolchain download.
     '';
-    maintainers = with maintainers; [ progval r-burns ];
-    license = with licenses; [ mit asl20 ];
+    maintainers = with lib.maintainers; [
+      progval
+      r-burns
+    ];
+    license = with lib.licenses; [
+      mit
+      asl20
+    ];
     platforms = [ "x86_64-linux" ];
   };
 }

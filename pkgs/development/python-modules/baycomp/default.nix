@@ -1,24 +1,29 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, numpy
-, scipy
-, scikit-learn
-, matplotlib
-, unittestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  numpy,
+  scipy,
+  matplotlib,
+  unittestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "baycomp";
   version = "1.0.3";
-  format = "setuptools";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
+    inherit (finalAttrs) pname version;
     hash = "sha256-MrJa17FtWyUd259hEKMtezlTuYcJbaHSXvJ3k10l2uw=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     numpy
     scipy
     matplotlib
@@ -28,9 +33,9 @@ buildPythonPackage rec {
   pythonImportsCheck = [ "baycomp" ];
 
   meta = {
-    description = "A library for Bayesian comparison of classifiers";
+    description = "Library for Bayesian comparison of classifiers";
     homepage = "https://github.com/janezd/baycomp";
-    license = [ lib.licenses.mit ];
-    maintainers = [ lib.maintainers.lucasew ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
-}
+})

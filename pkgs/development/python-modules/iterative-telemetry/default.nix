@@ -1,35 +1,31 @@
-{ lib
-, appdirs
-, buildPythonPackage
-, distro
-, fetchFromGitHub
-, filelock
-, pytestCheckHook
-, pytest-mock
-, pythonOlder
-, requests
-, setuptools-scm
+{
+  lib,
+  appdirs,
+  buildPythonPackage,
+  distro,
+  fetchFromGitHub,
+  filelock,
+  pytestCheckHook,
+  pytest-mock,
+  requests,
+  setuptools-scm,
 }:
 
 buildPythonPackage rec {
-  pname = "iterative-telemtry";
-  version = "0.0.8";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  pname = "iterative-telemetry";
+  version = "0.0.10";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "iterative";
     repo = "telemetry-python";
-    rev = "refs/tags/${version}";
-    hash = "sha256-jD1AyQTdz/NfTRpvEuTE/gUfgNIhNlnimuCks5ImhwA=";
+    tag = version;
+    hash = "sha256-+l9JH9MbN+Pai3MIcKZJObzoPGhQipfMd7T8v4SoSws=";
   };
 
-  nativeBuildInputs = [
-    setuptools-scm
-  ];
+  build-system = [ setuptools-scm ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     requests
     appdirs
     filelock
@@ -41,15 +37,12 @@ buildPythonPackage rec {
     pytest-mock
   ];
 
-  pythonImportsCheck = [
-    "iterative_telemetry"
-  ];
+  pythonImportsCheck = [ "iterative_telemetry" ];
 
-  meta = with lib; {
+  meta = {
     description = "Common library to send usage telemetry";
     homepage = "https://github.com/iterative/iterative-telemetry";
-    changelog = "https://github.com/iterative/iterative-telemetry/releases/tag/${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ melling ];
+    changelog = "https://github.com/iterative/iterative-telemetry/releases/tag/${src.tag}";
+    license = lib.licenses.asl20;
   };
 }

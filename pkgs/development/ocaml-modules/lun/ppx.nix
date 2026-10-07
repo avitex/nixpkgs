@@ -1,10 +1,21 @@
-{ lib, buildDunePackage, fetchurl, fmt, lun, ppxlib }:
+{
+  lib,
+  buildDunePackage,
+  fmt,
+  lun,
+  ppxlib,
+}:
 
 buildDunePackage {
   pname = "ppx_lun";
   inherit (lun) version src;
 
-  propagatedBuildInputs = [ lun ppxlib ];
+  minimalOCamlVersion = "5.3";
+
+  propagatedBuildInputs = [
+    lun
+    ppxlib
+  ];
 
   checkInputs = [ fmt ];
 

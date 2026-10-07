@@ -1,34 +1,30 @@
-{ lib
-, bitstruct
-, buildPythonPackage
-, fetchFromGitHub
-, jinja2
-, jsonschema
-, lark
-, pytestCheckHook
-, pythonOlder
-, setuptools
+{
+  lib,
+  bitstruct,
+  buildPythonPackage,
+  fetchFromGitHub,
+  jinja2,
+  jsonschema,
+  lark,
+  pytestCheckHook,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "ldfparser";
-  version = "0.21.0";
+  version = "0.26.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "c4deszes";
     repo = "ldfparser";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-4uwze9TJYmNvhDiKYyUX6Ya+eQb0mbpQQaawUWmO3Gs=";
+    tag = "v${version}";
+    hash = "sha256-SVl/O0/2k1Y4lta+3BFkddyBZfYO2vqh4Xx1ZXNwXN4=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     bitstruct
     jinja2
     lark
@@ -39,20 +35,19 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "ldfparser"
-  ];
+  pythonImportsCheck = [ "ldfparser" ];
 
   disabledTestPaths = [
     # We don't care about benchmarks
     "tests/test_performance.py"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "LIN Description File parser written in Python";
     homepage = "https://github.com/c4deszes/ldfparser";
     changelog = "https://github.com/c4deszes/ldfparser/blob/${version}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
+    mainProgram = "ldfparser";
   };
 }

@@ -1,27 +1,27 @@
-{ stdenv
-, lib
-, fetchFromGitea
-, blueprint-compiler
-, desktop-file-utils
-, glib
-, gtk4
-, libadwaita
-, meson
-, ninja
-, pkg-config
-, wrapGAppsHook4
+{
+  stdenv,
+  lib,
+  fetchFromCodeberg,
+  blueprint-compiler,
+  desktop-file-utils,
+  glib,
+  gtk4,
+  libadwaita,
+  meson,
+  ninja,
+  pkg-config,
+  wrapGAppsHook4,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "door-knocker";
-  version = "0.4.3";
+  version = "0.9.0";
 
-  src = fetchFromGitea {
-    domain = "codeberg.org";
+  src = fetchFromCodeberg {
     owner = "tytan652";
     repo = "door-knocker";
     rev = finalAttrs.version;
-    hash = "sha256-/C5dNoEAKf0kok+L6/GaA02yrc8e1PUwK9HYaOwjqIM=";
+    hash = "sha256-h7wDJRePWUZ/oHdkSXLFcDWau1K8Yof9pQXFjexZxbA=";
   };
 
   nativeBuildInputs = [
@@ -39,12 +39,12 @@ stdenv.mkDerivation (finalAttrs: {
     libadwaita
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Tool to check the availability of portals";
     homepage = "https://codeberg.org/tytan652/door-knocker";
-    license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ symphorien ];
-    platforms = platforms.linux;
+    license = lib.licenses.gpl3Plus;
+    maintainers = with lib.maintainers; [ symphorien ];
+    platforms = lib.platforms.linux;
     mainProgram = "door-knocker";
   };
 })

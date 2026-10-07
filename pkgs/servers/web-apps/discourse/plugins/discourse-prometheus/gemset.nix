@@ -1,23 +1,23 @@
 {
   prometheus_exporter = {
-    dependencies = ["webrick"];
-    groups = ["default"];
-    platforms = [];
+    dependencies = [ "webrick" ];
+    groups = [ "default" ];
+    platforms = [ ];
     source = {
-      remotes = ["https://rubygems.org"];
-      sha256 = "0pb4k6px8b36bvnw3d14j31s33ns60dcwxixbcgvhpzavd7fparb";
+      remotes = [ "https://rubygems.org" ];
+      sha256 = "15vl8fw8vjnaj9g129dzrwk9nlrdqgffaj3rys4ba9ns2bqim9rq";
       type = "gem";
     };
-    version = "2.0.6";
+    version = "2.2.0";
   };
   webrick = {
-    groups = ["default"];
-    platforms = [];
+    groups = [ "default" ];
+    platforms = [ ];
     source = {
-      remotes = ["https://rubygems.org"];
-      sha256 = "1d4cvgmxhfczxiq5fr534lmizkhigd15bsx5719r5ds7k7ivisc7";
+      remotes = [ "https://rubygems.org" ];
+      sha256 = "0ca1hr2rxrfw7s613rp4r4bxb454i3ylzniv9b9gxpklqigs3d5y";
       type = "gem";
     };
-    version = "1.7.0";
+    version = "1.9.2";
   };
 }

@@ -1,56 +1,43 @@
-{ lib
-, aiohttp
-, buildPythonPackage
-, fetchFromGitHub
-, loguru
-, pydantic
-, poetry-core
-, pythonOlder
-, requests
+{
+  lib,
+  aiohttp,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pdm-backend,
+  pydantic,
+  requests,
 }:
 
 buildPythonPackage rec {
   pname = "pyaussiebb";
-  version = "0.1.1";
+  version = "0.1.6";
   pyproject = true;
-
-  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
     owner = "yaleman";
     repo = "aussiebb";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-XNf9vYMlTLqhYIVNw9GjPcXpOm5EYCcC4aGukR8g3zc=";
+    tag = "v${version}";
+    hash = "sha256-GD04Bq+uJs2JuTjtnGh6QKD4uFXwmGcOMB1Hu9yBlkI=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ pdm-backend ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
     requests
-    loguru
     pydantic
   ];
-
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace 'requests = "^2.27.1"' 'requests = "*"'
-  '';
 
   # Tests require credentials and requests-testing
   doCheck = false;
 
-  pythonImportsCheck = [
-    "aussiebb"
-  ];
+  pythonImportsCheck = [ "aussiebb" ];
 
-  meta = with lib; {
+  meta = {
     description = "Module for interacting with the Aussie Broadband APIs";
     homepage = "https://github.com/yaleman/aussiebb";
-    changelog = "https://github.com/yaleman/pyaussiebb/blob/v${version}/CHANGELOG.md";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/yaleman/pyaussiebb/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

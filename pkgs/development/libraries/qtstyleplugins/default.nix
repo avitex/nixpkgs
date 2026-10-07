@@ -1,8 +1,16 @@
-{ lib, mkDerivation, fetchFromGitHub, fetchpatch, qmake, pkg-config, gtk2 }:
+{
+  lib,
+  mkDerivation,
+  fetchFromGitHub,
+  fetchpatch,
+  qmake,
+  pkg-config,
+  gtk2,
+}:
 
 mkDerivation {
   pname = "qtstyleplugins";
-  version = "unstable-2017-03-11";
+  version = "5.0.0-unstable-2017-03-11";
 
   src = fetchFromGitHub {
     owner = "qt";
@@ -24,14 +32,17 @@ mkDerivation {
     })
   ];
 
-  nativeBuildInputs = [ pkg-config qmake ];
+  nativeBuildInputs = [
+    pkg-config
+    qmake
+  ];
   buildInputs = [ gtk2 ];
 
-  meta = with lib; {
+  meta = {
     description = "Additional style plugins for Qt5, including BB10, GTK, Cleanlooks, Motif, Plastique";
     homepage = "http://blog.qt.io/blog/2012/10/30/cleaning-up-styles-in-qt5-and-adding-fusion/";
-    license = licenses.lgpl21;
+    license = lib.licenses.lgpl21;
     maintainers = [ ];
-    platforms = platforms.linux;
+    platforms = lib.platforms.linux;
   };
 }

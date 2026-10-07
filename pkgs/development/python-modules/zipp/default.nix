@@ -1,48 +1,58 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, func-timeout
-, jaraco-itertools
-, pythonOlder
-, setuptools-scm
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  func-timeout,
+  jaraco-itertools,
+  setuptools,
+  setuptools-scm,
 }:
 
-let zipp = buildPythonPackage rec {
-  pname = "zipp";
-  version = "3.17.0";
-  format = "pyproject";
+let
+  zipp = buildPythonPackage rec {
+    pname = "zipp";
+    version = "4.1.0";
+    pyproject = true;
 
-  disabled = pythonOlder "3.7";
+    src = fetchFromGitHub {
+      owner = "jaraco";
+      repo = "zipp";
+      tag = "v${version}";
+      hash = "sha256-qFsCud+fKDULbIF3LLGh6su/Sm1YjcvKe0+R9GH/Ies=";
+    };
 
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-hOZKHCjPfpHtIHi7jMjCWcsZt2lCCWyNe4SUdpDKuvA=";
+    postPatch = ''
+      # Downloads license text at build time
+      sed -i "/coherent\.licensed/d" pyproject.toml
+    '';
+
+    build-system = [
+      setuptools
+      setuptools-scm
+    ];
+
+    # Prevent infinite recursion with pytest
+    doCheck = false;
+
+    nativeCheckInputs = [
+      func-timeout
+      jaraco-itertools
+    ];
+
+    pythonImportsCheck = [ "zipp" ];
+
+    passthru.tests = {
+      check = zipp.overridePythonAttrs (_: {
+        doCheck = true;
+      });
+    };
+
+    meta = {
+      description = "Pathlib-compatible object wrapper for zip files";
+      homepage = "https://github.com/jaraco/zipp";
+      license = lib.licenses.mit;
+      maintainers = [ ];
+    };
   };
-
-  nativeBuildInputs = [
-    setuptools-scm
-  ];
-
-  # Prevent infinite recursion with pytest
-  doCheck = false;
-
-  nativeCheckInputs = [
-    func-timeout
-    jaraco-itertools
-  ];
-
-  pythonImportsCheck = [
-    "zipp"
-  ];
-
-  passthru.tests = {
-    check = zipp.overridePythonAttrs (_: { doCheck = true; });
-  };
-
-  meta = with lib; {
-    description = "Pathlib-compatible object wrapper for zip files";
-    homepage = "https://github.com/jaraco/zipp";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
-  };
-}; in zipp
+in
+zipp

@@ -1,7 +1,14 @@
-{ stdenv, texinfo, flex, bison, fetchFromGitHub, crossLibcStdenv, buildPackages }:
+{
+  stdenv,
+  fetchFromGitHub,
+  stdenvNoLibc,
+  buildPackages,
+}:
 
-crossLibcStdenv.mkDerivation {
-  name = "newlib";
+stdenvNoLibc.mkDerivation {
+  pname = "or1k-newlib";
+  version = "0-unstable-2018-11-05";
+
   src = fetchFromGitHub {
     owner = "openrisc";
     repo = "newlib";
@@ -16,7 +23,10 @@ crossLibcStdenv.mkDerivation {
     export CC=cc
   '';
 
-  configurePlatforms = [ "build" "target" ];
+  configurePlatforms = [
+    "build"
+    "target"
+  ];
   configureFlags = [
     "--host=${stdenv.buildPlatform.config}"
 
@@ -32,5 +42,9 @@ crossLibcStdenv.mkDerivation {
   passthru = {
     incdir = "/${stdenv.targetPlatform.config}/include";
     libdir = "/${stdenv.targetPlatform.config}/lib";
+  };
+
+  meta = {
+    homepage = "https://github.com/openrisc/newlib";
   };
 }

@@ -1,54 +1,48 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchFromGitHub
-, jinja2
-, jsonschema
-, napalm
-, poetry-core
-, pytestCheckHook
-, pythonOlder
-, pyyaml
-, toml
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  jinja2,
+  jsonschema,
+  napalm,
+  poetry-core,
+  pytestCheckHook,
+  pyyaml,
+  rpds-py,
+  toml,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "netutils";
-  version = "1.6.0";
+  version = "1.19.2";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "networktocode";
     repo = "netutils";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-ocajE7E4xIatEmv58/9gEpWF2plJdiZXjk6ajD2vTzw=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-9M2lG5/U/6gTec0zXDP1UVeVmS/dBmCz007W1jeGwrU=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
-    jsonschema
-  ];
+  dependencies = [ jsonschema ];
 
-  passthru.optional-dependencies.optionals = [
+  optional-dependencies.optionals = [
+    jinja2
     jsonschema
     napalm
+    rpds-py
   ];
 
   nativeCheckInputs = [
-    jinja2
     pytestCheckHook
     pyyaml
     toml
-  ];
+  ]
+  ++ lib.flatten (builtins.attrValues finalAttrs.passthru.optional-dependencies);
 
-  pythonImportsCheck = [
-    "netutils"
-  ];
+  pythonImportsCheck = [ "netutils" ];
 
   disabledTests = [
     # Tests require network access
@@ -65,12 +59,11 @@ buildPythonPackage rec {
     "test_encrypt_cisco_type5"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Library that is a collection of objects for common network automation tasks";
     homepage = "https://github.com/networktocode/netutils";
-    changelog = "https://github.com/networktocode/netutils/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
-    broken = stdenv.isDarwin;
+    changelog = "https://github.com/networktocode/netutils/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

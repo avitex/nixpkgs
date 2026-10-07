@@ -1,57 +1,69 @@
-{ lib
-, babel
-, buildPythonPackage
-, django
-, djangorestframework
-, fetchPypi
-, phonenumbers
-, python
-, pythonOlder
-, setuptools-scm
+{
+  lib,
+  babel,
+  buildPythonPackage,
+  django,
+  djangorestframework,
+  fetchFromGitHub,
+  gettext,
+  phonenumbers,
+  phonenumberslite,
+  python,
+  pytestCheckHook,
+  pytest-django,
+  setuptools-scm,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "django-phonenumber-field";
-  version = "7.3.0";
-  format = "pyproject";
+  version = "8.5.0";
+  pyproject = true;
 
-  disabled = pythonOlder "3.8";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-+c2z3ghfmcJJMoKTo7k9Tl+kQMDI47mesND1R0hil5c=";
+  src = fetchFromGitHub {
+    owner = "django-phonenumber-field";
+    repo = "django-phonenumber-field";
+    tag = finalAttrs.version;
+    hash = "sha256-hTrW7QeZPBsln9iHh9sV7JMQxdJ9cFcAq4ETyhxFGv0=";
   };
 
-  nativeBuildInputs = [
-    setuptools-scm
-  ];
+  nativeBuildInputs = [ gettext ];
 
-  propagatedBuildInputs = [
-    django
-  ] ++ passthru.optional-dependencies.phonenumbers;
+  build-system = [ setuptools-scm ];
 
-  nativeCheckInputs = [
-    babel
-    djangorestframework
-  ];
+  # Upstream doesn't put phonenumbers in dependencies but the package doesn't
+  # make sense without either of the two optional dependencies. Since, in
+  # Nixpkgs, phonenumberslite depends on phonenumbers, add the latter
+  # unconditionally.
+  dependencies = [ django ] ++ finalAttrs.passthru.optional-dependencies.phonenumbers;
 
-  pythonImportsCheck = [
-    "phonenumber_field"
-  ];
+  optional-dependencies = {
+    babel = [ babel ];
+    phonenumbers = [ phonenumbers ];
+    phonenumberslite = [ phonenumberslite ];
+  };
 
-  checkPhase = ''
-    ${python.interpreter} -m django test --settings tests.settings
+  preBuild = ''
+    ${python.interpreter} -m django compilemessages
   '';
 
-  passthru.optional-dependencies = {
-    phonenumbers = [ phonenumbers ];
-  };
+  nativeCheckInputs = [
+    djangorestframework
+    pytestCheckHook
+    pytest-django
+  ]
+  ++ lib.concatAttrValues finalAttrs.passthru.optional-dependencies;
 
-  meta = with lib; {
-    description = "A django model and form field for normalised phone numbers using python-phonenumbers";
-    homepage = "https://github.com/stefanfoulis/django-phonenumber-field/";
-    changelog = "https://github.com/stefanfoulis/django-phonenumber-field/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ sephi ];
+  preCheck = ''
+    export DJANGO_SETTINGS_MODULE=tests.settings
+  '';
+
+  pythonImportsCheck = [ "phonenumber_field" ];
+
+  meta = {
+    description = "Django model and form field for normalised phone numbers using python-phonenumbers";
+    homepage = "https://github.com/django-phonenumber-field/django-phonenumber-field";
+    changelog = "https://github.com/django-phonenumber-field/django-phonenumber-field/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ sephi ];
   };
-}
+})

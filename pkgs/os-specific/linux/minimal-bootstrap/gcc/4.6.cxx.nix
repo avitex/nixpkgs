@@ -1,21 +1,22 @@
-{ lib
-, buildPlatform
-, hostPlatform
-, fetchurl
-, bash
-, coreutils
-, gcc
-, musl
-, binutils
-, gnumake
-, gnupatch
-, gnused
-, gnugrep
-, gawk
-, diffutils
-, findutils
-, gnutar
-, gzip
+{
+  lib,
+  buildPlatform,
+  hostPlatform,
+  fetchurl,
+  bash,
+  coreutils,
+  gcc,
+  musl,
+  binutils,
+  gnumake,
+  gnupatch,
+  gnused,
+  gnugrep,
+  gawk,
+  diffutils,
+  findutils,
+  gnutar,
+  gzip,
 }:
 let
   pname = "gcc-cxx";
@@ -53,88 +54,114 @@ let
     # Remove hardcoded NATIVE_SYSTEM_HEADER_DIR
     ./no-system-headers.patch
   ];
+
+  # config.sub was generated with outdated autotools, which get confused by
+  # 4-component target tuples
+  fakeBuildPlatform = lib.strings.removeSuffix "-musl" buildPlatform.config;
+  fakeHostPlatform = lib.strings.removeSuffix "-musl" hostPlatform.config;
 in
-bash.runCommand "${pname}-${version}" {
-  inherit pname version;
+bash.runCommand "${pname}-${version}"
+  {
+    inherit pname version;
 
-  nativeBuildInputs = [
-    gcc
-    binutils
-    gnumake
-    gnupatch
-    gnused
-    gnugrep
-    gawk
-    diffutils
-    findutils
-    gnutar
-    gzip
-  ];
+    nativeBuildInputs = [
+      gcc
+      binutils
+      gnumake
+      gnupatch
+      gnused
+      gnugrep
+      gawk
+      diffutils
+      findutils
+      gnutar
+      gzip
+    ];
 
-  passthru.tests.hello-world = result:
-    bash.runCommand "${pname}-simple-program-${version}" {
-        nativeBuildInputs = [ binutils musl result ];
-      } ''
-        cat <<EOF >> test.c
-        #include <stdio.h>
-        int main() {
-          printf("Hello World!\n");
-          return 0;
+    passthru.tests.hello-world =
+      result:
+      bash.runCommand "${pname}-simple-program-${version}"
+        {
+          nativeBuildInputs = [
+            binutils
+            musl
+            result
+          ];
         }
-        EOF
-        musl-gcc -o test test.c
-        ./test
-        mkdir $out
-      '';
+        ''
+          cat <<EOF >> test.c
+          #include <stdio.h>
+          int main() {
+            printf("Hello World!\n");
+            return 0;
+          }
+          EOF
+          musl-gcc -o test test.c
+          ./test
+          mkdir $out
+        '';
 
-  meta = with lib; {
-    description = "GNU Compiler Collection, version ${version}";
-    homepage = "https://gcc.gnu.org";
-    license = licenses.gpl3Plus;
-    maintainers = teams.minimal-bootstrap.members;
-    platforms = platforms.unix;
-  };
-} ''
-  # Unpack
-  tar xzf ${src}
-  tar xzf ${ccSrc}
-  tar xzf ${gmp}
-  tar xzf ${mpfr}
-  tar xzf ${mpc}
-  cd gcc-${version}
+    meta = {
+      description = "GNU Compiler Collection, version ${version}";
+      homepage = "https://gcc.gnu.org";
+      license = lib.licenses.gpl3Plus;
+      teams = [ lib.teams.minimal-bootstrap ];
+      platforms = lib.platforms.unix;
+      mainProgram = "gcc";
+    };
+  }
+  ''
+    # Unpack
+    tar xzf ${src}
+    tar xzf ${ccSrc}
+    tar xzf ${gmp}
+    tar xzf ${mpfr}
+    tar xzf ${mpc}
+    cd gcc-${version}
 
-  ln -s ../gmp-${gmpVersion} gmp
-  ln -s ../mpfr-${mpfrVersion} mpfr
-  ln -s ../mpc-${mpcVersion} mpc
+    ln -s ../gmp-${gmpVersion} gmp
+    ln -s ../mpfr-${mpfrVersion} mpfr
+    ln -s ../mpc-${mpcVersion} mpc
 
-  # Patch
-  ${lib.concatMapStringsSep "\n" (f: "patch -Np1 -i ${f}") patches}
-  # doesn't recognise musl
-  sed -i 's|"os/gnu-linux"|"os/generic"|' libstdc++-v3/configure.host
+    # Patch
+    ${lib.concatMapStringsSep "\n" (f: "patch -Np1 -i ${f}") patches}
+    # doesn't recognise musl
+    sed -i 's|"os/gnu-linux"|"os/generic"|' libstdc++-v3/configure.host
 
-  # Configure
-  export CC="gcc -Wl,-dynamic-linker -Wl,${musl}/lib/libc.so"
-  export CFLAGS_FOR_TARGET="-Wl,-dynamic-linker -Wl,${musl}/lib/libc.so"
-  export C_INCLUDE_PATH="${musl}/include"
-  export CPLUS_INCLUDE_PATH="$C_INCLUDE_PATH"
-  export LIBRARY_PATH="${musl}/lib"
+    # Configure
+    export CC="gcc -Wl,-dynamic-linker -Wl,${musl}/lib/libc.so"
+    export CFLAGS="-O1"
+    export CXXFLAGS="-O1"
+    export CFLAGS_FOR_TARGET="-O0 -Wl,-dynamic-linker -Wl,${musl}/lib/libc.so"
+    export CXXFLAGS_FOR_TARGET="$CFLAGS_FOR_TARGET"
+    export C_INCLUDE_PATH="${musl}/include"
+    export CPLUS_INCLUDE_PATH="$C_INCLUDE_PATH"
+    export LIBRARY_PATH="${musl}/lib"
 
-  bash ./configure \
-    --prefix=$out \
-    --build=${buildPlatform.config} \
-    --host=${hostPlatform.config} \
-    --with-native-system-header-dir=${musl}/include \
-    --with-build-sysroot=${musl} \
-    --enable-languages=c,c++ \
-    --disable-bootstrap \
-    --disable-libmudflap \
-    --disable-libstdcxx-pch \
-    --disable-lto \
-    --disable-multilib
+    bash ./configure \
+      --prefix=$out \
+      --build=${fakeBuildPlatform} \
+      --host=${fakeHostPlatform} \
+      --with-native-system-header-dir=${musl}/include \
+      --with-build-sysroot=${musl} \
+      --enable-languages=c,c++ \
+      --enable-checking=release \
+      --disable-bootstrap \
+      --disable-dependency-tracking \
+      --disable-libgomp \
+      --disable-libmudflap \
+      --disable-libquadmath \
+      --disable-libssp \
+      --disable-libstdcxx-pch \
+      --disable-lto \
+      --disable-multilib \
+      --disable-nls \
+      --disable-libsanitizer \
+      --disable-shared
 
-  # Build
-  make -j $NIX_BUILD_CORES
+    # Build
+    make -j $NIX_BUILD_CORES
 
-  # Install
-  make -j $NIX_BUILD_CORES install
-''
+    # Install
+    make -j $NIX_BUILD_CORES install-strip
+  ''

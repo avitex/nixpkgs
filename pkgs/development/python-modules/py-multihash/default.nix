@@ -1,52 +1,48 @@
-{ lib
-, base58
-, buildPythonPackage
-, fetchFromGitHub
-, morphys
-, pytestCheckHook
-, pythonOlder
-, six
-, varint
+{
+  lib,
+  base58,
+  blake3,
+  buildPythonPackage,
+  fetchFromGitHub,
+  mmh3,
+  morphys,
+  pytestCheckHook,
+  setuptools,
+  six,
+  varint,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "py-multihash";
-  version = "2.0.1";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.4";
+  version = "3.0.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "multiformats";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-z1lmSypGCMFWJNzNgV9hx/IStyXbpd5jvrptFpewuOA=";
+    repo = "py-multihash";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-hdjJJh77P4dJQAIGTlPGolz1qDumvNOaIMyfxmWMzUk=";
   };
 
-  postPatch = ''
-    substituteInPlace setup.py \
-      --replace "'pytest-runner', " ""
-  '';
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     base58
+    blake3
     morphys
+    mmh3
     six
     varint
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "multihash"
-  ];
+  pythonImportsCheck = [ "multihash" ];
 
-  meta = with lib; {
+  meta = {
     description = "Self describing hashes - for future proofing";
     homepage = "https://github.com/multiformats/py-multihash";
-    license = licenses.mit;
-    maintainers = with maintainers; [ rakesh4g ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ rakesh4g ];
   };
-}
+})

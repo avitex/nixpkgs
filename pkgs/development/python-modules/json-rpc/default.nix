@@ -1,8 +1,11 @@
-{ lib, isPy27, buildPythonPackage, fetchPypi, pytestCheckHook, mock }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pytestCheckHook,
+}:
 
-let
-  pythonEnv = lib.optional isPy27 mock;
-in buildPythonPackage rec {
+buildPythonPackage rec {
   pname = "json-rpc";
   version = "1.15.0";
   format = "setuptools";
@@ -12,14 +15,12 @@ in buildPythonPackage rec {
     hash = "sha256-5kQdVsHc1UJByTfQotzRk73wvcU5tTFlJHE/VUt/hbk=";
   };
 
-  nativeCheckInputs = pythonEnv ++ [ pytestCheckHook ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  nativeBuildInputs = pythonEnv;
-
-  meta = with lib; {
+  meta = {
     description = "JSON-RPC 1/2 transport implementation";
     homepage = "https://github.com/pavlov99/json-rpc";
-    license = licenses.mit;
-    maintainers = with maintainers; [ oxzi ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

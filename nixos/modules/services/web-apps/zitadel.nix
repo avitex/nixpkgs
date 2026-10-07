@@ -1,4 +1,9 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 let
   cfg = config.services.zitadel;
@@ -7,8 +12,15 @@ let
 in
 {
   options.services.zitadel =
-    let inherit (lib) mkEnableOption mkOption mkPackageOption types;
-    in {
+    let
+      inherit (lib)
+        mkEnableOption
+        mkOption
+        mkPackageOption
+        types
+        ;
+    in
+    {
       enable = mkEnableOption "ZITADEL, a user and identity access management platform";
 
       package = mkPackageOption pkgs "ZITADEL" { default = [ "zitadel" ]; };
@@ -42,7 +54,11 @@ in
       };
 
       tlsMode = mkOption {
-        type = types.enum [ "external" "enabled" "disabled" ];
+        type = types.enum [
+          "external"
+          "enabled"
+          "disabled"
+        ];
         default = "external";
         example = "enabled";
         description = ''
@@ -120,7 +136,7 @@ in
         '';
         description = ''
           Contents of the runtime configuration file. See
-          https://zitadel.com/docs/self-hosting/manage/configure for more
+          <https://zitadel.com/docs/self-hosting/manage/configure> for more
           details.
         '';
       };
@@ -152,7 +168,7 @@ in
         '';
         description = ''
           Contents of the database initialization config file. See
-          https://zitadel.com/docs/self-hosting/manage/configure for more
+          <https://zitadel.com/docs/self-hosting/manage/configure> for more
           details.
         '';
       };
@@ -169,48 +185,47 @@ in
     };
 
   config = lib.mkIf cfg.enable {
-    assertions = [{
-      assertion = cfg.tlsMode == "enabled"
-        -> ((cfg.settings.TLS.Key != null || cfg.settings.TLS.KeyPath != null)
-        && (cfg.settings.TLS.Cert != null || cfg.settings.TLS.CertPath
-        != null));
-      message = ''
-        A TLS certificate and key must be configured in
-        services.zitadel.settings.TLS if services.zitadel.tlsMode is enabled.
-      '';
-    }];
-
-    networking.firewall.allowedTCPPorts =
-      lib.mkIf cfg.openFirewall [ cfg.settings.Port ];
-
-    systemd.services.zitadel =
-      let
-        configFile = settingsFormat.generate "config.yaml" cfg.settings;
-        stepsFile = settingsFormat.generate "steps.yaml" cfg.steps;
-
-        args = lib.cli.toGNUCommandLineShell { } {
-          config = cfg.extraSettingsPaths ++ [ configFile ];
-          steps = cfg.extraStepsPaths ++ [ stepsFile ];
-          masterkeyFile = cfg.masterKeyFile;
-          inherit (cfg) tlsMode;
-        };
-      in
+    assertions = [
       {
-        description = "ZITADEL identity access management";
-        path = [ cfg.package ];
-        wantedBy = [ "multi-user.target" ];
-
-        script = ''
-          zitadel start-from-init ${args}
+        assertion =
+          cfg.tlsMode == "enabled"
+          -> (
+            (cfg.settings.TLS.Key != null || cfg.settings.TLS.KeyPath != null)
+            && (cfg.settings.TLS.Cert != null || cfg.settings.TLS.CertPath != null)
+          );
+        message = ''
+          A TLS certificate and key must be configured in
+          services.zitadel.settings.TLS if services.zitadel.tlsMode is enabled.
         '';
+      }
+    ];
 
-        serviceConfig = {
-          Type = "simple";
-          User = cfg.user;
-          Group = cfg.group;
-          Restart = "on-failure";
-        };
+    networking.firewall.allowedTCPPorts = lib.mkIf cfg.openFirewall [ cfg.settings.Port ];
+
+    systemd.services.zitadel = {
+      description = "ZITADEL identity access management";
+      wantedBy = [ "multi-user.target" ];
+
+      serviceConfig = {
+        Type = "simple";
+        ExecStart =
+          let
+            configFile = settingsFormat.generate "config.yaml" cfg.settings;
+            stepsFile = settingsFormat.generate "steps.yaml" cfg.steps;
+
+            args = lib.cli.toCommandLineShellGNU { } {
+              config = cfg.extraSettingsPaths ++ [ configFile ];
+              steps = cfg.extraStepsPaths ++ [ stepsFile ];
+              masterkeyFile = cfg.masterKeyFile;
+              inherit (cfg) tlsMode;
+            };
+          in
+          "${lib.getExe cfg.package} start-from-init ${args}";
+        User = cfg.user;
+        Group = cfg.group;
+        Restart = "on-failure";
       };
+    };
 
     users.users.zitadel = lib.mkIf (cfg.user == "zitadel") {
       isSystemUser = true;
@@ -219,5 +234,5 @@ in
     users.groups.zitadel = lib.mkIf (cfg.group == "zitadel") { };
   };
 
-  meta.maintainers = with lib.maintainers; [ Sorixelle ];
+  meta.maintainers = [ ];
 }

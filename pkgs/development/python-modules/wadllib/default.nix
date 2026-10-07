@@ -1,29 +1,36 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, isPy3k
-, setuptools
-, lazr-uri
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  lazr-uri,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "wadllib";
-  version = "1.3.6";
-  format = "setuptools";
+  version = "2.1.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    sha256 = "acd9ad6a2c1007d34ca208e1da6341bbca1804c0e6850f954db04bdd7666c5fc";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-acYKGIycYpoOlH36/Yms3It9jUBKa16wrSWP7yk2JQE=";
   };
 
-  propagatedBuildInputs = [ setuptools lazr-uri ];
+  build-system = [ setuptools ];
 
-  doCheck = isPy3k;
+  dependencies = [
+    lazr-uri
+  ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "wadllib" ];
+
+  # pypi tarball has no tests
+  doCheck = false;
+
+  meta = {
     description = "Navigate HTTP resources using WADL files as guides";
     homepage = "https://launchpad.net/wadllib";
-    license = licenses.lgpl3;
-    maintainers = [ maintainers.marsam ];
+    license = lib.licenses.lgpl3Only;
+    maintainers = [ ];
   };
-}
+})

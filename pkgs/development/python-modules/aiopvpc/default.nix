@@ -1,63 +1,51 @@
-{ lib
-, aiohttp
-, async-timeout
-, backports-zoneinfo
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, pytest-asyncio
-, pytest-timeout
-, pytestCheckHook
-, pythonOlder
-, python-dotenv
+{
+  lib,
+  aiohttp,
+  async-timeout,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  pytest-asyncio,
+  pytest-timeout,
+  pytest-cov-stub,
+  pytestCheckHook,
+  python-dotenv,
 }:
 
 buildPythonPackage rec {
   pname = "aiopvpc";
-  version = "4.2.2";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "4.3.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "azogue";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-k02lNjFjOcMfHa1jLJlMFUOOVrdTrACNoEXDSZ693K8=";
+    repo = "aiopvpc";
+    tag = "v${version}";
+    hash = "sha256-1xeXfhoXRfJ7vrpRPeYmwcAGjL09iNCOm/f4pPvuZLU=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml --replace \
-      " --cov --cov-report term --cov-report html" ""
-  '';
+  build-system = [ poetry-core ];
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
-
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
     async-timeout
-  ] ++ lib.optionals (pythonOlder "3.9") [
-    backports-zoneinfo
   ];
 
   nativeCheckInputs = [
     pytest-asyncio
     pytest-timeout
+    pytest-cov-stub
     pytestCheckHook
     python-dotenv
   ];
 
-  pythonImportsCheck = [
-    "aiopvpc"
-  ];
+  pythonImportsCheck = [ "aiopvpc" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python module to download Spanish electricity hourly prices (PVPC)";
     homepage = "https://github.com/azogue/aiopvpc";
     changelog = "https://github.com/azogue/aiopvpc/blob/v${version}/CHANGELOG.md";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

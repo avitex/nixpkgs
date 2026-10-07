@@ -1,53 +1,49 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, fetchpatch
-, dj-rest-auth
-, django
-, django-allauth
-, django-filter
-, django-oauth-toolkit
-, django-polymorphic
-, django-rest-auth
-, django-rest-polymorphic
-, djangorestframework
-, djangorestframework-camel-case
-, djangorestframework-dataclasses
-, djangorestframework-recursive
-, djangorestframework-simplejwt
-, drf-jwt
-, drf-nested-routers
-, drf-spectacular-sidecar
-, inflection
-, jsonschema
-, psycopg2
-, pytest-django
-, pytestCheckHook
-, pyyaml
-, uritemplate
+{
+  lib,
+  buildPythonPackage,
+  dj-rest-auth,
+  django,
+  django-allauth,
+  django-filter,
+  django-oauth-toolkit,
+  django-polymorphic,
+  django-rest-auth,
+  django-rest-knox,
+  django-rest-polymorphic,
+  djangorestframework,
+  djangorestframework-camel-case,
+  djangorestframework-dataclasses,
+  djangorestframework-recursive,
+  djangorestframework-simplejwt,
+  drf-jwt,
+  drf-nested-routers,
+  drf-spectacular-sidecar,
+  fetchFromGitHub,
+  inflection,
+  jsonschema,
+  psycopg2,
+  pytest-django,
+  pytestCheckHook,
+  pyyaml,
+  setuptools,
+  uritemplate,
 }:
 
 buildPythonPackage rec {
   pname = "drf-spectacular";
-  version = "0.26.5";
-  format = "setuptools";
+  version = "0.30.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "tfranzel";
     repo = "drf-spectacular";
-    rev = "refs/tags/${version}";
-    hash = "sha256-sK+upLh0mi8eHKh1Wt9FoLRjqlHitTSX0Zl54S4Ce6E=";
+    tag = version;
+    hash = "sha256-CuN3ZmFQBLUlRteXVcWF/oE9vvLcaFAoEbkF3hHQLgQ=";
   };
 
-  patches = [
-    (fetchpatch {
-      # https://github.com/tfranzel/drf-spectacular/pull/1090
-      url = "https://github.com/tfranzel/drf-spectacular/commit/8db4c2458f8403c53db0db352dd94057d285814b.patch";
-      hash = "sha256-Ue5y7IB4ie+9CEineMBgMMCLGiF4zqmn60TJvKsV1h0=";
-    })
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     django
     djangorestframework
     inflection
@@ -56,6 +52,8 @@ buildPythonPackage rec {
     uritemplate
   ];
 
+  optional-dependencies.sidecar = [ drf-spectacular-sidecar ];
+
   nativeCheckInputs = [
     dj-rest-auth
     django-allauth
@@ -63,6 +61,7 @@ buildPythonPackage rec {
     django-oauth-toolkit
     django-polymorphic
     django-rest-auth
+    django-rest-knox
     django-rest-polymorphic
     djangorestframework-camel-case
     djangorestframework-dataclasses
@@ -74,20 +73,28 @@ buildPythonPackage rec {
     psycopg2
     pytest-django
     pytestCheckHook
-  ];
+  ]
+  ++ django-allauth.optional-dependencies.socialaccount;
 
-  disabledTests = [
-    # requires django with gdal
-    "test_rest_framework_gis"
+  disabledTestPaths = [
+    # django-oauth-toolkit 3.4.1 added a new error that the example application has
+    "tests/test_command.py::test_command_check"
+    # Outdated test artifact
+    "tests/contrib/test_pydantic.py"
+    # Test requires django with gdal
+    "tests/contrib/test_rest_framework_gis.py"
+    # OpenAPI schema failure with DRF 3.18.x
+    "tests/test_fields.py::test_fields"
+    "tests/test_fields.py::test_fields_oas_3_1"
   ];
 
   pythonImportsCheck = [ "drf_spectacular" ];
 
-  meta = with lib; {
+  meta = {
     description = "Sane and flexible OpenAPI 3 schema generation for Django REST framework";
     homepage = "https://github.com/tfranzel/drf-spectacular";
     changelog = "https://github.com/tfranzel/drf-spectacular/releases/tag/${version}";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
 }

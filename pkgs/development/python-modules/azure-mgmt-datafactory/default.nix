@@ -1,42 +1,42 @@
-{ lib
-, azure-common
-, azure-mgmt-core
-, buildPythonPackage
-, fetchPypi
-, isodate
-, pythonOlder
+{
+  lib,
+  azure-common,
+  azure-mgmt-core,
+  buildPythonPackage,
+  fetchPypi,
+  isodate,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "azure-mgmt-datafactory";
-  version = "4.0.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.8";
+  version = "9.3.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-XfTLbVdoPVLKgVlBDr59N0EKe+G9fAS+SjI9cWhhs4g=";
+    pname = "azure_mgmt_datafactory";
+    inherit version;
+    hash = "sha256-9f3VzUFvDtcd/t8F3HZ3uPDlLzQo/VsXsEySAN2NNrM=";
   };
 
-  propagatedBuildInputs = [
-    isodate
+  build-system = [ setuptools ];
+
+  dependencies = [
     azure-common
     azure-mgmt-core
+    isodate
   ];
 
   # has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "azure.mgmt.datafactory"
-  ];
+  pythonImportsCheck = [ "azure.mgmt.datafactory" ];
 
-  meta = with lib; {
+  meta = {
     description = "This is the Microsoft Azure Data Factory Management Client Library";
     homepage = "https://github.com/Azure/azure-sdk-for-python";
     changelog = "https://github.com/Azure/azure-sdk-for-python/tree/azure-mgmt-datafactory_${version}/sdk/datafactory/azure-mgmt-datafactory";
-    license = licenses.mit;
-    maintainers = with maintainers; [ maxwilson ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ maxwilson ];
   };
 }

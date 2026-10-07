@@ -1,33 +1,44 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, fastcore
-, traitlets
-, ipython
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fastcore,
+  fetchPypi,
+  ipython,
+  setuptools,
+  traitlets,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "execnb";
-  version = "0.1.5";
-  format = "setuptools";
-  disabled = pythonOlder "3.6";
+  version = "0.3.2";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    sha256 = "sha256-nuAp4OMAfA3u3DJyORjFw7y7ZLsLCKEfxSFIXqNh+k0=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-cj0By2OIwRKtDroUJGN8EFrS++2Vx4m6/3IWB4+uQdo=";
   };
 
-  propagatedBuildInputs = [ fastcore traitlets ipython ];
+  pythonRelaxDeps = [ "fastcore" ];
+
+  build-system = [ setuptools ];
+
+  dependencies = [
+    fastcore
+    ipython
+    traitlets
+  ];
 
   # no real tests
   doCheck = false;
+
   pythonImportsCheck = [ "execnb" ];
 
-  meta = with lib; {
-    homepage = "https://github.com/fastai/execnb";
+  meta = {
     description = "Execute a jupyter notebook, fast, without needing jupyter";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ rxiao ];
+    homepage = "https://github.com/fastai/execnb";
+    changelog = "https://github.com/fastai/execnb/releases/tag/${finalAttrs.version}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ rxiao ];
+    mainProgram = "exec_nb";
   };
-}
+})

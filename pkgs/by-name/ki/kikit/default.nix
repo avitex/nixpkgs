@@ -1,52 +1,67 @@
-{ bc
-, zip
-, lib
-, fetchFromGitHub
-, bats
-, buildPythonApplication
-, pythonOlder
-, callPackage
-, kicad
-, numpy
-, click
-, markdown2
-, pytestCheckHook
-, commentjson
-, wxpython
-, pcbnew-transition
-, pybars3
-, versioneer
-, shapely_1_8
+{
+  bc,
+  zip,
+  lib,
+  bats,
+  fetchFromGitHub,
+  buildPythonApplication,
+  callPackage,
+  kicad,
+  numpy,
+  click,
+  markdown2,
+  openscad,
+  pytestCheckHook,
+  commentjson,
+  wxpython,
+  pybars3,
+  versioneer,
+  shapely,
+  setuptools,
+  versionCheckHook,
+  nix-update-script,
 }:
 let
   solidpython = callPackage ./solidpython { };
 in
-buildPythonApplication rec {
+buildPythonApplication (finalAttrs: {
   pname = "kikit";
-  version = "1.4.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "1.8.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "yaqwsx";
     repo = "KiKit";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-88/1bL3MtawR/8P8U1jHatMbq+JxF1qb+plH3rYh1qU=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-kwZ+lhC0rdmz6kCdjHvnz+lhYtN9y7xNtmHPMhOwwVI=";
+    # Upstream uses versioneer, which relies on gitattributes substitution.
+    # This leads to non-reproducible archives on GitHub.
+    # See
+    # https://github.com/NixOS/nixpkgs/issues/84312
+    # https://github.com/NixOS/nixpkgs/pull/395213
+    # https://github.com/python-versioneer/python-versioneer/issues/217
+    postFetch = ''
+      rm "$out/kikit/_version.py"
+    '';
   };
 
-  propagatedBuildInputs = [
+  build-system = [
+    setuptools
+  ];
+
+  dependencies = [
     kicad
     numpy
     click
     markdown2
+    # OpenSCAD is an optional dependency (see
+    # https://github.com/yaqwsx/KiKit/blob/v1.5.0/docs/installation/intro.md#optional-dependencies).
+    openscad
     commentjson
     # https://github.com/yaqwsx/KiKit/issues/575
     wxpython
-    pcbnew-transition
     pybars3
-    # https://github.com/yaqwsx/KiKit/issues/574
-    shapely_1_8
+    shapely
     # https://github.com/yaqwsx/KiKit/issues/576
     solidpython
   ];
@@ -59,12 +74,31 @@ buildPythonApplication rec {
 
   nativeCheckInputs = [
     pytestCheckHook
+    versionCheckHook
     bats
   ];
 
   pythonImportsCheck = [
     "kikit"
   ];
+
+  # Recreate _version.py, deleted at fetch time due to non-reproducibility.
+  # Must include version_json block because versioneer uses regex parsing on this file.
+  postPatch = ''
+    cat > kikit/_version.py <<'EOF'
+    # DO NOT EDIT! nixpkgs GENERATED FILE
+    import json
+
+    version_json = ''''
+    {
+     "version": "${finalAttrs.version}"
+    }
+    ''''  # END VERSION_JSON
+
+    def get_versions():
+        return json.loads(version_json)
+    EOF
+  '';
 
   preCheck = ''
     export PATH=$PATH:$out/bin
@@ -75,11 +109,18 @@ buildPythonApplication rec {
     cd test/units
   '';
 
-  meta = with lib; {
+  passthru.updateScript = nix-update-script { };
+
+  meta = {
+    changelog = "https://github.com/yaqwsx/KiKit/releases/tag/${finalAttrs.src.tag}";
     description = "Automation for KiCAD boards";
     homepage = "https://github.com/yaqwsx/KiKit/";
-    changelog = "https://github.com/yaqwsx/KiKit/releases/tag/v${version}";
-    maintainers = with maintainers; [ jfly matusf ];
-    license = licenses.mit;
+    license = lib.licenses.mit;
+    mainProgram = "kikit";
+    maintainers = with lib.maintainers; [
+      jfly
+      matusf
+    ];
+    teams = with lib.teams; [ ngi ];
   };
-}
+})

@@ -1,40 +1,36 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, setuptools
-, urwid
-, wheel
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  urwid,
 }:
 
 buildPythonPackage rec {
   pname = "urwidgets";
-  version = "0.1.1";
+  version = "0.2.1";
   pyproject = true;
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "AnonymouX47";
     repo = "urwidgets";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-0aZLL0NutptPkuLHv3bTzR1/SNqLgMdUYWET6mLE0IU=";
+    tag = "v${version}";
+    hash = "sha256-RgY7m0smcdUspGkCdzepxruEMDq/mAsVFNjHMLoWAyc=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-    wheel
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
-    urwid
-  ];
+  dependencies = [ urwid ];
+
+  pythonRelaxDeps = [ "urwid" ];
 
   pythonImportsCheck = [ "urwidgets" ];
 
-  meta = with lib; {
-    description = "A collection of widgets for urwid";
+  meta = {
+    description = "Collection of widgets for urwid";
     homepage = "https://github.com/AnonymouX47/urwidgets";
-    license = licenses.mit;
-    maintainers = with maintainers; [ huyngo ];
+    changelog = "https://github.com/AnonymouX47/urwidgets/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ huyngo ];
   };
 }

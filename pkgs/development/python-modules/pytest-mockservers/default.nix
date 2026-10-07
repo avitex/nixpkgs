@@ -1,24 +1,23 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, fetchpatch
-, poetry-core
-, aiohttp
-, pytest
-, pytest-asyncio
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fetchpatch,
+  poetry-core,
+  aiohttp,
+  pytest,
+  pytest-asyncio,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "pytest-mockservers";
   version = "0.6.0";
-  format = "pyproject";
-  disabled = pythonOlder "3.6";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "Gr1N";
-    repo = pname;
+    repo = "pytest-mockservers";
     rev = version;
     hash = "sha256-Mb3wSbambC1h+lFI+fafwZzm78IvADNAsF/Uw60DFHc=";
   };
@@ -32,13 +31,9 @@ buildPythonPackage rec {
     })
   ];
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  nativeBuildInputs = [ poetry-core ];
 
-  buildInputs = [
-    pytest
-  ];
+  buildInputs = [ pytest ];
 
   propagatedBuildInputs = [
     aiohttp
@@ -47,18 +42,17 @@ buildPythonPackage rec {
 
   __darwinAllowLocalNetworking = true;
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "pytest_mockservers"
-  ];
+  # relies on the removed event_loop fixture
+  disabledTests = [ "test_udp_server_factory" ];
 
-  meta = with lib; {
-    description = "A set of fixtures to test your requests to HTTP/UDP servers";
+  pythonImportsCheck = [ "pytest_mockservers" ];
+
+  meta = {
+    description = "Set of fixtures to test your requests to HTTP/UDP servers";
     homepage = "https://github.com/Gr1N/pytest-mockservers";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

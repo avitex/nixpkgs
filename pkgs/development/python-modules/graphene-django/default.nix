@@ -1,37 +1,34 @@
-{ stdenv
-, lib
-, buildPythonPackage
-, pythonAtLeast
-, pythonOlder
-, fetchFromGitHub
+{
+  stdenv,
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
 
-, graphene
-, graphql-core
-, django
-, djangorestframework
-, promise
-, text-unidecode
+  graphene,
+  graphql-core,
+  django,
+  djangorestframework,
+  promise,
+  text-unidecode,
 
-, django-filter
-, mock
-, py
-, pytest-django
-, pytest-random-order
-, pytestCheckHook
+  django-filter,
+  mock,
+  py,
+  pytest-django,
+  pytest-random-order,
+  pytest7CheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "graphene-django";
-  version = "3.2.0";
+  version = "3.2.3";
   format = "setuptools";
-
-  disabled = pythonOlder "3.6";
 
   src = fetchFromGitHub {
     owner = "graphql-python";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-SOLY3NogovwQ5gr2gnvOcROWpbk9p134wI2f9FKr+5M=";
+    repo = "graphene-django";
+    tag = "v${version}";
+    hash = "sha256-uMkzgXn3YRgEU46Sv5lg60cvetHir9bv0mzJGDv79DI=";
   };
 
   postPatch = ''
@@ -58,25 +55,24 @@ buildPythonPackage rec {
     py
     pytest-django
     pytest-random-order
-    pytestCheckHook
+    pytest7CheckHook
   ];
 
-  disabledTests = lib.optionals (pythonAtLeast "3.11") [
-    # Python 3.11 support, https://github.com/graphql-python/graphene-django/pull/1365
-    "test_django_objecttype_convert_choices_enum_naming_collisions"
-    "test_django_objecttype_choices_custom_enum_name"
-    "test_django_objecttype_convert_choices_enum_list"
-    "test_schema_representation"
-  ] ++ lib.optionals stdenv.isDarwin [
-    # this test touches files in the "/" directory and fails in darwin sandbox
-    "test_should_filepath_convert_string"
-  ];
+  disabledTests =
+    lib.optionals (lib.versionAtLeast django.version "6.0") [
+      "test_global_id_field_explicit"
+      "test_global_id_field_implicit"
+    ]
+    ++ lib.optionals stdenv.hostPlatform.isDarwin [
+      # this test touches files in the "/" directory and fails in darwin sandbox
+      "test_should_filepath_convert_string"
+    ];
 
-  meta = with lib; {
+  meta = {
     description = "Integrate GraphQL into your Django project";
     homepage = "https://github.com/graphql-python/graphene-django";
     changelog = "https://github.com/graphql-python/graphene-django/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ hexa ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ hexa ];
   };
 }

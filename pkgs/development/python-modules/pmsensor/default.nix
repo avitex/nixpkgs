@@ -1,7 +1,8 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pyserial
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pyserial,
 }:
 
 buildPythonPackage rec {
@@ -14,9 +15,7 @@ buildPythonPackage rec {
     sha256 = "7fc03aafb791ca70d847c9ab97cf181bc7d8f7345efb4b0c3f66c07b9c7dee69";
   };
 
-  propagatedBuildInputs = [
-    pyserial
-  ];
+  propagatedBuildInputs = [ pyserial ];
 
   # no tests implemented
   doCheck = false;
@@ -26,10 +25,10 @@ buildPythonPackage rec {
     "pmsensor.serial_pm"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Library to read data from environment sensors";
     homepage = "https://github.com/open-homeautomation/pmsensor";
-    license = licenses.mit;
-    maintainers = with maintainers; [ dotlambda ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ dotlambda ];
   };
 }

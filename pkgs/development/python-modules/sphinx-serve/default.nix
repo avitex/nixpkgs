@@ -1,6 +1,7 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
 }:
 
 buildPythonPackage rec {
@@ -17,10 +18,11 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "sphinx_serve" ];
 
-  meta = with lib; {
+  meta = {
     description = "Spawns a simple HTTP server to preview your sphinx documents";
+    mainProgram = "sphinx-serve";
     homepage = "https://github.com/tlatsas/sphinx-serve";
-    maintainers = with maintainers; [ FlorianFranzen ];
-    license = licenses.mit;
+    maintainers = with lib.maintainers; [ FlorianFranzen ];
+    license = lib.licenses.mit;
   };
 }

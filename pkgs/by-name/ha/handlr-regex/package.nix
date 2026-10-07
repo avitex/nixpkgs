@@ -1,39 +1,60 @@
-{ lib, rustPlatform, fetchFromGitHub, shared-mime-info, libiconv, installShellFiles }:
+{
+  lib,
+  rustPlatform,
+  fetchFromGitHub,
+  shared-mime-info,
+  libiconv,
+  installShellFiles,
+  nix-update-script,
+  stdenv,
+}:
 
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "handlr-regex";
-  version = "0.9.0";
+  version = "0.13.0";
 
   src = fetchFromGitHub {
     owner = "Anomalocaridid";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-ndFe5GlSWVUPdGRRWuImcLtcuOMoMXMyGGIa+CXfCug=";
+    repo = "handlr-regex";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-7psjlu0qyoZYTVwq2JYJJkB76ejlmMtmstDw+liMcj8=";
   };
 
-  cargoHash = "sha256-lCClE8U4188q5rWEEkUt0peLEmYvLoE7vJ6Q9uB5HWg=";
+  patches = [
+    ./shared-mime-info-2.5.patch
+  ];
 
-  nativeBuildInputs = [ installShellFiles shared-mime-info ];
+  cargoHash = "sha256-a91WaIFBS9Rh4T/dwpLQJMoE604Tj0mVN38RKmNcZU0=";
+
+  nativeBuildInputs = [
+    installShellFiles
+    shared-mime-info
+  ];
+
   buildInputs = [ libiconv ];
 
   preCheck = ''
     export HOME=$TEMPDIR
   '';
 
-  postInstall = ''
-    installShellCompletion \
-      --zsh assets/completions/_handlr \
-      --bash assets/completions/handlr \
-      --fish assets/completions/handlr.fish
+  postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
+    installShellCompletion --cmd handlr \
+      --zsh <(COMPLETE=zsh $out/bin/handlr) \
+      --bash <(COMPLETE=bash $out/bin/handlr) \
+      --fish <(COMPLETE=fish $out/bin/handlr)
 
-    installManPage assets/manual/man1/*
+    installManPage target/release-tmp/build/handlr-regex-*/out/manual/man1/*
   '';
 
-  meta = with lib; {
+  passthru.updateScript = nix-update-script { };
+
+  meta = {
+    # last successful hydra build on darwin was in 2024
+    broken = stdenv.hostPlatform.isDarwin;
     description = "Fork of handlr with support for regex";
     homepage = "https://github.com/Anomalocaridid/handlr-regex";
-    license = licenses.mit;
-    maintainers = with maintainers; [ anomalocaris ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ anomalocaris ];
     mainProgram = "handlr";
   };
-}
+})

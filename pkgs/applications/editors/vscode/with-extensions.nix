@@ -1,5 +1,14 @@
-{ lib, stdenv, runCommand, buildEnv, vscode, vscode-utils, makeWrapper, writeTextFile
-, vscodeExtensions ? [] }:
+{
+  lib,
+  stdenv,
+  runCommand,
+  buildEnv,
+  vscode,
+  vscode-utils,
+  makeWrapper,
+  writeTextFile,
+  vscodeExtensions ? [ ],
+}:
 
 /*
   `vscodeExtensions`
@@ -43,6 +52,11 @@
 
 let
   inherit (vscode) executableName longName;
+  # The wrapped editor may override `iconName` (e.g. code-cursor, windsurf,
+  # kiro and antigravity-ide all set it to a name without the `vs` prefix). Read
+  # the real value from the package, falling back to the generic.nix default for
+  # editors built before `iconName` was exposed via passthru.
+  iconName = vscode.iconName or "vs${executableName}";
   wrappedPkgVersion = lib.getVersion vscode;
   wrappedPkgName = lib.removeSuffix "-${wrappedPkgVersion}" vscode.name;
 
@@ -62,29 +76,45 @@ let
   '';
 in
 
-runCommand "${wrappedPkgName}-with-extensions-${wrappedPkgVersion}" {
-  nativeBuildInputs = [ makeWrapper ];
-  buildInputs = [ vscode ];
-  dontPatchELF = true;
-  dontStrip = true;
-  meta = vscode.meta;
-} (if stdenv.isDarwin then ''
-  mkdir -p $out/bin/
-  mkdir -p "$out/Applications/${longName}.app/Contents/MacOS"
+runCommand "${wrappedPkgName}-with-extensions-${wrappedPkgVersion}"
+  {
+    pname = wrappedPkgName;
+    version = wrappedPkgVersion;
+    nativeBuildInputs = [ makeWrapper ];
+    buildInputs = [ vscode ];
+    dontPatchELF = true;
+    dontStrip = true;
+    meta = vscode.meta;
+  }
+  (
+    if stdenv.hostPlatform.isDarwin then
+      ''
+        mkdir -p $out/bin/
+        mkdir -p "$out/Applications/${longName}.app/Contents/MacOS"
 
-  for path in PkgInfo Frameworks Resources _CodeSignature Info.plist; do
-    ln -s "${vscode}/Applications/${longName}.app/Contents/$path" "$out/Applications/${longName}.app/Contents/"
-  done
+        binary_name="$(awk -F'[<>]' '/CFBundleExecutable/{getline; print $3}' '${vscode}/Applications/${longName}.app/Contents/Info.plist')"
 
-  makeWrapper "${vscode}/bin/${executableName}" "$out/bin/${executableName}" ${extensionsFlag}
-  makeWrapper "${vscode}/Applications/${longName}.app/Contents/MacOS/Electron" "$out/Applications/${longName}.app/Contents/MacOS/Electron" ${extensionsFlag}
-'' else ''
-  mkdir -p "$out/bin"
-  mkdir -p "$out/share/applications"
-  mkdir -p "$out/share/pixmaps"
+        for path in PkgInfo Frameworks Resources _CodeSignature Info.plist; do
+          ln -s "${vscode}/Applications/${longName}.app/Contents/$path" "$out/Applications/${longName}.app/Contents/"
+        done
 
-  ln -sT "${vscode}/share/pixmaps/vs${executableName}.png" "$out/share/pixmaps/vs${executableName}.png"
-  ln -sT "${vscode}/share/applications/${executableName}.desktop" "$out/share/applications/${executableName}.desktop"
-  ln -sT "${vscode}/share/applications/${executableName}-url-handler.desktop" "$out/share/applications/${executableName}-url-handler.desktop"
-  makeWrapper "${vscode}/bin/${executableName}" "$out/bin/${executableName}" ${extensionsFlag}
-'')
+        makeWrapper "${vscode}/bin/${executableName}" "$out/bin/${executableName}" ${extensionsFlag}
+        makeWrapper "${vscode}/Applications/${longName}.app/Contents/MacOS/$binary_name" "$out/Applications/${longName}.app/Contents/MacOS/$binary_name" ${extensionsFlag}
+      ''
+    else
+      ''
+        mkdir -p "$out/bin"
+        mkdir -p "$out/share/applications"
+        mkdir -p "$out/share/pixmaps"
+
+        ln -sT "${vscode}/share/pixmaps/${iconName}.png" "$out/share/pixmaps/${iconName}.png"
+        # Carry over the themed icons too; the .desktop entry's `Icon=` is
+        # resolved against the icon theme before falling back to pixmaps.
+        if [ -d "${vscode}/share/icons" ]; then
+          ln -sT "${vscode}/share/icons" "$out/share/icons"
+        fi
+        ln -sT "${vscode}/share/applications/${executableName}.desktop" "$out/share/applications/${executableName}.desktop"
+        ln -sT "${vscode}/share/applications/${executableName}-url-handler.desktop" "$out/share/applications/${executableName}-url-handler.desktop"
+        makeWrapper "${vscode}/bin/${executableName}" "$out/bin/${executableName}" ${extensionsFlag}
+      ''
+  )

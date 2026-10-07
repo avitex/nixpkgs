@@ -1,10 +1,10 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, pythonOlder
-, regex
-, requests
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  regex,
+  requests,
 }:
 
 buildPythonPackage rec {
@@ -12,12 +12,10 @@ buildPythonPackage rec {
   version = "1.16.1";
   format = "setuptools";
 
-  disabled = pythonOlder "3.7";
-
   src = fetchFromGitHub {
-    owner = "InQuest";
-    repo = "python-iocextract";
-    rev = "refs/tags/v${version}";
+    owner = "pedramamini";
+    repo = "iocextract";
+    tag = "v${version}";
     hash = "sha256-cCp9ug/TuVY1zL+kiDlFGBmfFJyAmVwxLD36WT0oRAE=";
   };
 
@@ -26,28 +24,23 @@ buildPythonPackage rec {
     requests
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "iocextract"
-  ];
+  pythonImportsCheck = [ "iocextract" ];
 
-  pytestFlagsArray = [
-    "tests.py"
-  ];
+  enabledTestPaths = [ "tests.py" ];
 
   disabledTests = [
     # AssertionError: 'http://exampledotcom/test' != 'http://example.com/test'
     "test_refang_data"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Module to extract Indicator of Compromises (IOC)";
-    homepage = "https://github.com/InQuest/python-iocextract";
-    changelog = "https://github.com/InQuest/python-iocextract/releases/tag/v${version}";
-    license = licenses.gpl2Only;
-    maintainers = with maintainers; [ fab ];
+    mainProgram = "iocextract";
+    homepage = "https://github.com/pedramamini/iocextract";
+    changelog = "https://github.com/pedramamini/iocextract/releases/tag/v${version}";
+    license = lib.licenses.gpl2Only;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

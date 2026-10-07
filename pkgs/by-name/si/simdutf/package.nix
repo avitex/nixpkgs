@@ -1,40 +1,71 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, cmake
-, libiconv
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  cmake,
+  libiconv,
+  nix-update-script,
+  testers,
+  validatePkgConfig,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "simdutf";
-  version = "4.0.8";
+  version = "9.1.1";
 
   src = fetchFromGitHub {
     owner = "simdutf";
     repo = "simdutf";
-    rev = "v${finalAttrs.version}";
-    hash = "sha256-QZH21dFUX3NVpk1zyS/zSV+uOJYV3+V6XmuKeOvfc6c=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-u0Ur/o2TRLqYisS7xQHBxN/742BzmbElNUeqgEzpw/I=";
   };
 
-  # Fix build on darwin
-  postPatch = ''
-    substituteInPlace tools/CMakeLists.txt --replace "-Wl,--gc-sections" ""
-  '';
+  outputs = [
+    "out"
+    "dev"
+  ];
+
+  cmakeFlags = [
+    (lib.cmakeBool "BUILD_SHARED_LIBS" (!stdenv.hostPlatform.isStatic))
+
+    # Enabling C++20 to get atomic support
+    (lib.cmakeFeature "SIMDUTF_CXX_STANDARD" "20")
+    (lib.cmakeBool "SIMDUTF_TESTS" finalAttrs.finalPackage.doCheck)
+    (lib.cmakeBool "SIMDUTF_ATOMIC_BASE64_TESTS" finalAttrs.finalPackage.doCheck)
+  ];
 
   nativeBuildInputs = [
     cmake
+    validatePkgConfig
   ];
 
   buildInputs = [
     libiconv
   ];
 
-  meta = with lib; {
+  strictDeps = true;
+
+  doCheck = true;
+
+  passthru = {
+    updateScript = nix-update-script { };
+
+    tests.pkg-config = testers.hasPkgConfigModules {
+      package = finalAttrs.finalPackage;
+    };
+  };
+
+  __structuredAttrs = true;
+
+  meta = {
     description = "Unicode routines validation and transcoding at billions of characters per second";
     homepage = "https://github.com/simdutf/simdutf";
-    license = with licenses; [ asl20 mit ];
-    maintainers = with maintainers; [ rewine ];
-    mainProgram = "simdutf";
-    platforms = platforms.all;
+    license = with lib.licenses; [
+      asl20
+      mit
+    ];
+    maintainers = with lib.maintainers; [ wineee ];
+    pkgConfigModules = [ "simdutf" ];
+    platforms = lib.platforms.all;
   };
 })

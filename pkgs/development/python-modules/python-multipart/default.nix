@@ -1,52 +1,58 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, hatchling
-, pytestCheckHook
-, mock
-, pyyaml
-, six
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  pytestCheckHook,
+  pyyaml,
+
+  # for passthru.tests
+  asgi-csrf,
+  connexion,
+  fastapi,
+  gradio,
+  starlette,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "python-multipart";
-  version = "0.0.6";
-  format = "pyproject";
+  version = "0.0.32";
+  pyproject = true;
 
-  src = fetchPypi {
-    pname = "python_multipart";
-    inherit version;
-    hash = "sha256-6ZJagLtmhSnxtnx/2wpdrN18v8b7C/8+pEP+Ir3WITI=";
+  src = fetchFromGitHub {
+    owner = "Kludex";
+    repo = "python-multipart";
+    tag = finalAttrs.version;
+    hash = "sha256-zw6SHzbbjyRCGfUldxdki+wKwmTAgmd9ZAu/2zU+pFw=";
   };
 
-  nativeBuildInputs = [
-    hatchling
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
-    six
-  ];
-
-  pythonImportsCheck = [
-    "multipart"
-  ];
-
-  preCheck = ''
-    # https://github.com/andrew-d/python-multipart/issues/41
-    substituteInPlace multipart/tests/test_multipart.py \
-      --replace "yaml.load" "yaml.safe_load"
-  '';
+  pythonImportsCheck = [ "python_multipart" ];
 
   nativeCheckInputs = [
     pytestCheckHook
-    mock
     pyyaml
   ];
 
-  meta = with lib; {
-    description = "A streaming multipart parser for Python";
-    homepage = "https://github.com/andrew-d/python-multipart";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+  passthru.tests = {
+    inherit
+      asgi-csrf
+      connexion
+      fastapi
+      gradio
+      starlette
+      ;
   };
-}
+
+  meta = {
+    changelog = "https://github.com/Kludex/python-multipart/blob/${finalAttrs.version}/CHANGELOG.md";
+    description = "Streaming multipart parser for Python";
+    homepage = "https://github.com/Kludex/python-multipart";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [
+      dotlambda
+      ris
+    ];
+  };
+})

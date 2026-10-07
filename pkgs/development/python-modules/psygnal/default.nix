@@ -1,39 +1,38 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, hatch-vcs
-, hatchling
-, mypy-extensions
-, numpy
-, pydantic
-, pytestCheckHook
-, pythonOlder
-, toolz
-, typing-extensions
-, wrapt
-, attrs
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatch-vcs,
+  hatchling,
+  mypy-extensions,
+  numpy,
+  pydantic,
+  pytest-asyncio,
+  pytestCheckHook,
+  toolz,
+  typing-extensions,
+  wrapt,
+  attrs,
 }:
 
 buildPythonPackage rec {
   pname = "psygnal";
-  version = "0.9.5";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "0.15.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "pyapp-kit";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-eDfGWmTKJrkkzRy1I3wl3WYPCxtPHSRzqAoOiO7QQ9Y=";
+    repo = "psygnal";
+    tag = "v${version}";
+    hash = "sha256-7d9ejzdafoH14fKvYJd3OwYS0RGwDmMeLlj74qvsvjE=";
   };
 
-  buildInputs = [
+  build-system = [
     hatch-vcs
     hatchling
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     mypy-extensions
     typing-extensions
   ];
@@ -41,21 +40,24 @@ buildPythonPackage rec {
   nativeCheckInputs = [
     numpy
     pydantic
+    pytest-asyncio
     pytestCheckHook
     toolz
     wrapt
     attrs
   ];
 
-  pythonImportsCheck = [
-    "psygnal"
+  pytestFlags = [
+    "-Wignore::pydantic.warnings.PydanticDeprecatedSince211"
   ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "psygnal" ];
+
+  meta = {
     description = "Implementation of Qt Signals";
     homepage = "https://github.com/pyapp-kit/psygnal";
-    changelog = "https://github.com/pyapp-kit/psygnal/blob/v${version}/CHANGELOG.md";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ SomeoneSerge ];
+    changelog = "https://github.com/pyapp-kit/psygnal/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ SomeoneSerge ];
   };
 }

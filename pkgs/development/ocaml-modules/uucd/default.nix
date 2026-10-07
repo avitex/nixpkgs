@@ -1,19 +1,34 @@
-{ lib, stdenv, fetchurl, ocaml, findlib, ocamlbuild, xmlm, topkg }:
+{
+  lib,
+  stdenv,
+  fetchurl,
+  ocaml,
+  findlib,
+  ocamlbuild,
+  xmlm,
+  topkg,
+}:
 
 let
   pname = "uucd";
   webpage = "https://erratique.ch/software/${pname}";
+  version = "18.0.0";
 in
-stdenv.mkDerivation rec {
-  name = "ocaml-${pname}-${version}";
-  version = "15.1.0";
+stdenv.mkDerivation {
+  pname = "ocaml${ocaml.version}-${pname}";
+  inherit version;
 
   src = fetchurl {
     url = "${webpage}/releases/${pname}-${version}.tbz";
-    hash = "sha256-HIANZ5SDJcytlpw/W9Ae2eFTutrutJj2PgJCfByobfI=";
+    hash = "sha256-6HSF72EBD7VUAJ+PMrvFWxp7DF1p771LjM7JNRRfYHQ=";
   };
 
-  nativeBuildInputs = [ ocaml findlib ocamlbuild topkg ];
+  nativeBuildInputs = [
+    ocaml
+    findlib
+    ocamlbuild
+    topkg
+  ];
   buildInputs = [ topkg ];
 
   strictDeps = true;
@@ -22,11 +37,11 @@ stdenv.mkDerivation rec {
 
   propagatedBuildInputs = [ xmlm ];
 
-  meta = with lib; {
-    description = "An OCaml module to decode the data of the Unicode character database from its XML representation";
+  meta = {
+    description = "OCaml module to decode the data of the Unicode character database from its XML representation";
     homepage = webpage;
     inherit (ocaml.meta) platforms;
-    maintainers = [ maintainers.vbgl ];
-    license = licenses.bsd3;
+    maintainers = [ lib.maintainers.vbgl ];
+    license = lib.licenses.bsd3;
   };
 }

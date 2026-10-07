@@ -1,60 +1,70 @@
-{ lib
-, buildPythonPackage
-, emoji
-, fetchFromGitHub
-, networkx
-, numpy
-, peft
-, protobuf
-, pythonOlder
-, requests
-, six
-, toml
-, torch
-, tqdm
-, transformers
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  # build-system
+  setuptools,
+  # dependencies
+  emoji,
+  huggingface-hub,
+  networkx,
+  numpy,
+  peft,
+  platformdirs,
+  protobuf,
+  requests,
+  torch,
+  tqdm,
+  transformers,
+  udtools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "stanza";
-  version = "1.7.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.8";
+  version = "1.14.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "stanfordnlp";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-uLstqplCQ55fW5WRS1qSrE6sGgpc8z92gyoksUnGpnQ=";
+    repo = "stanza";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-+yt3FIOe51zzQVOm19LKYhlmoCANTQ299qLtP4JHF+Q=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     emoji
+    huggingface-hub
     networkx
     numpy
     peft
+    platformdirs
     protobuf
     requests
-    six
-    toml
     torch
     tqdm
     transformers
+    udtools
   ];
 
-  # Tests require network access
+  # Most tests require resources from the network (models). Many of the ones that do run are slow
+  # and some of them fail.
+  #
+  # Maintaining a list of "tests we can actually run in CI" isn't feasible, there are WAY too many
+  # exceptions and no useful pytest marks.
   doCheck = false;
 
-  pythonImportsCheck = [
-    "stanza"
-  ];
+  pythonImportsCheck = [ "stanza" ];
 
-  meta = with lib; {
+  meta = {
     description = "Official Stanford NLP Python Library for Many Human Languages";
     homepage = "https://github.com/stanfordnlp/stanza/";
-    changelog = "https://github.com/stanfordnlp/stanza/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ riotbib ];
+    changelog = "https://github.com/stanfordnlp/stanza/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [
+      riotbib
+      Stebalien
+    ];
   };
-}
+})

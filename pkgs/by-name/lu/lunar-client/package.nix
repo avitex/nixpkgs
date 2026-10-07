@@ -1,40 +1,45 @@
-{ appimageTools
-, fetchurl
-, lib
-, makeWrapper
+{
+  appimageTools,
+  fetchurl,
+  lib,
+  makeWrapper,
 }:
 
 appimageTools.wrapType2 rec {
-  pname = "lunar-client";
-  version = "3.2.1";
+  pname = "lunarclient";
+  version = "3.7.17";
 
   src = fetchurl {
-    url = "https://launcherupdates.lunarclientcdn.com/Lunar%20Client-${version}.AppImage";
-    hash = "sha512-ZW+SFIZ5+xxgesaZ7ZQbUnv7H5U92SZdfAU7GhJR1H0mhkrIb5Go6GWrIXaWYZLrmOlD98LSLihYi7SemJp+Yg==";
+    url = "https://launcherupdates.lunarclientcdn.com/Lunar%20Client-${version}-ow.AppImage";
+    hash = "sha512-qAiOVtqZJMRi1dWPtHhy/MeUAoGcVw+WzUM1U8sSn3Ojf+7SFJgaz451kVKPDyBT0jelwy4bZ6nmaEyiy0wZwQ==";
   };
 
+  nativeBuildInputs = [ makeWrapper ];
+
   extraInstallCommands =
-    let contents = appimageTools.extract { inherit pname version src; };
-    in ''
-      mv $out/bin/{lunar-client-*,lunar-client}
-      source "${makeWrapper}/nix-support/setup-hook"
-      wrapProgram $out/bin/lunar-client \
-        --add-flags "\''${NIXOS_OZONE_WL:+\''${WAYLAND_DISPLAY:+--ozone-platform-hint=auto --enable-features=WaylandWindowDecorations}}"
-      install -Dm444 ${contents}/launcher.desktop $out/share/applications/lunar-client.desktop
-      install -Dm444 ${contents}/launcher.png $out/share/pixmaps/lunar-client.png
-      substituteInPlace $out/share/applications/lunar-client.desktop \
-        --replace 'Exec=AppRun --no-sandbox %U' 'Exec=lunar-client' \
-        --replace 'Icon=launcher' 'Icon=lunar-client'
+    let
+      contents = appimageTools.extract { inherit pname version src; };
+    in
+    ''
+      wrapProgram $out/bin/lunarclient \
+        --add-flags "\''${NIXOS_OZONE_WL:+\''${WAYLAND_DISPLAY:+--ozone-platform-hint=auto --enable-features=WaylandWindowDecorations --enable-wayland-ime=true}}"
+      install -Dm444 ${contents}/lunarclient.desktop -t $out/share/applications/
+      install -Dm444 ${contents}/lunarclient.png -t $out/share/icons
+      substituteInPlace $out/share/applications/lunarclient.desktop \
+        --replace-fail 'Exec=AppRun --no-sandbox %U' 'Exec=lunarclient'
     '';
 
   passthru.updateScript = ./update.sh;
 
-  meta = with lib; {
-    description = "Free Minecraft client with mods, cosmetics, and performance boost.";
+  meta = {
+    description = "Free Minecraft client with mods, cosmetics, and performance boost";
     homepage = "https://www.lunarclient.com/";
-    license = with licenses; [ unfree ];
-    mainProgram = "lunar-client";
-    maintainers = with maintainers; [ zyansheep Technical27 surfaceflinger ];
+    license = lib.licenses.unfree;
+    mainProgram = "lunarclient";
+    maintainers = with lib.maintainers; [
+      Technical27
+      surfaceflinger
+    ];
     platforms = [ "x86_64-linux" ];
   };
 }

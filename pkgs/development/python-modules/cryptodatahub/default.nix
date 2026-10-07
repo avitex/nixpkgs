@@ -1,67 +1,72 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitLab
-
-# build-system
-, setuptools
-
-# dependencies
-, asn1crypto
-, attrs
-, pathlib2
-, python-dateutil
-, six
-, urllib3
-
-# tests
-, beautifulsoup4
-, pyfakefs
-, unittestCheckHook
+{
+  lib,
+  asn1crypto,
+  attrs,
+  beautifulsoup4,
+  buildPythonPackage,
+  fetchFromGitLab,
+  pyfakefs,
+  pytestCheckHook,
+  python-dateutil,
+  setuptools,
+  setuptools-scm,
+  urllib3,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "cryptodatahub";
-  version = "0.10.1";
-  format = "pyproject";
+  version = "1.5.0";
+  pyproject = true;
 
   src = fetchFromGitLab {
     owner = "coroner";
     repo = "cryptodatahub";
-    rev = "v${version}";
-    hash = "sha256-eLdK5gFrLnbIBB1NTeQzpdCLPdATVjzPn5LhhUsDuwo=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-iXM3LV/obJu3Rvl57ny7/BJINxK2b+qTgBCyu3BDris=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
+    setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     asn1crypto
     attrs
-    pathlib2
     python-dateutil
-    six
     urllib3
   ];
-
-  pythonImportsCheck = [ "cryptodatahub" ];
 
   nativeCheckInputs = [
     beautifulsoup4
     pyfakefs
-    unittestCheckHook
+    pytestCheckHook
   ];
 
-  preCheck = ''
-    # failing tests
-    rm test/updaters/test_common.py
-  '';
+  pythonImportsCheck = [ "cryptodatahub" ];
 
-  meta = with lib; {
+  disabledTests = [
+    # fails due to certificate expiry
+    # see https://gitlab.com/coroner/cryptodatahub/-/work_items/38
+    "test_validity"
+    # pytest incorrectly collects abstract base classes
+    "TestClasses"
+  ];
+
+  disabledTestPaths = [
+    # failing tests
+    "test/updaters/test_common.py"
+    # Tests require network access
+    "test/common/test_utils.py"
+  ];
+
+  passthru.updateScript = ./update.sh;
+
+  meta = {
     description = "Repository of cryptography-related data";
     homepage = "https://gitlab.com/coroner/cryptodatahub";
-    changelog = "https://gitlab.com/coroner/cryptodatahub/-/blob/${src.rev}/CHANGELOG.rst";
-    license = licenses.mpl20;
-    maintainers = with maintainers; [ ];
+    changelog = "https://gitlab.com/coroner/cryptodatahub/-/blob/${finalAttrs.src.tag}/CHANGELOG.rst";
+    license = lib.licenses.mpl20;
+    teams = with lib.teams; [ ngi ];
   };
-}
+})

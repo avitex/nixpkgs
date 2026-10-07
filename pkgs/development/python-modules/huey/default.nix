@@ -1,39 +1,37 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools
-, wheel
-, redis
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  redis,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "huey";
-  version = "2.5.0";
-
-  format = "pyproject";
+  version = "2.6.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "coleifer";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-t767eqZ6U12mG8nWEYC9Hoq/jW2yfrPkCxB3/xLKQww=";
+    repo = "huey";
+    tag = finalAttrs.version;
+    hash = "sha256-vXp8xISf8g1VjIus/Xr4wKFFaVg5x4CXgP8IUUKYl+o=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-    wheel
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [ redis ];
+  dependencies = [ redis ];
 
   # connects to redis
   doCheck = false;
 
-  meta = with lib; {
-    changelog = "https://github.com/coleifer/huey/blob/${src.rev}/CHANGELOG.md";
-    description = "A little task queue for python";
+  pythonImportsCheck = [ "huey" ];
+
+  meta = {
+    description = "Module to queue tasks";
     homepage = "https://github.com/coleifer/huey";
-    license = licenses.mit;
-    maintainers = [];
+    changelog = "https://github.com/coleifer/huey/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
-}
+})

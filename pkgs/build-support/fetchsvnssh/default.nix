@@ -1,17 +1,46 @@
-{stdenvNoCC, subversion, sshSupport ? true, openssh ? null, expect}:
-{username, password, url, rev ? "HEAD", sha256 ? ""}:
+{
+  lib,
+  stdenvNoCC,
+  subversion,
+  sshSupport ? true,
+  openssh ? null,
+  expect,
+}:
+{
+  username,
+  password,
+  url,
+  rev ? "HEAD",
+  outputHash ? lib.fakeHash,
+  outputHashAlgo ? null,
+}:
 
+lib.fetchers.withNormalizedHash { } (
+  stdenvNoCC.mkDerivation {
+    name = "svn-export-ssh";
+    builder = ./builder.sh;
+    nativeBuildInputs = [
+      subversion
+      expect
+    ];
 
-stdenvNoCC.mkDerivation {
-  name = "svn-export-ssh";
-  builder = ./builder.sh;
-  nativeBuildInputs = [subversion expect];
+    strictDeps = true;
+    __structuredAttrs = true;
 
-  outputHashAlgo = "sha256";
-  outputHashMode = "recursive";
-  outputHash = sha256;
+    env = lib.optionalAttrs sshSupport {
+      SVN_SSH = lib.getExe openssh;
+    };
 
-  sshSubversion = ./sshsubversion.exp;
+    inherit outputHash outputHashAlgo;
+    outputHashMode = "recursive";
 
-  inherit username password url rev sshSupport openssh;
-}
+    sshSubversion = ./sshsubversion.exp;
+
+    inherit
+      username
+      password
+      url
+      rev
+      ;
+  }
+)

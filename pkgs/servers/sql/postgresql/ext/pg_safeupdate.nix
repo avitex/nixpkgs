@@ -1,28 +1,27 @@
-{ lib, stdenv, fetchFromGitHub, postgresql }:
+{
+  fetchFromGitHub,
+  lib,
+  postgresql,
+  postgresqlBuildExtension,
+}:
 
-stdenv.mkDerivation rec {
+postgresqlBuildExtension (finalAttrs: {
   pname = "pg-safeupdate";
-  version = "1.5";
-
-  buildInputs = [ postgresql ];
+  version = "1.7";
 
   src = fetchFromGitHub {
-    owner  = "eradman";
-    repo   = pname;
-    rev    = version;
-    sha256 = "sha256-RRSpkWLFuif+6RCncnsb1NnjKnIIRY9KgebKkjCN5cs=";
+    owner = "eradman";
+    repo = "pg-safeupdate";
+    tag = finalAttrs.version;
+    hash = "sha256-V1P6gdFHwAFd4g8CrSRdRrL1wKs3bFfin8LLDNhZcUI=";
   };
 
-  installPhase = ''
-    install -D safeupdate${postgresql.dlSuffix} -t $out/lib
-  '';
-
-  meta = with lib; {
-    description = "A simple extension to PostgreSQL that requires criteria for UPDATE and DELETE";
-    homepage    = "https://github.com/eradman/pg-safeupdate";
-    changelog   = "https://github.com/eradman/pg-safeupdate/raw/${src.rev}/NEWS";
-    platforms   = postgresql.meta.platforms;
-    license     = licenses.postgresql;
-    broken      = versionOlder postgresql.version "14";
+  meta = {
+    description = "Simple extension to PostgreSQL that requires criteria for UPDATE and DELETE";
+    homepage = "https://github.com/eradman/pg-safeupdate";
+    changelog = "https://github.com/eradman/pg-safeupdate/raw/${finalAttrs.version}/NEWS";
+    platforms = postgresql.meta.platforms;
+    maintainers = with lib.maintainers; [ wolfgangwalther ];
+    license = lib.licenses.postgresql;
   };
-}
+})

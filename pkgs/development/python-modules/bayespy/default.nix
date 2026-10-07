@@ -1,36 +1,58 @@
-{ stdenv, lib, buildPythonPackage, fetchPypi, pythonOlder
-, pytestCheckHook, nose, glibcLocales, fetchpatch
-, numpy, scipy, matplotlib, h5py }:
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fetchpatch2,
+  setuptools,
+  numpy,
+  scipy,
+  h5py,
+  truncnorm,
+  pytestCheckHook,
+}:
 
 buildPythonPackage rec {
   pname = "bayespy";
-  version = "0.5.26";
-  format = "setuptools";
+  version = "0.6.1";
+  pyproject = true;
 
-  # Python 2 not supported and not some old Python 3 because MPL doesn't support
-  # them properly.
-  disabled = pythonOlder "3.4";
-
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "sha256-NOvuqPKioRIqScd2jC7nakonDEovTo9qKp/uTk9z1BE=";
+  src = fetchFromGitHub {
+    owner = "bayespy";
+    repo = "bayespy";
+    tag = version;
+    hash = "sha256-kx87XY4GCL1PQIeZyovEbrPyCC/EVA6Hdvt+3P/D6VI=";
   };
 
-  nativeCheckInputs = [ pytestCheckHook nose glibcLocales ];
-
-  propagatedBuildInputs = [ numpy scipy matplotlib h5py ];
-
-  disabledTests = [
-    # Assertion error
-    "test_message_to_parents"
+  patches = [
+    (fetchpatch2 {
+      url = "https://salsa.debian.org/python-team/packages/python-bayespy/-/raw/071f54815608b31aebac8f8e83bc532b2c632a48/debian/patches/numpy2.4-compat.patch";
+      hash = "sha256-Tk3z94+vbGaSIqGFFRQZz0pcXI1Fzcbnva3oWnv502U=";
+    })
   ];
+
+  postPatch = ''
+    substituteInPlace versioneer.py \
+      --replace-fail SafeConfigParser ConfigParser \
+      --replace-fail readfp read_file
+  '';
+
+  build-system = [ setuptools ];
+
+  dependencies = [
+    numpy
+    scipy
+    h5py
+    truncnorm
+  ];
+
+  nativeCheckInputs = [ pytestCheckHook ];
 
   pythonImportsCheck = [ "bayespy" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "http://www.bayespy.org";
     description = "Variational Bayesian inference tools for Python";
-    license = licenses.mit;
-    maintainers = with maintainers; [ jluttine ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ jluttine ];
   };
 }

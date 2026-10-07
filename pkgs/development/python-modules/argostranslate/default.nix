@@ -1,11 +1,24 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
-, ctranslate2
-, ctranslate2-cpp
-, sentencepiece
-, stanza
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+
+  # dependencies
+  ctranslate2,
+  ctranslate2-cpp,
+  minisbd,
+  sacremoses,
+  sentencepiece,
+  spacy,
+  stanza,
+
+  # tests
+  pytestCheckHook,
+  writableTmpDirAsHomeHook,
 }:
 let
   ctranslate2OneDNN = ctranslate2.override {
@@ -15,50 +28,57 @@ let
       withOpenblas = false;
     };
   };
+
+  inherit (stdenv.hostPlatform) isDarwin isLinux isAarch64;
+  isAarch64Linux = isLinux && isAarch64;
 in
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "argostranslate";
-  version = "1.9.1";
+  version = "1.11.0";
+  pyproject = true;
 
-  format = "setuptools";
-
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "sha256-OlVrRfBhbJpIFjWdLQsn7zEteRP6UfkIpGT4Y933QKk=";
+  src = fetchFromGitHub {
+    owner = "argosopentech";
+    repo = "argos-translate";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-8uzWS0YZEteeLTYAp9qpnnJhxyhxbWkKt1krqe/RF4M=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  pythonRelaxDeps = [
+    "stanza"
+  ];
+  dependencies = [
     ctranslate2OneDNN
+    minisbd
+    sacremoses
     sentencepiece
+    spacy
     stanza
   ];
 
-  postPatch = ''
-    ln -s */requires.txt requirements.txt
-
-    substituteInPlace requirements.txt  \
-      --replace "==" ">="
-  '';
-
-  doCheck = false; # needs network access
-
   nativeCheckInputs = [
     pytestCheckHook
+    writableTmpDirAsHomeHook
   ];
 
-  # required for import check to work
-  # PermissionError: [Errno 13] Permission denied: '/homeless-shelter'
-  env.HOME = "/tmp";
-
-  pythonImportsCheck = [
+  # aarch64-linux fails cpuinfo test, because /sys/devices/system/cpu/ does not exist in the sandbox:
+  # terminate called after throwing an instance of 'onnxruntime::OnnxRuntimeException'
+  pythonImportsCheck = lib.optionals (!isAarch64Linux) [
     "argostranslate"
     "argostranslate.translate"
   ];
+  doCheck = !isAarch64Linux;
 
-  meta = with lib; {
+  meta = {
     description = "Open-source offline translation library written in Python";
     homepage = "https://www.argosopentech.com";
-    license = licenses.mit;
-    maintainers = with maintainers; [ misuzu ];
+    changelog = "https://github.com/argosopentech/argos-translate/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [
+      misuzu
+      Stebalien
+    ];
   };
-}
+})

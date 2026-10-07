@@ -1,15 +1,15 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, hatchling
-, mkdocs-material
-, mkdocs-mermaid2-plugin
-, mkdocstrings
-, networkx
-, pytestCheckHook
-, pythonOlder
-, requests
-, typing-extensions
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  mkdocs-material,
+  mkdocs-mermaid2-plugin,
+  mkdocstrings,
+  networkx,
+  pytestCheckHook,
+  requests,
+  typing-extensions,
 }:
 
 buildPythonPackage rec {
@@ -17,18 +17,14 @@ buildPythonPackage rec {
   version = "0.11.0";
   pyproject = true;
 
-  disabled = pythonOlder "3.8";
-
   src = fetchFromGitHub {
     owner = "deepset-ai";
     repo = "canals";
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     hash = "sha256-xoJqj/zPBPPCheBxA+8EFRJqUnlP+4aWLEh42q1X1mM=";
   };
 
-  nativeBuildInputs = [
-    hatchling
-  ];
+  nativeBuildInputs = [ hatchling ];
 
   propagatedBuildInputs = [
     networkx
@@ -36,7 +32,7 @@ buildPythonPackage rec {
     typing-extensions
   ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     docs = [
       mkdocs-material
       mkdocs-mermaid2-plugin
@@ -46,7 +42,8 @@ buildPythonPackage rec {
 
   nativeCheckInputs = [
     pytestCheckHook
-  ] ++ lib.flatten (builtins.attrValues passthru.optional-dependencies);
+  ]
+  ++ lib.concatAttrValues optional-dependencies;
 
   disabledTestPaths = [
     # Test requires internet connection to mermaid.ink
@@ -58,15 +55,13 @@ buildPythonPackage rec {
     "test_draw_pygraphviz"
   ];
 
-  pythonImportsCheck = [
-    "canals"
-  ];
+  pythonImportsCheck = [ "canals" ];
 
-  meta = with lib; {
-    description = "A component orchestration engine";
+  meta = {
+    description = "Component orchestration engine";
     homepage = "https://github.com/deepset-ai/canals";
     changelog = "https://github.com/deepset-ai/canals/releases/tag/v${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ happysalada ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ happysalada ];
   };
 }

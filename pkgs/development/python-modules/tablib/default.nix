@@ -1,42 +1,34 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, markuppy
-, odfpy
-, openpyxl
-, pandas
-, pytestCheckHook
-, pythonOlder
-, pyyaml
-, setuptools-scm
-, tabulate
-, unicodecsv
-, xlrd
-, xlwt
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  markuppy,
+  odfpy,
+  openpyxl,
+  pandas,
+  pytestCheckHook,
+  pytest-cov-stub,
+  pyyaml,
+  setuptools-scm,
+  tabulate,
+  unicodecsv,
+  xlrd,
+  xlwt,
 }:
 
 buildPythonPackage rec {
   pname = "tablib";
-  version = "3.5.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "3.10.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-9mYd/EXh1PUfqKYjn5yDSTgIWaW/qnMoBkXwRtbJbjM=";
+    hash = "sha256-eBz6mkLejzPFKv+Ff9CgTkg95P0cU+qqmmrqxiutEd4=";
   };
 
-  postPatch = ''
-    substituteInPlace pytest.ini \
-      --replace " --cov=tablib --cov=tests --cov-report xml --cov-report term --cov-report html" ""
-  '';
+  nativeBuildInputs = [ setuptools-scm ];
 
-  nativeBuildInputs = [
-    setuptools-scm
-  ];
-
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     all = [
       markuppy
       odfpy
@@ -47,33 +39,22 @@ buildPythonPackage rec {
       xlrd
       xlwt
     ];
-    cli = [
-      tabulate
-    ];
-    html = [
-      markuppy
-    ];
-    ods = [
-      odfpy
-    ];
-    pandas = [
-      pandas
-    ];
+    cli = [ tabulate ];
+    html = [ markuppy ];
+    ods = [ odfpy ];
+    pandas = [ pandas ];
     xls = [
       xlrd
       xlwt
     ];
-    xlsx = [
-      openpyxl
-    ];
-    yaml = [
-      pyyaml
-    ];
+    xlsx = [ openpyxl ];
+    yaml = [ pyyaml ];
   };
 
   nativeCheckInputs = [
     pandas
     pytestCheckHook
+    pytest-cov-stub
     unicodecsv
   ];
 
@@ -82,15 +63,13 @@ buildPythonPackage rec {
     "tests/test_tablib.py"
   ];
 
-  pythonImportsCheck = [
-    "tablib"
-  ];
+  pythonImportsCheck = [ "tablib" ];
 
-  meta = with lib; {
+  meta = {
     description = "Format-agnostic tabular dataset library";
     homepage = "https://tablib.readthedocs.io/";
     changelog = "https://github.com/jazzband/tablib/raw/v${version}/HISTORY.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

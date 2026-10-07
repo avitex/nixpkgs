@@ -1,9 +1,9 @@
-{ buildPythonPackage
-, fetchPypi
-, lib
-, unittestCheckHook
-, google-api-core
-, opencensus-context
+{
+  buildPythonPackage,
+  fetchPypi,
+  lib,
+  google-api-core,
+  opencensus-context,
 }:
 
 buildPythonPackage rec {
@@ -21,20 +21,16 @@ buildPythonPackage rec {
     opencensus-context
   ];
 
-  pythonNamespaces = [
-    "opencensus.common"
-  ];
+  pythonNamespaces = [ "opencensus.common" ];
 
   doCheck = false; # No tests in sdist
 
-  pythonImportsCheck = [
-    "opencensus.common"
-  ];
+  pythonImportsCheck = [ "opencensus.common" ];
 
-  meta = with lib; {
-    description = "A stats collection and distributed tracing framework";
+  meta = {
+    description = "Stats collection and distributed tracing framework";
     homepage = "https://github.com/census-instrumentation/opencensus-python";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ billhuang ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ billhuang ];
   };
 }

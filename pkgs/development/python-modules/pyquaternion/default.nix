@@ -1,19 +1,30 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, numpy
-, nose
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  numpy,
+  setuptools,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "pyquaternion";
   version = "0.9.9";
-  format = "setuptools";
+  pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-sfYa8hnLL+lmtft5oZISTy5jo/end6w8rfKVexqBvqg=";
+  src = fetchFromGitHub {
+    owner = "KieranWynn";
+    repo = "pyquaternion";
+    rev = "v${version}";
+    hash = "sha256-L0wT9DFUDRcmmN7OpmIDNvtQWQrM7iFnZt6R2xrJ+3A=";
   };
+
+  patches = [
+    ./numpy2-repr.patch
+    # patch tests for numpy v2.4 behaviour
+    # https://numpy.org/devdocs/release/2.4.0-notes.html#raise-typeerror-on-attempt-to-convert-array-with-ndim-0-to-scalar
+    ./numpy2-float.patch
+  ];
 
   # The VERSION.txt file is required for setup.py
   # See: https://github.com/KieranWynn/pyquaternion/blob/master/setup.py#L14-L15
@@ -21,15 +32,20 @@ buildPythonPackage rec {
     echo "${version}" > VERSION.txt
   '';
 
-  propagatedBuildInputs = [ numpy ];
+  build-system = [ setuptools ];
 
-  nativeCheckInputs = [ nose ];
+  dependencies = [ numpy ];
+
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  enabledTestPaths = [ "pyquaternion/test/" ];
+
   pythonImportsCheck = [ "pyquaternion" ];
 
-  meta = with lib; {
-    description = "Library for representing and using quaternions.";
+  meta = {
+    description = "Library for representing and using quaternions";
     homepage = "http://kieranwynn.github.io/pyquaternion/";
-    license = licenses.mit;
-    maintainers = with maintainers; [ lucasew ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

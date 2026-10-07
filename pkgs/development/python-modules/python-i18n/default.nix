@@ -1,4 +1,10 @@
-{ lib, buildPythonPackage, fetchFromGitHub, pytestCheckHook, pyyaml }:
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  pyyaml,
+}:
 
 buildPythonPackage rec {
   pname = "python-i18n";
@@ -7,19 +13,28 @@ buildPythonPackage rec {
 
   src = fetchFromGitHub {
     owner = "danhper";
-    repo = pname;
+    repo = "python-i18n";
     rev = "v${version}";
     sha256 = "6FahoHZqaOWYGaT9RqLARCm2kLfUIlYuauB6+0eX7jA=";
   };
 
-  nativeCheckInputs = [ pytestCheckHook pyyaml ];
+  # Replace use of deprecated assertRaisesRegexp
+  postPatch = ''
+    substituteInPlace i18n/tests/loader_tests.py \
+      --replace-fail assertRaisesRegexp assertRaisesRegex
+  '';
 
-  pytestFlagsArray = [ "i18n/tests/run_tests.py" ];
+  nativeCheckInputs = [
+    pytestCheckHook
+    pyyaml
+  ];
+  enabledTestPaths = [ "i18n/tests/run_tests.py" ];
+  pythonImportsCheck = [ "i18n" ];
 
-  meta = with lib; {
+  meta = {
     description = "Easy to use i18n library";
     homepage = "https://github.com/danhper/python-i18n";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ emilytrau ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ emilytrau ];
   };
 }

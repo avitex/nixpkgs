@@ -1,26 +1,27 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, flit-core
-, pytestCheckHook
-, numpy
-, decopatch
-, more-itertools
-, nestedtext
-, pyyaml
-, tidyexc
-, toml
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  flit-core,
+  pytestCheckHook,
+  numpy,
+  decopatch,
+  more-itertools,
+  nestedtext,
+  pyyaml,
+  tidyexc,
+  toml,
 }:
 
 buildPythonPackage rec {
   pname = "parametrize-from-file";
-  version = "0.19.0";
-  format = "pyproject";
+  version = "0.21.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit version;
     pname = "parametrize_from_file";
-    hash = "sha256-FPTO2hYZT7bsQyPNcjBEk8SZKp51o/eMV5/U58W5SPI=";
+    hash = "sha256-keKsnkMyk9du7TGvJhZXP2EpLqOKkz8vxrRzWXyGg0U=";
   };
 
   # patch out coveralls since it doesn't provide us value
@@ -31,9 +32,7 @@ buildPythonPackage rec {
       --replace "more_itertools~=8.10" "more_itertools"
   '';
 
-  nativeBuildInputs = [
-    flit-core
-  ];
+  nativeBuildInputs = [ flit-core ];
 
   nativeCheckInputs = [
     numpy
@@ -49,20 +48,18 @@ buildPythonPackage rec {
     toml
   ];
 
-  pythonImportsCheck = [
-    "parametrize_from_file"
-  ];
+  pythonImportsCheck = [ "parametrize_from_file" ];
 
   disabledTests = [
     # https://github.com/kalekundert/parametrize_from_file/issues/19
     "test_load_suite_params_err"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Read unit test parameters from config files";
     homepage = "https://github.com/kalekundert/parametrize_from_file";
     changelog = "https://github.com/kalekundert/parametrize_from_file/blob/v${version}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ jpetrucciani ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ jpetrucciani ];
   };
 }

@@ -1,21 +1,23 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, fetchpatch
-, flit-core
-, pytestCheckHook
-, sphinx
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fetchpatch,
+  flit-core,
+  defusedxml,
+  pytestCheckHook,
+  sphinx,
 }:
 
 buildPythonPackage rec {
   pname = "sphinxcontrib-jquery";
   version = "4.1";
-  format = "pyproject";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "sphinx-contrib";
     repo = "jquery";
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     hash = "sha256-ZQGQcVmhWREFa2KyaOKdTz5W2AS2ur7pFp8qZ2IkxSE=";
   };
 
@@ -33,22 +35,22 @@ buildPythonPackage rec {
     })
   ];
 
-  nativeBuildInputs = [
-    flit-core
-  ];
+  nativeBuildInputs = [ flit-core ];
 
-  pythonImportsCheck = [
-    "sphinxcontrib.jquery"
+  pythonImportsCheck = [ "sphinxcontrib.jquery" ];
+
+  dependencies = [
+    sphinx
   ];
 
   nativeCheckInputs = [
+    defusedxml
     pytestCheckHook
-    sphinx
   ];
 
   pythonNamespaces = [ "sphinxcontrib" ];
 
-  meta = with lib; {
+  meta = {
     description = "Extension to include jQuery on newer Sphinx releases";
     longDescription = ''
       A sphinx extension that ensures that jQuery is installed for use
@@ -56,7 +58,7 @@ buildPythonPackage rec {
     '';
     homepage = "https://github.com/sphinx-contrib/jquery";
     changelog = "https://github.com/sphinx-contrib/jquery/blob/v${version}/CHANGES.rst";
-    license = licenses.bsd0;
-    maintainers = with maintainers; [ kaction ];
+    license = lib.licenses.bsd0;
+    maintainers = with lib.maintainers; [ kaction ];
   };
 }

@@ -1,29 +1,41 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, setuptools
-, setuptools-scm
-, wheel
-, py
-, pytest
-, pytestCheckHook
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  pythonAtLeast,
+  fetchFromGitHub,
+  fetchpatch2,
+  setuptools,
+  setuptools-scm,
+  wheel,
+  py,
+  pytest,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "pytest-forked";
   version = "1.6.0";
 
-  disabled = pythonOlder "3.7";
-
-  format = "pyproject";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "pytest-dev";
     repo = "pytest-forked";
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     hash = "sha256-owkGwF5WQ17/CXwTsIYJ2AgktekRB4qhtsDxR0LCI/k=";
   };
+
+  patches = [
+    (fetchpatch2 {
+      # https://github.com/pytest-dev/pytest-forked/actions
+      name = "pytest8-compat.patch";
+      url = "https://github.com/pytest-dev/pytest-forked/commit/b2742322d39ebda97d5170922520f3bb9c73f614.patch";
+      hash = "sha256-tTRW0p3tOotQMtjjJ6RUKdynsAnKRz0RAV8gAUHiNNA=";
+    })
+    # https://github.com/pytest-dev/pytest-forked/pull/96
+    ./pytest9-compat.patch
+  ];
 
   nativeBuildInputs = [
     setuptools
@@ -31,18 +43,24 @@ buildPythonPackage rec {
     wheel
   ];
 
-  buildInputs = [
-    pytest
-  ];
+  buildInputs = [ pytest ];
 
-  propagatedBuildInputs = [
-    py
-  ];
+  propagatedBuildInputs = [ py ];
 
   nativeCheckInputs = [
     py
     pytestCheckHook
   ];
+
+  disabledTests =
+    if (pythonAtLeast "3.12" && stdenv.hostPlatform.isDarwin && stdenv.hostPlatform.isx86_64) then
+      [
+        # non reproducible test failure on hydra, works on community builder
+        # https://hydra.nixos.org/build/252537267
+        "test_xfail"
+      ]
+    else
+      null;
 
   setupHook = ./setup-hook.sh;
 

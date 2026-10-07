@@ -1,28 +1,36 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools
-, setuptools-scm
-, cocotb-bus
-, find-libpython
-, pytestCheckHook
-, swig
-, verilog
-, ghdl
+{
+  lib,
+  buildPythonPackage,
+  pythonAtLeast,
+  fetchFromGitHub,
+  setuptools,
+  setuptools-scm,
+  python,
+  cocotb-bus,
+  find-libpython,
+  pytestCheckHook,
+  swig,
+  iverilog,
+  ghdl,
+  stdenv,
 }:
 
 buildPythonPackage rec {
   pname = "cocotb";
-  version = "1.8.1";
+  version = "2.0.1";
   format = "setuptools";
+
+  # RuntimeError: cocotb 2.0.1 only supports a maximum Python version of 3.13.
+  # You can suppress this error by defining the environment variable COCOTB_IGNORE_PYTHON_REQUIRES
+  # There is no guarantee this will work and no support will be provided.
+  disabled = pythonAtLeast "3.14";
 
   # pypi source doesn't include tests
   src = fetchFromGitHub {
     owner = "cocotb";
     repo = "cocotb";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-B7SePM8muEL3KFVOY7+OAgQVIRvTs6k29xASK9lgCB4=";
+    tag = "v${version}";
+    hash = "sha256-LXQNqFlvP+WBaDGWPs5+BXBtW2dhDu+v+7lR/AMG21M=";
   };
 
   nativeBuildInputs = [ setuptools-scm ];
@@ -43,30 +51,46 @@ buildPythonPackage rec {
 
     # remove circular dependency cocotb-bus from setup.py
     substituteInPlace setup.py --replace "'cocotb-bus<1.0'" ""
-  '' + lib.optionalString stdenv.isDarwin ''
-    # disable lto on darwin
-    # https://github.com/NixOS/nixpkgs/issues/19098
-    substituteInPlace cocotb_build_libs.py --replace "-flto" ""
   '';
 
-  patches = [
-    # Fix "can't link with bundle (MH_BUNDLE) only dylibs (MH_DYLIB) file" error
-    ./0001-Patch-LDCXXSHARED-for-macOS-along-with-LDSHARED.patch
+  # cocotb uses dlopen so that it's dynamic libraries are python version agnostic.
+  # Here we patch its dynamic libraries to make sure the correct libpython is found and used.
+  preFixup = lib.optionalString stdenv.hostPlatform.isLinux ''
+    for lib in $out/lib/python*/site-packages/cocotb/libs/*.so; do
+      patchelf --add-rpath ${python}/lib --add-needed libpython3.so $lib
+    done
+  '';
+
+  disabledTests = [
+    # https://github.com/cocotb/cocotb/commit/425e1edb8e7133f4a891f2f87552aa2748cd8d2c#diff-4df986cbc2b1a3f22172caea94f959d8fcb4a128105979e6e99c68139469960cL33
+    "test_cocotb"
+    "test_cocotb_parallel"
   ];
 
-  nativeCheckInputs = [ cocotb-bus pytestCheckHook swig verilog ghdl ];
+  nativeCheckInputs = [
+    cocotb-bus
+    pytestCheckHook
+    swig
+    iverilog
+    ghdl
+  ];
+
   preCheck = ''
     export PATH=$out/bin:$PATH
-    mv cocotb cocotb.hidden
   '';
 
   pythonImportsCheck = [ "cocotb" ];
 
-  meta = with lib; {
+  meta = {
     changelog = "https://github.com/cocotb/cocotb/releases/tag/v${version}";
     description = "Coroutine based cosimulation library for writing VHDL and Verilog testbenches in Python";
+    mainProgram = "cocotb-config";
     homepage = "https://github.com/cocotb/cocotb";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ matthuszagh jleightcap ];
+    license = lib.licenses.bsd3;
+    broken = stdenv.hostPlatform.isDarwin;
+    maintainers = with lib.maintainers; [
+      matthuszagh
+      jleightcap
+    ];
   };
 }

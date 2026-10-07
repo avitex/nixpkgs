@@ -1,83 +1,89 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fetchpatch,
 
-# build-system
-, hatchling
-, hatch-fancy-pypi-readme
+  # build-system
+  hatchling,
+  hatch-fancy-pypi-readme,
 
-# native dependencies
-, libxcrypt
+  # dependencies
+  annotated-types,
+  pydantic-core,
+  typing-extensions,
+  typing-inspection,
 
-# dependencies
-, annotated-types
-, pydantic-core
-, typing-extensions
-
-# tests
-, cloudpickle
-, email-validator
-, dirty-equals
-, faker
-, pytestCheckHook
-, pytest-mock
+  # tests
+  cloudpickle,
+  email-validator,
+  dirty-equals,
+  hypothesis,
+  inline-snapshot,
+  jsonschema,
+  pytestCheckHook,
+  pytest-mock,
+  pytest-run-parallel,
+  pytest-timeout,
 }:
 
 buildPythonPackage rec {
   pname = "pydantic";
-  version = "2.5.2";
+  version = "2.13.4";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "pydantic";
     repo = "pydantic";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-D0gYcyrKVVDhBgV9sCVTkGq/kFmIoT9l0i5bRM1qxzM=";
+    tag = "v${version}";
+    hash = "sha256-G4Xo6BF6tOn4g/qG3RNDP3/+lYnCOuw3AB1OrVOGcSA=";
   };
 
-  buildInputs = lib.optionals (pythonOlder "3.9") [
-    libxcrypt
+  patches = [
+    (fetchpatch {
+      name = "pytest-9.1-compat.patch";
+      url = "https://github.com/pydantic/pydantic/commit/f257d0155c6643fbda9516af6b2c4ca082ed7651.patch";
+      excludes = [ "uv.lock" ];
+      hash = "sha256-azclSDYY/H8RcerNvI07njwLzr8fyIZ17nM18y/edVo=";
+    })
   ];
 
-  nativeBuildInputs = [
+  postPatch = ''
+    sed -i "/--benchmark/d" pyproject.toml
+  '';
+
+  build-system = [
     hatch-fancy-pypi-readme
     hatchling
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     annotated-types
     pydantic-core
     typing-extensions
+    typing-inspection
   ];
 
-  passthru.optional-dependencies = {
-    email = [
-      email-validator
-    ];
+  optional-dependencies = {
+    email = [ email-validator ];
   };
 
   nativeCheckInputs = [
     cloudpickle
     dirty-equals
-    faker
+    hypothesis
+    (inline-snapshot.overridePythonAttrs { doCheck = false; })
+    jsonschema
     pytest-mock
+    pytest-run-parallel
+    pytest-timeout
     pytestCheckHook
-  ] ++ lib.flatten (lib.attrValues passthru.optional-dependencies);
-
-  preCheck = ''
-    export HOME=$(mktemp -d)
-    substituteInPlace pyproject.toml \
-      --replace "'--benchmark-columns', 'min,mean,stddev,outliers,rounds,iterations'," "" \
-      --replace "'--benchmark-group-by', 'group'," "" \
-      --replace "'--benchmark-warmup', 'on'," "" \
-      --replace "'--benchmark-disable'," ""
-  '';
+  ]
+  ++ lib.concatAttrValues optional-dependencies;
 
   disabledTestPaths = [
     "tests/benchmarks"
+    "tests/pydantic_core/benchmarks"
 
     # avoid cyclic dependency
     "tests/test_docs.py"
@@ -85,11 +91,11 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "pydantic" ];
 
-  meta = with lib; {
+  meta = {
     description = "Data validation and settings management using Python type hinting";
     homepage = "https://github.com/pydantic/pydantic";
-    changelog = "https://github.com/pydantic/pydantic/blob/v${version}/HISTORY.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ wd15 ];
+    changelog = "https://github.com/pydantic/pydantic/blob/${src.tag}/HISTORY.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ wd15 ];
   };
 }

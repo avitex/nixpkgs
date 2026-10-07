@@ -1,55 +1,58 @@
-{ lib
-, buildPythonPackage
-, einops
-, fetchFromGitHub
-, flit-core
-, numba
-, numpy
-, pandas
-, pytestCheckHook
-, pythonOlder
-, scipy
-, xarray
+{
+  lib,
+  buildPythonPackage,
+  einops,
+  fetchFromGitHub,
+  flit-core,
+  numba,
+  numpy,
+  pytestCheckHook,
+  scipy,
+  xarray,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "xarray-einstats";
-  version = "0.7.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.9";
+  version = "0.11.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "arviz-devs";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-aljjwgBJp341aQN3g1PoZPj+46x21Eu+svG1yzURhJE=";
+    repo = "xarray-einstats";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-mGRalZ9OSh3CtfhLy2E6LOQVBDoq8c777Q9WnyMtjpU=";
   };
 
-  nativeBuildInputs = [
-    flit-core
-  ];
+  build-system = [ flit-core ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     numpy
     scipy
     xarray
   ];
 
+  optional-dependencies = {
+    einops = [ einops ];
+    numba = [ numba ];
+  };
+
   nativeCheckInputs = [
-    einops
-    numba
     pytestCheckHook
+  ]
+  ++ lib.flatten (builtins.attrValues finalAttrs.passthru.optional-dependencies);
+
+  pythonImportsCheck = [ "xarray_einstats" ];
+
+  disabledTests = [
+    # TypeError
+    "test_pinv"
   ];
 
-  pythonImportsCheck = [
-    "xarray_einstats"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Stats, linear algebra and einops for xarray";
     homepage = "https://github.com/arviz-devs/xarray-einstats";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/arviz-devs/xarray-einstats/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

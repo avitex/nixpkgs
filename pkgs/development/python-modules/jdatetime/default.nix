@@ -1,34 +1,32 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, six
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  jalali-core,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "jdatetime";
-  version = "4.1.1";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "6.1.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-HdDuIQFgx70wACgDxEPmJgrGAuplsGVlKh1WfTv9yno=";
+    hash = "sha256-5YEtfr9MZgmlVCMMwH3vyJ2cETQkNQ/i1bftfcUNMJc=";
   };
 
-  propagatedBuildInputs = [
-    six
-  ];
+  build-system = [ setuptools ];
 
-  pythonImportsCheck = [
-    "jdatetime"
-  ];
+  dependencies = [ jalali-core ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "jdatetime" ];
+
+  meta = {
     description = "Jalali datetime binding";
     homepage = "https://github.com/slashmili/python-jalali";
-    license = licenses.psfl;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/slashmili/python-jalali/blob/v${version}/CHANGELOG.md";
+    license = lib.licenses.psfl;
+    maintainers = [ ];
   };
 }

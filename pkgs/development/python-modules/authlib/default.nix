@@ -1,37 +1,40 @@
-{ lib
-, buildPythonPackage
-, cachelib
-, cryptography
-, fetchFromGitHub
-, flask
-, flask-sqlalchemy
-, httpx
-, mock
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, requests
-, starlette
-, werkzeug
+{
+  lib,
+  buildPythonPackage,
+  cachelib,
+  cryptography,
+  fetchFromGitHub,
+  flask-sqlalchemy,
+  flask,
+  httpx,
+  joserfc,
+  mock,
+  pytest-asyncio,
+  pytestCheckHook,
+  python-multipart,
+  requests,
+  setuptools,
+  starlette,
+  werkzeug,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "authlib";
-  version = "1.3.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "1.7.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "lepture";
     repo = "authlib";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-XHzABjGpZN6ilYuBYyGF3Xy/+AT2DXick8/A4JkyWBA=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-FLSe9piZoFlOAutzoMcgygbsJsR8uSlZWqdNBU6D+aE=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     cryptography
-    requests
+    joserfc
   ];
 
   nativeCheckInputs = [
@@ -42,13 +45,13 @@ buildPythonPackage rec {
     mock
     pytest-asyncio
     pytestCheckHook
+    python-multipart
+    requests
     starlette
     werkzeug
   ];
 
-  pythonImportsCheck = [
-    "authlib"
-  ];
+  pythonImportsCheck = [ "authlib" ];
 
   disabledTestPaths = [
     # Django tests require a running instance
@@ -58,11 +61,11 @@ buildPythonPackage rec {
     "tests/jose/test_chacha20.py"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Library for building OAuth and OpenID Connect servers";
     homepage = "https://github.com/lepture/authlib";
-    changelog = "https://github.com/lepture/authlib/blob/v${version}/docs/changelog.rst";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ flokli ];
+    changelog = "https://github.com/lepture/authlib/blob/${finalAttrs.src.tag}/docs/upgrades/changelog.rst";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ flokli ];
   };
-}
+})

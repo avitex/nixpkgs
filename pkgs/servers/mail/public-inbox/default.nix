@@ -1,43 +1,47 @@
-{ stdenv, lib, fetchurl, makeWrapper, nixosTests
-, buildPerlPackage
-, coreutils
-, curl
-, git
-, gnumake
-, highlight
-, libgit2
-, libxcrypt
-, man
-, openssl
-, pkg-config
-, sqlite
-, xapian
-, AnyURIEscape
-, DBDSQLite
-, DBI
-, EmailAddressXS
-, EmailMIME
-, IOSocketSSL
-# FIXME: to be packaged
-#, IOSocketSocks
-, IPCRun
-, Inline
-, InlineC
-, LinuxInotify2
-, MailIMAPClient
-# FIXME: to be packaged
-#, NetNetrc
-# FIXME: to be packaged
-#, NetNNTP
-, ParseRecDescent
-, Plack
-, PlackMiddlewareReverseProxy
-, PlackTestExternalServer
-, SearchXapian
-, TestSimple13
-, TimeDate
-, URI
-, XMLTreePP
+{
+  stdenv,
+  lib,
+  fetchurl,
+  makeWrapper,
+  nixosTests,
+  buildPerlPackage,
+  coreutils,
+  curl,
+  git,
+  gnumake,
+  highlight,
+  libgit2,
+  libxcrypt,
+  man,
+  openssl,
+  pkg-config,
+  sqlite,
+  xapian,
+  AnyURIEscape,
+  DBDSQLite,
+  DBI,
+  EmailAddressXS,
+  EmailMIME,
+  IOSocketSSL,
+  # FIXME: to be packaged
+  #, IOSocketSocks
+  IPCRun,
+  Inline,
+  InlineC,
+  LinuxInotify2,
+  MailIMAPClient,
+  # FIXME: to be packaged
+  #, NetNetrc
+  # FIXME: to be packaged
+  #, NetNNTP
+  ParseRecDescent,
+  Plack,
+  PlackMiddlewareReverseProxy,
+  PlackTestExternalServer,
+  Xapian,
+  TimeDate,
+  URI,
+  XMLTreePP,
 }:
 
 let
@@ -78,27 +82,30 @@ let
     "v2mirror"
   ];
 
-  testConditions = with lib;
-    concatMapStringsSep " " (n: "! -name ${escapeShellArg n}.t") skippedTests;
+  testConditions = lib.concatMapStringsSep " " (n: "! -name ${lib.escapeShellArg n}.t") skippedTests;
 
 in
 
 buildPerlPackage rec {
   pname = "public-inbox";
-  version = "1.9.0";
+  version = "2.1.0";
 
   src = fetchurl {
     url = "https://public-inbox.org/public-inbox.git/snapshot/public-inbox-${version}.tar.gz";
-    sha256 = "sha256-ENnT2YK7rpODII9TqiEYSCp5mpWOnxskeSuAf8Ilqro=";
+    sha256 = "sha256-A9qHiOYuJOUjDqu46gpyBule43FsgQEH0F7maZUjbes=";
   };
 
-  outputs = [ "out" "devdoc" "sa_config" ];
+  outputs = [
+    "out"
+    "devdoc"
+    "sa_config"
+  ];
 
   postConfigure = ''
     substituteInPlace Makefile --replace 'TEST_FILES = t/*.t' \
         'TEST_FILES = $(shell find t -name *.t ${testConditions})'
-    substituteInPlace lib/PublicInbox/TestCommon.pm \
-      --replace /bin/cp ${coreutils}/bin/cp
+    substituteInPlace lib/PublicInbox/TestCommon.pm t/clone-coderepo.t \
+      --replace-fail /bin/cp ${coreutils}/bin/cp
   '';
 
   nativeBuildInputs = [ makeWrapper ];
@@ -120,14 +127,14 @@ buildPerlPackage rec {
     ParseRecDescent
     Plack
     PlackMiddlewareReverseProxy
-    SearchXapian
+    Xapian
     TimeDate
     URI
     libgit2 # For Gcf2
     man
   ];
 
-  doCheck = !stdenv.isDarwin;
+  doCheck = !stdenv.hostPlatform.isDarwin;
   nativeCheckInputs = [
     curl
     git
@@ -137,9 +144,9 @@ buildPerlPackage rec {
     xapian
     EmailMIME
     PlackTestExternalServer
-    TestSimple13
     XMLTreePP
-  ] ++ lib.optionals stdenv.isLinux [
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isLinux [
     LinuxInotify2
   ];
   preCheck = ''
@@ -154,13 +161,15 @@ buildPerlPackage rec {
     for prog in $out/bin/*; do
         wrapProgram $prog \
             --set NIX_CFLAGS_COMPILE_${stdenv.cc.suffixSalt} -I${lib.getDev libxcrypt}/include \
-            --prefix PATH : ${lib.makeBinPath [
-              git
-              xapian
-              /* for InlineC */
-              gnumake
-              stdenv.cc
-            ]}
+            --prefix PATH : ${
+              lib.makeBinPath [
+                git
+                xapian
+                # for InlineC
+                gnumake
+                stdenv.cc
+              ]
+            }
     done
 
     mv sa_config $sa_config
@@ -170,10 +179,13 @@ buildPerlPackage rec {
     nixos-public-inbox = nixosTests.public-inbox;
   };
 
-  meta = with lib; {
+  meta = {
     homepage = "https://public-inbox.org/";
-    license = licenses.agpl3Plus;
-    maintainers = with maintainers; [ julm qyliss ];
-    platforms = platforms.all;
+    license = lib.licenses.agpl3Plus;
+    maintainers = with lib.maintainers; [
+      julm
+      qyliss
+    ];
+    platforms = lib.platforms.all;
   };
 }

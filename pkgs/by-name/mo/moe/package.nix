@@ -1,24 +1,18 @@
-{ lib
-, stdenv
-, fetchurl
-, lzip
-, ncurses
+{
+  lib,
+  stdenv,
+  fetchurl,
+  lzip,
+  ncurses,
 }:
-
 stdenv.mkDerivation (finalAttrs: {
   pname = "moe";
-  version = "1.14";
+  version = "1.16";
 
   src = fetchurl {
     url = "mirror://gnu/moe/moe-${finalAttrs.version}.tar.lz";
-    hash = "sha256-9Lq9bOCuGVFvmDRU+yDTLf9xrTFjN6xr+TpCpf8gnJ0=";
+    hash = "sha256-TCXNeJGScq6+wKf4wSYBG7Wktdh0IoB6NCMhbwoXqGg=";
   };
-
-  prePatch = ''
-    substituteInPlace window_vector.cc --replace \
-      "insert( 0U, 1," \
-      "insert( 0U, 1U,"
-  '';
 
   nativeBuildInputs = [
     lzip
@@ -32,7 +26,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   meta = {
     homepage = "https://www.gnu.org/software/moe/";
-    description = "A small, 8-bit clean editor";
+    description = "Small, 8-bit clean editor";
     longDescription = ''
       GNU moe is a powerful, 8-bit clean, console text editor for ISO-8859 and
       ASCII character encodings. It has a modeless, user-friendly interface,
@@ -43,9 +37,8 @@ stdenv.mkDerivation (finalAttrs: {
       delimiter matching, text conversion from/to UTF-8, romanization, etc.
     '';
     license = lib.licenses.gpl2Plus;
-    maintainers = with lib.maintainers; [ AndersonTorres ];
+    maintainers = with lib.maintainers; [ videl ];
     platforms = lib.platforms.unix;
     mainProgram = "moe";
   };
 })
-# TODO: a configurable, global moerc file

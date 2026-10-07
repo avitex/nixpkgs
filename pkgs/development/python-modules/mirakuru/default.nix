@@ -1,46 +1,74 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, pytestCheckHook
-, setuptools
-, psutil
-, netcat
-, ps
-, python-daemon
+{
+  stdenv,
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  pytest-rerunfailures,
+  pytest-xdist,
+  setuptools,
+  psutil,
+  netcat,
+  ps,
+  python-daemon,
 }:
 
 buildPythonPackage rec {
   pname = "mirakuru";
-  version = "2.5.2";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "3.0.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "ClearcodeHQ";
     repo = "mirakuru";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-I1TKP0ESuBMTcReZf0tryjvGpSpwzofwmOiQqhyr6Zg=";
+    tag = "v${version}";
+    hash = "sha256-3WyjvHxr+6kG+cLSCEZkHoA70mSoT66ubmp0W9g2yJM=";
   };
 
-  nativeBuildInputs = [ setuptools ];
+  postPatch = ''
+    substituteInPlace tests/executors/test_output_executor_regression_issue_98.py \
+      --replace-fail "timeout=15," "timeout=60,"
+  '';
 
-  propagatedBuildInputs = [ psutil ];
+  build-system = [ setuptools ];
+
+  dependencies = [ psutil ];
 
   nativeCheckInputs = [
     netcat.nc
     ps
     python-daemon
+    pytest-rerunfailures
+    pytest-xdist
     pytestCheckHook
   ];
+
+  # socket bind races, but requires xdist_group
+  dontUsePytestXdist = true;
+
   pythonImportsCheck = [ "mirakuru" ];
 
-  meta = with lib; {
-    homepage = "https://pypi.org/project/mirakuru";
+  # Necessary for the tests to pass on Darwin with sandbox enabled.
+  __darwinAllowLocalNetworking = true;
+
+  # Those are failing in the darwin sandbox with:
+  # > ps: %mem: requires entitlement
+  # > ps: vsz: requires entitlement
+  # > ps: rss: requires entitlement
+  # > ps: time: requires entitlement
+  disabledTests = [
+    "test_forgotten_stop"
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
+    "test_mirakuru_cleanup"
+    "test_daemons_killing"
+  ];
+
+  meta = {
+    homepage = "https://github.com/dbfixtures/mirakuru";
     description = "Process orchestration tool designed for functional and integration tests";
-    changelog = "https://github.com/ClearcodeHQ/mirakuru/blob/v${version}/CHANGES.rst";
-    license = licenses.lgpl3Plus;
-    maintainers = with maintainers; [ bcdarwin ];
+    changelog = "https://github.com/ClearcodeHQ/mirakuru/blob/${src.tag}/CHANGES.rst";
+    license = lib.licenses.lgpl3Plus;
+    maintainers = with lib.maintainers; [ bcdarwin ];
   };
 }

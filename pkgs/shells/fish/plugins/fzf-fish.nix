@@ -1,21 +1,40 @@
-{ lib, stdenv, pkgs, buildFishPlugin, fetchFromGitHub, fd, unixtools, procps, clownfish, fishtape_3, }:
+{
+  lib,
+  stdenv,
+  pkgs,
+  buildFishPlugin,
+  fetchFromGitHub,
+  fd,
+  unixtools,
+  procps,
+  clownfish,
+  fishtape_3,
+}:
 let
   # we want `pkgs.fzf`, not `fishPlugins.fzf`
   inherit (pkgs) fzf;
 in
 buildFishPlugin rec {
   pname = "fzf.fish";
-  version = "10.2";
+  version = "11.0";
 
   src = fetchFromGitHub {
     owner = "PatrickF1";
     repo = "fzf.fish";
     rev = "v${version}";
-    hash = "sha256-1/MLKkUHe4c9YLDrH+cnL+pLiSOSERbIZSM4FTG3wF0=";
+    hash = "sha256-H7HgYT+okuVXo2SinrSs+hxAKCn4Q4su7oMbebKd/7s=";
   };
 
-  nativeCheckInputs = [ fzf fd unixtools.script procps ];
-  checkPlugins = [ clownfish fishtape_3 ];
+  nativeCheckInputs = [
+    fzf
+    fd
+    unixtools.script
+    procps
+  ];
+  checkPlugins = [
+    clownfish
+    fishtape_3
+  ];
   checkFunctionDirs = [ "./functions" ];
   checkPhase = ''
     # Disable git tests which inspect the project's git repo, which isn't
@@ -30,16 +49,23 @@ buildFishPlugin rec {
 
     # Disable tests that are failing, because there is not 'rev' command
     rm tests/preview_file/custom_file_preview.fish
-  '' + (
-    if stdenv.isDarwin then ''script /dev/null fish -c "fishtape tests/*/*.fish"''
-    else ''script -c 'fish -c "fishtape tests/*/*.fish"' ''
+  ''
+  + (
+    if stdenv.hostPlatform.isDarwin then
+      ''script /dev/null fish -c "fishtape tests/*/*.fish"''
+    else
+      ''script -c 'fish -c "fishtape tests/*/*.fish"' ''
   );
 
-  meta = with lib; {
+  meta = {
     description = "Augment your fish command line with fzf key bindings";
     homepage = "https://github.com/PatrickF1/fzf.fish";
     changelog = "https://github.com/PatrickF1/fzf.fish/releases/tag/${src.rev}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ pacien natsukium ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [
+      euxane
+      natsukium
+    ];
+    broken = stdenv.hostPlatform.isDarwin;
   };
 }

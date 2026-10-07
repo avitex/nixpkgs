@@ -1,69 +1,52 @@
-{ lib
-, fetchPypi
-, buildPythonPackage
-, pythonOlder
-, pythonRelaxDepsHook
-, numpy
-, wheel
-, werkzeug
-, protobuf
-, grpcio
-, markdown
-, absl-py
-, google-auth-oauthlib
-, setuptools
-, tensorboard-data-server
-, tensorboard-plugin-wit
-, tensorboard-plugin-profile
+{
+  lib,
+  fetchPypi,
+  buildPythonPackage,
+
+  # dependencies
+  absl-py,
+  grpcio,
+  markdown,
+  numpy,
+  packaging,
+  pillow,
+  protobuf,
+  setuptools,
+  tensorboard-data-server,
+  werkzeug,
+
+  # tests
+  versionCheckHook,
 }:
 
-# tensorflow/tensorboard is built from a downloaded wheel, because
-# https://github.com/tensorflow/tensorboard/issues/719 blocks
-# buildBazelPackage.
-
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "tensorboard";
-  version = "2.15.1";
+  version = "2.21.0";
   format = "wheel";
-  disabled = pythonOlder "3.6";
+  __structuredAttrs = true;
 
+  # tensorflow/tensorboard is built from a downloaded wheel, because
+  # https://github.com/tensorflow/tensorboard/issues/719 blocks buildBazelPackage.
   src = fetchPypi {
-    inherit pname version format;
+    inherit (finalAttrs) pname version;
+    format = "wheel";
     dist = "py3";
     python = "py3";
-    hash = "sha256-xGwdHPE6RYxCmGiniyUx2P9faCBY1p7AhAsLx6OPHA8=";
+    hash = "sha256-cnkxbctr1bw5HWI96oQVMSmc3hiHMQ6BM7w0qZbTIlU=";
   };
 
-  nativeBuildInputs = [
-    pythonRelaxDepsHook
-  ];
-
-  pythonRelaxDeps = [
-    "google-auth-oauthlib"
-    "protobuf"
-  ];
-
-  propagatedBuildInputs = [
+  dependencies = [
     absl-py
     grpcio
-    google-auth-oauthlib
     markdown
     numpy
+    packaging
+    pillow
     protobuf
     setuptools
     tensorboard-data-server
-    tensorboard-plugin-profile
-    tensorboard-plugin-wit
     werkzeug
-    # not declared in install_requires, but used at runtime
-    # https://github.com/NixOS/nixpkgs/issues/73840
-    wheel
   ];
-
-  # in the absence of a real test suite, run cli and imports
-  checkPhase = ''
-    $out/bin/tensorboard --help > /dev/null
-  '';
 
   pythonImportsCheck = [
     "tensorboard"
@@ -75,10 +58,19 @@ buildPythonPackage rec {
     "tensorboard.util"
   ];
 
-  meta = with lib; {
+  nativeCheckInputs = [
+    versionCheckHook
+  ];
+
+  meta = {
     description = "TensorFlow's Visualization Toolkit";
-    homepage = "https://www.tensorflow.org/";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ abbradar ];
+    homepage = "https://github.com/tensorflow/tensorboard";
+    changelog = "https://github.com/tensorflow/tensorboard/blob/${finalAttrs.version}/RELEASE.md";
+    license = lib.licenses.asl20;
+    mainProgram = "tensorboard";
+    maintainers = with lib.maintainers; [
+      GaetanLepage
+    ];
+    sourceProvenance = with lib.sourceTypes; [ binaryNativeCode ];
   };
-}
+})

@@ -1,37 +1,41 @@
-{ lib
-, fetchFromGitHub
-, buildPythonPackage
+{
+  lib,
+  fetchFromGitHub,
+  buildPythonPackage,
 
-# build-system
-, cysignals
-, cython_3
-, pkgconfig
-, setuptools
+  # build-system
+  cysignals,
+  cython,
+  pkgconfig,
+  setuptools,
 
-, gmp
-, pari
-, mpfr
-, fplll
-, numpy
+  gmp,
+  pari,
+  mpfr,
+  fplll,
+  numpy,
 
-# tests
-, pytestCheckHook
+  # Reverse dependency
+  sage,
+
+  # tests
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "fpylll";
-  version = "0.6.1";
+  version = "0.6.4";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "fplll";
     repo = "fpylll";
-    rev = "refs/tags/${version}";
-    hash = "sha256-M3ZnDL0Ui3UAa5Jn/Wr5pAHhghP7EAaQD/sx5QZ58ZQ=";
+    tag = version;
+    hash = "sha256-vks4rTXk6fh8183PCxJzfTXQyo3scBH4afjbQAkT6Gw=";
   };
 
   nativeBuildInputs = [
-    cython_3
+    cython
     cysignals
     pkgconfig
     setuptools
@@ -46,11 +50,10 @@ buildPythonPackage rec {
 
   propagatedBuildInputs = [
     numpy
+    cysignals
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
   preCheck = ''
     # Since upstream introduced --doctest-modules in
@@ -60,11 +63,15 @@ buildPythonPackage rec {
     export PY_IGNORE_IMPORTMISMATCH=1
   '';
 
-  meta = with lib; {
-    description = "A Python interface for fplll";
-    changelog = "https://github.com/fplll/fpylll/releases/tag/${version}";
+  passthru.tests = {
+    inherit sage;
+  };
+
+  meta = {
+    description = "Python interface for fplll";
+    changelog = "https://github.com/fplll/fpylll/releases/tag/${src.tag}";
     homepage = "https://github.com/fplll/fpylll";
-    maintainers = teams.sage.members;
-    license = licenses.gpl2Plus;
+    teams = [ lib.teams.sage ];
+    license = lib.licenses.gpl2Plus;
   };
 }

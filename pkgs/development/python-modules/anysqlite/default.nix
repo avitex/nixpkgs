@@ -1,12 +1,12 @@
-{ lib
-, anyio
-, buildPythonPackage
-, fetchFromGitHub
-, hatch-fancy-pypi-readme
-, hatchling
-, pytestCheckHook
-, pythonOlder
-, trio
+{
+  lib,
+  anyio,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatch-fancy-pypi-readme,
+  hatchling,
+  pytestCheckHook,
+  trio,
 }:
 
 buildPythonPackage rec {
@@ -14,12 +14,10 @@ buildPythonPackage rec {
   version = "0.0.5";
   pyproject = true;
 
-  disabled = pythonOlder "3.8";
-
   src = fetchFromGitHub {
     owner = "karpetrosyan";
     repo = "anysqlite";
-    rev = "refs/tags/v${version}";
+    tag = "v${version}";
     hash = "sha256-6kNN6kjkMHVNneMq/8zQxqMIXUxH/+eWLX8XhoHqFRU=";
   };
 
@@ -28,24 +26,20 @@ buildPythonPackage rec {
     hatchling
   ];
 
-  propagatedBuildInputs = [
-    anyio
-  ];
+  propagatedBuildInputs = [ anyio ];
 
   nativeCheckInputs = [
     pytestCheckHook
     trio
   ];
 
-  pythonImportsCheck = [
-    "anysqlite"
-  ];
+  pythonImportsCheck = [ "anysqlite" ];
 
-  meta = with lib; {
+  meta = {
     description = "Sqlite3 for asyncio and trio";
     homepage = "https://github.com/karpetrosyan/anysqlite";
     changelog = "https://github.com/karpetrosyan/anysqlite/blob/${version}/CHANGELOG.md";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

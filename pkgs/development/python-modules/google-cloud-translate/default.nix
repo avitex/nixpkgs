@@ -1,41 +1,50 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, google-api-core
-, google-cloud-core
-, google-cloud-testutils
-, mock
-, proto-plus
-, protobuf
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  google-api-core,
+  google-cloud-core,
+  google-cloud-testutils,
+  grpc-google-iam-v1,
+  mock,
+  proto-plus,
+  protobuf,
+  pytest-asyncio,
+  pytestCheckHook,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "google-cloud-translate";
-  version = "3.12.1";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "3.27.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-Zhy4h5qjxjovclo+po+QGZvTVMlcoWnMLoOlEFmH0p4=";
+    pname = "google_cloud_translate";
+    inherit version;
+    hash = "sha256-KueO8aqNu17JdnoI6rzjT9p7tFoHumeubg6tjP1flfc=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  pythonRelaxDeps = [
+    "protobuf"
+  ];
+
+  dependencies = [
     google-api-core
     google-cloud-core
+    grpc-google-iam-v1
     proto-plus
     protobuf
-  ] ++ google-api-core.optional-dependencies.grpc;
+  ]
+  ++ google-api-core.optional-dependencies.grpc;
 
   nativeCheckInputs = [
     google-cloud-testutils
     mock
-    pytestCheckHook
     pytest-asyncio
+    pytestCheckHook
   ];
 
   preCheck = ''
@@ -50,11 +59,16 @@ buildPythonPackage rec {
     "google.cloud.translate_v3beta1"
   ];
 
-  meta = with lib; {
+  disabledTests = [
+    # Tests require PROJECT_ID
+    "test_list_glossaries"
+  ];
+
+  meta = {
     description = "Google Cloud Translation API client library";
-    homepage = "https://github.com/googleapis/python-translate";
-    changelog = "https://github.com/googleapis/python-translate/blob/v${version}/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    homepage = "https://github.com/googleapis/google-cloud-python/tree/main/packages/google-cloud-translate";
+    changelog = "https://github.com/googleapis/google-cloud-python/blob/google-cloud-translate-v${version}/packages/google-cloud-translate/CHANGELOG.md";
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
 }

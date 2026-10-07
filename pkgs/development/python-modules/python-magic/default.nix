@@ -1,28 +1,29 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchFromGitHub
-, fetchpatch
-, substituteAll
-, file
-, pytestCheckHook
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fetchpatch,
+  replaceVars,
+  file,
+  pytestCheckHook,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "python-magic";
   version = "0.4.27";
-  format = "setuptools";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "ahupp";
     repo = "python-magic";
-    rev = version;
+    tag = finalAttrs.version;
     hash = "sha256-fZ+5xJ3P0EYK+6rQ8VzXv2zckKfEH5VUdISIR6ybIfQ=";
   };
 
   patches = [
-    (substituteAll {
-      src = ./libmagic-path.patch;
+    (replaceVars ./libmagic-path.patch {
       libmagic = "${file}/lib/libmagic${stdenv.hostPlatform.extensions.sharedLibrary}";
     })
     (fetchpatch {
@@ -38,20 +39,27 @@ buildPythonPackage rec {
       url = "https://github.com/ahupp/python-magic/commit/3d2405ca80cd39b2a91decd26af81dcf181390a4.patch";
       hash = "sha256-HRsnO9MGfMD9BkJdC4SrEFQ1OZEaXpwakXFLoaCPK94=";
     })
+
+    # Fix test failures due to modified output in file 5.47
+    ./fix-parquet-test.patch
   ];
+
+  build-system = [ setuptools ];
 
   preCheck = ''
     export LC_ALL=en_US.UTF-8
   '';
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  postCheck = ''
+    unset LC_ALL
+  '';
 
-  meta = with lib; {
-    description = "A python interface to the libmagic file type identification library";
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  meta = {
+    description = "Python interface to the libmagic file type identification library";
     homepage = "https://github.com/ahupp/python-magic";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
-}
+})

@@ -1,33 +1,31 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, nix-update-script
-, pkg-config
-, meson
-, ninja
-, python3
-, vala
-, desktop-file-utils
-, gtk3
-, granite
-, libhandy
-, libnotify
-, vte
-, libgee
-, pcre2
-, wrapGAppsHook
-, xvfb-run
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  nix-update-script,
+  pkg-config,
+  meson,
+  ninja,
+  vala,
+  desktop-file-utils,
+  gtk4,
+  granite7,
+  libadwaita,
+  vte-gtk4,
+  libgee,
+  pcre2,
+  wrapGAppsHook4,
 }:
 
 stdenv.mkDerivation rec {
   pname = "elementary-terminal";
-  version = "6.1.2";
+  version = "8.1.0";
 
   src = fetchFromGitHub {
     owner = "elementary";
     repo = "terminal";
-    rev = version;
-    sha256 = "sha256-k+xowr9HmOUgNkn25uj+oV7AtG9EZfgFDop0Z+H7b3Q=";
+    tag = version;
+    hash = "sha256-npPuanin2WKuIAVbvGwBf5fGHYp7LKGac+s+28apaLU=";
   };
 
   nativeBuildInputs = [
@@ -35,41 +33,33 @@ stdenv.mkDerivation rec {
     meson
     ninja
     pkg-config
-    python3
     vala
-    wrapGAppsHook
-    xvfb-run
+    wrapGAppsHook4
   ];
 
   buildInputs = [
-    granite
-    gtk3
+    granite7
+    gtk4
+    libadwaita
     libgee
-    libhandy
-    libnotify
     pcre2
-    vte
+    vte-gtk4
   ];
-
-  postPatch = ''
-    chmod +x meson/post_install.py
-    patchShebangs meson/post_install.py
-  '';
 
   passthru = {
     updateScript = nix-update-script { };
   };
 
-  meta = with lib; {
+  meta = {
     description = "Terminal emulator designed for elementary OS";
     longDescription = ''
       A super lightweight, beautiful, and simple terminal. Comes with sane defaults, browser-class tabs, sudo paste protection,
       smart copy/paste, and little to no configuration.
     '';
     homepage = "https://github.com/elementary/terminal";
-    license = licenses.lgpl3Plus;
-    platforms = platforms.linux;
-    maintainers = teams.pantheon.members;
+    license = lib.licenses.lgpl3Plus;
+    platforms = lib.platforms.linux;
+    teams = [ lib.teams.pantheon ];
     mainProgram = "io.elementary.terminal";
   };
 }

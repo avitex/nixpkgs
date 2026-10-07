@@ -1,67 +1,98 @@
-{ lib, stdenv, fetchurl, pkg-config, bison, flex
-, asciidoc, libxslt, findXMLCatalogs, docbook_xml_dtd_45, docbook_xsl
-, libmnl, libnftnl, libpcap
-, gmp, jansson
-, autoreconfHook
-, withDebugSymbols ? false
-, withCli ? true, libedit
-, withPython ? false, python3
-, withXtables ? true, iptables
-, nixosTests
+{
+  lib,
+  stdenv,
+  fetchurl,
+  pkg-config,
+  bison,
+  flex,
+  asciidoc,
+  libxslt,
+  findXMLCatalogs,
+  docbook_xml_dtd_45,
+  docbook_xsl,
+  libmnl,
+  libnftnl,
+  libpcap,
+  gmp,
+  jansson,
+  autoreconfHook,
+  withDebugSymbols ? false,
+  withCli ? true,
+  libedit,
+  withXtables ? true,
+  iptables,
+  nixosTests,
+  gitUpdater,
+  ncurses,
 }:
 
 stdenv.mkDerivation rec {
-  version = "1.0.9";
+  version = "1.1.7";
   pname = "nftables";
 
   src = fetchurl {
     url = "https://netfilter.org/projects/nftables/files/${pname}-${version}.tar.xz";
-    hash = "sha256-o8MEzZugYSOe4EdPmvuTipu5nYm5YCRvZvDDoKheFM0=";
+    hash = "sha256-pvvwYNjU//ABUXorlPNWu0Nmv78Lo2Y2b50nzDjKpY8=";
   };
+
+  patches = [
+    (fetchurl {
+      name = "musl.patch";
+      url = "https://lore.kernel.org/netfilter-devel/20241219231001.1166085-2-hi@alyssa.is/raw";
+      hash = "sha256-7vMBIoDWcI/JBInYP5yYWp8BnYbATRfMTxqyZr2L9Sk=";
+    })
+  ];
 
   nativeBuildInputs = [
     autoreconfHook
-    pkg-config bison flex
-    asciidoc docbook_xml_dtd_45 docbook_xsl findXMLCatalogs libxslt
-  ];
+    pkg-config
+    bison
+    flex
+    asciidoc
+    docbook_xml_dtd_45
+    docbook_xsl
+    findXMLCatalogs
+    libxslt
+  ]
+  ++ lib.optional stdenv.hostPlatform.isStatic ncurses;
 
   buildInputs = [
-    libmnl libnftnl libpcap
-    gmp jansson
-  ] ++ lib.optional withCli libedit
-    ++ lib.optional withXtables iptables
-    ++ lib.optionals withPython [
-      python3
-      python3.pkgs.setuptools
-    ];
+    libmnl
+    libnftnl
+    libpcap
+    gmp
+    jansson
+  ]
+  ++ lib.optional withCli libedit
+  ++ lib.optional withXtables iptables;
 
-  patches = [ ./fix-py-libnftables.patch ];
-
-  postPatch = ''
-    substituteInPlace "py/src/nftables.py" \
-      --subst-var-by "out" "$out"
-  '';
+  env.NIX_LDFLAGS = lib.optionalString stdenv.hostPlatform.isStatic "-lncursesw";
 
   configureFlags = [
     "--with-json"
     (lib.withFeatureAs withCli "cli" "editline")
-  ] ++ lib.optional (!withDebugSymbols) "--disable-debug"
-    ++ lib.optional (!withPython) "--disable-python"
-    ++ lib.optional withPython "--enable-python"
-    ++ lib.optional withXtables "--with-xtables";
+  ]
+  ++ lib.optional (!withDebugSymbols) "--disable-debug"
+  ++ lib.optional withXtables "--with-xtables";
+
+  enableParallelBuilding = true;
 
   passthru.tests = {
     inherit (nixosTests) firewall-nftables;
-    lxd-nftables = nixosTests.lxd.nftables;
     nat = { inherit (nixosTests.nat.nftables) firewall standalone; };
   };
 
-  meta = with lib; {
-    description = "The project that aims to replace the existing {ip,ip6,arp,eb}tables framework";
+  passthru.updateScript = gitUpdater {
+    url = "https://git.netfilter.org/nftables";
+    rev-prefix = "v";
+  };
+
+  meta = {
+    description = "Project that aims to replace the existing {ip,ip6,arp,eb}tables framework";
     homepage = "https://netfilter.org/projects/nftables/";
-    license = licenses.gpl2Only;
-    platforms = platforms.linux;
-    maintainers = with maintainers; [ izorkin ] ++ teams.helsinki-systems.members;
+    license = lib.licenses.gpl2Only;
+    platforms = lib.platforms.linux;
+    maintainers = with lib.maintainers; [ izorkin ];
     mainProgram = "nft";
   };
 }

@@ -1,55 +1,42 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, cmake
-, perl
-, stdenv
-, gcc10
-, CoreFoundation
-, Security
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  cmake,
+  perl,
+  stdenv,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "awscrt";
-  version = "0.19.19";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.33.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-HBURU13uFGpsJqOC7T6tViWaEFs7fX2CNVOuVn0Djf4=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-K0wP8DsZQmeNhvcJQ0LeyUZLTfC6PjaSsoQXyVuVp9s=";
   };
 
-  buildInputs = lib.optionals stdenv.isDarwin [
-    CoreFoundation
-    Security
-  ];
+  build-system = [ setuptools ];
 
-  # gcc <10 is not supported, LLVM on darwin is just fine
-  nativeBuildInputs = [
-    cmake
-  ] ++ lib.optionals (!stdenv.isDarwin && stdenv.isAarch64) [
-    gcc10
-    perl
-  ];
+  nativeBuildInputs = [ cmake ] ++ lib.optionals (!stdenv.hostPlatform.isDarwin) [ perl ];
+
+  hardeningDisable = [ "fortify" ]; # needed for jitterentropy
 
   dontUseCmakeConfigure = true;
 
-  pythonImportsCheck = [
-    "awscrt"
-  ];
+  pythonImportsCheck = [ "awscrt" ];
 
   # Unable to import test module
   # https://github.com/awslabs/aws-crt-python/issues/281
   doCheck = false;
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/awslabs/aws-crt-python";
-    changelog = "https://github.com/awslabs/aws-crt-python/releases/tag/v${version}";
+    changelog = "https://github.com/awslabs/aws-crt-python/releases/tag/v${finalAttrs.version}";
     description = "Python bindings for the AWS Common Runtime";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ davegallant ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ davegallant ];
   };
-}
+})

@@ -1,50 +1,46 @@
-{ lib
-, python
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  pytestCheckHook,
 
-# for passthru.tests
-, distributed
-, jupyter-server
-, jupyterlab
-, matplotlib
-, mitmproxy
-, pytest-tornado
-, pytest-tornasync
-, pyzmq
-, sockjs-tornado
-, urllib3
+  # for passthru.tests
+  distributed,
+  jupyter-server,
+  jupyterlab,
+  matplotlib,
+  mitmproxy,
+  pytest-tornado,
+  pytest-tornasync,
+  pyzmq,
+  sockjs-tornado,
+  urllib3,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "tornado";
-  version = "6.3.3";
-  format = "setuptools";
+  version = "6.5.7";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "tornadoweb";
     repo = "tornado";
-    rev = "v${version}";
-    hash = "sha256-l9Ce/c2wDSmsySr9yXu5Fl/+63QkQay46aDSUTJmetA=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-iE0Tf95zmPoZJhw7FDLzTmv8HaWds3ZU5xzZSMvxFH4=";
   };
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  build-system = [ setuptools ];
+
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  # To allow tests to pass on slower/high-load machines
+  env.ASYNC_TEST_TIMEOUT = 30;
 
   disabledTestPaths = [
     # additional tests that have extra dependencies, run slowly, or produce more output than a simple pass/fail
     # https://github.com/tornadoweb/tornado/blob/v6.2.0/maint/test/README
     "maint/test"
-
-    # AttributeError: 'TestIOStreamWebMixin' object has no attribute 'io_loop'
-    "tornado/test/iostream_test.py"
-  ];
-
-  disabledTests = [
-    # Exception: did not get expected log message
-    "test_unix_socket_bad_request"
   ];
 
   pythonImportsCheck = [ "tornado" ];
@@ -62,13 +58,15 @@ buildPythonPackage rec {
       pytest-tornasync
       pyzmq
       sockjs-tornado
-      urllib3;
+      urllib3
+      ;
   };
 
-  meta = with lib; {
-    description = "A web framework and asynchronous networking library";
+  meta = {
+    changelog = "https://www.tornadoweb.org/en/stable/releases/${finalAttrs.src.tag}.html";
+    description = "Web framework and asynchronous networking library";
     homepage = "https://www.tornadoweb.org/";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
-}
+})

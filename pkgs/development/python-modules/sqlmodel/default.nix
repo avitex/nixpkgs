@@ -1,49 +1,47 @@
-{ lib
-, buildPythonPackage
-, dirty-equals
-, fastapi
-, fetchFromGitHub
-, poetry-core
-, pydantic
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, sqlalchemy
+{
+  lib,
+  buildPythonPackage,
+  black,
+  jinja2,
+  dirty-equals,
+  fastapi,
+  fetchFromGitHub,
+  pdm-backend,
+  pydantic,
+  pytestCheckHook,
+  sqlalchemy,
+  typer,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "sqlmodel";
-  version = "0.0.14";
+  version = "0.0.42";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "tiangolo";
     repo = "sqlmodel";
-    rev = "refs/tags/${version}";
-    hash = "sha256-EEOS7c0ospo7qjqPQkKwYXeVmBR5DueONzmjspV6w7w=";
+    tag = finalAttrs.version;
+    hash = "sha256-fhj3mWep7Wdw9AYu9ibIWY5plKe+w6F6PghiUsb6z5o=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ pdm-backend ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     pydantic
     sqlalchemy
   ];
 
   nativeCheckInputs = [
+    black
+    jinja2
     dirty-equals
     fastapi
-    pytest-asyncio
     pytestCheckHook
+    typer
   ];
 
-  pythonImportsCheck = [
-    "sqlmodel"
-  ];
+  pythonImportsCheck = [ "sqlmodel" ];
 
   disabledTestPaths = [
     # Coverage
@@ -51,11 +49,11 @@ buildPythonPackage rec {
     "tests/test_tutorial/"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Module to work with SQL databases";
-    homepage = "https://github.com/tiangolo/sqlmodel";
-    changelog = "https://github.com/tiangolo/sqlmodel/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    homepage = "https://github.com/fastapi/sqlmodel";
+    changelog = "https://github.com/fastapi/sqlmodel/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

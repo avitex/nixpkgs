@@ -1,37 +1,34 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, unittestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  unittestCheckHook,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pyleri";
-  version = "1.4.2";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "1.5.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "cesbit";
     repo = "pyleri";
-    rev = "refs/tags/${version}";
-    hash = "sha256-52Q2iTrXFNbDzXL0FM+Gypipvo5ciNqAtZa5sKOwQRc=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-EmdQdUKFkt3sERU0Q4JOdoiFIvtRIRIl4V4BTId7Ngo=";
   };
 
-  nativeCheckInputs = [
-    unittestCheckHook
-  ];
+  build-system = [ setuptools ];
 
-  pythonImportsCheck = [
-    "pyleri"
-  ];
+  nativeCheckInputs = [ unittestCheckHook ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "pyleri" ];
+
+  meta = {
     description = "Module to parse SiriDB";
     homepage = "https://github.com/cesbit/pyleri";
-    changelog = "https://github.com/cesbit/pyleri/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/cesbit/pyleri/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

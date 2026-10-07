@@ -1,14 +1,20 @@
-{ symlinkJoin, lib, makeWrapper, vdr
-, plugins ? []
-}: let
+{
+  symlinkJoin,
+  lib,
+  makeWrapper,
+  vdr,
+  plugins ? [ ],
+}:
+let
 
   makeXinePluginPath = l: lib.concatStringsSep ":" (map (p: "${p}/lib/xine/plugins") l);
 
-  requiredXinePlugins = lib.flatten (map (p: p.passthru.requiredXinePlugins or []) plugins);
+  requiredXinePlugins = lib.flatten (map (p: p.passthru.requiredXinePlugins or [ ]) plugins);
 
-in symlinkJoin {
-
-  name = "vdr-with-plugins-${lib.getVersion vdr}";
+in
+symlinkJoin {
+  pname = "vdr-with-plugins";
+  inherit (vdr) version;
 
   paths = [ vdr ] ++ plugins;
 
@@ -20,11 +26,12 @@ in symlinkJoin {
       --prefix XINE_PLUGIN_PATH ":" ${lib.escapeShellArg (makeXinePluginPath requiredXinePlugins)}
   '';
 
-  meta = with vdr.meta; {
-    inherit license homepage;
-    description = description
-    + " (with plugins: "
-    + lib.concatStringsSep ", " (map (x: ""+x.name) plugins)
-    + ")";
+  meta = {
+    inherit (vdr.meta) license homepage;
+    description =
+      vdr.meta.description
+      + " (with plugins: "
+      + lib.concatStringsSep ", " (map (x: "" + x.name) plugins)
+      + ")";
   };
 }

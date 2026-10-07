@@ -1,25 +1,26 @@
-{ lib
-, buildDunePackage
-, fetchFromGitHub
-, fetchpatch
-, alcotest
-, cmdliner
-, ppx_deriving
-, ppxlib
-, gitUpdater
+{
+  lib,
+  buildDunePackage,
+  fetchFromGitHub,
+  fetchpatch,
+  alcotest,
+  cmdliner,
+  ppx_deriving,
+  ppxlib,
+  result,
+  gitUpdater,
 }:
 
-buildDunePackage rec {
+buildDunePackage (finalAttrs: {
   pname = "ppx_deriving_cmdliner";
   version = "0.6.1";
 
   minimalOCamlVersion = "4.11";
-  duneVersion = "3";
 
   src = fetchFromGitHub {
     owner = "hammerlab";
-    repo = pname;
-    rev = "v${version}";
+    repo = "ppx_deriving_cmdliner";
+    rev = "v${finalAttrs.version}";
     sha256 = "sha256-/22KLQnxu3e2ZSca6ZLxTJDfv/rsmgCUkJnZC0RwRi8";
   };
 
@@ -36,19 +37,21 @@ buildDunePackage rec {
     cmdliner
     ppx_deriving
     ppxlib
+    result
   ];
 
   doCheck = true;
   checkInputs = [
-    alcotest
+    (alcotest.override { inherit cmdliner; })
   ];
 
   passthru.updateScript = gitUpdater { rev-prefix = "v"; };
 
-  meta = with lib; {
+  meta = {
     description = "Ppx_deriving plugin for generating command line interfaces from types for OCaml";
     homepage = "https://github.com/hammerlab/ppx_deriving_cmdliner";
-    license = licenses.asl20;
-    maintainers = [ maintainers.romildo ];
+    license = lib.licenses.asl20;
+    maintainers = [ lib.maintainers.romildo ];
+    broken = lib.versionAtLeast ppxlib.version "0.36";
   };
-}
+})

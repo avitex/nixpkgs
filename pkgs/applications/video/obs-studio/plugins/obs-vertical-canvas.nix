@@ -1,28 +1,35 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, cmake
-, curl
-, obs-studio
-, qtbase
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  cmake,
+  curl,
+  obs-studio,
+  qt6,
 }:
 
 stdenv.mkDerivation rec {
   pname = "obs-vertical-canvas";
-  version = "1.3.1";
+  version = "1.6.5";
 
   src = fetchFromGitHub {
     owner = "Aitum";
     repo = "obs-vertical-canvas";
     rev = version;
-    sha256 = "sha256-kJJepKUH/tc6iV/zFDtrAa4bM9Gaqc9M7IItytknkGA=";
+    sha256 = "sha256-F28AqKOvBfalo5kG/pNzZ8lz4rcd7LRxdqq9g0lv+hA=";
   };
 
   nativeBuildInputs = [ cmake ];
-  buildInputs = [ curl obs-studio qtbase ];
+
+  buildInputs = [
+    curl
+    obs-studio
+    qt6.qtbase
+  ];
 
   cmakeFlags = [
     "-DBUILD_OUT_OF_TREE=On"
+    ''-DCMAKE_CXX_FLAGS="-Wno-error=deprecated-declarations"''
   ];
 
   dontWrapQtApps = true;
@@ -32,11 +39,14 @@ stdenv.mkDerivation rec {
     rm -rf $out/obs-plugins
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Plugin for OBS Studio to add vertical canvas";
     homepage = "https://github.com/Aitum/obs-vertical-canvas";
-    maintainers = with maintainers; [ flexiondotorg ];
-    license = licenses.gpl2Plus;
-    platforms = [ "x86_64-linux" "i686-linux" ];
+    maintainers = with lib.maintainers; [
+      flexiondotorg
+      jonhermansen
+    ];
+    license = lib.licenses.gpl2Plus;
+    inherit (obs-studio.meta) platforms;
   };
 }

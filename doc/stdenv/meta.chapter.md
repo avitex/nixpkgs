@@ -3,22 +3,28 @@
 Nix packages can declare *meta-attributes* that contain information about a package such as a description, its homepage, its license, and so on. For instance, the GNU Hello package has a `meta` declaration like this:
 
 ```nix
-meta = with lib; {
-  description = "A program that produces a familiar, friendly greeting";
-  longDescription = ''
-    GNU Hello is a program that prints "Hello, world!" when you run it.
-    It is fully customizable.
-  '';
-  homepage = "https://www.gnu.org/software/hello/manual/";
-  license = licenses.gpl3Plus;
-  maintainers = with maintainers; [ eelco ];
-  platforms = platforms.all;
-};
+{
+  meta = {
+    description = "Program that produces a familiar, friendly greeting";
+    longDescription = ''
+      GNU Hello is a program that prints "Hello, world!" when you run it.
+      It is fully customizable.
+    '';
+    homepage = "https://www.gnu.org/software/hello/manual/";
+    license = lib.licenses.gpl3Plus;
+    maintainers = with lib.maintainers; [ eelco ];
+    platforms = lib.platforms.all;
+  };
+}
 ```
 
 Meta-attributes are not passed to the builder of the package. Thus, a change to a meta-attribute doesn’t trigger a recompilation of the package.
 
 ## Standard meta-attributes {#sec-standard-meta-attributes}
+
+If the package is to be submitted to Nixpkgs, please check out the
+[requirements for meta attributes](https://github.com/NixOS/nixpkgs/tree/master/pkgs#meta-attributes)
+in the contributing documentation.
 
 It is expected that each meta-attribute is one of the following:
 
@@ -27,11 +33,21 @@ It is expected that each meta-attribute is one of the following:
 A short (one-line) description of the package.
 This is displayed on [search.nixos.org](https://search.nixos.org/packages).
 
-Don’t include a period at the end. Don’t include newline characters. Capitalise the first character. For brevity, don’t repeat the name of package --- just describe what it does.
+The general requirements of a description are:
+
+- Be short, just one sentence.
+- Be capitalized.
+- Not start with definite ("The") or indefinite ("A"/"An") article.
+- Not start with the package name.
+  - More generally, it should not refer to the package name.
+- Not end with a period (or any punctuation for that matter).
+- Provide factual information.
+  - Avoid subjective language.
+
 
 Wrong: `"libpng is a library that allows you to decode PNG images."`
 
-Right: `"A library for decoding PNG images"`
+Right: `"Library for decoding PNG images"`
 
 ### `longDescription` {#var-meta-longDescription}
 
@@ -45,6 +61,12 @@ Release branch. Used to specify that a package is not going to receive updates t
 
 The package’s homepage. Example: `https://www.gnu.org/software/hello/manual/`
 
+### `donationPage` {#var-meta-donationPage}
+
+The package or project's donation page, if it exists. Example: `https://neovim.io/sponsors/`
+
+Authoritative project URLs are preferred.
+
 ### `downloadPage` {#var-meta-downloadPage}
 
 The page where a link to the current version can be found. Example: `https://ftp.gnu.org/gnu/hello/`
@@ -55,7 +77,7 @@ A link or a list of links to the location of Changelog for a package. A link may
 
 ### `license` {#var-meta-license}
 
-The license, or licenses, for the package. One from the attribute set defined in [`nixpkgs/lib/licenses.nix`](https://github.com/NixOS/nixpkgs/blob/master/lib/licenses.nix). At this moment using both a list of licenses and a single license is valid. If the license field is in the form of a list representation, then it means that parts of the package are licensed differently. Each license should preferably be referenced by their attribute. The non-list attribute value can also be a space delimited string representation of the contained attribute `shortNames` or `spdxIds`. The following are all valid examples:
+The license, or licenses, for the package. One from the attribute set defined in [`nixpkgs/lib/licenses/licenses.nix`](https://github.com/NixOS/nixpkgs/blob/master/lib/licenses/licenses.nix). At this moment using both a list of licenses and a single license is valid. If the license field is in the form of a list representation, then it means that parts of the package are licensed differently. Each license should preferably be referenced by their attribute. The non-list attribute value can also be a space delimited string representation of the contained attribute `shortNames` or `spdxIds`. The following are all valid examples:
 
 - Single license referenced by attribute (preferred) `lib.licenses.gpl3Only`.
 - Single license referenced by its attribute shortName (frowned upon) `"gpl3Only"`.
@@ -65,13 +87,27 @@ The license, or licenses, for the package. One from the attribute set defined in
 
 For details, see [Licenses](#sec-meta-license).
 
+### `sourceProvenance` {#var-meta-sourceProvenance}
+
+A list containing the type or types of source inputs from which the package is built, e.g. original source code, pre-built binaries, etc.
+
+For details, see [Source provenance](#sec-meta-sourceProvenance).
+
 ### `maintainers` {#var-meta-maintainers}
 
 A list of the maintainers of this Nix expression. Maintainers are defined in [`nixpkgs/maintainers/maintainer-list.nix`](https://github.com/NixOS/nixpkgs/blob/master/maintainers/maintainer-list.nix). There is no restriction to becoming a maintainer, just add yourself to that list in a separate commit titled “maintainers: add alice” in the same pull request, and reference maintainers with `maintainers = with lib.maintainers; [ alice bob ]`.
 
+### `teams` {#var-meta-teams}
+
+A list of the teams of this Nix expression. Teams are defined in [`nixpkgs/maintainers/team-list.nix`](https://github.com/NixOS/nixpkgs/blob/master/maintainers/team-list.nix), and can be defined in a package with `meta.teams = with lib.teams; [ team1 team2 ]`.
+
 ### `mainProgram` {#var-meta-mainProgram}
 
 The name of the main binary for the package. This affects the binary `nix run` executes. Example: `"rg"`
+
+### `mainDarwinApp` {#var-meta-mainDarwinApp}
+
+The name of the main Darwin/macOS Application for the package. It must end in `.app`. Example: `"VSCodium.app"`
 
 ### `priority` {#var-meta-priority}
 
@@ -82,7 +118,7 @@ The *priority* of the package, used by `nix-env` to resolve file name conflicts 
 The list of Nix platform types on which the package is supported. Hydra builds packages according to the platform specified. If no platform is specified, the package does not have prebuilt binaries. An example is:
 
 ```nix
-meta.platforms = lib.platforms.linux;
+{ meta.platforms = lib.platforms.linux; }
 ```
 
 Attribute Set `lib.platforms` defines [various common lists](https://github.com/NixOS/nixpkgs/blob/master/lib/systems/doubles.nix) of platforms types.
@@ -95,91 +131,16 @@ In general it is preferable to set `meta.platforms = lib.platforms.all` and then
 For example, a package which requires dynamic linking and cannot be linked statically could use this:
 
 ```nix
-meta.platforms = lib.platforms.all;
-meta.badPlatforms = [ lib.systems.inspect.patterns.isStatic ];
+{
+  meta.platforms = lib.platforms.all;
+  meta.badPlatforms = [ lib.systems.inspect.platformPatterns.isStatic ];
+}
 ```
 
 The [`lib.meta.availableOn`](https://github.com/NixOS/nixpkgs/blob/b03ac42b0734da3e7be9bf8d94433a5195734b19/lib/meta.nix#L95-L106) function can be used to test whether or not a package is available (i.e. buildable) on a given platform.
 Some packages use this to automatically detect the maximum set of features with which they can be built.
 For example, `systemd` [requires dynamic linking](https://github.com/systemd/systemd/issues/20600#issuecomment-912338965), and [has a `meta.badPlatforms` setting](https://github.com/NixOS/nixpkgs/blob/b03ac42b0734da3e7be9bf8d94433a5195734b19/pkgs/os-specific/linux/systemd/default.nix#L752) similar to the one above.
 Packages which can be built with or without `systemd` support will use `lib.meta.availableOn` to detect whether or not `systemd` is available on the [`hostPlatform`](#ssec-cross-platform-parameters) for which they are being built; if it is not available (e.g. due to a statically-linked host platform like `pkgsStatic`) this support will be disabled by default.
-
-### `tests` {#var-meta-tests}
-
-::: {.warning}
-This attribute is special in that it is not actually under the `meta` attribute set but rather under the `passthru` attribute set. This is due to how `meta` attributes work, and the fact that they are supposed to contain only metadata, not derivations.
-:::
-
-An attribute set with tests as values. A test is a derivation that builds when the test passes and fails to build otherwise.
-
-You can run these tests with:
-
-```ShellSession
-$ cd path/to/nixpkgs
-$ nix-build -A your-package.tests
-```
-
-#### Package tests {#var-meta-tests-packages}
-
-Tests that are part of the source package are often executed in the `installCheckPhase`.
-
-Prefer `passthru.tests` for tests that are introduced in nixpkgs because:
-
-* `passthru.tests` tests the 'real' package, independently from the environment in which it was built
-* we can run `passthru.tests` independently
-* `installCheckPhase` adds overhead to each build
-
-For more on how to write and run package tests, see [](#sec-package-tests).
-
-#### NixOS tests {#var-meta-tests-nixos}
-
-The NixOS tests are available as `nixosTests` in parameters of derivations. For instance, the OpenSMTPD derivation includes lines similar to:
-
-```nix
-{ /* ... */, nixosTests }:
-{
-  # ...
-  passthru.tests = {
-    basic-functionality-and-dovecot-integration = nixosTests.opensmtpd;
-  };
-}
-```
-
-NixOS tests run in a VM, so they are slower than regular package tests. For more information see [NixOS module tests](https://nixos.org/manual/nixos/stable/#sec-nixos-tests).
-
-Alternatively, you can specify other derivations as tests. You can make use of
-the optional parameter to inject the correct package without
-relying on non-local definitions, even in the presence of `overrideAttrs`.
-Here that's `finalAttrs.finalPackage`, but you could choose a different name if
-`finalAttrs` already exists in your scope.
-
-`(mypkg.overrideAttrs f).passthru.tests` will be as expected, as long as the
-definition of `tests` does not rely on the original `mypkg` or overrides it in
-all places.
-
-```nix
-# my-package/default.nix
-{ stdenv, callPackage }:
-stdenv.mkDerivation (finalAttrs: {
-  # ...
-  passthru.tests.example = callPackage ./example.nix { my-package = finalAttrs.finalPackage; };
-})
-```
-
-```nix
-# my-package/example.nix
-{ runCommand, lib, my-package, ... }:
-runCommand "my-package-test" {
-  nativeBuildInputs = [ my-package ];
-  src = lib.sources.sourcesByRegex ./. [ ".*.in" ".*.expected" ];
-} ''
-  my-package --help
-  my-package <example.in >example.actual
-  diff -U3 --color=auto example.expected example.actual
-  mkdir $out
-''
-```
-
 
 ### `timeout` {#var-meta-timeout}
 
@@ -194,13 +155,17 @@ To be effective, it must be presented directly to an evaluation process that han
 The list of Nix platform types for which the [Hydra](https://github.com/nixos/hydra) [instance at `hydra.nixos.org`](https://nixos.org/hydra) will build the package. (Hydra is the Nix-based continuous build system.) It defaults to the value of `meta.platforms`. Thus, the only reason to set `meta.hydraPlatforms` is if you want `hydra.nixos.org` to build the package on a subset of `meta.platforms`, or not at all, e.g.
 
 ```nix
-meta.platforms = lib.platforms.linux;
-meta.hydraPlatforms = [];
+{
+  meta.platforms = lib.platforms.linux;
+  meta.hydraPlatforms = [ ];
+}
 ```
+
+Note that this does not affect whether reverse dependencies of the package are built on Hydra.
 
 ### `broken` {#var-meta-broken}
 
-If set to `true`, the package is marked as "broken", meaning that it won’t show up in [search.nixos.org](https://search.nixos.org/packages), and cannot be built or installed unless the environment variable [`NIXPKGS_ALLOW_BROKEN`](#opt-allowBroken) is set.
+If set to `true`, the package is marked as "broken", meaning that it won’t show up in [search.nixos.org](https://search.nixos.org/packages), and cannot be built or installed unless [explicitly allowed](#sec-allow-broken).
 Such unconditionally-broken packages should be removed from Nixpkgs eventually unless they are fixed.
 
 The value of this attribute can depend on a package's arguments, including `stdenv`.
@@ -209,21 +174,53 @@ This means that `broken` can be used to express constraints, for example:
 - Does not cross compile
 
   ```nix
-   meta.broken = !(stdenv.buildPlatform.canExecute stdenv.hostPlatform)
+  { meta.broken = !(stdenv.buildPlatform.canExecute stdenv.hostPlatform); }
   ```
 
 - Broken if all of a certain set of its dependencies are broken
 
   ```nix
-  meta.broken = lib.all (map (p: p.meta.broken) [ glibc musl ])
+  {
+    meta.broken = lib.all (
+      map (p: p.meta.broken) [
+        glibc
+        musl
+      ]
+    );
+  }
   ```
 
 This makes `broken` strictly more powerful than `meta.badPlatforms`.
 However `meta.availableOn` currently examines only `meta.platforms` and `meta.badPlatforms`, so `meta.broken` does not influence the default values for optional dependencies.
 
+Underneath, `meta.broken = true;` is the same as
+```nix
+{
+  meta.problems.broken.message = "This package is broken.";
+}
+```
+
+By specifying this manually, the error message can be customised.
+
+## `knownVulnerabilities` {#var-meta-knownVulnerabilities}
+
+A list of known vulnerabilities affecting the package, usually identified by CVE identifiers.
+
+This metadata allows users and tools to be aware of unresolved security issues before using the package, for example:
+
+```nix
+{
+  meta.knownVulnerabilities = [
+    "CVE-2024-3094: Malicious backdoor allowing unauthorized remote code execution"
+  ];
+}
+```
+
+If this list is not empty, the package is marked as "insecure", meaning that it cannot be built or installed unless the environment variable [`NIXPKGS_ALLOW_INSECURE`](#sec-allow-insecure) is set.
+
 ## Licenses {#sec-meta-license}
 
-The `meta.license` attribute should preferably contain a value from `lib.licenses` defined in [`nixpkgs/lib/licenses.nix`](https://github.com/NixOS/nixpkgs/blob/master/lib/licenses.nix), or in-place license description of the same format if the license is unlikely to be useful in another expression.
+The `meta.license` attribute should preferably contain a value from `lib.licenses` defined in [`nixpkgs/lib/licenses/licenses.nix`](https://github.com/NixOS/nixpkgs/blob/master/lib/licenses/licenses.nix), or in-place license description of the same format if the license is unlikely to be useful in another expression.
 
 Although it’s typically better to indicate the specific license, a few generic options are available:
 
@@ -272,3 +269,107 @@ Code to be executed on a peripheral device or embedded controller, built by a th
 ### `lib.sourceTypes.binaryBytecode` {#lib.sourceTypes.binaryBytecode}
 
 Code to run on a VM interpreter or JIT compiled into bytecode by a third party. This includes packages which download Java `.jar` files from another source.
+
+### `lib.sourceTypes.obfuscatedCode` {#lib.sourceTypes.obfuscatedCode}
+
+Code which is intentionally obfuscated by a third party, for example by using a code obfuscator or by being distributed in an obfuscated form.
+
+## Software identifiers {#sec-meta-identifiers}
+
+Package's `meta.identifiers` attribute specifies information about software identifiers associated with this package. Software identifiers are used, for example:
+* to generate Software Bill of Materials (SBOM) that lists all components used to build the software, which can later be used to perform vulnerability or license analysis of the resulting software;
+* to lookup software in different vulnerability databases or report new vulnerabilities to them.
+
+Overriding the default `meta.identifiers` attribute is optional, but it is recommended to fill in pieces to help tools mentioned above get precise data.
+For example, we could get automatic notifications about potential vulnerabilities for users in the future.
+All identifiers specified in `meta.identifiers` are expected to be unambiguous and valid.
+
+`meta.identifiers` contains `v1` attribute which is an attribute set that guarantees backward compatibility of its constituents. Right now it contains copies of all other attributes in `meta.identifiers`.
+
+### CPE {#sec-meta-identifiers-cpe}
+
+Common Platform Enumeration (CPE) is a specification maintained by NIST as part of the Security Content Automation Protocol (SCAP). It is used to identify software in National Vulnerabilities Database (NVD, https://nvd.nist.gov) and other vulnerability databases.
+
+Current version of CPE 2.3 consists of 13 parts:
+
+```
+cpe:2.3:a:<vendor>:<product>:<version>:<update>:<edition>:<language>:<sw_edition>:<target_sw>:<target_hw>:<other>
+```
+
+Some of them are as follows:
+
+* *CPE version* - current version of CPE is `2.3`
+* *part* - usually in Nixpkgs `a` for "application", can also be `o` for "operating system" or `h` for "hardware"
+* *vendor* - can point to the source of the package, or to Nixpkgs itself
+* *product* - name of the package
+* *version* - version of the package
+* *update* - vendor-specific string part of the version string of the latest update (e.g. `rc1`, `beta`, etc...)
+* *edition* - deprecated and should be set to `*`
+
+You can find information about all of these attributes in the [official specification](https://csrc.nist.gov/projects/security-content-automation-protocol/specifications/cpe/naming) (heading 5.3.3, pages 11-13).
+
+Any fields that don't have a value are set to either:
+
+* `*` (ANY) when the field can match any value
+* `-` (NA) when the value is not meaningful or not used in the description
+
+For example, for glibc 2.40.1 CPE would be `cpe:2.3:a:gnu:glibc:2.40.1:*:*:*:*:*:*:*`.
+
+#### `meta.identifiers.cpeParts` {#var-meta-identifiers-cpeParts}
+
+This attribute contains an attribute set of all parts of the CPE for this package. Most of the parts default to `*` (match any value), with some exceptions:
+
+* `part` defaults to `a` (application), can also be set to `o` for operating systems, for example, Linux kernel, or to `h` for hardware
+* `vendor` cannot be deduced from other sources, so it must be specified by the package author
+* `product` defaults to provided derivation's `pname` attribute and must be provided explicitly if `pname` is missing
+* `version` and `update` have no defaults and should be specified explicitly or using helper functions, when missing, `cpe` attribute will be empty, and all possible guesses using helper functions will be in `possibleCPEs` attribute.
+
+It is up to the package author to make sure all parts are correct and match expected values in [NVD dictionary](https://nvd.nist.gov/products/cpe). Unknown values can be skipped, which would leave them with the default value of `*`.
+
+Following functions help with filling out `version` and `update` fields:
+
+* [`lib.meta.cpeFullVersionWithVendor`](#function-library-lib.meta.cpeFullVersionWithVendor)
+
+For many packages to make CPE available it should be enough to specify only:
+
+```nix
+{
+  # ...
+  meta.identifiers.cpeParts = lib.meta.cpeFullVersionWithVendor vendor version;
+}
+```
+
+#### `meta.identifiers.cpe` {#var-meta-identifiers-cpe}
+
+A readonly attribute that concatenates all CPE parts in one string.
+
+#### `meta.identifiers.possibleCPEs` {#var-meta-identifiers-possibleCPEs}
+
+A readonly attribute containing the list of guesses for what CPE for this package can look like. It includes all variants of version handling mentioned above. Each item is an attrset with attributes `cpeParts` and `cpe` for each guess.
+
+### Package URL {#sec-meta-identifiers-purl}
+
+[Package-URL](https://github.com/package-url/purl-spec) (PURL) is a specification to reliably identify and locate software packages.
+Through identification of software packages, additional (non-major) use cases are e.g. software license cross-verification via third party databases or initial vulnerability response management.
+Package-URLs shall default to the `mkDerivation.src`, as the original consumed software package is the single source of truth.
+
+#### `meta.identifiers.purlParts` {#var-meta-identifiers-purlParts}
+
+This attribute contains an attribute set of all parts of the PURL for this package.
+
+* `type` mandatory [type](https://github.com/package-url/purl-spec/blob/18fd3e395dda53c00bc8b11fe481666dc7b3807a/docs/standard/summary.md) which needs to be provided
+* `spec` specify the PURL in accordance with the [purl-spec](https://github.com/package-url/purl-spec/blob/18fd3e395dda53c00bc8b11fe481666dc7b3807a/purl-specification.md)
+
+#### `meta.identifiers.purl` {#var-meta-identifiers-purl}
+
+An extendable attribute which is built based on `purlParts`.
+This is the main identifier of the software package.
+For handling edge cases, consider using the list interface [`meta.identifiers.purls`](#var-meta-identifiers-purls).
+
+#### `meta.identifiers.purls` {#var-meta-identifiers-purls}
+
+An extendable list attribute which defaults to a single element equal to [`meta.identifiers.purl`](#var-meta-identifiers-purl).
+It provides an interface for additional identifiers of `mkDerivation.src` or for identifiers of vendored dependencies inside `mkDerivation.src`, which maintainers may carefully consider to specify as well.
+
+Additional identifiers are generally not recommended, as they might cause maintenance overhead or diverge.
+For example, a source distribution `pkg:github` may be hard to keep correctly aligned with the corresponding binary distribution `pkg:pypi`.

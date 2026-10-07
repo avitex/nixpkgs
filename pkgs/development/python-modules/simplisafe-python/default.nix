@@ -1,43 +1,38 @@
-{ lib
-, aiohttp
-, aresponses
-, backoff
-, beautifulsoup4
-, buildPythonPackage
-, certifi
-, docutils
-, fetchFromGitHub
-, poetry-core
-, pytest-aiohttp
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, pytz
-, types-pytz
-, voluptuous
-, websockets
+{
+  lib,
+  aiohttp,
+  aresponses,
+  backoff,
+  beautifulsoup4,
+  buildPythonPackage,
+  certifi,
+  docutils,
+  fetchFromGitHub,
+  poetry-core,
+  pytest-aiohttp,
+  pytest-asyncio,
+  pytestCheckHook,
+  pytz,
+  types-pytz,
+  voluptuous,
+  websockets,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "simplisafe-python";
-  version = "2024.01.0";
+  version = "2026.09.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.10";
 
   src = fetchFromGitHub {
     owner = "bachya";
     repo = "simplisafe-python";
-    rev = "refs/tags/${version}";
-    hash = "sha256-ewbR2FI0t2F8HF0ZL5omsclB9OPAjHygGLPtSkVlvgM=";
+    tag = finalAttrs.version;
+    hash = "sha256-0jvReE6eugcXubOMclIO+X86waCQweyEQ8rTObQhV8Q=";
   };
 
+  build-system = [ poetry-core ];
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
-
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
     backoff
     beautifulsoup4
@@ -69,17 +64,15 @@ buildPythonPackage rec {
     "examples/"
   ];
 
-  pythonImportsCheck = [
-    "simplipy"
-  ];
+  pythonImportsCheck = [ "simplipy" ];
 
   __darwinAllowLocalNetworking = true;
 
-  meta = with lib; {
-    changelog = "https://github.com/bachya/simplisafe-python/releases/tag/${version}";
+  meta = {
     description = "Python library the SimpliSafe API";
     homepage = "https://simplisafe-python.readthedocs.io/";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/bachya/simplisafe-python/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

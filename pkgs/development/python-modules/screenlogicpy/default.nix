@@ -1,35 +1,29 @@
-{ lib
-, async-timeout
-, buildPythonPackage
-, fetchFromGitHub
-, pythonAtLeast
-, pythonOlder
-, pytest-asyncio
-, setuptools
-, pytestCheckHook
+{
+  lib,
+  async-timeout,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonAtLeast,
+  pytest-asyncio,
+  setuptools,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "screenlogicpy";
-  version = "0.10.1";
+  version = "0.10.2";
   pyproject = true;
-
-  disabled = pythonOlder "3.10";
 
   src = fetchFromGitHub {
     owner = "dieselrabbit";
     repo = "screenlogicpy";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-z6cM0sihZvOHCA3v1DYQEev0axf4AcqEW13WA1EMhQM=";
+    tag = "v${version}";
+    hash = "sha256-o/NcLassEaucnWqu5fnYA19wFwCPCT9nYKBeHzFZTKo=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
-  propagatedBuildInputs = [
-    async-timeout
-  ];
+  propagatedBuildInputs = [ async-timeout ];
 
   nativeCheckInputs = [
     pytest-asyncio
@@ -44,7 +38,8 @@ buildPythonPackage rec {
     "test_discovery_async_discover"
     "test_gateway_discovery"
     "test_gateway"
-  ] ++ lib.optionals (pythonAtLeast "3.12") [
+  ]
+  ++ lib.optionals (pythonAtLeast "3.12") [
     # Tests block on Python 3.12
     "test_sub_unsub"
     "test_attach_existing"
@@ -52,15 +47,14 @@ buildPythonPackage rec {
     "test_login_async_gateway_connect"
   ];
 
-  pythonImportsCheck = [
-    "screenlogicpy"
-  ];
+  pythonImportsCheck = [ "screenlogicpy" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python interface for Pentair Screenlogic devices";
+    mainProgram = "screenlogicpy";
     homepage = "https://github.com/dieselrabbit/screenlogicpy";
-    changelog = "https://github.com/dieselrabbit/screenlogicpy/releases/tag/v${version}";
-    license = with licenses; [ gpl3Only ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/dieselrabbit/screenlogicpy/releases/tag/${src.tag}";
+    license = lib.licenses.gpl3Only;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

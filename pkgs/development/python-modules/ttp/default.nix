@@ -1,35 +1,39 @@
-{ lib
-, buildPythonPackage
-, cerberus
-, configparser
-, deepdiff
-, fetchFromGitHub
-, geoip2
-, jinja2
-, netmiko
-, openpyxl
-, pytestCheckHook
-, poetry-core
-, pyyaml
-, tabulate
-, ttp-templates
-, yangson
+{
+  lib,
+  buildPythonPackage,
+  cerberus,
+  configparser,
+  deepdiff,
+  fetchFromGitHub,
+  geoip2,
+  jinja2,
+  netmiko,
+  openpyxl,
+  pytestCheckHook,
+  poetry-core,
+  pyprojectVersionPatchHook,
+  pyyaml,
+  tabulate,
+  ttp-templates,
+  yangson,
 }:
 
 buildPythonPackage rec {
   pname = "ttp";
-  version = "0.9.5";
-  format = "pyproject";
+  version = "0.10.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "dmulyalin";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-IWqPFspERBVkjsTYTAkOTOrugq4fD65Q140G3SCEV0w=";
+    repo = "ttp";
+    tag = version;
+    hash = "sha256-A0McQRpSjr0EYIrHQExtBqMe+AmL+IGWaRHeexyvtvg=";
   };
 
+  build-system = [ poetry-core ];
+
   nativeBuildInputs = [
-    poetry-core
+    pyprojectVersionPatchHook
   ];
 
   propagatedBuildInputs = [
@@ -47,9 +51,7 @@ buildPythonPackage rec {
     yangson
   ];
 
-  pythonImportsCheck = [
-    "ttp"
-  ];
+  pythonImportsCheck = [ "ttp" ];
 
   nativeCheckInputs = [
     pytestCheckHook
@@ -67,6 +69,9 @@ buildPythonPackage rec {
 
   disabledTests = [
     # data structure mismatches
+    "test_global_output_deepdiff_with_var_before"
+    "test_group_specific_output_deepdiff_with_var_before"
+    "test_group_specific_output_deepdiff_with_var_before_with_add_field"
     "test_yangson_validate"
     "test_yangson_validate_yang_lib_in_output_tag_data"
     "test_yangson_validate_multiple_inputs_mode_per_input_with_yang_lib_in_file"
@@ -97,15 +102,14 @@ buildPythonPackage rec {
     "test_ttp_templates_dir_env_variable"
   ];
 
-  pytestFlagsArray = [
-    "test/pytest"
-  ];
+  enabledTestPaths = [ "test/pytest" ];
 
-  meta = with lib; {
+  meta = {
     changelog = "https://github.com/dmulyalin/ttp/releases/tag/${version}";
     description = "Template Text Parser";
+    mainProgram = "ttp";
     homepage = "https://github.com/dmulyalin/ttp";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

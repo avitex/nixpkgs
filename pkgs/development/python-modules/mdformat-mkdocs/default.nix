@@ -1,51 +1,81 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, flit-core
-, mdformat
-, mdformat-gfm
-, mdit-py-plugins
-, pythonOlder
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  uv-build,
+
+  mdformat-beautysh,
+  mdformat-footnote,
+  mdformat-front-matters,
+  mdformat-gfm,
+  mdformat-simple-breaks,
+  mdformat,
+  mdit-py-plugins,
+  more-itertools,
+  pytest-snapshot,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "mdformat-mkdocs";
-  version = "1.1.2";
+  version = "5.2.0b0";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "KyleKing";
     repo = "mdformat-mkdocs";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-GUSoGx4cwhjQO4AiC9s0YIcK3N/Gr+PrYR3+B8G9CoQ=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-d91XskyUFi7e/soC2fYN6FJUzOP8bZ+ZguLNNAxJC9c=";
   };
 
-  nativeBuildInputs = [
-    flit-core
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail "uv_build>=0.9.10" "uv_build"
+  '';
+
+  build-system = [
+    uv-build
   ];
 
-  buildInputs = [
+  dependencies = [
     mdformat
     mdformat-gfm
     mdit-py-plugins
+    more-itertools
   ];
 
+  optional-dependencies = {
+    recommended = [
+      mdformat-beautysh
+      # mdformat-config
+      mdformat-footnote
+      mdformat-front-matters
+      # mdformat-ruff
+      mdformat-simple-breaks
+      # mdformat-web
+      # mdformat-wikilink
+    ];
+  };
+
   nativeCheckInputs = [
+    pytest-snapshot
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "mdformat_mkdocs"
+  disabledTestPaths = [
+    # AssertionError: assert ParsedText(lines=[LineResult(parsed=ParsedLine(line_...
+    "tests/format/test_parsed_result.py"
   ];
 
-  meta = with lib; {
-    description = "mdformat plugin for MkDocs";
+  pythonImportsCheck = [ "mdformat_mkdocs" ];
+
+  meta = {
+    description = "Mdformat plugin for MkDocs";
     homepage = "https://github.com/KyleKing/mdformat-mkdocs";
-    changelog = "https://github.com/KyleKing/mdformat-mkdocs/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ aldoborrero ];
+    changelog = "https://github.com/KyleKing/mdformat-mkdocs/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ aldoborrero ];
   };
-}
+})

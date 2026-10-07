@@ -1,39 +1,48 @@
-{ lib
-, buildGoModule
-, fetchFromGitHub
-, installShellFiles
+{
+  lib,
+  stdenv,
+  buildGoModule,
+  fetchFromCodeberg,
+  installShellFiles,
 }:
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "yanic";
-  version = "1.5.0";
+  version = "1.9.0";
 
-  src = fetchFromGitHub {
+  strictDeps = true;
+  __structuredAttrs = true;
+
+  src = fetchFromCodeberg {
     owner = "FreifunkBremen";
     repo = "yanic";
-    rev = "v${version}";
-    sha256 = "sha256-++tF6nTFIDeqWSqlBDXw/zEfl5YYa4ufzVZaUG2c8Zo=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-zVe4Z/Gkhrj/Qa6oXAHDG1iJgJeEj8/STylyIBbpBoo=";
   };
 
-  vendorHash = "sha256-D9V53/+C/+iv1U4kVrYWzJ8iD0MA1QcR8f5ifejFhLo=";
+  vendorHash = "sha256-TcmkPBHxpmTgXNW8gPkzMpjPGCQu/HrZqAu9jDpPEjo=";
 
-  ldflags = [ "-s" "-w" ];
+  ldflags = [
+    "-X github.com/FreifunkBremen/yanic/cmd.VERSION=${finalAttrs.version}"
+    "-s"
+    "-w"
+  ];
 
   nativeBuildInputs = [ installShellFiles ];
 
-  postInstall = ''
+  postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
     installShellCompletion --cmd yanic \
       --bash <($out/bin/yanic completion bash) \
       --fish <($out/bin/yanic completion fish) \
       --zsh <($out/bin/yanic completion zsh)
   '';
 
-  meta = with lib; {
-    description = "A tool to collect and aggregate respondd data";
-    homepage = "https://github.com/FreifunkBremen/yanic";
-    changelog = "https://github.com/FreifunkBremen/yanic/releases/tag/${src.rev}";
-    license = licenses.agpl3Only;
-    maintainers = with maintainers; [ herbetom ];
+  meta = {
+    description = "Tool to collect and aggregate respondd data";
+    homepage = "https://freifunkbremen.codeberg.page/yanic";
+    changelog = "https://codeberg.org/FreifunkBremen/yanic/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.agpl3Only;
+    maintainers = with lib.maintainers; [ herbetom ];
     mainProgram = "yanic";
   };
-}
+})

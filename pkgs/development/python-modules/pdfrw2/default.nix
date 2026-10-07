@@ -1,10 +1,11 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pillow
-, pycryptodome
-, reportlab
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pillow,
+  pycryptodome,
+  reportlab,
+  setuptools,
 }:
 
 buildPythonPackage rec {
@@ -17,9 +18,7 @@ buildPythonPackage rec {
     hash = "sha256-5qnMq4Pnaaeov+Lb3fD0ndfr5SAy6SlXTwG7v6IZce0=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
   propagatedBuildInputs = [
     pillow
@@ -27,12 +26,12 @@ buildPythonPackage rec {
     pycryptodome
   ];
 
-  pythonImportCheck = [ "pdfrw" ];
+  pythonImportsCheck = [ "pdfrw" ];
 
-  meta = with lib; {
+  meta = {
     description = "Pure Python library that reads and writes PDFs";
     homepage = "https://github.com/sarnold/pdfrw";
-    maintainers = with maintainers; [ loicreynier ];
-    license = licenses.mit;
+    maintainers = with lib.maintainers; [ loicreynier ];
+    license = lib.licenses.mit;
   };
 }

@@ -1,23 +1,40 @@
-{ lib, buildDunePackage, fetchurl
-, pkg-config
-, cstruct, cstruct-lwt, mirage-net, mirage-clock
-, mirage-random, mirage-time
-, macaddr, macaddr-cstruct, fmt
-, lwt, lwt-dllist, logs, duration, randomconv, ethernet
-, alcotest, mirage-flow, mirage-vnetif, pcap-format
-, mirage-clock-unix, arp, ipaddr-cstruct, mirage-random-test
-, lru, metrics
-, withFreestanding ? false
-, ocaml-freestanding
+{
+  lib,
+  buildDunePackage,
+  fetchurl,
+  pkg-config,
+  cstruct,
+  cstruct-lwt,
+  mirage-net,
+  mirage-mtime,
+  mirage-crypto-rng,
+  mirage-sleep,
+  macaddr,
+  macaddr-cstruct,
+  fmt,
+  lwt,
+  lwt-dllist,
+  logs,
+  duration,
+  randomconv,
+  ethernet,
+  alcotest,
+  mirage-flow,
+  mirage-vnetif,
+  pcap-format,
+  arp,
+  ipaddr-cstruct,
+  lru,
+  metrics,
 }:
 
 buildDunePackage rec {
   pname = "tcpip";
-  version = "8.0.0";
+  version = "9.0.1";
 
   src = fetchurl {
     url = "https://github.com/mirage/mirage-${pname}/releases/download/v${version}/${pname}-${version}.tbz";
-    hash = "sha256-NrTBVr4WcCukxteBotqLoUYrIjcNFVcOERYFbL8CUjM=";
+    hash = "sha256-+sB86YaBHPXj1xNz2StjHMMPvvVI1tohsJFyEtz5CwM=";
   };
 
   nativeBuildInputs = [
@@ -28,9 +45,9 @@ buildDunePackage rec {
     cstruct
     cstruct-lwt
     mirage-net
-    mirage-clock
-    mirage-random
-    mirage-time
+    mirage-mtime
+    mirage-crypto-rng
+    mirage-sleep
     ipaddr-cstruct
     macaddr
     macaddr-cstruct
@@ -45,25 +62,20 @@ buildDunePackage rec {
     metrics
     arp
     mirage-flow
-  ] ++ lib.optionals withFreestanding [
-    ocaml-freestanding
   ];
 
   doCheck = true;
   checkInputs = [
     alcotest
-    mirage-random-test
-    mirage-flow
     mirage-vnetif
     pcap-format
-    mirage-clock-unix
   ];
   __darwinAllowLocalNetworking = true;
 
-  meta = with lib; {
+  meta = {
     description = "OCaml TCP/IP networking stack, used in MirageOS";
     homepage = "https://github.com/mirage/mirage-tcpip";
-    maintainers = [ maintainers.sternenseemann ];
-    license = licenses.isc;
+    maintainers = [ lib.maintainers.sternenseemann ];
+    license = lib.licenses.isc;
   };
 }

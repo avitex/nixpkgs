@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   cfg = config.services.bpftune;
 in
@@ -9,7 +14,7 @@ in
 
   options = {
     services.bpftune = {
-      enable = lib.mkEnableOption (lib.mdDoc "bpftune BPF driven auto-tuning");
+      enable = lib.mkEnableOption "bpftune BPF driven auto-tuning";
 
       package = lib.mkPackageOption pkgs "bpftune" { };
     };
@@ -17,6 +22,9 @@ in
 
   config = lib.mkIf cfg.enable {
     systemd.packages = [ cfg.package ];
-    systemd.services.bpftune.wantedBy = [ "multi-user.target" ];
+    systemd.services.bpftune = {
+      wantedBy = [ "multi-user.target" ];
+      path = [ pkgs.kmod ]; # bpftune calls modprobe
+    };
   };
 }

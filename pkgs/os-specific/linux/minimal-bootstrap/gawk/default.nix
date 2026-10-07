@@ -1,61 +1,75 @@
-{ lib
-, buildPlatform
-, hostPlatform
-, fetchurl
-, bash
-, tinycc
-, gnumake
-, gnugrep
-, gnused
-, gnutar
-, gzip
-, bootGawk
+{
+  lib,
+  buildPlatform,
+  hostPlatform,
+  fetchurl,
+  bash,
+  tinycc,
+  gnumake,
+  gnugrep,
+  gnupatch,
+  gnused,
+  gnutar,
+  gzip,
+  bootGawk,
 }:
 let
   inherit (import ./common.nix { inherit lib; }) meta;
   pname = "gawk";
-  version = "5.2.2";
+
+  version = "5.4.1";
 
   src = fetchurl {
     url = "mirror://gnu/gawk/gawk-${version}.tar.gz";
-    hash = "sha256-lFrvfM/xAfILIqEIArwAXplKsrjqPnJMwaGXxi9B9lA=";
+    hash = "sha256-izsOqDkwMRo/MJBdPOiY0yxhA8L+INapC0A0EXGxdN4=";
   };
-in
-bash.runCommand "${pname}-${version}" {
-  inherit pname version meta;
-
-  nativeBuildInputs = [
-    tinycc.compiler
-    gnumake
-    gnused
-    gnugrep
-    gnutar
-    gzip
-    bootGawk
+  patches = [
+    ./node-struct-without-gmp-mpfr.patch
   ];
+in
+bash.runCommand "${pname}-${version}"
+  {
+    inherit pname version meta;
 
-  passthru.tests.get-version = result:
-    bash.runCommand "${pname}-get-version-${version}" {} ''
-      ${result}/bin/awk --version
-      mkdir $out
-    '';
-} ''
-  # Unpack
-  tar xzf ${src}
-  cd gawk-${version}
+    nativeBuildInputs = [
+      tinycc.compiler
+      gnupatch
+      gnumake
+      gnused
+      gnugrep
+      gnutar
+      gzip
+      bootGawk
+    ];
 
-  # Configure
-  export CC="tcc -B ${tinycc.libs}/lib"
-  export AR="tcc -ar"
-  export LD=tcc
-  bash ./configure \
-    --prefix=$out \
-    --build=${buildPlatform.config} \
-    --host=${hostPlatform.config}
+    passthru.tests.get-version =
+      result:
+      bash.runCommand "${pname}-get-version-${version}" { } ''
+        ${result}/bin/awk --version
+        mkdir $out
+      '';
+  }
+  ''
+    # Unpack
+    tar xzf ${src}
+    cd gawk-${version}
 
-  # Build
-  make -j $NIX_BUILD_CORES
+    # Patch
+    ${lib.concatMapStringsSep "\n" (f: "patch -Np1 -i ${f}") patches}
 
-  # Install
-  make -j $NIX_BUILD_CORES install
-''
+    # Configure
+    export CC="tcc -B ${tinycc.libs}/lib"
+    export AR="tcc -ar"
+    export LD=tcc
+    bash ./configure \
+      --prefix=$out \
+      --build=${buildPlatform.config} \
+      --host=${hostPlatform.config} \
+      --disable-dependency-tracking
+
+    # Build
+    make -j $NIX_BUILD_CORES
+
+    # Install
+    make -j $NIX_BUILD_CORES install
+  ''

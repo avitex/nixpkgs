@@ -1,11 +1,16 @@
-{ callPackage }: builtins.mapAttrs (_: callPackage ./generic.nix) rec {
-  wordpress = wordpress6_4;
-  wordpress6_3 = {
-    version = "6.3.2";
-    hash = "sha256-Jo2/Vlm4Ml24ucPI6ZHs2mkbpY2rZB1dofmGXNPweA8=";
+{ callPackage }:
+builtins.mapAttrs (_: callPackage ./generic.nix) rec {
+  wordpress = wordpress_7_1;
+  wordpress_6_9 = {
+    version = "6.9.9";
+    hash = "sha256-MiMbmsvnY6hhOOi7t7XE8/EjvsnWX8OJi8s7ZFBqc1g=";
   };
-  wordpress6_4 = {
-    version = "6.4.2";
-    hash = "sha256-m4KJELf5zs3gwAQPmAhoPe2rhopZFsYN6OzAv6Wzo6c=";
+  wordpress_7_0 = {
+    version = "7.0.6";
+    hash = "sha256-W+/iSslL8f8YKSoaHzD9DHEbAJ+Rz9ytqo/rbgr6dc0=";
+  };
+  wordpress_7_1 = {
+    version = "7.1.2";
+    hash = "sha256-wMZmaJ1muHDYglUAu45ALtBN5SYCxhpvUWxiNrjJrGc=";
   };
 }

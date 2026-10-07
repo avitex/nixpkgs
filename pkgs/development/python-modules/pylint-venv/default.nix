@@ -1,40 +1,34 @@
- { lib
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pylint-venv";
-  version = "3.0.3";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "3.0.4";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "jgosmann";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-dsVEHJawsTNKVCVmeOa61wOU5GPeyzAU/eUDFrK9PPg=";
+    repo = "pylint-venv";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-dJWVfltze4zT0CowBZSn3alqR2Y8obKUCmO8Nfw+ahs=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ poetry-core ];
 
   # Module has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "pylint_venv"
-  ];
+  pythonImportsCheck = [ "pylint_venv" ];
 
-  meta = with lib; {
+  meta = {
     description = "Module to make pylint respect virtual environments";
     homepage = "https://github.com/jgosmann/pylint-venv/";
-    changelog = "https://github.com/jgosmann/pylint-venv/blob/v${version}/CHANGES.md";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/jgosmann/pylint-venv/blob/v${finalAttrs.version}/CHANGES.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

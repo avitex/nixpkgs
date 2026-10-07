@@ -1,22 +1,20 @@
-{ lib
-, aiohttp
-, bleak
-, bleak-retry-connector
-, buildPythonPackage
-, certifi
-, fetchFromGitHub
-, hatchling
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  aiohttp,
+  bleak,
+  bleak-retry-connector,
+  buildPythonPackage,
+  certifi,
+  fetchFromGitHub,
+  hatchling,
+  pytest-asyncio,
+  pytestCheckHook,
 }:
 
 buildPythonPackage {
   pname = "govee-led-wez";
   version = "0.0.15";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "wez";
@@ -26,9 +24,7 @@ buildPythonPackage {
     hash = "sha256-VMH7sot9e2SYMyBNutyW6oCCjp2N+EKukxn1Dla3AlY=";
   };
 
-  nativeBuildInputs = [
-    hatchling
-  ];
+  nativeBuildInputs = [ hatchling ];
 
   propagatedBuildInputs = [
     aiohttp
@@ -42,14 +38,12 @@ buildPythonPackage {
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "govee_led_wez"
-  ];
+  pythonImportsCheck = [ "govee_led_wez" ];
 
-  meta = with lib; {
+  meta = {
     description = "Control Govee Lights from Python";
     homepage = "https://github.com/wez/govee-py";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ SuperSandro2000 ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ SuperSandro2000 ];
   };
 }

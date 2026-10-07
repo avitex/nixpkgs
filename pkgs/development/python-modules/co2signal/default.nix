@@ -1,30 +1,36 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, requests
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  requests,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "co2signal";
   version = "0.4.2";
-  format = "setuptools";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit version;
+    inherit (finalAttrs) version;
     pname = "CO2Signal";
     hash = "sha256-8YdYbknLICRrZloGUZuscv5e1LIDZBcCPKZs6EMaNuo=";
   };
 
-  propagatedBuildInputs = [ requests ];
+  build-system = [ setuptools ];
+
+  dependencies = [ requests ];
   # Modules has no tests
   doCheck = false;
 
   pythonImportsCheck = [ "CO2Signal" ];
 
-  meta = with lib; {
-    description = "A package to access the CO2 Signal API ";
+  meta = {
+    description = "Package to access the CO2 Signal API";
     homepage = "https://github.com/danielsjf/CO2Signal";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ plabadens ];
+    license = lib.licenses.gpl3Only;
+    maintainers = with lib.maintainers; [ plabadens ];
   };
-}
+})

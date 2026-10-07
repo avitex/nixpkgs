@@ -1,59 +1,67 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, aiohttp
-, yarl
-, aresponses
-, poetry-core
-, pytest-asyncio
-, pytestCheckHook
+{
+  lib,
+  aiohttp,
+  aioresponses,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  pytest-asyncio,
+  pytest-cov-stub,
+  pytestCheckHook,
+  rich,
+  syrupy,
+  typer,
+  yarl,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "twentemilieu";
-  version = "2.0.1";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.11";
+  version = "3.0.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "frenck";
     repo = "python-twentemilieu";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-0rs+nBJfyXRj/3n/G2JzUDXaiIYZmWsoIcgLoWKhlV4=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-RSUKluCE66oA0QbPlJ3niIuewvBxPmj18ZCUBNCFr4o=";
   };
 
   postPatch = ''
+    # Upstream is creating GitHub releases without version
     substituteInPlace pyproject.toml \
-      --replace "--cov" "" \
-      --replace '"0.0.0"' '"${version}"'
+      --replace '"0.0.0"' '"${finalAttrs.version}"'
   '';
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
     yarl
   ];
 
+  optional-dependencies = {
+    cli = [
+      rich
+      typer
+    ];
+  };
+
   nativeCheckInputs = [
-    aresponses
+    aioresponses
     pytest-asyncio
+    pytest-cov-stub
     pytestCheckHook
-  ];
+    syrupy
+  ]
+  ++ lib.flatten (builtins.attrValues finalAttrs.passthru.optional-dependencies);
 
-  pythonImportsCheck = [
-    "twentemilieu"
-  ];
+  pythonImportsCheck = [ "twentemilieu" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python client for Twente Milieu";
     homepage = "https://github.com/frenck/python-twentemilieu";
-    changelog = "https://github.com/frenck/python-twentemilieu/releases/tag/v${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/frenck/python-twentemilieu/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

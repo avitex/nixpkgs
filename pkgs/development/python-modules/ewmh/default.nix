@@ -1,4 +1,9 @@
-{ lib, buildPythonPackage, fetchPypi, xlib }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  python-xlib,
+}:
 
 buildPythonPackage rec {
   pname = "ewmh";
@@ -10,14 +15,14 @@ buildPythonPackage rec {
     sha256 = "0g9l14my3v8zlgq1yd8wh5gpara0qcapsfmvg7lq2lapglzhjsy5";
   };
 
-  propagatedBuildInputs = [ xlib ];
+  propagatedBuildInputs = [ python-xlib ];
 
   # No tests included
   doCheck = false;
 
   meta = {
     homepage = "https://github.com/parkouss/pyewmh";
-    description = "An implementation of EWMH (Extended Window Manager Hints), based on Xlib";
+    description = "Implementation of EWMH (Extended Window Manager Hints), based on Xlib";
     license = lib.licenses.lgpl3Plus;
     maintainers = with lib.maintainers; [ bandresen ];
   };

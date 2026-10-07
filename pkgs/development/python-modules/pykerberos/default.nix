@@ -1,26 +1,35 @@
-{ lib, fetchPypi, buildPythonPackage, krb5 }:
+{
+  lib,
+  fetchPypi,
+  buildPythonPackage,
+  krb5-c, # C krb5 library, not PyPI krb5
+  setuptools,
+}:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pykerberos";
   version = "1.2.4";
-  format = "setuptools";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
+    inherit (finalAttrs) pname version;
     hash = "sha256-nXAevY/FlsmdMVXVukWBO9WQjSbvg7oK3SUO22IqvtQ=";
   };
 
-  nativeBuildInputs = [ krb5 ]; # for krb5-config
+  build-system = [ setuptools ];
 
-  buildInputs = [ krb5 ];
+  nativeBuildInputs = [ krb5-c ]; # for krb5-config
+
+  buildInputs = [ krb5-c ];
 
   # there are no tests
   doCheck = false;
+
   pythonImportsCheck = [ "kerberos" ];
 
-  meta = with lib; {
+  meta = {
     description = "High-level interface to Kerberos";
-    license     = licenses.asl20;
-    maintainers = with maintainers; [ catern ];
+    homepage = "https://github.com/02strich/pykerberos";
+    license = lib.licenses.asl20;
   };
-}
+})

@@ -1,28 +1,42 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, makeWrapper
-, coreutils
-, tcl-8_6
-, tcllib
-, installShellFiles
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  makeWrapper,
+  coreutils,
+  tcl-8_6,
+  tclPackages,
+  installShellFiles,
 }:
 
 stdenv.mkDerivation {
   pname = "xfs_undelete";
-  version = "unstable-2023-04-12";
+  version = "12.0-unstable-2023-04-11";
 
-  src =  fetchFromGitHub {
+  src = fetchFromGitHub {
     repo = "xfs_undelete";
     owner = "ianka";
     rev = "9e2f7abf0d3a466328e335d251c567ce4194e473";
-    sha256 = "0n1718bmr2lfpwx57hajancda51fyrgyk9rbybbadvd8gypvzmhh";
+    hash = "sha256-ENa/r3+o7abW8iun6V/2LhTVmFVSwVM6v46KXBcKJ1g=";
   };
 
-  buildInputs = [ tcl-8_6 tcllib coreutils ];
-  nativeBuildInputs = [ makeWrapper tcl-8_6.tclPackageHook installShellFiles ];
+  buildInputs = [
+    tcl-8_6
+    tclPackages.tcllib
+    coreutils
+  ];
+  nativeBuildInputs = [
+    makeWrapper
+    tcl-8_6.tclPackageHook
+    installShellFiles
+  ];
 
-  tclWrapperArgs = [ "--prefix" "PATH" ":" (lib.makeBinPath [ tcl-8_6 ]) ];
+  tclWrapperArgs = [
+    "--prefix"
+    "PATH"
+    ":"
+    (lib.makeBinPath [ tcl-8_6 ])
+  ];
 
   installPhase = ''
     runHook preInstall
@@ -34,11 +48,12 @@ stdenv.mkDerivation {
     runHook postInstall
   '';
 
-  meta = with lib; {
-    description = "An undelete tool for the XFS filesystem";
+  meta = {
+    description = "Undelete tool for the XFS filesystem";
+    mainProgram = "xfs_undelete";
     homepage = "https://github.com/ianka/xfs_undelete";
-    license = licenses.gpl3;
-    platforms = platforms.linux;
-    maintainers = [ maintainers.deepfire ];
+    license = lib.licenses.gpl3;
+    platforms = lib.platforms.linux;
+    maintainers = [ ];
   };
 }

@@ -1,40 +1,41 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, setuptools
-, jinja2
-, pdoc-pyo3-sample-library
-, pygments
-, markupsafe
-, astunparse
-, pytestCheckHook
-, hypothesis
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  jinja2,
+  pdoc-pyo3-sample-library,
+  pygments,
+  markupsafe,
+  pytestCheckHook,
+  hypothesis,
+  nix-update-script,
+  markdown2,
+  pydantic,
 }:
 
 buildPythonPackage rec {
   pname = "pdoc";
-  version = "14.2.0";
-  disabled = pythonOlder "3.8";
+  version = "16.0.0";
 
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "mitmproxy";
     repo = "pdoc";
-    rev = "v${version}";
-    hash = "sha256-Mmmq4jqRQow+1jn5ZDVMtP1uxrYgHJK/IQrwFWNw8ag=";
+    tag = "v${version}";
+    hash = "sha256-9amp6CWYIcniVfdlmPKYuRFR7B5JJtuMlOoDxpfvvJA=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     jinja2
     pygments
     markupsafe
-  ] ++ lib.optional (pythonOlder "3.9") astunparse;
+    markdown2
+    pydantic
+  ];
 
   nativeCheckInputs = [
     pytestCheckHook
@@ -47,19 +48,22 @@ buildPythonPackage rec {
     "test/test_snapshot.py"
   ];
 
-  pytestFlagsArray = [
-    ''-m "not slow"'' # skip slow tests
+  disabledTestMarks = [
+    "slow" # skip slow tests
   ];
 
   __darwinAllowLocalNetworking = true;
 
   pythonImportsCheck = [ "pdoc" ];
 
-  meta = with lib; {
+  passthru.updateScript = nix-update-script { };
+
+  meta = {
     changelog = "https://github.com/mitmproxy/pdoc/blob/${src.rev}/CHANGELOG.md";
     homepage = "https://pdoc.dev/";
     description = "API Documentation for Python Projects";
-    license = licenses.unlicense;
-    maintainers = with maintainers; [ pbsds ];
+    mainProgram = "pdoc";
+    license = lib.licenses.unlicense;
+    maintainers = with lib.maintainers; [ pbsds ];
   };
 }

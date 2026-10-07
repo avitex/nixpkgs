@@ -1,31 +1,35 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, flit
-, hypothesis
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  flit-core,
+  hypothesis,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "validobj";
-  version = "1.2";
-  format = "pyproject";
+  version = "1.6";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    sha256 = "sha256-uwP2Mu10AiDWzlPMRH2+0CMSnibTB8KBY8QZNf+icNA=";
+    hash = "sha256-dXUvInNYkl10zdGQhJ6h1JqCNlZ+VsvwnEMb2xj6qOA=";
   };
 
-  nativeBuildInputs = [ flit ];
+  build-system = [ flit-core ];
 
-  nativeCheckInputs = [ hypothesis pytestCheckHook ];
+  nativeCheckInputs = [
+    hypothesis
+    pytestCheckHook
+  ];
 
   pythonImportsCheck = [ "validobj" ];
 
-  meta = with lib; {
-    description = "Validobj is library that takes semistructured data (for example JSON and YAML configuration files) and converts it to more structured Python objects";
+  meta = {
+    description = "Library that takes semistructured data (for example JSON and YAML configuration files) and converts it to more structured Python objects";
     homepage = "https://github.com/Zaharid/validobj";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ veprbl ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ veprbl ];
   };
 }

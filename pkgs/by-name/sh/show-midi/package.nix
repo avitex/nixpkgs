@@ -1,37 +1,43 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, pkg-config
-, alsa-lib
-, freetype
-, libX11
-, libXrandr
-, libXinerama
-, libXext
-, libXcursor
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  pkg-config,
+  alsa-lib,
+  freetype,
+  libx11,
+  libxrandr,
+  libxinerama,
+  libxext,
+  libxcursor,
+  makeDesktopItem,
+  copyDesktopItems,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "show-midi";
-  version = "0.9.0";
+  version = "1.0.1";
 
   src = fetchFromGitHub {
     owner = "gbevin";
     repo = "ShowMIDI";
-    rev = finalAttrs.version;
-    hash = "sha256-xt2LpoiaOWAeWM/YzaKM0WGi8aHs4T7pvMw1s/P4Oj0=";
+    tag = finalAttrs.version;
+    hash = "sha256-jANrFZqJZZMTGyNa0sIthoQzaDMdLzpGZqHfxNw8hDg=";
     fetchSubmodules = true;
   };
 
-  nativeBuildInputs = [ pkg-config ];
+  nativeBuildInputs = [
+    pkg-config
+    copyDesktopItems
+  ];
   buildInputs = [
     alsa-lib
     freetype
-    libX11
-    libXrandr
-    libXinerama
-    libXext
-    libXcursor
+    libx11
+    libxrandr
+    libxinerama
+    libxext
+    libxcursor
   ];
 
   enableParallelBuilding = true;
@@ -53,6 +59,8 @@ stdenv.mkDerivation (finalAttrs: {
 
     install -Dt $out/share/ShowMIDI/themes Themes/*
 
+    install -D Design/icon.png $out/share/icons/show-midi.png
+
     mkdir -p $out/bin $out/lib/lv2 $out/lib/vst3
     cd Builds/LinuxMakefile/build/
     cp -r ShowMIDI.lv2 $out/lib/lv2
@@ -61,6 +69,18 @@ stdenv.mkDerivation (finalAttrs: {
 
     runHook postInstall
   '';
+
+  desktopItems = [
+    (makeDesktopItem {
+      name = "ShowMIDI";
+      exec = finalAttrs.meta.mainProgram;
+      comment = finalAttrs.meta.description;
+      type = "Application";
+      icon = "show-midi";
+      desktopName = "ShowMIDI";
+      categories = [ "Audio" ];
+    })
+  ];
 
   # JUCE dlopens these, make sure they are in rpath
   # Otherwise, segfault will happen
@@ -72,12 +92,12 @@ stdenv.mkDerivation (finalAttrs: {
     "-lXrandr"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Multi-platform GUI application to effortlessly visualize MIDI activity";
     homepage = "https://github.com/gbevin/ShowMIDI";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ minijackson ];
+    license = lib.licenses.gpl3Only;
+    maintainers = with lib.maintainers; [ minijackson ];
     mainProgram = "ShowMIDI";
-    platforms = platforms.linux;
+    platforms = lib.platforms.linux;
   };
 })

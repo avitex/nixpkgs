@@ -1,40 +1,49 @@
-{ lib
-, stdenv
-, fetchurl
-, fetchpatch2
-, meson
-, ninja
-, pkg-config
-, atk
-, cairo
-, glib
-, gtk3
-, pango
-, fribidi
-, vala
-, libxml2
-, perl
-, gettext
-, gnome
-, gobject-introspection
-, dbus
-, xvfb-run
-, shared-mime-info
-, testers
+{
+  lib,
+  stdenv,
+  fetchurl,
+  fetchpatch2,
+  meson,
+  ninja,
+  pkg-config,
+  atk,
+  cairo,
+  glib,
+  gtk3,
+  pango,
+  fribidi,
+  vala,
+  libxml2,
+  perl,
+  gettext,
+  gnome,
+  gobject-introspection,
+  dbus,
+  xvfb-run,
+  shared-mime-info,
+  testers,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "gtksourceview";
   version = "4.8.4";
 
-  outputs = [ "out" "dev" ];
+  __structuredAttrs = true;
+  strictDeps = true;
 
-  src = let
-    inherit (finalAttrs) pname version;
-  in fetchurl {
-    url = "mirror://gnome/sources/${pname}/${lib.versions.majorMinor version}/${pname}-${version}.tar.xz";
-    sha256 = "fsnRj7KD0fhKOj7/O3pysJoQycAGWXs/uru1lYQgqH0=";
-  };
+  outputs = [
+    "out"
+    "dev"
+  ];
+
+  src =
+    let
+      inherit (finalAttrs) pname version;
+    in
+    fetchurl {
+      url = "mirror://gnome/sources/gtksourceview/${lib.versions.majorMinor version}/gtksourceview-${version}.tar.xz";
+      sha256 = "fsnRj7KD0fhKOj7/O3pysJoQycAGWXs/uru1lYQgqH0=";
+    };
 
   patches = [
     # By default, the library loads syntaxes from XDG_DATA_DIRS and user directory
@@ -64,6 +73,7 @@ stdenv.mkDerivation (finalAttrs: {
     perl
     gobject-introspection
     vala
+    libxml2 # xmllint
   ];
 
   buildInputs = [
@@ -94,9 +104,7 @@ stdenv.mkDerivation (finalAttrs: {
       --replace "if generate_vapi" "if false"
   '';
 
-  # Broken by PCRE 2 bump in GLib.
-  # https://gitlab.gnome.org/GNOME/gtksourceview/-/issues/283
-  doCheck = false;
+  doCheck = stdenv.hostPlatform.isLinux;
 
   checkPhase = ''
     runHook preCheck
@@ -120,12 +128,12 @@ stdenv.mkDerivation (finalAttrs: {
 
   passthru.tests.pkg-config = testers.testMetaPkgConfig finalAttrs.finalPackage;
 
-  meta = with lib; {
+  meta = {
     description = "Source code editing widget for GTK";
-    homepage = "https://wiki.gnome.org/Projects/GtkSourceView";
+    homepage = "https://gitlab.gnome.org/GNOME/gtksourceview";
     pkgConfigModules = [ "gtksourceview-4" ];
-    platforms = platforms.unix;
-    license = licenses.lgpl21Plus;
-    maintainers = teams.gnome.members;
+    platforms = lib.platforms.unix;
+    license = lib.licenses.lgpl21Plus;
+    teams = [ lib.teams.gnome ];
   };
 })

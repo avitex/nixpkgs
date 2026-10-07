@@ -1,16 +1,14 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "exrex";
   version = "0.11.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "asciimoo";
@@ -25,23 +23,19 @@ buildPythonPackage rec {
       --replace "version=about['__version__']," "version='${version}',"
   '';
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  nativeBuildInputs = [ setuptools ];
 
   dontWrapPythonPrograms = true;
 
-  # Projec thas no released tests
+  # Project thas no released tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "exrex"
-  ];
+  pythonImportsCheck = [ "exrex" ];
 
-  meta = with lib; {
+  meta = {
     description = "Irregular methods on regular expressions";
     homepage = "https://github.com/asciimoo/exrex";
-    license = with licenses; [ agpl3Plus ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.agpl3Plus;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

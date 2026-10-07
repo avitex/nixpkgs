@@ -1,42 +1,34 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, setuptools
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "whatthepatch";
-  version = "1.0.5";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "1.0.7";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "cscorley";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-1+OIs77Vyx56pgf7VSmi4UsPgkv8qZXFm8L2jK2CTMk=";
+    repo = "whatthepatch";
+    tag = version;
+    hash = "sha256-0pkkwVo9yaFEZyitfpKMC8EVr8HgPLUkrGWmyYOdZNE=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "whatthepatch"
-  ];
+  pythonImportsCheck = [ "whatthepatch" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python library for both parsing and applying patch files";
     homepage = "https://github.com/cscorley/whatthepatch";
     changelog = "https://github.com/cscorley/whatthepatch/blob/${version}/HISTORY.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ joelkoen ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ nickcao ];
   };
 }

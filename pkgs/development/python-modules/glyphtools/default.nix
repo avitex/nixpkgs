@@ -1,40 +1,41 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, beziers
-, glyphslib
-, numpy
-, setuptoolsCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  beziers,
+  glyphslib,
+  numpy,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "glyphtools";
   version = "0.8.0";
-  format = "setuptools";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
+    inherit (finalAttrs) pname version;
     hash = "sha256-PXwXHWMJbsi6ZtN+daaXAnlw3gV5DFAhyRxdBa7UP+M=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     beziers
     glyphslib
     numpy
   ];
 
   # A unit test suite does exist, but it only contains a dummy test that
-  # doesn't test anything. It does import the module though so we still run it.
-  doCheck = true;
-  nativeCheckInputs = [
-    # Upstream apparently prefers the deprecated setuptools 'test' command.
-    setuptoolsCheckHook
-  ];
+  # imports the library.
+  doCheck = false;
 
-  meta = with lib; {
+  pythonImportsCheck = [ "glyphtools" ];
+
+  meta = {
     description = "Python library for extracting information from font glyphs";
     homepage = "https://github.com/simoncozens/glyphtools";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ danc86 ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ danc86 ];
   };
-}
+})

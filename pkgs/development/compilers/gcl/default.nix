@@ -1,11 +1,23 @@
-{ lib, stdenv, fetchurl, mpfr, m4, binutils, emacs, zlib, which
-, texinfo, libX11, xorgproto, libXi, gmp
-, libXext, libXt, libXaw, libXmu } :
-
-assert stdenv ? cc ;
-assert stdenv.cc.isGNU ;
-assert stdenv.cc ? libc ;
-assert stdenv.cc.libc != null ;
+{
+  lib,
+  stdenv,
+  fetchurl,
+  mpfr,
+  m4,
+  binutils,
+  emacs,
+  zlib,
+  which,
+  texinfo,
+  libx11,
+  xorgproto,
+  libxi,
+  gmp,
+  libxext,
+  libxt,
+  libxaw,
+  libxmu,
+}:
 
 stdenv.mkDerivation rec {
   pname = "gcl";
@@ -17,20 +29,33 @@ stdenv.mkDerivation rec {
   };
 
   buildInputs = [
-    mpfr m4 binutils emacs gmp
-    libX11 xorgproto libXi
-    libXext libXt libXaw libXmu
-    zlib which texinfo
+    mpfr
+    m4
+    binutils
+    emacs
+    gmp
+    libx11
+    xorgproto
+    libxi
+    libxext
+    libxt
+    libxaw
+    libxmu
+    zlib
+    which
+    texinfo
   ];
 
   configureFlags = [
     "--enable-ansi"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "GNU Common Lisp compiler working via GCC";
-    maintainers = lib.teams.lisp.members;
-    license = licenses.gpl2;
-    platforms = platforms.linux;
+    mainProgram = "gcl";
+    teams = [ lib.teams.lisp ];
+    license = lib.licenses.gpl2;
+    platforms = lib.platforms.linux;
+    broken = true; # 2025-01-21; to check after 2.7.0 is tagged
   };
 }

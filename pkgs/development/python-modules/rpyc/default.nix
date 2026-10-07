@@ -1,38 +1,34 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchFromGitHub
-, hatchling
-, plumbum
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  hatchling,
+  plumbum,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "rpyc";
-  version = "5.3.1";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "6.0.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "tomerfiliba";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-2b6ryqDqZPs5VniLhCwA1/c9+3CT+JJrr3VwP3G6tpY=";
+    repo = "rpyc";
+    tag = version;
+    hash = "sha256-KLAOt0FStHV0senU/I4chxgn3PPM59CGhjTr/5U0sa8=";
   };
 
-  nativeBuildInputs = [
-    hatchling
-  ];
+  build-system = [ hatchling ];
 
-  propagatedBuildInputs = [
-    plumbum
-  ];
+  dependencies = [ plumbum ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  preCheck = ''
+    export PYTHONPATH=$(pwd)/tests:$PYTHONPATH
+  '';
 
   disabledTests = [
     # Disable tests that requires network access
@@ -42,22 +38,31 @@ buildPythonPackage rec {
     "test_listing"
     "test_pruning"
     "test_rpyc"
+    "test_instancecheck_across_connections"
+    # Internal import error
+    "test_modules"
     # Test is outdated
     # ssl.SSLError: [SSL: NO_CIPHERS_AVAILABLE] no ciphers available (_ssl.c:997)
     "test_ssl_conenction"
   ];
 
-  pythonImportsCheck = [
-    "rpyc"
+  disabledTestPaths = [
+    # Internal import issue
+    "tests/test_attributes.py"
+    "tests/test_service_pickle.py"
+    "tests/test_affinity.py"
+    "tests/test_magic.py"
   ];
 
-  doCheck = !stdenv.isDarwin;
+  pythonImportsCheck = [ "rpyc" ];
 
-  meta = with lib; {
+  doCheck = !stdenv.hostPlatform.isDarwin;
+
+  meta = {
     description = "Remote Python Call (RPyC), a transparent and symmetric RPC library";
     homepage = "https://rpyc.readthedocs.org";
     changelog = "https://github.com/tomerfiliba-org/rpyc/blob/${version}/CHANGELOG.rst";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

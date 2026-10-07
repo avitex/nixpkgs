@@ -1,17 +1,18 @@
-{ lib
-, stdenvNoCC
-, fetchFromGitHub
+{
+  lib,
+  stdenvNoCC,
+  fetchFromCodeberg,
 }:
 
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "durden";
-  version = "unstable-2023-10-23";
+  version = "0.6.3";
 
-  src = fetchFromGitHub {
+  src = fetchFromCodeberg {
     owner = "letoram";
     repo = "durden";
-    rev = "347dba6da011bbaa70c6edaf82a2d915f4057db3";
-    hash = "sha256-iNf7fOzz7mf1CXG5leCenkSTrdCc9/KL8VLw8gUIyKE=";
+    tag = finalAttrs.version;
+    hash = "sha256-dWLOLOICcVjqYTw8KAPM2/xgB9mTSEdGGIHD1WSrIvA=";
   };
 
   dontConfigure = true;
@@ -36,8 +37,8 @@ stdenvNoCC.mkDerivation (finalAttrs: {
       features in Arcan, and as a very competent entry to the advanced-user side
       of the desktop environment spectrum.
     '';
-    license = with lib.licenses; [ bsd3 ];
-    maintainers = with lib.maintainers; [ AndersonTorres ];
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
     platforms = lib.platforms.all;
   };
 })

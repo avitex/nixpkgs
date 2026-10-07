@@ -9,7 +9,7 @@
     2. Spins up an nghttpd2 server to test client HTTP/2 headers against
        known-good headers
 
-    See https://github.com/lwthiker/curl-impersonate/tree/main/tests/signatures
+    See https://github.com/lexiforest/curl-impersonate/tree/main/tests/signatures
     for details.
 
   Notes:
@@ -19,106 +19,139 @@
       We do that by creating a trusted CA and issuing a cert that includes
       all of the test domains as subject-alternative names and then spoofs the
       hostnames in /etc/hosts.
+    - We started skipping the test_http2_headers test due to log format differences
+      between the nghttpd2 version in nixpkgs and the outdated one curl-impersonate
+      uses upstream for its tests.
+    - test_http3_fingerprint is skipped because it requires connecting to
+      third-party endpoint (fp.impersonate.pro) which isn't reachable from the test VM
 */
+{ config, lib, ... }:
+let
+  pkgs = config.node.pkgs;
 
-import ./make-test-python.nix ({ pkgs, lib, ... }: let
   # Update with domains in TestImpersonate.TEST_URLS if needed from:
-  # https://github.com/lwthiker/curl-impersonate/blob/main/tests/test_impersonate.py
+  # https://github.com/lexiforest/curl-impersonate/blob/main/tests/test_impersonate.py
   domains = [
     "www.wikimedia.org"
     "www.wikipedia.org"
     "www.mozilla.org"
     "www.apache.org"
-    "www.kernel.org"
     "git-scm.com"
   ];
 
-  tls-certs = let
-    # Configure CA with X.509 v3 extensions that would be trusted by curl
-    ca-cert-conf = pkgs.writeText "curl-impersonate-ca.cnf" ''
-      basicConstraints = critical, CA:TRUE
-      subjectKeyIdentifier = hash
-      authorityKeyIdentifier = keyid:always, issuer:always
-      keyUsage = critical, cRLSign, digitalSignature, keyCertSign
-    '';
+  tls-certs =
+    let
+      # Configure CA with X.509 v3 extensions that would be trusted by curl
+      ca-cert-conf = pkgs.writeText "curl-impersonate-ca.cnf" ''
+        basicConstraints = critical, CA:TRUE
+        subjectKeyIdentifier = hash
+        authorityKeyIdentifier = keyid:always, issuer:always
+        keyUsage = critical, cRLSign, digitalSignature, keyCertSign
+      '';
 
-    # Configure leaf certificate with X.509 v3 extensions that would be trusted
-    # by curl and set subject-alternative names for test domains
-    tls-cert-conf = pkgs.writeText "curl-impersonate-tls.cnf" ''
-      basicConstraints = critical, CA:FALSE
-      subjectKeyIdentifier = hash
-      authorityKeyIdentifier = keyid:always, issuer:always
-      keyUsage = critical, nonRepudiation, digitalSignature, keyEncipherment, keyAgreement
-      extendedKeyUsage = critical, serverAuth
-      subjectAltName = @alt_names
+      # Configure leaf certificate with X.509 v3 extensions that would be trusted
+      # by curl and set subject-alternative names for test domains
+      tls-cert-conf = pkgs.writeText "curl-impersonate-tls.cnf" ''
+        basicConstraints = critical, CA:FALSE
+        subjectKeyIdentifier = hash
+        authorityKeyIdentifier = keyid:always, issuer:always
+        keyUsage = critical, nonRepudiation, digitalSignature, keyEncipherment, keyAgreement
+        extendedKeyUsage = critical, serverAuth
+        subjectAltName = @alt_names
 
-      [alt_names]
-      ${lib.concatStringsSep "\n" (lib.imap0 (idx: domain: "DNS.${toString idx} = ${domain}") domains)}
-    '';
-  in pkgs.runCommand "curl-impersonate-test-certs" {
-    nativeBuildInputs = [ pkgs.openssl ];
-  } ''
-    # create CA certificate and key
-    openssl req -newkey rsa:4096 -keyout ca-key.pem -out ca-csr.pem -nodes -subj '/CN=curl-impersonate-ca.nixos.test'
-    openssl x509 -req -sha512 -in ca-csr.pem -key ca-key.pem -out ca.pem -extfile ${ca-cert-conf} -days 36500
-    openssl x509 -in ca.pem -text
+        [alt_names]
+        ${lib.concatStringsSep "\n" (lib.imap0 (idx: domain: "DNS.${toString idx} = ${domain}") domains)}
+      '';
+    in
+    pkgs.runCommand "curl-impersonate-test-certs"
+      {
+        nativeBuildInputs = [ pkgs.openssl ];
+      }
+      ''
+        # create CA certificate and key
+        openssl req -newkey rsa:4096 -keyout ca-key.pem -out ca-csr.pem -nodes -subj '/CN=curl-impersonate-ca.nixos.test'
+        openssl x509 -req -sha512 -in ca-csr.pem -key ca-key.pem -out ca.pem -extfile ${ca-cert-conf} -days 36500
+        openssl x509 -in ca.pem -text
 
-    # create server certificate and key
-    openssl req -newkey rsa:4096 -keyout key.pem -out csr.pem -nodes -subj '/CN=curl-impersonate.nixos.test'
-    openssl x509 -req -sha512 -in csr.pem -CA ca.pem -CAkey ca-key.pem -CAcreateserial -out cert.pem -extfile ${tls-cert-conf} -days 36500
-    openssl x509 -in cert.pem -text
+        # create server certificate and key
+        openssl req -newkey rsa:4096 -keyout key.pem -out csr.pem -nodes -subj '/CN=curl-impersonate.nixos.test'
+        openssl x509 -req -sha512 -in csr.pem -CA ca.pem -CAkey ca-key.pem -CAcreateserial -out cert.pem -extfile ${tls-cert-conf} -days 36500
+        openssl x509 -in cert.pem -text
 
-    # output CA cert and server cert and key
-    mkdir -p $out
-    cp key.pem cert.pem ca.pem $out
-  '';
+        # output CA cert and server cert and key
+        mkdir -p $out
+        cp key.pem cert.pem ca.pem $out
+      '';
 
   # Test script
-  curl-impersonate-test = let
-    # Build miniature libcurl client used by test driver
-    minicurl = pkgs.runCommandCC "minicurl" {
-      buildInputs = [ pkgs.curl ];
-    } ''
-      mkdir -p $out/bin
-      $CC -Wall -Werror -o $out/bin/minicurl ${pkgs.curl-impersonate.src}/tests/minicurl.c `curl-config --libs`
+  curl-impersonate-test =
+    let
+      # Build miniature libcurl client used by test driver
+      minicurl =
+        pkgs.runCommandCC "minicurl"
+          {
+            buildInputs = [ pkgs.curl ];
+          }
+          ''
+            mkdir -p $out/bin
+            sed -e 's/opts->local_port_end - opts->local_port_start);/(long)(opts->local_port_end - opts->local_port_start));/' \
+                -e 's/^\( *\)opts->local_port_start);/\1(long)opts->local_port_start);/' \
+                -e 's/CURLOPT_SSL_VERIFYPEER, 0)/CURLOPT_SSL_VERIFYPEER, 0L)/' \
+                -e 's/CURLOPT_SSL_VERIFYHOST, 0)/CURLOPT_SSL_VERIFYHOST, 0L)/' \
+                ${pkgs.curl-impersonate.src}/tests/minicurl.c > minicurl.c
+            $CC -Wall -Werror -o $out/bin/minicurl minicurl.c `curl-config --libs`
+          '';
+    in
+    pkgs.writeShellScript "curl-impersonate-test" ''
+      set -euxo pipefail
+
+      # Test driver requirements
+      export PATH="${
+        with pkgs;
+        lib.makeBinPath [
+          bash
+          coreutils
+          python3Packages.pytest
+          nghttp2
+          tcpdump
+        ]
+      }"
+      export PYTHONPATH="${
+        with pkgs.python3Packages;
+        makePythonPath [
+          pyyaml
+          pytest-asyncio
+          dpkt
+          ts1-signatures
+        ]
+      }"
+
+      # Prepare test root prefix
+      mkdir -p usr/{bin,lib}
+      cp -rs ${pkgs.curl-impersonate}/* ${minicurl}/* usr/
+
+      cp -r ${pkgs.curl-impersonate.src}/tests ./
+
+      # Run tests
+      cd tests
+      pytest . --install-dir ../usr --capture-interface eth1 --exitfirst -k 'not test_http2_headers and not test_http3_fingerprint'
     '';
-  in pkgs.writeShellScript "curl-impersonate-test" ''
-    set -euxo pipefail
-
-    # Test driver requirements
-    export PATH="${with pkgs; lib.makeBinPath [
-      bash
-      coreutils
-      python3Packages.pytest
-      nghttp2
-      tcpdump
-    ]}"
-    export PYTHONPATH="${with pkgs.python3Packages; makePythonPath [
-      pyyaml
-      pytest-asyncio
-      dpkt
-    ]}"
-
-    # Prepare test root prefix
-    mkdir -p usr/{bin,lib}
-    cp -rs ${pkgs.curl-impersonate}/* ${minicurl}/* usr/
-
-    cp -r ${pkgs.curl-impersonate.src}/tests ./
-
-    # Run tests
-    cd tests
-    pytest . --install-dir ../usr --capture-interface eth1
-  '';
-in {
+in
+{
   name = "curl-impersonate";
 
-  meta = with lib.maintainers; {
-    maintainers = [ lilyinstarlight ];
+  meta = {
+    maintainers = with lib.maintainers; [
+      ui-1
+    ];
   };
 
   nodes = {
-    web = { nodes, pkgs, lib, config, ... }: {
-      networking.firewall.allowedTCPPorts = [ 80 443 ];
+    web = { ... }: {
+      networking.firewall.allowedTCPPorts = [
+        80
+        443
+      ];
 
       services = {
         nginx = {
@@ -133,14 +166,22 @@ in {
       };
     };
 
-    curl = { nodes, pkgs, lib, config, ... }: {
-      networking.extraHosts = lib.concatStringsSep "\n" (map (domain: "${nodes.web.networking.primaryIPAddress}  ${domain}") domains);
+    curl =
+      {
+        nodes,
+        lib,
+        ...
+      }:
+      {
+        networking.extraHosts = lib.concatStringsSep "\n" (
+          map (domain: "${nodes.web.networking.primaryIPAddress}  ${domain}") domains
+        );
 
-      security.pki.certificateFiles = [ "${tls-certs}/ca.pem" ];
-    };
+        security.pki.certificateFiles = [ "${tls-certs}/ca.pem" ];
+      };
   };
 
-  testScript = { nodes, ... }: ''
+  testScript = { ... }: ''
     start_all()
 
     with subtest("Wait for network"):
@@ -156,4 +197,4 @@ in {
     with subtest("Run curl-impersonate tests"):
         curl.succeed("${curl-impersonate-test}")
   '';
-})
+}

@@ -1,53 +1,82 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, cython
-, lockfile
-, cachecontrol
-, decorator
-, h5py
-, ipython
-, matplotlib
-, natsort
-, numpy
-, pandas
-, scipy
-, hdmedians
-, scikit-learn
-, coverage
-, python
-, isPy3k
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  cython,
+  numpy,
+  setuptools,
+
+  # dependencies
+  array-api-compat,
+  biom-format,
+  decorator,
+  h5py,
+  natsort,
+  pandas,
+  patsy,
+  requests,
+  scipy,
+  statsmodels,
+
+  # tests
+  pytestCheckHook,
+  python,
 }:
 
-buildPythonPackage rec {
-  version = "0.5.9";
-  format = "setuptools";
+buildPythonPackage (finalAttrs: {
   pname = "scikit-bio";
-  disabled = !isPy3k;
+  version = "0.7.3";
+  pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-euBE3IvuIxkAJIrcOoZZB352FA1WrJ9CvQH7eYEBSRA=";
+  src = fetchFromGitHub {
+    owner = "scikit-bio";
+    repo = "scikit-bio";
+    tag = finalAttrs.version;
+    hash = "sha256-7cptpv7x/2KJbyMCZ4X6wVVUMx+CDcZ6nOtbeUoD5a0=";
   };
 
-  nativeBuildInputs = [ cython ];
-  nativeCheckInputs = [ coverage ];
-  propagatedBuildInputs = [ lockfile cachecontrol decorator ipython matplotlib natsort numpy pandas scipy h5py hdmedians scikit-learn ];
+  build-system = [
+    cython
+    numpy
+    setuptools
+  ];
 
-  # cython package not included for tests
-  doCheck = false;
+  dependencies = [
+    array-api-compat
+    biom-format
+    decorator
+    h5py
+    natsort
+    numpy
+    pandas
+    patsy
+    requests
+    scipy
+    statsmodels
+  ];
 
-  checkPhase = ''
-    ${python.interpreter} -m skbio.test
-  '';
+  nativeCheckInputs = [
+    pytestCheckHook
+  ];
+
+  # only the $out dir contains the built cython extensions, so we run the tests inside there
+  enabledTestPaths = [ "${placeholder "out"}/${python.sitePackages}/skbio" ];
+
+  # The trick above makes test collection fail on darwin:
+  # PermissionError: [Errno 1] Operation not permitted: '/nix/.Trashes'
+  doCheck = !stdenv.hostPlatform.isDarwin;
 
   pythonImportsCheck = [ "skbio" ];
 
-  meta = with lib; {
-    homepage = "http://scikit-bio.org/";
+  meta = {
     description = "Data structures, algorithms and educational resources for bioinformatics";
-    license = licenses.bsd3;
-    platforms = [ "x86_64-linux" "x86_64-darwin" ];
-    maintainers = [ ];
+    homepage = "http://scikit-bio.org/";
+    downloadPage = "https://github.com/scikit-bio/scikit-bio";
+    changelog = "https://github.com/scikit-bio/scikit-bio/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ tomasajt ];
   };
-}
+})

@@ -1,39 +1,47 @@
-{ lib
-, buildPythonPackage
-, click
-, fetchFromGitHub
-, maison
-, pdm-backend
-, pytest-freezegun
-, pytest-xdist
-, pytestCheckHook
-, pythonOlder
-, ruyaml
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  pdm-backend,
+  setuptools,
+
+  # dependencies
+  click,
+  maison,
+  pydantic,
+  ruyaml,
+
+  # tests
+  pytest-freezegun,
+  pytest-xdist,
+  pytestCheckHook,
+  versionCheckHook,
+  writableTmpDirAsHomeHook,
 }:
 
 buildPythonPackage rec {
   pname = "yamlfix";
-  version = "1.16.0";
+  version = "1.19.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "lyz-code";
     repo = "yamlfix";
-    rev = "refs/tags/${version}";
-    hash = "sha256-nadyBIzXHbWm0QvympRaYU38tuPJ3TPJg8EbvVv+4L0=";
+    tag = version;
+    hash = "sha256-+bD/kKOI19zptPhO6vB2Q0bQWjkBr+vgqBgAyaoSLJc=";
   };
 
-  nativeBuildInputs = [
-    setuptools
+  build-system = [
     pdm-backend
+    setuptools
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     click
     maison
+    pydantic
     ruyaml
   ];
 
@@ -41,41 +49,29 @@ buildPythonPackage rec {
     pytest-freezegun
     pytest-xdist
     pytestCheckHook
+    writableTmpDirAsHomeHook
+    versionCheckHook
   ];
 
-  preCheck = ''
-    export HOME=$(mktemp -d)
-  '';
+  pythonImportsCheck = [ "yamlfix" ];
 
-  pythonImportsCheck = [
-    "yamlfix"
+  pytestFlags = [
+    "-Wignore::DeprecationWarning"
+    "-Wignore::ResourceWarning"
   ];
 
-  disabledTests = [
-    # AssertionError: assert ... Fixed <stdin> in...
-    "test_check_one_file_no_changes"
-    "test_config_parsing"
-    "test_corrects_code_from_stdin"
-    "test_corrects_one_file"
-    "test_corrects_three_files"
-    "test_empty_list_inline_comment_indentation"
-    "test_find_files"
-    "test_fix_code_converts_non_valid_false_booleans"
-    "test_ignores_correct_files"
-    "test_include_exclude_files"
-    "test_read_prefixed_environment_variables"
-    "test_section_whitelines"
-    "test_whitelines"
-    "test_sequence_style_env_enum_parsing"
-    "test_verbose_option"
-    "test_enforcing_flow_style_together_with_adjustable_newlines"
+  disabledTestPaths = [
+    # Broken since click was updated to 8.2.1 in https://github.com/NixOS/nixpkgs/pull/448189
+    # TypeError: CliRunner.__init__() got an unexpected keyword argument 'mix_stderr'
+    "tests/e2e/test_cli.py"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Python YAML formatter that keeps your comments";
     homepage = "https://github.com/lyz-code/yamlfix";
-    changelog = "https://github.com/lyz-code/yamlfix/blob/${version}/CHANGELOG.md";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ koozz ];
+    changelog = "https://github.com/lyz-code/yamlfix/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.gpl3Only;
+    maintainers = with lib.maintainers; [ koozz ];
+    mainProgram = "yamlfix";
   };
 }

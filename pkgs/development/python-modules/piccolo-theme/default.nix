@@ -1,27 +1,36 @@
-{ lib, buildPythonPackage, fetchPypi, sphinx }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  sphinx,
+}:
 
 buildPythonPackage rec {
   pname = "piccolo-theme";
-  version = "0.19.0";
+  version = "0.24.0";
   format = "setuptools";
 
   src = fetchPypi {
     pname = "piccolo_theme";
     inherit version;
-    hash = "sha256-pGMOc/GSh3q2HW1mfW+XFgpOyiXd3cdh56cvXatseuc=";
+    hash = "sha256-Cc9w9Lttuk680UlmVQwpIznBHZMclTMiHNPb/+sdG9k=";
   };
 
-  propagatedBuildInputs = [
-    sphinx
-  ];
+  dependencies = [ sphinx ];
+
+  # Module has no tests
+  doCheck = false;
 
   pythonImportsCheck = [ "piccolo_theme" ];
 
-  meta = with lib; {
+  meta = {
     description = "Clean and modern Sphinx theme";
     homepage = "https://piccolo-theme.readthedocs.io";
-    license = with licenses; [ mit asl20 ];
-    maintainers = with maintainers; [ loicreynier ];
-    platforms = platforms.unix;
+    changelog = "https://github.com/piccolo-orm/piccolo_theme/releases/tag/${version}";
+    license = with lib.licenses; [
+      mit
+      asl20
+    ];
+    maintainers = with lib.maintainers; [ loicreynier ];
   };
 }

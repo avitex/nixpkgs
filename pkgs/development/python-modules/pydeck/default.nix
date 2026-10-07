@@ -1,30 +1,34 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, ipykernel
-, ipywidgets
-, jinja2
-, jupyter
-, numpy
-, pandas
-, pytestCheckHook
-, pythonOlder
-, setuptools
-, traitlets
-, wheel
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  ipykernel,
+  ipywidgets,
+  jinja2,
+  jupyter,
+  numpy,
+  pandas,
+  pytestCheckHook,
+  setuptools,
+  traitlets,
+  wheel,
 }:
 
 buildPythonPackage rec {
   pname = "pydeck";
-  version = "0.8.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "0.9.2";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-B+3egz98/O9nSRJDURlap9zSRmPUkJ/XiY29C2+8Aew=";
+    hash = "sha256-wQ2QNegerWOFJkysjRlAJHH2hmoVyh998UAPUhQrz4c=";
   };
+
+  # upstream has an invalid pyproject.toml
+  # https://github.com/visgl/deck.gl/issues/8469
+  postPatch = ''
+    rm pyproject.toml
+  '';
 
   nativeBuildInputs = [
     jinja2
@@ -38,7 +42,7 @@ buildPythonPackage rec {
     numpy
   ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     carto = [
       # pydeck-carto
     ];
@@ -54,15 +58,16 @@ buildPythonPackage rec {
   nativeCheckInputs = [
     pytestCheckHook
     pandas
-  ] ++ passthru.optional-dependencies.jupyter;
+  ]
+  ++ optional-dependencies.jupyter;
 
   # tries to start a jupyter server
   disabledTests = [ "test_nbconvert" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/visgl/deck.gl/tree/master/bindings/pydeck";
     description = "Large-scale interactive data visualization in Python";
-    maintainers = with maintainers; [ creator54 ];
-    license = licenses.asl20;
+    maintainers = with lib.maintainers; [ creator54 ];
+    license = lib.licenses.asl20;
   };
 }

@@ -1,25 +1,31 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytablewriter
-, pytest
-, tcolorpy
-, typepy
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  setuptools-scm,
+  pytablewriter,
+  pytest,
+  tcolorpy,
+  typepy,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "pytest-md-report";
-  version = "0.5.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.8.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-8qLcbMhD+mTLH5veweAg56G067H4AnDQIjywINwJaCE=";
+    pname = "pytest_md_report";
+    inherit version;
+    hash = "sha256-yOO38fkaDo59G5RuGyJPTzkYfaDfL4EnMTYaQ2oX9HI=";
   };
+
+  build-system = [
+    setuptools
+    setuptools-scm
+  ];
 
   propagatedBuildInputs = [
     pytablewriter
@@ -33,11 +39,11 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "pytest_md_report" ];
 
-  meta = with lib; {
-    description = "A pytest plugin to make a test results report with Markdown table format";
+  meta = {
+    description = "Pytest plugin to make a test results report with Markdown table format";
     homepage = "https://github.com/thombashi/pytest-md-report";
     changelog = "https://github.com/thombashi/pytest-md-report/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ rrbutani ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ rrbutani ];
   };
 }

@@ -1,30 +1,35 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, numpy
-, scipy
-, pytest
-, python
-, pybind11
-, setuptools-scm
-, pythonOlder
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchPypi,
+  numpy,
+  scipy,
+  pytest,
+  python,
+  pybind11,
+  setuptools-scm,
 }:
 
 buildPythonPackage rec {
   pname = "pyamg";
-  version = "5.0.1";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "5.3.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-XwSKAXQzQ64NTIYjBgBzhs+5sURTxHrf2tJ363mkbVA=";
+    hash = "sha256-UyPQ8aTNmZviRqkNWAyeHptYS5iIf2KY05dhEIfvhgs=";
   };
 
-  nativeBuildInputs = [
-    setuptools-scm
-  ];
+  # removed by next version, https://github.com/pyamg/pyamg/pull/420
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail \
+        'setuptools_scm[toml]==8.3.0' \
+        'setuptools_scm>=8.3.0' \
+  '';
+
+  nativeBuildInputs = [ setuptools-scm ];
 
   propagatedBuildInputs = [
     numpy
@@ -49,11 +54,13 @@ buildPythonPackage rec {
     "pyamg.amg_core.evolution_strength"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Algebraic Multigrid Solvers in Python";
     homepage = "https://github.com/pyamg/pyamg";
     changelog = "https://github.com/pyamg/pyamg/blob/v${version}/changelog.md";
-    license = licenses.mit;
-    maintainers = [ ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ stephen-huan ];
+    # last successful hydra build on darwin was in 2025
+    broken = stdenv.hostPlatform.isDarwin;
   };
 }

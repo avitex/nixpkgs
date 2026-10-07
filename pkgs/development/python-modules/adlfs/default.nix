@@ -1,30 +1,35 @@
-{ lib
-, aiohttp
-, azure-core
-, azure-datalake-store
-, azure-identity
-, azure-storage-blob
-, buildPythonPackage
-, fetchFromGitHub
-, fsspec
-, pythonOlder
+{
+  lib,
+  aiohttp,
+  azure-core,
+  azure-datalake-store,
+  azure-identity,
+  azure-storage-blob,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fsspec,
+  setuptools,
+  setuptools-scm,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "adlfs";
-  version = "2023.10.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "2026.8.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "fsspec";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-pmKqMNVSW+Jzz4MZaiUbzXFcLzTKj52RJH7WvFMj6NM=";
+    repo = "adlfs";
+    tag = finalAttrs.version;
+    hash = "sha256-5LeuAzGHqZElvo58vP1hOpFyjThzzPyCY7rWiXswrVM=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [
+    setuptools
+    setuptools-scm
+  ];
+
+  dependencies = [
     aiohttp
     azure-core
     azure-datalake-store
@@ -33,18 +38,18 @@ buildPythonPackage rec {
     fsspec
   ];
 
+  pythonRelaxDeps = [ "azure-datalake-store" ];
+
   # Tests require a running Docker instance
   doCheck = false;
 
-  pythonImportsCheck = [
-    "adlfs"
-  ];
+  pythonImportsCheck = [ "adlfs" ];
 
-  meta = with lib; {
+  meta = {
     description = "Filesystem interface to Azure-Datalake Gen1 and Gen2 Storage";
     homepage = "https://github.com/fsspec/adlfs";
-    changelog = "https://github.com/fsspec/adlfs/blob/${version}/CHANGELOG.md";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/fsspec/adlfs/blob/${finalAttrs.src.tag}/CHANGELOG.md";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

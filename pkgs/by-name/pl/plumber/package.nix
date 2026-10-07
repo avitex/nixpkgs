@@ -1,14 +1,18 @@
-{ lib, buildGoModule, fetchFromGitHub }:
+{
+  lib,
+  buildGoModule,
+  fetchFromGitHub,
+}:
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "plumber";
-  version = "2.5.2";
+  version = "2.9.0";
 
   src = fetchFromGitHub {
     owner = "streamdal";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-ftXLipJQjRdOSNO56rIRfAKKU0kHtAK85hgcT3nYOKA=";
+    repo = "plumber";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-0pyeCTkmS7gG51Xm4Gc62p+I5DRUA2F9tPHaZjO+/WE=";
   };
 
   vendorHash = null;
@@ -18,18 +22,19 @@ buildGoModule rec {
     export HOME="$(mktemp -d)"
   '';
 
+  subPackages = [ "." ];
+
   ldflags = [
     "-s"
     "-w"
-    "-X github.com/streamdal/plumber/options.VERSION=${version}"
-    # remove once module in go.mod is renamed to github.com/batchcorp/streamdal
-    "-X github.com/batchcorp/plumber/options.VERSION=${version}"
+    "-X github.com/streamdal/plumber/options.VERSION=${finalAttrs.version}"
   ];
 
-  meta = with lib; {
-    description = "A CLI devtool for interacting with data in message systems like Kafka, RabbitMQ, GCP PubSub and more";
+  meta = {
+    description = "CLI devtool for interacting with data in message systems like Kafka, RabbitMQ, GCP PubSub and more";
+    mainProgram = "plumber";
     homepage = "https://github.com/streamdal/plumber";
-    license = licenses.mit;
-    maintainers = with maintainers; [ svrana ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ svrana ];
   };
-}
+})

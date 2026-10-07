@@ -1,32 +1,35 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, setuptools
-, numpy
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  fetchpatch,
+  setuptools,
+  numpy,
 }:
 
 buildPythonPackage rec {
   pname = "biopython";
-  version = "1.83";
+  version = "1.86";
   pyproject = true;
-
-  disabled = pythonOlder "3.9";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-eOa/t43mMDQDev01/nfLbgqeW2Jwa+z3in2SKxbtg/c=";
+    hash = "sha256-k6ULWGpNLOxoqy+Z0D71g8V2HY+6VTXLjoHaeB0Nkv8=";
   };
 
-  nativeBuildInputs = [
-    setuptools
+  patches = [
+    # Numpy 2.4 compatibility
+    (fetchpatch {
+      url = "https://github.com/biopython/biopython/pull/5161.patch";
+      hash = "sha256-oN0nNlhvshIgNrmm+tIeCAJx1U/OqhdL4tj51DV2CHU=";
+    })
   ];
 
-  propagatedBuildInputs = [ numpy ];
+  build-system = [ setuptools ];
 
-  pythonImportsCheck = [
-    "Bio"
-  ];
+  dependencies = [ numpy ];
+
+  pythonImportsCheck = [ "Bio" ];
 
   checkPhase = ''
     runHook preCheck

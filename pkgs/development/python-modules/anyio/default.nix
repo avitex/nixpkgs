@@ -1,94 +1,118 @@
-{ stdenv
-, lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
+{
+  stdenv,
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pythonOlder,
 
-# build-system
-, setuptools
-, setuptools-scm
+  # build-system
+  setuptools-scm,
 
-# dependencies
-, exceptiongroup
-, idna
-, sniffio
+  # dependencies
+  exceptiongroup,
+  idna,
+  typing-extensions,
 
-# optionals
-, trio
+  # optionals
+  trio,
 
-# tests
-, hypothesis
-, psutil
-, pytest-mock
-, pytest-xdist
-, pytestCheckHook
-, trustme
-, uvloop
+  # tests
+  hypothesis,
+  psutil,
+  pytest-mock,
+  pytest-timeout,
+  pytest-xdist,
+  pytestCheckHook,
+  trustme,
+  uvloop,
+
+  # smoke tests
+  starlette,
 }:
 
 buildPythonPackage rec {
   pname = "anyio";
-  version = "4.1.0";
+  version = "4.14.2";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "agronholm";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-PEDPliWJX3QypwsvJTAJhrQnJx8lWXQQSdyjN0I8L+I=";
+    repo = "anyio";
+    tag = version;
+    hash = "sha256-MEU0c8/NI1vlyNtBsg/hGLv6DR619ZqoZzNY1eJLEWM=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-    setuptools-scm
-  ];
+  build-system = [ setuptools-scm ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     idna
-    sniffio
-  ] ++ lib.optionals (pythonOlder "3.11") [
-    exceptiongroup
+  ]
+  ++ lib.optionals (pythonOlder "3.13") [
+    typing-extensions
   ];
 
-  passthru.optional-dependencies = {
-    trio = [
-      trio
-    ];
+  optional-dependencies = {
+    trio = [ trio ];
   };
-
-  # trustme uses pyopenssl
-  doCheck = !(stdenv.isDarwin && stdenv.isAarch64);
 
   nativeCheckInputs = [
     exceptiongroup
     hypothesis
     psutil
     pytest-mock
+    pytest-timeout
     pytest-xdist
     pytestCheckHook
     trustme
     uvloop
-  ] ++ passthru.optional-dependencies.trio;
+  ]
+  ++ optional-dependencies.trio;
 
-  pytestFlagsArray = [
-    "-W" "ignore::trio.TrioDeprecationWarning"
-    "-m" "'not network'"
+  pytestFlags = [
+    "-Wignore::trio.TrioDeprecationWarning"
+    # DeprecationWarning for asyncio.iscoroutinefunction is propagated from uvloop used internally
+    # https://github.com/agronholm/anyio/commit/e7bb0bd496b1ae0d1a81b86de72312d52e8135ed
+    "-Wignore::DeprecationWarning"
   ];
 
+  disabledTestMarks = [
+    "network"
+  ];
+
+  preCheck = lib.optionalString stdenv.hostPlatform.isDarwin ''
+    # Work around "OSError: AF_UNIX path too long"
+    export TMPDIR="/tmp"
+  '';
+
   disabledTests = [
-    # INTERNALERROR> AttributeError: 'NonBaseMultiError' object has no attribute '_exceptions'. Did you mean: 'exceptions'?
-    "test_exception_group_children"
-    "test_exception_group_host"
-    "test_exception_group_filtering"
-    # timing sensitive
-    # assert threading.active_count() == initial_count + 1
-    # assert 4 == (4 + 1)
-    "test_run_sync_from_thread_pooling"
-  ] ++ lib.optionals stdenv.isDarwin [
+    # TypeError: __subprocess_run() got an unexpected keyword argument 'umask'
+    "test_py39_arguments"
+    # AttributeError: 'module' object at __main__ has no attribute '__file__'
+    "test_nonexistent_main_module"
+    #  3 second timeout expired
+    "test_keyboardinterrupt_during_test"
+    "test_dynamic_async_fixture_access_does_not_hang"
+    # 5 second timeout expires on weak hardware
+    "test_keyboard_interrupt_does_not_resume_test"
+    # racy with high thread count, see https://github.com/NixOS/nixpkgs/issues/448125
+    "test_multiple_threads"
+
+    # These tests become flaky under heavy load
+    "test_asyncio_run_sync_called"
+    "test_handshake_fail"
+    "test_run_in_custom_limiter"
+    "test_cancel_from_shielded_scope"
+    "test_start_task_soon_cancel_later"
+
+    # fails to monkeypatch __file__.__main__
+    "test_entrypoint_main_module"
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [
     # PermissionError: [Errno 1] Operation not permitted: '/dev/console'
     "test_is_block_device"
+
+    # AssertionError: assert 'wheel' == 'nixbld'
+    "test_group"
   ];
 
   disabledTestPaths = [
@@ -100,11 +124,15 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "anyio" ];
 
-  meta = with lib; {
-    changelog = "https://github.com/agronholm/anyio/blob/${src.rev}/docs/versionhistory.rst";
+  passthru.tests = {
+    inherit starlette;
+  };
+
+  meta = {
+    changelog = "https://github.com/agronholm/anyio/blob/${src.tag}/docs/versionhistory.rst";
     description = "High level compatibility layer for multiple asynchronous event loop implementations on Python";
     homepage = "https://github.com/agronholm/anyio";
-    license = licenses.mit;
-    maintainers = with maintainers; [ hexa ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ hexa ];
   };
 }

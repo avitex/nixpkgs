@@ -1,13 +1,13 @@
-{ lib
-, beautifulsoup4
-, buildPythonPackage
-, chardet
-, fetchFromGitHub
-, lxml
-, pkg-config
-, pkgs
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  beautifulsoup4,
+  buildPythonPackage,
+  chardet,
+  fetchFromGitHub,
+  lxml,
+  pkg-config,
+  pkgs,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
@@ -15,22 +15,16 @@ buildPythonPackage rec {
   version = "0.4.12";
   format = "setuptools";
 
-  disabled = pythonOlder "3.7";
-
   src = fetchFromGitHub {
     owner = "kovidgoyal";
-    repo = pname;
-    rev = "refs/tags/v${version}";
+    repo = "html5-parser";
+    tag = "v${version}";
     hash = "sha256-0Qn+To/d3+HMx+KhhgJBEHVYPOfIeBnngBraY7r4uSs=";
   };
 
-  nativeBuildInputs = [
-    pkg-config
-  ];
+  nativeBuildInputs = [ pkg-config ];
 
-  buildInputs = [
-    pkgs.libxml2
-  ];
+  buildInputs = [ pkgs.libxml2 ];
 
   propagatedBuildInputs = [
     chardet
@@ -42,18 +36,14 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "html5_parser"
-  ];
+  pythonImportsCheck = [ "html5_parser" ];
 
-  pytestFlagsArray = [
-    "test/*.py"
-  ];
+  enabledTestPaths = [ "test/*.py" ];
 
-  meta = with lib; {
+  meta = {
     description = "Fast C based HTML 5 parsing for python";
     homepage = "https://html5-parser.readthedocs.io";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
 }

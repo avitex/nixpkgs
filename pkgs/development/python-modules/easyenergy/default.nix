@@ -1,55 +1,65 @@
-{ lib
-, aiohttp
-, aresponses
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, pytest-asyncio
-, pytest-freezer
-, pytestCheckHook
-, pythonOlder
-, yarl
+{
+  lib,
+  aiohttp,
+  aresponses,
+  buildPythonPackage,
+  fetchFromGitHub,
+  mashumaro,
+  poetry-core,
+  pytest-asyncio,
+  pytest-cov-stub,
+  pytest-freezer,
+  pytestCheckHook,
+  syrupy,
+  typer,
+  yarl,
 }:
 
 buildPythonPackage rec {
   pname = "easyenergy";
-  version = "2.1.0";
+  version = "3.0.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.11";
 
   src = fetchFromGitHub {
     owner = "klaasnicolaas";
     repo = "python-easyenergy";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-WnDyGkF1JI0Yu4p+znBdtCRvzrmGl9DH7QygKDuhEZo=";
+    tag = "v${version}";
+    hash = "sha256-GzsTAm5D0DVQ7OHfsCwn7Jdv1K1rEhz3KGuERRlTEmI=";
   };
 
   postPatch = ''
     substituteInPlace pyproject.toml \
-      --replace '"0.0.0"' '"${version}"' \
-      --replace 'addopts = "--cov"' ""
+      --replace '"0.0.0"' '"${version}"'
   '';
 
-  nativeBuildInputs = [
-    poetry-core
+  build-system = [ poetry-core ];
+
+  pythonRelaxDeps = [
+    "aiohttp"
+    "mashumaro"
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
+    mashumaro
     yarl
   ];
+
+  optional-dependencies = {
+    cli = [ typer ];
+  };
 
   nativeCheckInputs = [
     aresponses
     pytest-asyncio
+    pytest-cov-stub
     pytest-freezer
     pytestCheckHook
-  ];
+    syrupy
+  ]
+  ++ lib.concatAttrValues optional-dependencies;
 
-  pythonImportsCheck = [
-    "easyenergy"
-  ];
+  pythonImportsCheck = [ "easyenergy" ];
 
   disabledTests = [
     # Tests require network access
@@ -66,11 +76,12 @@ buildPythonPackage rec {
     "test_electricity_midnight"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Module for getting energy/gas prices from easyEnergy";
     homepage = "https://github.com/klaasnicolaas/python-easyenergy";
-    changelog = "https://github.com/klaasnicolaas/python-easyenergy/releases/tag/v${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/klaasnicolaas/python-easyenergy/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    mainProgram = "easyenergy";
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

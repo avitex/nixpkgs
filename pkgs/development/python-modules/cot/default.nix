@@ -1,39 +1,47 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
-, colorlog
-, pyvmomi
-, requests
-, verboselogs
-, pyopenssl
-, setuptools
-, mock
-, pytest-mock
-, pytestCheckHook
-, qemu
+{
+  lib,
+  buildPythonPackage,
+  colorlog,
+  fetchPypi,
+  mock,
+  pytest-mock,
+  pytestCheckHook,
+  pyvmomi,
+  qemu,
+  requests,
+  distutils,
+  setuptools,
+  standard-pkg-resources,
+  stdenv,
+  verboselogs,
+  versioneer,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "cot";
   version = "2.2.1";
-  format = "setuptools";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
+    pname = "cot";
+    inherit (finalAttrs) version;
     hash = "sha256-9LNVNBX5DarGVvidPoLnmz11F5Mjm7FzpoO0zAzrJjU=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [
+    setuptools
+    versioneer
+  ];
+
+  dependencies = [
     colorlog
+    distutils
     pyvmomi
     requests
+    standard-pkg-resources
     verboselogs
-    pyopenssl
-    setuptools
   ];
 
   nativeCheckInputs = [
@@ -47,12 +55,12 @@ buildPythonPackage rec {
     # argparse is part of the standardlib
     substituteInPlace setup.py \
       --replace "'argparse'," ""
+    rm versioneer.py
   '';
 
   disabledTests = [
     # Many tests require network access and/or ovftool (https://code.vmware.com/web/tool/ovf)
     # try enabling these tests with ovftool once/if it is added to nixpkgs
-    "HelperGenericTest"
     "TestCOTAddDisk"
     "TestCOTAddFile"
     "TestCOTEditHardware"
@@ -68,24 +76,21 @@ buildPythonPackage rec {
     "test_help"
     # Failing TestCOTDeployESXi tests
     "test_serial_fixup_stubbed"
-    "test_serial_fixup_stubbed_create"
-    "test_serial_fixup_stubbed_vm_not_found"
-  ] ++ lib.optionals stdenv.isDarwin [
-    "test_serial_fixup_invalid_host"
-  ];
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isDarwin [ "test_serial_fixup_invalid_host" ];
 
-  pythonImportsCheck = [
-    "COT"
-  ];
+  pythonImportsCheck = [ "COT" ];
 
-  meta = with lib; {
-    description = "Common OVF Tool";
-    longDescription = ''
-      COT (the Common OVF Tool) is a tool for editing Open Virtualization Format (.ovf, .ova) virtual appliances,
-      with a focus on virtualized network appliances such as the Cisco CSR 1000V and Cisco IOS XRv platforms.
-    '';
+  meta = {
     homepage = "https://github.com/glennmatthews/cot";
-    license = licenses.mit;
-    maintainers = with maintainers; [ evanjs ];
+    description = "Common OVF Tool";
+    mainProgram = "cot";
+    longDescription = ''
+      COT (the Common OVF Tool) is a tool for editing Open Virtualization Format
+      (.ovf, .ova) virtual appliances, with a focus on virtualized network
+      appliances such as the Cisco CSR 1000V and Cisco IOS XRv platforms.
+    '';
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ evanjs ];
   };
-}
+})

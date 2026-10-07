@@ -1,39 +1,31 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, poetry-core
-, pathable
-, pyyaml
-, referencing
-, pytestCheckHook
-, responses
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  pathable,
+  pyyaml,
+  referencing,
+  pytest-cov-stub,
+  pytestCheckHook,
+  responses,
 }:
 
 buildPythonPackage rec {
   pname = "jsonschema-path";
-  version = "0.3.2";
-
-  disabled = pythonOlder "3.8";
-
+  version = "0.5.0";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "p1c2u";
     repo = "jsonschema-path";
-    rev = version;
-    hash = "sha256-HC0yfACKFIQEQoIa8/FUKyV8YS8TQ0BY7i3n9xCdKz8=";
+    tag = version;
+    hash = "sha256-CDDwhIlwytUPVwq/+0T5kVzl8viJfSalSIxC5VrQdgs=";
   };
 
-  postPatch = ''
-    sed -i '/--cov/d' pyproject.toml
-  '';
+  build-system = [ poetry-core ];
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
-
-  propagatedBuildInputs = [
+  dependencies = [
     pathable
     pyyaml
     referencing
@@ -42,11 +34,13 @@ buildPythonPackage rec {
   pythonImportsCheck = [ "jsonschema_path" ];
 
   nativeCheckInputs = [
+    pytest-cov-stub
     pytestCheckHook
     responses
   ];
 
   meta = {
+    changelog = "https://github.com/p1c2u/jsonschema-path/releases/tag/${version}";
     description = "JSONSchema Spec with object-oriented paths";
     homepage = "https://github.com/p1c2u/jsonschema-path";
     license = lib.licenses.asl20;

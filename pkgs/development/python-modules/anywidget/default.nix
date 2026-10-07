@@ -1,27 +1,27 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
-, pythonOlder
-, hatch-jupyter-builder
-, hatchling
-, importlib-metadata
-, ipywidgets
-, psygnal
-, typing-extensions
-, watchfiles
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pytestCheckHook,
+  writableTmpDirAsHomeHook,
+  hatch-jupyter-builder,
+  hatchling,
+  ipykernel,
+  ipywidgets,
+  psygnal,
+  pydantic,
+  typing-extensions,
+  watchfiles,
 }:
 
 buildPythonPackage rec {
   pname = "anywidget";
-  version = "0.8.1";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "0.9.21";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-p2J3cL5FX4mv19WPr/km9F71K1MleuPFlRd9X/mxL9E=";
+    hash = "sha256-uNAXICmsQmVzBTxBbGpYeDhmFhIgi7OQ+gYHhi5ZSyc=";
   };
 
   # We do not need the jupyterlab build dependency, because we do not need to
@@ -32,29 +32,47 @@ buildPythonPackage rec {
       --replace '"jupyterlab==3.*"' ""
   '';
 
-  nativeBuildInputs = [
+  build-system = [
     hatch-jupyter-builder
     hatchling
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     ipywidgets
     psygnal
     typing-extensions
-  ] ++ lib.optional (pythonOlder "3.8") importlib-metadata;
+  ];
 
   nativeCheckInputs = [
     pytestCheckHook
+    ipykernel
+    pydantic
     watchfiles
+    writableTmpDirAsHomeHook
+  ];
+
+  disabledTests = [
+    # requires package.json
+    "test_version"
+
+    # AssertionError: assert not {140737277121872: <MockComm id='140737277118512'>}
+    "test_descriptor_with_psygnal"
+    "test_descriptor_with_pydantic"
+    "test_descriptor_with_msgspec"
+    "test_descriptor_with_traitlets"
+    "test_infer_file_contents"
+
+    #  assert not {<function _connect_psygnal.<locals>._disconnect at 0x7ffff3617e...
+    "test_descriptor_with_psygnal"
   ];
 
   pythonImportsCheck = [ "anywidget" ];
 
-  meta = with lib; {
+  meta = {
     description = "Custom jupyter widgets made easy";
     homepage = "https://github.com/manzt/anywidget";
     changelog = "https://github.com/manzt/anywidget/releases/tag/anywidget%40${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ natsukium ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ natsukium ];
   };
 }

@@ -1,76 +1,68 @@
-{ stdenv
-, lib
-, fetchFromGitHub
-, python
-, buildPythonPackage
-, pythonRelaxDepsHook
-, imagemagick
-, pip
-, pytestCheckHook
-, pymupdf
-, fire
-, fonttools
-, numpy
-, opencv4
-, tkinter
-, python-docx
+{
+  stdenv,
+  lib,
+  fetchFromGitHub,
+  buildPythonPackage,
+  pip,
+  pytestCheckHook,
+  pymupdf,
+  fire,
+  fonttools,
+  numpy,
+  opencv-python-headless,
+  tkinter,
+  python-docx,
+  setuptools,
 }:
 let
-  version = "0.5.7";
+  version = "0.5.13";
 in
 buildPythonPackage {
   pname = "pdf2docx";
   inherit version;
-  format = "setuptools";
+  pyproject = true;
 
   src = fetchFromGitHub {
-    owner = "dothinking";
+    owner = "ArtifexSoftware";
     repo = "pdf2docx";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-GDftANn+ioaNR28VfRFDuFgdKoy7D4xiy0ezvWJ3zy0=";
+    tag = "v${version}";
+    hash = "sha256-GZ7aUTSGSly21lMiUOXc6Y8h9WY2zQQxF5M11PwTtCA=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     pip
-    pythonRelaxDepsHook
-    imagemagick
+    setuptools
   ];
-
-  pythonRemoveDeps = [ "opencv-python" ];
 
   preBuild = "echo '${version}' > version.txt";
 
-  propagatedBuildInputs = [
-    tkinter
+  dependencies = [
     pymupdf
     fire
     fonttools
     numpy
-    opencv4
+    opencv-python-headless
     python-docx
   ];
 
-  postInstall = lib.optionalString stdenv.isLinux ''
-    # on linux the icon file can only be xbm format
-    convert $out/${python.sitePackages}/pdf2docx/gui/icon.ico \
-      $out/${python.sitePackages}/pdf2docx/gui/icon.xbm
-    substituteInPlace $out/${python.sitePackages}/pdf2docx/gui/App.py \
-      --replace 'icon.ico' 'icon.xbm' \
-      --replace 'iconbitmap(icon_path)' "iconbitmap(f'@{icon_path}')"
-  '';
-
   nativeCheckInputs = [ pytestCheckHook ];
 
-  pytestFlagsArray = [ "-v" "./test/test.py::TestConversion" ];
+  pytestFlags = [
+    "-v"
+  ];
 
+  enabledTestPaths = [
+    "./test/test.py::TestConversion"
+  ];
   # Test fails due to "RuntimeError: cannot find builtin font with name 'Arial'":
   disabledTests = [ "test_unnamed_fonts" ];
 
-  meta = with lib; {
+  meta = {
     description = "Convert PDF to DOCX";
-    homepage = "https://github.com/dothinking/pdf2docx";
-    changelog = "https://github.com/dothinking/pdf2docx/releases/tag/v${version}";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ happysalada ];
+    mainProgram = "pdf2docx";
+    homepage = "https://github.com/ArtifexSoftware/pdf2docx";
+    changelog = "https://github.com/ArtifexSoftware/pdf2docx/releases/tag/v${version}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ happysalada ];
   };
 }

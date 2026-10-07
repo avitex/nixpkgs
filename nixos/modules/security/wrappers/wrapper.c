@@ -116,7 +116,7 @@ static int make_caps_ambient(const char *self_path) {
         return 1;
     }
     uint64_t set = user_data[0].permitted | (uint64_t)user_data[1].permitted << 32;
-    for (unsigned cap = 0; cap < last_cap; cap++) {
+    for (unsigned cap = 0; cap <= last_cap; cap++) {
         if (!(set & (1ULL << cap))) {
             continue;
         }
@@ -170,8 +170,6 @@ static int make_caps_ambient(const char *self_path) {
     "MALLOC_ARENA_TEST\0"
 
 int main(int argc, char **argv) {
-    ASSERT(argc >= 1);
-
     int debug = getenv(wrapper_debug) != NULL;
 
     // Drop insecure environment variables explicitly
@@ -202,10 +200,22 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    char *replacement_argv[2] = {SOURCE_PROG, NULL};
+    char *old_argv0;
+    // Replace untrusted or missing argv[0] by the wrapped program path.
+    // This mitigates vulnerabilities caused by incorrect handling in privileged code.
+    if (argv[0]) {
+        old_argv0 = argv[0];
+        argv[0] = SOURCE_PROG;
+    } else {
+        old_argv0 = "«nullptr»";
+        argv = replacement_argv;
+    }
+
     execve(SOURCE_PROG, argv, environ);
-    
+
     fprintf(stderr, "%s: cannot run `%s': %s\n",
-        argv[0], SOURCE_PROG, strerror(errno));
+        old_argv0, SOURCE_PROG, strerror(errno));
 
     return 1;
 }

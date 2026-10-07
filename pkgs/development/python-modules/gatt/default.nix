@@ -1,8 +1,9 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, dbus-python
-, pygobject3
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  dbus-python,
+  pygobject3,
 }:
 
 buildPythonPackage rec {
@@ -24,10 +25,11 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "gatt" ];
 
-  meta = with lib; {
+  meta = {
     description = "Bluetooth (Generic Attribute Profile) GATT SDK for Python";
+    mainProgram = "gattctl";
     homepage = "https://github.com/getsenic/gatt-python/";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

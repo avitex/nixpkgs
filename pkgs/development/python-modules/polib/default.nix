@@ -1,4 +1,8 @@
-{ lib, buildPythonPackage, fetchPypi }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+}:
 
 buildPythonPackage rec {
   pname = "polib";
@@ -13,9 +17,9 @@ buildPythonPackage rec {
   # error: invalid command 'test'
   doCheck = false;
 
-  meta = with lib; {
-    description = "A library to manipulate gettext files (po and mo files)";
+  meta = {
+    description = "Library to manipulate gettext files (po and mo files)";
     homepage = "https://bitbucket.org/izi/polib/";
-    license = licenses.mit;
+    license = lib.licenses.mit;
   };
 }

@@ -1,55 +1,50 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, hatch-fancy-pypi-readme
-, hatchling
-, awkward-cpp
-, importlib-metadata
-, numpy
-, packaging
-, typing-extensions
-, fsspec
-, jax
-, jaxlib
-, numba
-, setuptools
-, numexpr
-, pandas
-, pyarrow
-, pytest-xdist
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  hatch-fancy-pypi-readme,
+  hatchling,
+
+  # dependencies
+  awkward-cpp,
+  fsspec,
+  numpy,
+  packaging,
+
+  # tests
+  numba,
+  numexpr,
+  pandas,
+  pyarrow,
+  pytest-xdist,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "awkward";
-  version = "2.5.2";
+  version = "2.14.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "scikit-hep";
     repo = "awkward";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-n50REyU/aWx6rj+9TZ52S3sZS25/hIaNfOe+AQGaXVA=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-JZpOLkf5a/Kcp9+5QjVBexzKZCWtulixGB1VcttQKrc=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     hatch-fancy-pypi-readme
     hatchling
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     awkward-cpp
-    importlib-metadata
+    fsspec
     numpy
     packaging
-  ] ++ lib.optionals (pythonOlder "3.11") [
-    typing-extensions
-  ] ++ lib.optionals (pythonOlder "3.12") [
-    importlib-metadata
   ];
 
   dontUseCmakeConfigure = true;
@@ -59,28 +54,23 @@ buildPythonPackage rec {
   nativeCheckInputs = [
     fsspec
     numba
-    setuptools
     numexpr
     pandas
     pyarrow
     pytest-xdist
     pytestCheckHook
-  ] ++ lib.optionals (!stdenv.isDarwin) [
-    # no support for darwin
-    jax
-    jaxlib
   ];
 
-  # The following tests have been disabled because they need to be run on a GPU platform.
   disabledTestPaths = [
-    "tests-cuda"
+    # Need to be run on a GPU platform.
+    "tests-cuda/*"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Manipulate JSON-like data with NumPy-like idioms";
     homepage = "https://github.com/scikit-hep/awkward";
-    changelog = "https://github.com/scikit-hep/awkward/releases/tag/v${version}";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ veprbl ];
+    changelog = "https://github.com/scikit-hep/awkward/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ veprbl ];
   };
-}
+})

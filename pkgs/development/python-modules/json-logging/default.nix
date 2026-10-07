@@ -1,50 +1,54 @@
-{ lib
-, buildPythonPackage
-, fastapi
-, fetchFromGitHub
-, flask
-, httpx
-, pytestCheckHook
-, pythonOlder
-, requests
-, sanic
-, uvicorn
-, wheel
+{
+  lib,
+  buildPythonPackage,
+  fastapi,
+  fetchFromGitHub,
+  flask,
+  httpx,
+  pytestCheckHook,
+  pythonAtLeast,
+  quart,
+  requests,
+  sanic,
+  setuptools,
+  uvicorn,
 }:
 
 buildPythonPackage rec {
   pname = "json-logging";
-  version = "1.5.0-rc0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "1.5.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "bobbui";
     repo = "json-logging-python";
-    rev = "refs/tags/${version}";
-    hash = "sha256-WOAEY1pONH+Gx1b8zHZDMNgJJSn7jvMO60LYTA8z/dE=";
+    tag = version;
+    hash = "sha256-r2ttPFvlN+hqMxBLPkr5hOz0UKNX4NRoXmLMXhTZ/VY=";
   };
 
-  nativeCheckInputs = [
+  # The logging module introduced the `taskName` field in Python 3.12, which the tests don't expect
+  postPatch = lib.optionalString (pythonAtLeast "3.12") ''
+    substituteInPlace tests/helpers/constants.py \
+        --replace-fail '"written_at",' '"taskName", "written_at",'
+  '';
+
+  build-system = [ setuptools ];
+
+  dependencies = [
     fastapi
     flask
     httpx
-    pytestCheckHook
-    # quart
+    quart
     requests
     sanic
     uvicorn
-    wheel
   ];
 
-  pythonImportsCheck = [
-    "json_logging"
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  disabledTests = [
-    "quart"
-  ];
+  pythonImportsCheck = [ "json_logging" ];
+
+  disabledTests = [ "quart" ];
 
   disabledTestPaths = [
     # Smoke tests don't always work
@@ -53,15 +57,15 @@ buildPythonPackage rec {
 
   __darwinAllowLocalNetworking = true;
 
-  meta = with lib; {
+  meta = {
     description = "Python library to emit logs in JSON format";
     longDescription = ''
       Python logging library to emit JSON log that can be easily indexed and searchable by logging
       infrastructure such as ELK, EFK, AWS Cloudwatch, GCP Stackdriver.
     '';
     homepage = "https://github.com/bobbui/json-logging-python";
-    changelog = "https://github.com/bobbui/json-logging-python/releases/tag/${version}";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ AluisioASG ];
+    changelog = "https://github.com/bobbui/json-logging-python/releases/tag/${src.tag}";
+    license = lib.licenses.asl20;
+    maintainers = [ ];
   };
 }

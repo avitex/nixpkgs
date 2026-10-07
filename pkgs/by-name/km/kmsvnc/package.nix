@@ -1,23 +1,24 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, cmake
-, pkg-config
-, libdrm
-, libvncserver
-, libxkbcommon
-, libva
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  cmake,
+  pkg-config,
+  libdrm,
+  libvncserver,
+  libxkbcommon,
+  libva,
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "kmsvnc";
-  version = "0.0.5";
+  version = "0.0.6";
 
   src = fetchFromGitHub {
     owner = "isjerryxiao";
     repo = "kmsvnc";
-    rev = "v${version}";
-    hash = "sha256-Dz1y4t8u9/rnmOiYMWMq6aEq3kV47uiIK7K4DSvjZNc=";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-fOryY9pkeRXjfOq4ZcUKBrBDMWEljLChwXSAbeMNXhw=";
   };
 
   nativeBuildInputs = [
@@ -32,12 +33,12 @@ stdenv.mkDerivation rec {
     libva
   ];
 
-  meta = with lib; {
-    description = "A VNC server for DRM/KMS capable GNU/Linux devices";
+  meta = {
+    description = "VNC server for DRM/KMS capable GNU/Linux devices";
     homepage = "https://github.com/isjerryxiao/kmsvnc";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ nickcao ];
+    license = lib.licenses.gpl3Only;
+    maintainers = with lib.maintainers; [ nickcao ];
     mainProgram = "kmsvnc";
-    platforms = platforms.linux;
+    platforms = lib.platforms.linux;
   };
-}
+})

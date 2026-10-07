@@ -1,40 +1,39 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, click
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  click,
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "click-command-tree";
-  version = "1.1.1";
-  format = "setuptools";
+  version = "1.2.0";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "whwright";
-    repo = pname;
-    rev = version;
-    hash = "sha256-uBp7462LutL8aFRFix3pbVYbSf1af6k0nW0J0HhJa1U=";
+    repo = "click-command-tree";
+    tag = finalAttrs.version;
+    hash = "sha256-oshAHCGe8p5BQ0W21bXSxrTCEFgIxZ6BmUEiWB1xAoI=";
   };
 
-  propagatedBuildInputs = [
-    click
-  ];
+  build-system = [ setuptools ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  dependencies = [ click ];
 
-  pytestFlagsArray = [
-    "tests.py"
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  enabledTestPaths = [ "tests.py" ];
 
   pythonImportsCheck = [ "click_command_tree" ];
 
-  meta = with lib; {
-    description = "click plugin to show the command tree of your CLI";
+  meta = {
+    description = "Click plugin to show the command tree of your CLI";
     homepage = "https://github.com/whwright/click-command-tree";
-    license = licenses.mit;
-    maintainers = with maintainers; [ tjni ];
+    license = lib.licenses.mit;
   };
-}
+})

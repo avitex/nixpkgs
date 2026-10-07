@@ -1,24 +1,36 @@
-{ lib, buildPythonPackage, libusbsio }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  libusbsio,
+  setuptools,
+}:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "libusbsio";
-  format = "setuptools";
-  inherit (libusbsio) version;
+  # If the versions come back into sync switch back to inheriting from c lib
+  # inherit (libusbsio) version;
+  version = "2.2.1";
+  pyproject = true;
 
-  src = "${libusbsio.src}/python";
+  src = fetchPypi {
+    inherit (finalAttrs) pname version;
+    hash = "sha256-ZccYDX93F2cNjDwyDxo/RdXHO7E8ZXZ5D8GngY44AlQ=";
+  };
 
-  # The source includes both the python module directly and also a source tarball for it.
-  # The direct files lack setup information, the tarball includes unwanted binaries.
-  # This takes only the setup files from the tarball.
-  postUnpack = ''
-    tar -C python --strip-components=1 -xf python/dist/libusbsio-${version}.tar.gz libusbsio-${version}/{setup.py,setup.cfg,pyproject.toml}
-    rm -r python/dist
-  '';
-
+  # The source includes both the python module directly and also prebuilt binaries
+  # Delete the binaries and patch the wrapper to use binary from Nixpkgs instead
   postPatch = ''
+    rm -rf libusbsio/bin
     substituteInPlace libusbsio/libusbsio.py \
-        --replace "dllpath = LIBUSBSIO._lookup_dll_path(dfltdir, dllname)" 'dllpath = "${libusbsio}/lib/" + dllname'
+        --replace-fail \
+          "dllpath = LIBUSBSIO._lookup_dll_path(dfltdir, dllname)" \
+          'dllpath = "${lib.getLib libusbsio}/lib/" + dllname'
   '';
+
+  build-system = [
+    setuptools
+  ];
 
   buildInputs = [ libusbsio ];
 
@@ -26,10 +38,11 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "libusbsio" ];
 
-  meta = with lib; {
-    description = "NXP Secure Provisioning SDK";
-    homepage = "https://github.com/NXPmicro/spsdk";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ frogamic sbruder ];
+  meta = {
+    description = "LIBUSBSIO Host Library for USB Enabled MCUs";
+    homepage = "https://www.nxp.com/design/design-center/software/development-software/libusbsio-host-library-for-usb-enabled-mcus:LIBUSBSIO";
+    license = lib.licenses.bsd3;
+    maintainers = [
+    ];
   };
-}
+})

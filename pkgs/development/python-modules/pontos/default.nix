@@ -1,48 +1,50 @@
-{ lib
-, buildPythonPackage
-, colorful
-, fetchFromGitHub
-, git
-, httpx
-, lxml
-, packaging
-, poetry-core
-, pytestCheckHook
-, python-dateutil
-, pythonOlder
-, semver
-, rich
-, tomlkit
+{
+  lib,
+  buildPythonPackage,
+  colorful,
+  fetchFromGitHub,
+  git,
+  httpx,
+  lxml,
+  packaging,
+  poetry-core,
+  pyprojectVersionPatchHook,
+  pytestCheckHook,
+  python-dateutil,
+  semver,
+  shtab,
+  rich,
+  tomlkit,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pontos";
-  version = "24.1.2";
+  version = "26.6.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.9";
 
   src = fetchFromGitHub {
     owner = "greenbone";
     repo = "pontos";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-t8mfAi5EG/k5dXsEjC5IpBn/adpSOhqCIkpZ2IMzMkQ=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-NKe5kM4YPxsGge1UG7DjE3SDXlfZIVazOVmF5RBCbSo=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  nativeBuildInputs = [ pyprojectVersionPatchHook ];
 
-  propagatedBuildInputs = [
+  build-system = [ poetry-core ];
+
+  dependencies = [
     colorful
     httpx
     lxml
     packaging
     python-dateutil
     semver
+    shtab
     rich
     tomlkit
-  ] ++ httpx.optional-dependencies.http2;
+  ]
+  ++ httpx.optional-dependencies.http2;
 
   nativeCheckInputs = [
     git
@@ -71,15 +73,13 @@ buildPythonPackage rec {
     "test_verify_version_does_not_match"
   ];
 
-  pythonImportsCheck = [
-    "pontos"
-  ];
+  pythonImportsCheck = [ "pontos" ];
 
-  meta = with lib; {
+  meta = {
     description = "Collection of Python utilities, tools, classes and functions";
     homepage = "https://github.com/greenbone/pontos";
-    changelog = "https://github.com/greenbone/pontos/releases/tag/v${version}";
-    license = with licenses; [ gpl3Plus ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/greenbone/pontos/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.gpl3Plus;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

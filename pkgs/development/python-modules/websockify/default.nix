@@ -1,31 +1,34 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchFromGitHub
-, jwcrypto
-, numpy
-, pytestCheckHook
-, pythonOlder
-, redis
-, requests
-, simplejson
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  jwcrypto,
+  numpy,
+  pytestCheckHook,
+  redis,
+  requests,
+  simplejson,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "websockify";
-  version = "0.11.0";
-  format = "setuptools";
+  version = "0.13.0";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "novnc";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-82Fk9qbiiCD5Rts1d14sK/njeN7DcjKMKPqE7S/1WHs=";
+    repo = "websockify";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-b57L4o071zEt/gX9ZVzEpcnp0RCeo3peZrby2mccJgQ=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     jwcrypto
     numpy
     redis
@@ -33,25 +36,24 @@ buildPythonPackage rec {
     simplejson
   ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  disabledTests = lib.optionals stdenv.isDarwin [
+  __darwinAllowLocalNetworking = true;
+
+  disabledTests = lib.optionals stdenv.hostPlatform.isDarwin [
     # this test failed on macos
     # https://github.com/novnc/websockify/issues/552
     "test_socket_set_keepalive_options"
   ];
 
-  pythonImportsCheck = [
-    "websockify"
-  ];
+  pythonImportsCheck = [ "websockify" ];
 
-  meta = with lib; {
+  meta = {
     description = "WebSockets support for any application/server";
-    homepage = "https://github.com/kanaka/websockify";
-    changelog = "https://github.com/novnc/websockify/releases/tag/v${version}";
-    license = licenses.lgpl3Only;
-    maintainers = with maintainers; [ ];
+    mainProgram = "websockify";
+    homepage = "https://github.com/novnc/websockify";
+    changelog = "https://github.com/novnc/websockify/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.lgpl3Only;
+    maintainers = [ ];
   };
-}
+})

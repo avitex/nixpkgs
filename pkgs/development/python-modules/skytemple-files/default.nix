@@ -1,92 +1,115 @@
-{ stdenv
-, lib
-, buildPythonPackage
-, fetchFromGitHub
-, appdirs
-, dungeon-eos
-, explorerscript
-, ndspy
-, pillow
-, setuptools
-, skytemple-rust
-, tilequant
-, pyyaml
-, pmdsky-debug-py
-, range-typed-integers
-, importlib-resources
-, typing-extensions
-, pythonOlder
-, # optional dependancies for SpriteCollab
-  aiohttp
-, lru-dict
-, graphql-core
-, gql
-, armips
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  setuptools,
+
+  # buildInputs
+  armips,
+
+  # dependencies
+  appdirs,
+  dungeon-eos,
+  explorerscript,
+  ndspy,
+  pillow,
+  pmdsky-debug-py,
+  pyyaml,
+  range-typed-integers,
+  skytemple-rust,
+
+  # optional-dependencies
+  aiohttp,
+  gql,
+  graphql-core,
+  lru-dict,
+
   # tests
-, pytestCheckHook
-, parameterized
-, xmldiff
+  parameterized,
+  pytestCheckHook,
+  xmldiff,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "skytemple-files";
-  version = "1.6.1";
+  version = "1.8.5";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "SkyTemple";
-    repo = pname;
-    rev = version;
-    hash = "sha256-P0VME1keazqcyb0JuQ4iXPyJH7/gTmYE7uASpjvhqUo=";
+    repo = "skytemple-files";
+    tag = finalAttrs.version;
+    # Most patches are in submodules
+    fetchSubmodules = true;
+    hash = "sha256-s7r6wS7H19+is3CFr+dLaTiq0N/gaO/8IFknmr+OAJk=";
   };
 
   postPatch = ''
-    substituteInPlace skytemple_files/patch/arm_patcher.py skytemple_files/data/data_cd/armips_importer.py \
-      --replace "exec_name = os.getenv(\"SKYTEMPLE_ARMIPS_EXEC\", f\"{prefix}armips\")" "exec_name = \"${armips}/bin/armips\""
+    substituteInPlace \
+      skytemple_files/patch/arm_patcher.py \
+      skytemple_files/data/data_cd/armips_importer.py \
+      --replace-fail \
+        "exec_name = os.getenv(\"SKYTEMPLE_ARMIPS_EXEC\", f\"{prefix}armips\")" \
+        "exec_name = \"${armips}/bin/armips\""
   '';
+
+  build-system = [ setuptools ];
 
   buildInputs = [ armips ];
 
-  propagatedBuildInputs = [
+  pythonRelaxDeps = [
+    "pmdsky-debug-py"
+  ];
+  dependencies = [
     appdirs
     dungeon-eos
     explorerscript
     ndspy
     pillow
-    setuptools
-    skytemple-rust
-    tilequant
-    pyyaml
     pmdsky-debug-py
+    pyyaml
     range-typed-integers
-  ] ++ lib.optionals (pythonOlder "3.9") [
-    importlib-resources
-    typing-extensions
+    skytemple-rust
   ];
 
-  passthru.optional-dependencies = {
+  optional-dependencies = {
     spritecollab = [
       aiohttp
       gql
       graphql-core
       lru-dict
-    ] ++ gql.optional-dependencies.aiohttp;
+    ]
+    ++ gql.optional-dependencies.aiohttp;
   };
 
-  checkInputs = [ pytestCheckHook parameterized xmldiff ] ++ passthru.optional-dependencies.spritecollab;
-  pytestFlagsArray = [ "test/" ];
+  nativeCheckInputs = [
+    parameterized
+    pytestCheckHook
+    xmldiff
+  ]
+  ++ finalAttrs.passthru.optional-dependencies.spritecollab;
+
+  preCheck = "pushd test";
+  postCheck = "popd";
+
   disabledTestPaths = [
-    "test/skytemple_files_test/common/spritecollab/sc_online_test.py"
-    "test/skytemple_files_test/compression_container/atupx/atupx_test.py" # Particularly long test
+    "skytemple_files_test/common/spritecollab/sc_online_test.py"
+    "skytemple_files_test/compression_container/atupx/atupx_test.py" # Particularly long test
   ];
 
   pythonImportsCheck = [ "skytemple_files" ];
 
-  meta = with lib; {
-    homepage = "https://github.com/SkyTemple/skytemple-files";
+  meta = {
     description = "Python library to edit the ROM of Pokémon Mystery Dungeon Explorers of Sky";
-    license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ xfix marius851000 ];
-    broken = stdenv.isDarwin; # pyobjc is missing
+    homepage = "https://github.com/SkyTemple/skytemple-files";
+    mainProgram = "skytemple_export_maps";
+    license = lib.licenses.gpl3Plus;
+    maintainers = with lib.maintainers; [ marius851000 ];
+    badPlatforms = [
+      # pyobjc is missing
+      lib.systems.inspect.patterns.isDarwin
+    ];
   };
-}
+})

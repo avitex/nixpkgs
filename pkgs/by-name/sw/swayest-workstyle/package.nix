@@ -1,29 +1,33 @@
-{ lib
-, rustPlatform
-, fetchFromGitHub
+{
+  lib,
+  rustPlatform,
+  fetchFromGitHub,
 }:
 
-rustPlatform.buildRustPackage rec {
+let
   pname = "swayest-workstyle";
-  version = "1.3.5";
-
+  version = "1.4.0";
   src = fetchFromGitHub {
     owner = "Lyr-7D1h";
     repo = "swayest_workstyle";
     rev = version;
-    sha256 = "sha256-Dk6rAiz7PXUfyy9fWMtSVRjaWWl66n38gTNyWKqeqkU=";
+    hash = "sha256-V1vEGz2jZHPdeKL99ILeoWVsuxIMkDHHdzgY8kEe9yM=";
   };
+in
+rustPlatform.buildRustPackage {
+  inherit pname version src;
 
-  cargoHash = "sha256-sLQPq3tyWq1TxxeFyg05qBt+KGI/vO0jLU7wJLiqcYA=";
+  cargoHash = "sha256-cQWmtZFvpgFt49cKXEKUJoZ4d8w4AcwA9ud/W/rmOP8=";
 
-  doCheck = false; # No tests
+  # No tests
+  doCheck = false;
 
-  meta = with lib; {
+  meta = {
     description = "Map sway workspace names to icons defined depending on the windows inside of the workspace";
     homepage = "https://github.com/Lyr-7D1h/swayest_workstyle";
-    license = licenses.mit;
-    platforms = platforms.linux;
-    maintainers = with maintainers; [ miangraham ];
+    license = lib.licenses.mit;
     mainProgram = "sworkstyle";
+    maintainers = [ ];
+    platforms = lib.platforms.linux;
   };
 }

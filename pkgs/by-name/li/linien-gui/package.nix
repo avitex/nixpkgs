@@ -1,19 +1,21 @@
-{ lib
-, python3
-, qt5
+{
+  lib,
+  python3Packages,
+  qt5,
 }:
 
-python3.pkgs.buildPythonApplication rec {
+python3Packages.buildPythonApplication rec {
   pname = "linien-gui";
   pyproject = true;
 
-  inherit (python3.pkgs.linien-common) src version;
+  inherit (python3Packages.linien-common) src version;
 
-  sourceRoot = "source/linien-gui";
+  sourceRoot = "${src.name}/linien-gui";
 
-  nativeBuildInputs = with python3.pkgs; [
+  build-system = with python3Packages; [
     setuptools
-  ] ++ [
+  ];
+  nativeBuildInputs = [
     qt5.wrapQtAppsHook
   ];
 
@@ -23,13 +25,14 @@ python3.pkgs.buildPythonApplication rec {
     qt5.qtwayland
   ];
 
-  propagatedBuildInputs = with python3.pkgs; [
+  dependencies = with python3Packages; [
     appdirs
     click
     pyqtgraph
     pyqt5
     superqt
     linien-client
+    requests
   ];
 
   dontWrapQtApps = true;
@@ -38,10 +41,15 @@ python3.pkgs.buildPythonApplication rec {
     makeWrapperArgs+=("''${qtWrapperArgs[@]}")
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Graphical user interface of the Linien spectroscopy lock application";
+    mainProgram = "linien";
     homepage = "https://github.com/linien-org/linien/tree/develop/linien-gui";
-    license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ fsagbuya doronbehar ];
+    changelog = "https://github.com/linien-org/linien/blob/v${version}/CHANGELOG.md";
+    license = lib.licenses.gpl3Plus;
+    maintainers = with lib.maintainers; [
+      fsagbuya
+      doronbehar
+    ];
   };
 }

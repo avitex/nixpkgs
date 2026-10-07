@@ -1,16 +1,16 @@
-{ lib, buildDunePackage, linol, jsonrpc, lwt, yojson }:
+{
+  buildDunePackage,
+  linol,
+  lwt,
+}:
 
 buildDunePackage {
   pname = "linol-lwt";
-  inherit (linol) version src;
-
-  duneVersion = "3";
+  inherit (linol) version src patches;
 
   propagatedBuildInputs = [
     linol
-    jsonrpc
     lwt
-    yojson
   ];
 
   meta = linol.meta // {

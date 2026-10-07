@@ -1,42 +1,42 @@
-{ lib
-, buildPythonPackage
-, chardet
-, docker
-, entrypoints
-, escapism
-, fetchFromGitHub
-, iso8601
-, jinja2
-, pkgs-docker
-, python-json-logger
-, pythonOlder
-, requests
-, ruamel-yaml
-, semver
-, setuptools
-, toml
-, traitlets
+{
+  lib,
+  buildPythonPackage,
+  chardet,
+  docker,
+  entrypoints,
+  escapism,
+  fetchFromGitHub,
+  iso8601,
+  jinja2,
+  pkgs-docker,
+  python-json-logger,
+  requests,
+  ruamel-yaml,
+  semver,
+  setuptools,
+  setuptools-scm,
+  toml,
+  traitlets,
 }:
 
 buildPythonPackage rec {
   pname = "jupyter-repo2docker";
-  version = "2023.06.0";
+  version = "2025.12.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.6";
 
   src = fetchFromGitHub {
     owner = "jupyterhub";
     repo = "repo2docker";
-    rev = "refs/tags/${version}";
-    hash = "sha256-egSQ8PXH9PxVpkZfaWfU2ZjRNW67x6FzIy+LQR5BdNE=";
+    tag = version;
+    hash = "sha256-9ZRew9DspRENxhqpWFTSdP8KcQQHA4vMMECLikt+nsw=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
+    setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     chardet
     docker
     entrypoints
@@ -62,11 +62,11 @@ buildPythonPackage rec {
     "repo2docker.contentproviders.base"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Turn code repositories into Jupyter enabled Docker Images";
     homepage = "https://repo2docker.readthedocs.io/";
-    changelog = "https://github.com/jupyterhub/repo2docker/blob/${src.rev}/docs/source/changelog.md";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/jupyterhub/repo2docker/blob/${src.tag}/docs/source/changelog.md";
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
 }

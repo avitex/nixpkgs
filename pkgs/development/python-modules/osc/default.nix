@@ -1,29 +1,39 @@
-{ stdenv
-, bashInteractive
-, buildPythonPackage
-, cryptography
-, diffstat
-, fetchFromGitHub
-, lib
-, rpm
-, urllib3
+{
+  bashInteractive,
+  buildPythonPackage,
+  cryptography,
+  diffstat,
+  fetchFromGitHub,
+  lib,
+  rpm,
+  urllib3,
+  keyring,
+  ruamel-yaml,
 }:
 
 buildPythonPackage rec {
   pname = "osc";
-  version = "1.3.1";
+  version = "1.27.2";
   format = "setuptools";
 
   src = fetchFromGitHub {
     owner = "openSUSE";
     repo = "osc";
     rev = version;
-    sha256 = "sha256-pywSXGM3IX3cTr1uJIP7pNGIYE/skMIoJeoaMU75zwc=";
+    hash = "sha256-PwOJpjlIqOtLw79DK0KWb8ktAQ9vQVnSdf657jPVfLQ=";
   };
 
   buildInputs = [ bashInteractive ]; # needed for bash-completion helper
-  nativeCheckInputs = [ rpm diffstat ];
-  propagatedBuildInputs = [ urllib3 cryptography ];
+  nativeCheckInputs = [
+    rpm
+    diffstat
+  ];
+  propagatedBuildInputs = [
+    urllib3
+    cryptography
+    keyring
+    ruamel-yaml
+  ];
 
   postInstall = ''
     install -D -m444 contrib/osc.fish $out/etc/fish/completions/osc.fish
@@ -39,12 +49,14 @@ buildPythonPackage rec {
 
   preCheck = "HOME=$TOP/tmp";
 
-  meta = with lib; {
-    broken = stdenv.isDarwin;
+  meta = {
     homepage = "https://github.com/openSUSE/osc";
-    description = "opensuse-commander with svn like handling";
-    maintainers = [ maintainers.peti ];
-    license = licenses.gpl2;
+    description = "Opensuse-commander with svn like handling";
+    mainProgram = "osc";
+    maintainers = with lib.maintainers; [
+      peti
+      saschagrunert
+    ];
+    license = lib.licenses.gpl2;
   };
-
 }

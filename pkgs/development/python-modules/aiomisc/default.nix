@@ -1,82 +1,69 @@
-{ lib
-, aiocontextvars
-  #, aiocarbon
-, aiohttp
-  #, aiohttp-asgi
-, async-timeout
-, buildPythonPackage
-, colorlog
-, croniter
-, fastapi
-, fetchPypi
-, logging-journald
-, poetry-core
-, pytestCheckHook
-, pythonOlder
-, raven
-  #, raven-aiohttp
-, setproctitle
-, setuptools
-, uvloop
+{
+  lib,
+  stdenv,
+  aiocontextvars,
+  aiohttp,
+  aiothreads,
+  async-timeout,
+  buildPythonPackage,
+  colorlog,
+  croniter,
+  fastapi,
+  fetchPypi,
+  logging-journald,
+  setuptools,
+  setuptools-scm,
+  pytestCheckHook,
+  raven,
+  rich,
+  setproctitle,
+  uvloop,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "aiomisc";
-  version = "17.3.41";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "18.0.28";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-thJBptiwH3jLQIYw7ucCv4xwaGPXMpE+dUwRvsyURtw=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-SA/iJD23E6ze1TuzycDQTcW5/nLoMgTdF9qzhrBVaTQ=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
+  build-system = [
+    setuptools
+    setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
+    aiothreads
     colorlog
-    logging-journald
-    setuptools
-  ];
+  ]
+  ++ lib.optionals stdenv.hostPlatform.isLinux [ logging-journald ];
 
   nativeCheckInputs = [
     aiocontextvars
     async-timeout
     fastapi
     pytestCheckHook
-    raven
     setproctitle
-  ] ++ passthru.optional-dependencies.aiohttp
-  ++ passthru.optional-dependencies.cron
-  ++ passthru.optional-dependencies.uvloop;
+  ]
+  ++ lib.flatten (builtins.attrValues finalAttrs.passthru.optional-dependencies);
 
-  passthru.optional-dependencies = {
-    aiohttp = [
+  optional-dependencies = {
+    aiohttp = [ aiohttp ];
+    #asgi = [ aiohttp-asgi ];
+    cron = [ croniter ];
+    #carbon = [ aiocarbon ];
+    raven = [
       aiohttp
+      raven
     ];
-    #asgi = [
-    #  aiohttp-asgi
-    #];
-    cron = [
-      croniter
-    ];
-    #carbon = [
-    #  aiocarbon
-    #];
-    #raven = [
-    #  raven-aiohttp
-    #];
-    uvloop = [
-      uvloop
-    ];
+    rich = [ rich ];
+    uvloop = [ uvloop ];
   };
 
-  pythonImportsCheck = [
-    "aiomisc"
-  ];
+  pythonImportsCheck = [ "aiomisc" ];
 
   # Upstream stopped tagging with 16.2
   doCheck = false;
@@ -87,11 +74,11 @@ buildPythonPackage rec {
   #   "tests/test_raven_service.py"
   # ];
 
-  meta = with lib; {
+  meta = {
     description = "Miscellaneous utils for asyncio";
     homepage = "https://github.com/aiokitchen/aiomisc";
     changelog = "https://github.com/aiokitchen/aiomisc/blob/master/CHANGELOG.md";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

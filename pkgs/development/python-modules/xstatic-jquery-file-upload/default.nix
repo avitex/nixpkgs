@@ -1,28 +1,37 @@
-{ buildPythonPackage
-, lib
-, fetchPypi
-, xstatic-jquery
+{
+  buildPythonPackage,
+  lib,
+  fetchPypi,
+  setuptools_80,
+  xstatic-jquery,
 }:
 
-buildPythonPackage rec {
-  pname = "XStatic-jQuery-File-Upload";
+buildPythonPackage (finalAttrs: {
+  pname = "xstatic-jquery-file-upload";
   version = "10.31.0.1";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit version pname;
-    sha256 = "7d716f26aca14732c35c54f0ba6d38187600ab472fc98a91d972d12c5a70db27";
+    pname = "XStatic-jQuery-File-Upload";
+    inherit (finalAttrs) version;
+    hash = "sha256-fXFvJqyhRzLDXFTwum04GHYAq0cvyYqR2XLRLFpw2yc=";
   };
+
+  build-system = [ setuptools_80 ];
 
   # no tests implemented
   doCheck = false;
 
-  propagatedBuildInputs = [ xstatic-jquery ];
+  dependencies = [ xstatic-jquery ];
 
-  meta = with lib;{
-    homepage =  "https://plugins.jquery.com/project/jQuery-File-Upload";
+  pythonImportsCheck = [ "xstatic.pkg.jquery_file_upload" ];
+
+  meta = {
+    homepage = "https://github.com/blueimp/jQuery-File-Upload";
     description = "jquery-file-upload packaged static files for python";
-    license = licenses.mit;
-    maintainers = with maintainers; [ makefu ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ makefu ];
   };
-
-}
+})

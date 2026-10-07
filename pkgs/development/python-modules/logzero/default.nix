@@ -1,4 +1,9 @@
-{ lib, buildPythonPackage, fetchPypi, pytest }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pytest,
+}:
 
 buildPythonPackage rec {
   pname = "logzero";
@@ -15,10 +20,10 @@ buildPythonPackage rec {
     pytest
   '';
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/metachris/logzero";
     description = "Robust and effective logging for Python 2 and 3";
-    license = licenses.mit;
-    maintainers = with maintainers; [ jakewaksbaum ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ jakewaksbaum ];
   };
 }

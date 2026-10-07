@@ -1,27 +1,33 @@
-{ lib
-, buildPythonPackage
-, cython
-, fetchPypi
+{
+  lib,
+  buildPythonPackage,
+  cython,
+  fetchPypi,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "timelib";
   version = "0.3.0";
-  format = "setuptools";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
+    inherit (finalAttrs) pname version;
     hash = "sha256-0bInBlVxhuYFjaiLoPhYN0AbKuneFX9ZNT3JeNglGHo=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     cython
+    setuptools
   ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "timelib" ];
+
+  meta = {
     description = "Parse english textual date descriptions";
     homepage = "https://github.com/pediapress/timelib/";
-    license = licenses.zlib;
+    license = lib.licenses.zlib;
   };
-
-}
+})

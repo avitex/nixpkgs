@@ -1,43 +1,45 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchPypi
-, hatch-fancy-pypi-readme
-, hatch-vcs
-, hatchling
-, distro
-, packaging
-, setuptools
-, wheel
-, tomli
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  fetchpatch,
+  hatch-fancy-pypi-readme,
+  hatch-vcs,
+  hatchling,
+  distro,
+  packaging,
+  setuptools,
+  wheel,
   # Test Inputs
-, cmake
-, cython
-, git
-, path
-, pytestCheckHook
-, pytest-mock
-, requests
-, virtualenv
+  cmake,
+  cython,
+  git,
+  pytestCheckHook,
+  pytest-mock,
+  requests,
+  virtualenv,
 }:
 
 buildPythonPackage rec {
   pname = "scikit-build";
-  version = "0.17.6";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "0.19.1";
+  pyproject = true;
 
   src = fetchPypi {
     pname = "scikit_build";
     inherit version;
-    hash = "sha256-tRpRo2s3xCZQmUtQR5EvWbIuMhCyPjIfKHYR+e9uXJ0=";
+    hash = "sha256-uajQf8otXRDZMiC8V6aFFh1yrx/HYoXVXFZN2qhi5YQ=";
   };
 
   patches = [
-    # https://github.com/scikit-build/scikit-build/pull/1032
-    # https://github.com/scikit-build/scikit-build/issues/1047
-    ./python312-compatibility.patch
+    # Recent CMake versions normalize paths, changing some /./foo.txt to
+    # /foo.txt in some tests.
+    # https://github.com/scikit-build/scikit-build/pull/1205
+    (fetchpatch {
+      name = "test-cmake4-install-path-normalization.patch";
+      url = "https://github.com/scikit-build/scikit-build/commit/c73be45c664349554fcbc5ab3919b74b33c3bc1e.patch";
+      hash = "sha256-ekuOVj6dfPYkNRCFnvLJqW1WL7KnbCVBBmq0+zlH7YY=";
+    })
   ];
 
   # This line in the filterwarnings section of the pytest configuration leads to this error:
@@ -46,19 +48,17 @@ buildPythonPackage rec {
     sed -i "/'error',/d" pyproject.toml
   '';
 
-  nativeBuildInputs = [
+  build-system = [
     hatch-fancy-pypi-readme
     hatch-vcs
     hatchling
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     distro
     packaging
     setuptools
     wheel
-  ] ++ lib.optionals (pythonOlder "3.11") [
-    tomli
   ];
 
   nativeCheckInputs = [
@@ -85,17 +85,22 @@ buildPythonPackage rec {
     "test_dual_pep518" # pip exits with code 1
     "test_isolated_env_trigger_reconfigure" # Regex pattern 'exit skbuild saving cmake spec' does not match 'exit skbuild running make'.
     "test_hello_wheel" # [Errno 2] No such file or directory: '_skbuild/linux-x86_64-3.9/setuptools/bdist.linux-x86_64/wheel/helloModule.py'
+    "test_hello_cython_sdist" # [Errno 2] No such file or directory: 'dist/hello-cython-1.2.3.tar.gz'
+    "test_hello_pure_sdist" # [Errno 2] No such file or directory: 'dist/hello-pure-1.2.3.tar.gz'
     # sdist contents differ, contains additional setup.py
     "test_hello_sdist"
     "test_manifest_in_sdist"
     "test_sdist_with_symlinks"
   ];
 
-  meta = with lib; {
+  meta = {
     changelog = "https://github.com/scikit-build/scikit-build/blob/${version}/CHANGES.rst";
     description = "Improved build system generator for CPython C/C++/Fortran/Cython extensions";
     homepage = "https://github.com/scikit-build/scikit-build";
-    license = with licenses; [ mit bsd2 ]; # BSD due to reuses of PyNE code
-    maintainers = with maintainers; [ FlorianFranzen ];
+    license = with lib.licenses; [
+      mit
+      bsd2
+    ]; # BSD due to reuses of PyNE code
+    maintainers = with lib.maintainers; [ FlorianFranzen ];
   };
 }

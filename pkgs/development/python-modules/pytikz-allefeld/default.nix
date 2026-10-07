@@ -1,20 +1,18 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, buildPythonPackage
-, pythonOlder
-, pymupdf
-, numpy
-, ipython
-, texlive
+{
+  lib,
+  fetchFromGitHub,
+  buildPythonPackage,
+  setuptools,
+  pymupdf,
+  numpy,
+  ipython,
+  texliveSmall,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage {
   pname = "pytikz-allefeld"; # "pytikz" on pypi is a different module
   version = "unstable-2022-11-01";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.5";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "allefeld";
@@ -23,7 +21,9 @@ buildPythonPackage rec {
     hash = "sha256-G59UUkpjttJKNBN0MB/A9CftO8tO3nv8qlTxt3/fKHk=";
   };
 
-  propagatedBuildInputs = [
+  nativeBuildInputs = [ setuptools ];
+
+  dependencies = [
     pymupdf
     numpy
     ipython
@@ -31,7 +31,7 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "tikz" ];
 
-  nativeCheckInputs = [ texlive.combined.scheme-small ];
+  nativeCheckInputs = [ texliveSmall ];
   checkPhase = ''
     runHook preCheck
     python -c 'if 1:
@@ -45,11 +45,10 @@ buildPythonPackage rec {
     runHook postCheck
   '';
 
-  meta = with lib; {
+  meta = {
     homepage = "https://github.com/allefeld/pytikz";
-    description = "A Python interface to TikZ";
-    license = licenses.gpl3;
-    maintainers = with maintainers; [ pbsds ];
-    broken = stdenv.isDarwin;
+    description = "Python interface to TikZ";
+    license = lib.licenses.gpl3;
+    maintainers = with lib.maintainers; [ pbsds ];
   };
 }

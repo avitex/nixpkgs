@@ -1,30 +1,46 @@
-{ lib
-, buildGoModule
-, fetchFromGitHub
+{
+  lib,
+  buildGoModule,
+  fetchFromGitHub,
+  nix-update-script,
+  testers,
 }:
 
-buildGoModule {
+buildGoModule (finalAttrs: {
   pname = "spirit";
-  version = "0-unstable-2024-01-11";
+  version = "0.17.0";
 
   src = fetchFromGitHub {
-    owner = "cashapp";
+    owner = "block";
     repo = "spirit";
-    rev = "fdbfa0baf31e9406227ae7fa9403c977189d715c";
-    hash = "sha256-kvERTUYVsuKS24/CavmlZd0K6hlosGMDLeEZcHfwBZI=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-yYj5/Gb0vjAnJAM8PkP/oOdmfsIfxjRFjpeKyKIcHjM=";
   };
 
-  vendorHash = "sha256-r6iQs5kgOniHCN8KteQ17rPhQ/73Exuqlu6qWgKEIzs=";
+  vendorHash = "sha256-aaxSnF/iKEdvTBGgm8kjCfanHYEvY9PR2C07ytbN8pg=";
 
   subPackages = [ "cmd/spirit" ];
 
-  ldflags = [ "-s" "-w" ];
+  ldflags = [
+    "-s"
+    "-w"
+    "-X=main.version=${finalAttrs.version}"
+    "-X=main.commit=${finalAttrs.src.rev}"
+    "-X=main.date=1970-01-01T00:00:00Z"
+  ];
 
-  meta = with lib; {
-    homepage = "https://github.com/cashapp/spirit";
+  passthru = {
+    updateScript = nix-update-script { };
+    tests.version = testers.testVersion {
+      package = finalAttrs.finalPackage;
+    };
+  };
+
+  meta = {
+    homepage = "https://github.com/block/spirit";
     description = "Online schema change tool for MySQL";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ aaronjheng ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ aaronjheng ];
     mainProgram = "spirit";
   };
-}
+})

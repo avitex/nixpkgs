@@ -1,10 +1,13 @@
-{ lib
-, python3Packages
-, fetchFromGitHub
+{
+  lib,
+  python3Packages,
+  fetchFromGitHub,
 }:
 python3Packages.buildPythonApplication {
   pname = "fileinfo";
-  version = "unstable-2022-09-16";
+  version = "0-unstable-2022-09-16";
+  pyproject = true;
+
   src = fetchFromGitHub {
     owner = "sdushantha";
     repo = "fileinfo";
@@ -12,13 +15,15 @@ python3Packages.buildPythonApplication {
     hash = "sha256-tEmCsR3LmTxeDZAbMvbIwqp/6uaGNUhgGlm18gdsnOw=";
   };
 
-  propagatedBuildInputs = with python3Packages; [ requests ];
+  build-system = with python3Packages; [ setuptools ];
 
-  meta = with lib; {
+  dependencies = with python3Packages; [ requests ];
+
+  meta = {
     homepage = "https://github.com/sdushantha/fileinfo";
-    description = "A file extension metadata lookup tool";
-    license = licenses.mit;
-    maintainers = with maintainers; [ h7x4 ];
+    description = "File extension metadata lookup tool";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ h7x4 ];
     mainProgram = "fileinfo";
   };
 }

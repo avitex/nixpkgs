@@ -1,9 +1,17 @@
-{ lib, buildPythonPackage, fetchFromGitHub, pyusb }:
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  pyusb,
+}:
 
-buildPythonPackage rec {
+buildPythonPackage {
   pname = "blinkstick";
-  version = "unstable-2023-05-04";
-  format = "setuptools";
+  version = "1.2.0-unstable-2023-05-04";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "arvydas";
@@ -12,7 +20,9 @@ buildPythonPackage rec {
     hash = "sha256-9bc7TD/Ilc952ywLauFd0+3Lh64lQlYuDC1KG9eWDgs=";
   };
 
-  propagatedBuildInputs = [ pyusb ];
+  build-system = [ setuptools ];
+
+  dependencies = [ pyusb ];
 
   # Project has no tests
   doCheck = false;
@@ -20,8 +30,12 @@ buildPythonPackage rec {
 
   meta = {
     description = "Python package to control BlinkStick USB devices";
+    mainProgram = "blinkstick";
     homepage = "https://github.com/arvydas/blinkstick-python";
     license = lib.licenses.bsd3;
-    maintainers = with lib.maintainers; [ np perstark ];
+    maintainers = with lib.maintainers; [
+      np
+      perstark
+    ];
   };
 }

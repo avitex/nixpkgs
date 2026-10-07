@@ -1,40 +1,35 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
-, pythonOlder
-, regex
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pytestCheckHook,
+  regex,
+  uv-build,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "rebulk";
-  version = "3.2.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "6.0.1";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-DTC/gPygD6nGlxhaxHXarJveX2Rs4zOMn/XV3B69/rw=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-1t8MjIluFgCHxpgfN3DtUT7Jc6n0BmueSwYU6wi6DOE=";
   };
 
-  propagatedBuildInputs = [
-    regex
-  ];
+  build-system = [ uv-build ];
 
-  buildInputs = [
-    pytestCheckHook
-  ];
+  dependencies = [ regex ];
 
-  pythonImportsCheck = [
-    "rebulk"
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "rebulk" ];
+
+  meta = {
     description = "Advanced string matching from simple patterns";
     homepage = "https://github.com/Toilal/rebulk/";
-    changelog = "https://github.com/Toilal/rebulk/blob/v${version}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/Toilal/rebulk/blob/v${finalAttrs.version}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
-}
+})

@@ -1,56 +1,47 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchPypi
-, iconv
-, pytestCheckHook
-, pythonOlder
-, requests
-, json-stream-rs-tokenizer
-, setuptools
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  httpx,
+  iconv,
+  pytestCheckHook,
+  requests,
+  json-stream-rs-tokenizer,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "json-stream";
-  version = "2.3.2";
-  format = "pyproject";
+  version = "2.5.1";
+  pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-uLRQ6o6OPCOenn440S/tk053o1PBSyl/juNFpc6yW5E=";
+  src = fetchFromGitHub {
+    owner = "daggaz";
+    repo = "json-stream";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-fQuTvd2Kizy8icYoewvJJVDc7FXuXRQkwJfOCka3Eo4=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  buildInputs = lib.optionals stdenv.isDarwin [
-    iconv
-  ];
+  dependencies = [ json-stream-rs-tokenizer ] ++ lib.optionals stdenv.hostPlatform.isDarwin [ iconv ];
 
-  propagatedBuildInputs = [
-    requests
-    json-stream-rs-tokenizer
-  ];
+  optional-dependencies = {
+    httpx = [ httpx ];
+    requests = [ requests ];
+  };
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "json_stream"
-  ];
+  pythonImportsCheck = [ "json_stream" ];
 
-  disabledTests = [
-    "test_writer"
-  ];
+  disabledTests = [ "test_writer" ];
 
-  meta = with lib; {
+  meta = {
     description = "Streaming JSON parser";
     homepage = "https://github.com/daggaz/json-stream";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

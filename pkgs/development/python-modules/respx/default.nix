@@ -1,61 +1,54 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, flask
-, httpcore
-, httpx
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, starlette
-, trio
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  flask,
+  httpcore,
+  httpx,
+  pytest-asyncio,
+  pytest-cov-stub,
+  pytestCheckHook,
+  setuptools,
+  starlette,
+  trio,
 }:
 
 buildPythonPackage rec {
   pname = "respx";
-  version = "0.20.2";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.23.1";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "lundberg";
-    repo = pname;
-    rev = version;
-    hash = "sha256-OiBKNK8V9WNQDe29Q5+E/jjBWD0qFcYUzhYUWA+7oFc=";
+    repo = "respx";
+    tag = version;
+    hash = "sha256-Fz3CS9rIm+H6axVIRErlFTTDgtAcTmGj4/wabLxDV2I=";
   };
 
-  propagatedBuildInputs = [
-    httpx
-  ];
+  build-system = [ setuptools ];
+
+  dependencies = [ httpx ];
 
   nativeCheckInputs = [
     httpcore
     httpx
     flask
     pytest-asyncio
+    pytest-cov-stub
     pytestCheckHook
     starlette
     trio
   ];
 
-  postPatch = ''
-    sed -i "/--cov/d" setup.cfg
-  '';
+  disabledTests = [ "test_pass_through" ];
 
-  disabledTests = [
-    "test_pass_through"
-  ];
+  pythonImportsCheck = [ "respx" ];
 
-  pythonImportsCheck = [
-    "respx"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Python library for mocking HTTPX";
     homepage = "https://lundberg.github.io/respx/";
-    changelog = "https://github.com/lundberg/respx/blob/${version}/CHANGELOG.md";
-    license = with licenses; [ bsd3 ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/lundberg/respx/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

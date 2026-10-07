@@ -1,51 +1,57 @@
-{ lib
-, aiohttp
-, aresponses
-, buildPythonPackage
-, fetchFromGitHub
-, poetry-core
-, pythonOlder
+{
+  lib,
+  aiohttp,
+  aresponses,
+  async-timeout,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  pytest-asyncio,
+  pytest-cov-stub,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "zamg";
-  version = "0.3.5";
+  version = "0.4.2";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "killer0071234";
     repo = "python-zamg";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-lT345G0apo4ncM4FMs69+ql+QxvTlsEtG2KRX4oYvlo=";
+    tag = "v${version}";
+    hash = "sha256-H5YG4Qg72c/wLFErWdC6xpPNnOIuye+4CimOItSFVZU=";
   };
 
-  postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace " --cov" ""
-  '';
+  pythonRelaxDeps = [ "async-timeout" ];
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     aiohttp
+    async-timeout
   ];
 
-  # Module has no tests
-  doCheck = false;
-
-  pythonImportsCheck = [
-    "zamg"
+  nativeCheckInputs = [
+    aresponses
+    pytest-asyncio
+    pytest-cov-stub
+    pytestCheckHook
   ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "zamg" ];
+
+  disabledTests = [
+    # Tests are outdated
+    "test_update_fail_3"
+    "test_properties_fail_2"
+  ];
+
+  meta = {
     description = "Library to read weather data from ZAMG Austria";
     homepage = "https://github.com/killer0071234/python-zamg";
     changelog = "https://github.com/killer0071234/python-zamg/releases/tag/v${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

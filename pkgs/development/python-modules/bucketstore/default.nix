@@ -1,49 +1,41 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, pytestCheckHook
-, boto3
-, moto
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  boto3,
+  moto,
+  poetry-core,
 }:
 
 buildPythonPackage rec {
   pname = "bucketstore";
-  version = "0.2.2";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.3.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "jpetrucciani";
     repo = "bucketstore";
-    rev = "refs/tags/${version}";
-    hash = "sha256-BtoyGqFbeBhGQeXnmeSfiuJLZtXFrK26WO0SDlAtKG4=";
+    tag = version;
+    hash = "sha256-WjweYFnlDEoR+TYzNgjPMdCLdUUEbdPROubov6kancc=";
   };
 
-  postPatch = ''
-    substituteInPlace setup.py \
-      --replace "version=__version__," 'version="${version}",'
-  '';
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
-    boto3
-  ];
+  propagatedBuildInputs = [ boto3 ];
 
   nativeCheckInputs = [
     moto
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "bucketstore"
-  ];
+  pythonImportsCheck = [ "bucketstore" ];
 
-  meta = with lib; {
+  meta = {
     description = "Library for interacting with Amazon S3";
     homepage = "https://github.com/jpetrucciani/bucketstore";
     changelog = "https://github.com/jpetrucciani/bucketstore/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ jpetrucciani ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ jpetrucciani ];
   };
 }

@@ -1,42 +1,44 @@
-{ callPackage
-, enableJavaFX ? false
-, ...
+{
+  callPackage,
+  enableJavaFX ? false,
+  ...
 }@args:
+let
+  zuluVersion = "11.88.17";
+  jdkVersion = "11.0.31";
+in
+callPackage ./common.nix (
+  {
+    # Details from https://www.azul.com/downloads/?version=java-11-lts&package=jdk
+    # Note that the latest build may differ by platform
+    dists = {
+      x86_64-linux = {
+        inherit zuluVersion jdkVersion;
+        hash =
+          if enableJavaFX then
+            "sha256-6XkzzHuNjX8OrTLBhFbfQ4ZOjZPLJw2pWvk7CiJzPXE="
+          else
+            "sha256-40dhkwxjCwZ9WkSTd+caFSgRVLGviC2scfJOK8PKk/k=";
+      };
 
-callPackage ./common.nix ({
-  # Details from https://www.azul.com/downloads/?version=java-11-lts&package=jdk
-  # Note that the latest build may differ by platform
-  dists = {
-    x86_64-linux = {
-      zuluVersion = "11.66.15";
-      jdkVersion = "11.0.20";
-      hash =
-        if enableJavaFX then "sha256-CjWtqnirEDrpF61WXm/Yi372IzhpTpi+/AfEqirlZnc="
-        else "sha256-o0tAT4egimEUizjhQW2DcYnh33oEDZSedDYz2vRpWjw=";
-    };
+      aarch64-linux = {
+        inherit zuluVersion jdkVersion;
+        hash =
+          if enableJavaFX then
+            "sha256-yCispNSTxqPB8kg46tcDUWcjQQCn8bhtXM2w/oyrO54="
+          else
+            "sha256-j6ItLEU1W32zgfky+M2mD5WSmeKDYWfXnwzLOxRl8Ps=";
+      };
 
-    aarch64-linux = {
-      zuluVersion = "11.66.15";
-      jdkVersion = "11.0.20";
-      hash =
-        if enableJavaFX then throw "JavaFX is not available for aarch64-linux"
-        else "sha256-VBdEOfKz/d0R8QSMOX/nu0XUydZtRS1oibAT0E0hxN4=";
+      aarch64-darwin = {
+        inherit zuluVersion jdkVersion;
+        hash =
+          if enableJavaFX then
+            "sha256-X1ph5yeqI2GZZTIGn93szk8Ks1ekJ9KaE3LSeUuigP0="
+          else
+            "sha256-/nViFbw2DKsHA8nIUffkbUdiWR3/MwEUIKcQ1JUOebE=";
+      };
     };
-
-    x86_64-darwin = {
-      zuluVersion = "11.66.15";
-      jdkVersion = "11.0.20";
-      hash =
-        if enableJavaFX then "sha256-pVgCJkgYTlFeL7nkkMWLeJ/J8ELhgvWb7gzf3erZP7Y="
-        else "sha256-vKqxHP5Yb651g8bZ0xHGQ4Q1T7JjjrmgEuykw/Gh2f0=";
-    };
-
-    aarch64-darwin = {
-      zuluVersion = "11.66.15";
-      jdkVersion = "11.0.20";
-      hash =
-        if enableJavaFX then "sha256-VoZo34SCUU+HHnTl6iLe0QBC+4VDkPP14N98oqSg9EQ="
-        else "sha256-djK8Kfikt9SSuT87x1p7YWMIlNuF0TZFYDWrKiTTiIU=";
-    };
-  };
-} // builtins.removeAttrs args [ "callPackage" ])
+  }
+  // removeAttrs args [ "callPackage" ]
+)

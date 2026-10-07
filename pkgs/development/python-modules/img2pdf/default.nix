@@ -1,83 +1,73 @@
-{ lib
-, buildPythonPackage
-, isPy27
-, fetchFromGitea
-, substituteAll
-, fetchpatch
-, colord
-, setuptools
-, pikepdf
-, pillow
-, stdenv
-, exiftool
-, ghostscript
-, imagemagick
-, mupdf-headless
-, netpbm
-, numpy
-, poppler_utils
-, pytestCheckHook
-, runCommand
-, scipy
+{
+  lib,
+  pkgs,
+  buildPythonPackage,
+  fetchFromGitHub,
+  replaceVars,
+  colord,
+  flit-core,
+  pikepdf,
+  pillow,
+  stdenv,
+  exiftool,
+  imagemagick,
+  mupdf-headless,
+  netpbm,
+  numpy,
+  poppler-utils,
+  pytestCheckHook,
+  runCommand,
+  scipy,
 }:
 
 buildPythonPackage rec {
   pname = "img2pdf";
-  version = "0.5.1";
-  disabled = isPy27;
-
+  version = "0.6.3";
   pyproject = true;
 
-  src = fetchFromGitea {
-    domain = "gitlab.mister-muffin.de";
+  # gitlab.mister-muffin.de produces a 500 error on 0.6.1
+  # when upgrading, switch src attribute back to gitlab if fixed.
+  src = fetchFromGitHub {
     owner = "josch";
     repo = "img2pdf";
-    rev = version;
-    hash = "sha256-mrNTc37GrHTc7NW0sYI1FlAOlnvXum02867enqHsAEQ=";
+    tag = version;
+    hash = "sha256-uHcGCx5DdUxFnATG3T565R+NatLukPPpnRj0TZHToC0=";
   };
 
   patches = [
-    (substituteAll {
-      src = ./default-icc-profile.patch;
-      srgbProfile = if stdenv.isDarwin then
-        "/System/Library/ColorSync/Profiles/sRGB Profile.icc"
-      else
-        # break runtime dependency chain all of colord dependencies
-        runCommand "sRGC.icc" { } ''
-          cp ${colord}/share/color/icc/colord/sRGB.icc $out
-        '';
+    (replaceVars ./default-icc-profile.patch {
+      srgbProfile =
+        if stdenv.hostPlatform.isDarwin then
+          "/System/Library/ColorSync/Profiles/sRGB Profile.icc"
+        else
+          # break runtime dependency chain all of colord dependencies
+          runCommand "sRGC.icc" { } ''
+            cp ${colord}/share/color/icc/colord/sRGB.icc $out
+          '';
     })
-    (fetchpatch {
-      # https://gitlab.mister-muffin.de/josch/img2pdf/issues/178
-      url = "https://salsa.debian.org/debian/img2pdf/-/raw/4a7dbda0f473f7c5ffcaaf68ea4ad3f435e0920d/debian/patches/fix_tests.patch";
-      hash = "sha256-A1zK6yINhS+dvyckZjqoSO1XJRTaf4OXFdq5ufUrBs8=";
-    })
-
   ];
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ flit-core ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     pikepdf
     pillow
   ];
 
   # FIXME: Only add "sRGB Profile.icc" to __impureHostDeps once
   # https://github.com/NixOS/nix/issues/9301 is fixed.
-  __impureHostDeps = lib.optionals stdenv.isDarwin [
+  __impureHostDeps = lib.optionals stdenv.hostPlatform.isDarwin [
     "/System/Library/ColorSync/Profiles"
   ];
 
   nativeCheckInputs = [
     exiftool
-    ghostscript
+    pkgs.ghostscript
     imagemagick
     mupdf-headless
     netpbm
     numpy
-    poppler_utils
+    poppler-utils
     pytestCheckHook
     scipy
   ];
@@ -88,17 +78,32 @@ buildPythonPackage rec {
 
   disabledTests = [
     # https://gitlab.mister-muffin.de/josch/img2pdf/issues/178
+    "test_jpg_cmyk"
+    "test_miff_cmyk8"
+    "test_tiff_cmyk8"
     "test_miff_cmyk16"
+    "test_png_gray16"
+    "test_png_rgb16"
+    # these only fail on aarch64
+    "test_png_rgba8"
+    "test_png_gray8a"
+    # AssertionError: assert 'resolution' not in ...
+    # (starting with ImagMagick 7.1.2-5)
+    "test_date"
+    "test_jpg"
   ];
 
   pythonImportsCheck = [ "img2pdf" ];
 
-  meta = with lib; {
-    changelog = "https://gitlab.mister-muffin.de/josch/img2pdf/src/tag/${src.rev}/CHANGES.rst";
+  meta = {
+    changelog = "https://gitlab.mister-muffin.de/josch/img2pdf/src/tag/${src.tag}/CHANGES.rst";
     description = "Convert images to PDF via direct JPEG inclusion";
     homepage = "https://gitlab.mister-muffin.de/josch/img2pdf";
-    license = licenses.lgpl3Plus;
+    license = lib.licenses.lgpl3Plus;
     mainProgram = "img2pdf";
-    maintainers = with maintainers; [ veprbl dotlambda ];
+    maintainers = with lib.maintainers; [
+      veprbl
+      dotlambda
+    ];
   };
 }

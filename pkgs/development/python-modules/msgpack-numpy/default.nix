@@ -1,10 +1,11 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, cython
-, msgpack
-, numpy
-, python
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  cython,
+  msgpack,
+  numpy,
+  python,
 }:
 
 buildPythonPackage rec {
@@ -17,23 +18,21 @@ buildPythonPackage rec {
     hash = "sha256-xmfTGAUTQi+cdUW+XuxdKW3Ls1fgb3LtOcxoN5dVbmk=";
   };
 
-  buildInputs = [
-    cython
-  ];
+  buildInputs = [ cython ];
 
   propagatedBuildInputs = [
-   msgpack
-   numpy
+    msgpack
+    numpy
   ];
 
   checkPhase = ''
     ${python.interpreter} msgpack_numpy.py
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Numpy data type serialization using msgpack";
     homepage = "https://github.com/lebedov/msgpack-numpy";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ aborsu ];
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
 }

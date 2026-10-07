@@ -1,6 +1,13 @@
-{ lib, buildDunePackage, ocaml, fetchFromGitLab, extlib, ounit2 }:
+{
+  lib,
+  buildDunePackage,
+  ocaml,
+  fetchFromGitLab,
+  extlib,
+  ounit2,
+}:
 
-buildDunePackage rec {
+buildDunePackage (finalAttrs: {
   pname = "cudf";
   version = "0.10";
 
@@ -8,8 +15,8 @@ buildDunePackage rec {
 
   src = fetchFromGitLab {
     owner = "irill";
-    repo = pname;
-    rev = "v${version}";
+    repo = "cudf";
+    rev = "v${finalAttrs.version}";
     hash = "sha256-E4KXKnso/Q3ZwcYpKPgvswNR9qd/lafKljPMxfStedM=";
   };
 
@@ -22,11 +29,11 @@ buildDunePackage rec {
   ];
   doCheck = lib.versionAtLeast ocaml.version "4.08";
 
-  meta = with lib; {
-    description = "A library for CUDF format";
+  meta = {
+    description = "Library for CUDF format";
     homepage = "https://www.mancoosi.org/cudf/";
     downloadPage = "https://gforge.inria.fr/projects/cudf/";
-    license = licenses.lgpl3;
-    maintainers = with maintainers; [ ];
+    license = lib.licenses.lgpl3;
+    maintainers = [ ];
   };
-}
+})

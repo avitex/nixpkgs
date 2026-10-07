@@ -1,10 +1,12 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytest-asyncio
-, pytestCheckHook
-, pythonOlder
-, setuptools
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytest-asyncio,
+  pytest-cov-stub,
+  pytestCheckHook,
+  setuptools,
 }:
 
 # This package provides a binary "apython" which sometimes invokes
@@ -15,33 +17,30 @@
 # However, apython will work fine when using python##.withPackages,
 # because with python##.withPackages the sys.executable is already
 # wrapped to be able to find aioconsole and any other packages.
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "aioconsole";
-  version = "0.7.0";
+  version = "0.8.2";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "vxgmichel";
     repo = "aioconsole";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-SKJLc1Tauwpmh2xtFFyHqKRaaQAK99SpbbGLFmAbKcQ=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-j4nzt8mvn+AYObh1lvgxS8wWK662KN+OxjJ2b5ZNAcQ=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail " --strict-markers --count 2 -vv" ""
+  '';
+
+  build-system = [ setuptools ];
 
   nativeCheckInputs = [
     pytest-asyncio
+    pytest-cov-stub
     pytestCheckHook
   ];
-
-  postPatch = ''
-    substituteInPlace setup.cfg \
-      --replace "--cov aioconsole --count 2" ""
-  '';
 
   __darwinAllowLocalNetworking = true;
 
@@ -51,15 +50,18 @@ buildPythonPackage rec {
     "test_interact_multiple_indented_lines"
   ];
 
-  pythonImportsCheck = [
-    "aioconsole"
+  disabledTestPaths = lib.optionals stdenv.hostPlatform.isDarwin [
+    # OSError: AF_UNIX path too long
+    "tests/test_server.py::test_uds_server[default]"
   ];
 
-  meta = with lib; {
-    changelog = "https://github.com/vxgmichel/aioconsole/releases/tag/v${version}";
+  pythonImportsCheck = [ "aioconsole" ];
+
+  meta = {
     description = "Asynchronous console and interfaces for asyncio";
+    changelog = "https://github.com/vxgmichel/aioconsole/releases/tag/v${finalAttrs.version}";
     homepage = "https://github.com/vxgmichel/aioconsole";
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ catern ];
+    license = lib.licenses.gpl3Only;
+    mainProgram = "apython";
   };
-}
+})

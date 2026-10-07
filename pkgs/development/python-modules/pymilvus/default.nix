@@ -1,80 +1,119 @@
-{ lib
-, buildPythonPackage
-, environs
-, fetchFromGitHub
-, gitpython
-, grpcio
-, grpcio-testing
-, minio
-, mmh3
-, pandas
-, pyarrow
-, pytestCheckHook
-, pythonOlder
-, pythonRelaxDepsHook
-, requests
-, scikit-learn
-, setuptools-scm
-, ujson
-, wheel
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  gitpython,
+  setuptools,
+  setuptools-scm,
+
+  # dependencies
+  cachetools,
+  grpcio,
+  # milvus-lite, (unpackaged)
+  orjson,
+  pandas,
+  protobuf,
+  python-dotenv,
+
+  # optional-dependencies
+  azure-storage-blob,
+  minio,
+  pyarrow,
+  requests,
+  urllib3,
+
+  # tests
+  grpcio-testing,
+  pytest-asyncio,
+  pytest-benchmark,
+  pytestCheckHook,
+  scipy,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pymilvus";
-  version = "2.3.6";
+  version = "2.6.12";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "milvus-io";
     repo = "pymilvus";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-K7k3MTOEm9+HDwMps9C8Al0Jmp1ptJw3pN1LEBOUz0U=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-vjXqGb4HYxa5qHpy8AJBO2G8s8AndJs+zGvxbfvwObY=";
   };
 
+  build-system = [
+    gitpython
+    setuptools
+    setuptools-scm
+  ];
+
   pythonRelaxDeps = [
-    "environs"
     "grpcio"
   ];
 
-  nativeBuildInputs = [
-    gitpython
-    pythonRelaxDepsHook
-    setuptools-scm
-    wheel
+  pythonRemoveDeps = [
+    "milvus-lite"
   ];
 
-  propagatedBuildInputs = [
-    environs
+  dependencies = [
+    cachetools
     grpcio
-    minio
-    mmh3
+    # milvus-lite
+    orjson
     pandas
-    pyarrow
-    requests
-    ujson
+    protobuf
+    python-dotenv
+    setuptools
   ];
+
+  optional-dependencies = {
+    bulk_writer = [
+      azure-storage-blob
+      minio
+      pyarrow
+      requests
+      urllib3
+    ];
+  };
+
+  pythonImportsCheck = [ "pymilvus" ];
 
   nativeCheckInputs = [
     grpcio-testing
+    pytest-asyncio
+    pytest-benchmark
     pytestCheckHook
-    scikit-learn
-  ];
-
-  pythonImportsCheck = [
-    "pymilvus"
-  ];
+    scipy
+  ]
+  ++ finalAttrs.passthru.optional-dependencies.bulk_writer;
 
   disabledTests = [
+    # tries to read .git
     "test_get_commit"
+
+    # requires network access
+    "test_deadline_exceeded_shows_connecting_state"
+
+    # mock issue in sandbox
+    "test_milvus_client_creates_unbound_alias"
   ];
 
-  meta = with lib; {
+  disabledTestPaths = [
+    # requires running milvus server
+    "examples/"
+
+    # tries to write to nix store
+    "tests/test_bulk_writer_stage.py"
+  ];
+
+  meta = {
     description = "Python SDK for Milvus";
     homepage = "https://github.com/milvus-io/pymilvus";
-    changelog = "https://github.com/milvus-io/pymilvus/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ happysalada ];
+    changelog = "https://github.com/milvus-io/pymilvus/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ happysalada ];
   };
-}
+})

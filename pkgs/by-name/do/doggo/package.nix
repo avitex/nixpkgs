@@ -1,43 +1,53 @@
-{ buildGoModule
-, fetchFromGitHub
-, installShellFiles
-, lib
+{
+  lib,
+  stdenv,
+  buildGoModule,
+  fetchFromGitHub,
+  installShellFiles,
+  nix-update-script,
 }:
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "doggo";
-  version = "0.5.7";
+  version = "1.4.0";
 
   src = fetchFromGitHub {
     owner = "mr-karan";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-hzl7BE3vsE2G9O2nwN/gkqQTJ+9aDfNIjmpmgN1AYq8=";
+    repo = "doggo";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-w6znzdyY4XXI3lqZnF5NSe/0FLDRGvyTgDsZ00JS174=";
   };
 
-  vendorHash = "sha256-uonybBLABPj9CPtc+y82ajvQI7kubK+lKi4eLcZIUqA=";
+  vendorHash = "sha256-pIPIK2IYultYXzMw/cTwrDhNNOHfelniY+pQL52tI34=";
   nativeBuildInputs = [ installShellFiles ];
   subPackages = [ "cmd/doggo" ];
 
   ldflags = [
-    "-w -s"
-    "-X main.buildVersion=v${version}"
+    "-s"
+    "-X main.buildVersion=v${finalAttrs.version}"
   ];
 
-  postInstall = ''
+  postInstall = lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
     installShellCompletion --cmd doggo \
-      --fish --name doggo.fish completions/doggo.fish \
-      --zsh --name _doggo completions/doggo.zsh
+      --bash <($out/bin/doggo completions bash) \
+      --fish <($out/bin/doggo completions fish) \
+      --zsh <($out/bin/doggo completions zsh)
   '';
 
-  meta = with lib; {
+  passthru.updateScript = nix-update-script { };
+
+  meta = {
     homepage = "https://github.com/mr-karan/doggo";
     description = "Command-line DNS Client for Humans. Written in Golang";
+    mainProgram = "doggo";
     longDescription = ''
       doggo is a modern command-line DNS client (like dig) written in Golang.
       It outputs information in a neat concise manner and supports protocols like DoH, DoT, DoQ, and DNSCrypt as well
     '';
-    license = licenses.gpl3Only;
-    maintainers = with maintainers; [ georgesalkhouri ];
+    license = lib.licenses.gpl3Only;
+    maintainers = with lib.maintainers; [
+      georgesalkhouri
+      ma27
+    ];
   };
-}
+})

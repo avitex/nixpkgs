@@ -1,26 +1,28 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, numpy
-, pythonOlder
-, sqlitedict
-, websockets
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  numpy,
+  setuptools,
+  sqlitedict,
+  websockets,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "aiopylgtv";
   version = "0.4.1";
-  format = "setuptools";
-  disabled = pythonOlder "3.7";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "bendavid";
-    repo = pname;
-    rev = version;
+    repo = "aiopylgtv";
+    tag = finalAttrs.version;
     hash = "sha256-NkWJGy5QUrhpbARoscrXy/ilCjAz01YxeVTH0I+IjNM=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     numpy
     sqlitedict
     websockets
@@ -30,10 +32,11 @@ buildPythonPackage rec {
   doCheck = false;
   pythonImportsCheck = [ "aiopylgtv" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python library to control webOS based LG TV units";
+    mainProgram = "aiopylgtvcommand";
     homepage = "https://github.com/bendavid/aiopylgtv";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

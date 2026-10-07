@@ -1,16 +1,20 @@
-{ lib, fetchFromGitHub, buildDunePackage
-, containers, qcheck
+{
+  lib,
+  fetchFromGitHub,
+  buildDunePackage,
+  containers,
+  qcheck,
 }:
 
-buildDunePackage rec {
-  version = "0.5";
+buildDunePackage (finalAttrs: {
+  version = "0.5.1";
   pname = "oseq";
 
   src = fetchFromGitHub {
     owner = "c-cube";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-JMIcRyciNvLOE1Gpin7CpcDNSmGYFxZWsDN0X6D/NVI=";
+    repo = "oseq";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-fyr/OKlvvHBfovtdubSW4rd4OwQbMLKWXghyU3uBy/k=";
   };
 
   minimalOCamlVersion = "4.08";
@@ -28,4 +32,4 @@ buildDunePackage rec {
     license = lib.licenses.bsd2;
     maintainers = [ lib.maintainers.vbgl ];
   };
-}
+})

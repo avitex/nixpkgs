@@ -1,51 +1,44 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pytestCheckHook
-, click
-, setuptools-scm
-, pythonOlder
-, typing-extensions
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  pytestCheckHook,
+  click,
+  setuptools-scm,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "cloup";
-  version = "3.0.4";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "3.1.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-ZYER4vSbglaoItrF+gIFv2QQn978Q185kjSQoysT7Ak=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-Y3weYo/pjz8gpeRNpZGnK0K/VNfUUnGQvzntX2SvdYU=";
   };
 
-  nativeBuildInputs = [
-    setuptools-scm
-  ];
+  postPatch = ''
+    substituteInPlace setup.py \
+      --replace-fail "setuptools_scm<10" setuptools_scm
+  '';
 
-  propagatedBuildInputs = [
-    click
-  ] ++ lib.optionals (pythonOlder "3.8") [
-    typing-extensions
-  ];
+  build-system = [ setuptools-scm ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  dependencies = [ click ];
 
-  pythonImportsCheck = [
-    "cloup"
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  meta = with lib; {
+  pythonImportsCheck = [ "cloup" ];
+
+  meta = {
     homepage = "https://github.com/janLuke/cloup";
     description = "Click extended with option groups, constraints, aliases, help themes";
-    changelog = "https://github.com/janluke/cloup/releases/tag/v${version}";
+    changelog = "https://github.com/janluke/cloup/releases/tag/v${finalAttrs.version}";
     longDescription = ''
-      Enriches Click with option groups, constraints, command aliases, help sections for subcommands, themes for --help and other stuff.
+      Enriches Click with option groups, constraints, command aliases, help sections for
+      subcommands, themes for --help and other stuff.
     '';
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ friedelino ];
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
-}
+})

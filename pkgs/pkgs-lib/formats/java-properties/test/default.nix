@@ -1,9 +1,9 @@
-{ fetchurl
-, formats
-, glibcLocales
-, jdk
-, lib
-, stdenv
+{
+  formats,
+  glibcLocales,
+  jdk,
+  lib,
+  stdenv,
 }:
 
 # This test primarily tests correct escaping.
@@ -53,32 +53,30 @@ stdenv.mkDerivation {
     jdk
     glibcLocales
   ];
-
+  __structuredAttrs = true;
+  strictDeps = true;
   # technically should go through the type.merge first, but that's tested
   # in tests/formats.nix.
   properties = javaProperties.generate "example.properties" input;
 
   # Expected output as printed by Main.java
-  passAsFile = [ "expected" ];
-  expected = concatStrings (attrValues (
-    mapAttrs
-      (key: value:
-        ''
-          KEY
-          ${key}
-          VALUE
-          ${value}
+  expected = concatStrings (
+    attrValues (
+      mapAttrs (key: value: ''
+        KEY
+        ${key}
+        VALUE
+        ${value}
 
-        ''
-      )
-      input
-  ));
+      '') input
+    )
+  );
 
-  src = lib.sourceByRegex ./. [
-    ".*\.java"
+  src = lib.sources.sourceByGlobs ./. [
+    "**/*.java"
   ];
   # On Linux, this can be C.UTF-8, but darwin + zulu requires en_US.UTF-8
-  LANG = "en_US.UTF-8";
+  env.LANG = "en_US.UTF-8";
   buildPhase = ''
     javac Main.java
   '';
@@ -86,7 +84,7 @@ stdenv.mkDerivation {
   checkPhase = ''
     cat -v $properties
     java Main $properties >actual
-    diff -U3 $expectedPath actual
+    diff -U3 <(printf "%s" "$expected") actual
   '';
   installPhase = "touch $out";
 }

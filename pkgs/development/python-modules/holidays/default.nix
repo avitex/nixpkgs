@@ -1,49 +1,46 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-
-# build-system
-, setuptools
-
-# l10n
-, polib
-, lingua
-, chameleon
-
-# dependencies
-, python-dateutil
-
-# tests
-, importlib-metadata
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  chameleon,
+  fetchFromGitHub,
+  gitpython,
+  importlib-metadata,
+  lingva,
+  numpy,
+  polib,
+  pytest-cov-stub,
+  pytestCheckHook,
+  python-dateutil,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "holidays";
-  version = "0.40";
+  version = "0.104";
   pyproject = true;
 
-  disabled = pythonOlder "3.8";
-
   src = fetchFromGitHub {
-    owner = "dr-prodigy";
+    owner = "vacanza";
     repo = "python-holidays";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-rFitLHUgXSWNd59VzG01ggaTHfVzI50OAi7Gxr6pMug=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-KnWs8ft4eNM+cZVfXWxlCld8J+ujivMIZikc+AqjNAk=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
 
     # l10n
-    lingua
+    lingva
     chameleon
+    gitpython
     polib
   ];
 
   postPatch = ''
     patchShebangs scripts/l10n/*.py
+
+    substituteInPlace holidays/version.py \
+      --replace-fail 'version("holidays")' '"${finalAttrs.version}"'
   '';
 
   preBuild = ''
@@ -52,33 +49,26 @@ buildPythonPackage rec {
     ./scripts/l10n/generate_mo_files.py
   '';
 
-  propagatedBuildInputs = [
-    python-dateutil
-  ];
-
-  doCheck = false;
+  dependencies = [ python-dateutil ];
 
   nativeCheckInputs = [
     importlib-metadata
+    numpy
     polib
+    pytest-cov-stub
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "holidays"
-  ];
+  pythonImportsCheck = [ "holidays" ];
 
-  disabledTests = [
-    # Failure starting with 0.24
-    "test_l10n"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Generate and work with holidays in Python";
-    homepage = "https://github.com/dr-prodigy/python-holidays";
-    changelog = "https://github.com/dr-prodigy/python-holidays/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab jluttine ];
+    homepage = "https://github.com/vacanza/python-holidays";
+    changelog = "https://github.com/vacanza/holidays/blob/${finalAttrs.src.tag}/CHANGES.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [
+      fab
+      jluttine
+    ];
   };
-}
-
+})

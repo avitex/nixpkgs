@@ -1,14 +1,20 @@
-{ lib, buildGoModule, fetchFromGitHub, installShellFiles }:
+{
+  lib,
+  stdenv,
+  buildGoModule,
+  fetchFromGitHub,
+  installShellFiles,
+}:
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "ory";
-  version = "0.3.1";
+  version = "1.3.3";
 
   src = fetchFromGitHub {
     owner = "ory";
     repo = "cli";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-dO595NzdkVug955dqji/ttAPb+sMGLxJftXHzHA37Lo=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-+Q+5HYb+Bi/mc9rt44FsxPojaiee7P1VbQYFq9QFI34=";
   };
 
   nativeBuildInputs = [
@@ -17,27 +23,38 @@ buildGoModule rec {
 
   subPackages = [ "." ];
 
-  CGO_ENABLED = 1;
+  env.CGO_ENABLED = 1;
+
+  ldflags = [
+    "-X=github.com/ory/cli/buildinfo.Version=v${finalAttrs.version}"
+    "-X=github.com/ory/cli/buildinfo.GitHash=${finalAttrs.src.rev}"
+  ];
 
   tags = [
     "sqlite"
   ];
 
-  vendorHash = "sha256-H1dM/r7gJvjnexQwlA4uhJ7rUH15yg4AMRW/f0k1Ixw=";
-
+  vendorHash = "sha256-LeCZqTABbYEU4l0XOEgXXkkgIlLB0OjLw763sEbXaQM=";
   postInstall = ''
     mv $out/bin/cli $out/bin/ory
+  ''
+  + lib.optionalString (stdenv.buildPlatform.canExecute stdenv.hostPlatform) ''
+    export version=v${finalAttrs.version}
     installShellCompletion --cmd ory \
       --bash <($out/bin/ory completion bash) \
       --fish <($out/bin/ory completion fish) \
       --zsh <($out/bin/ory completion zsh)
   '';
 
-  meta = with lib; {
+  meta = {
+    description = "CLI for Ory";
     mainProgram = "ory";
-    description = "The Ory CLI";
     homepage = "https://www.ory.sh/cli";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ luleyleo nicolas-goudry ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [
+      luleyleo
+      nicolas-goudry
+      debtquity
+    ];
   };
-}
+})

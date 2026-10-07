@@ -1,23 +1,24 @@
-{ stdenv
-, fetchurl
-, lib
-, vdr
-, libcap
-, libvdpau
-, xine-lib
-, libjpeg
-, libextractor
-, libglvnd
-, libGLU
-, libX11
-, libXext
-, libXrender
-, libXrandr
-, ffmpeg
-, avahi
-, wayland
-, makeWrapper
-, dbus-glib
+{
+  stdenv,
+  fetchurl,
+  lib,
+  vdr,
+  libcap,
+  libvdpau,
+  xine-lib,
+  libjpeg,
+  libextractor,
+  libglvnd,
+  libGLU,
+  libx11,
+  libxext,
+  libxrender,
+  libxrandr,
+  ffmpeg,
+  avahi,
+  wayland,
+  makeWrapper,
+  dbus-glib,
 }:
 let
   makeXinePluginPath = l: lib.concatStringsSep ":" (map (p: "${p}/lib/xine/plugins") l);
@@ -50,7 +51,12 @@ let
     postFixup = ''
       for f in $out/bin/*; do
         wrapProgram $f \
-          --prefix XINE_PLUGIN_PATH ":" "${makeXinePluginPath [ "$out" xine-lib ]}"
+          --prefix XINE_PLUGIN_PATH ":" "${
+            makeXinePluginPath [
+              "$out"
+              xine-lib
+            ]
+          }"
       done
     '';
 
@@ -65,23 +71,26 @@ let
       libglvnd
       libGLU
       libvdpau
-      libXext
-      libXrandr
-      libXrender
-      libX11
+      libxext
+      libxrandr
+      libxrender
+      libx11
       vdr
       xine-lib
       avahi
       wayland
     ];
 
-    passthru.requiredXinePlugins = [ xine-lib self ];
+    passthru.requiredXinePlugins = [
+      xine-lib
+      self
+    ];
 
-    meta = with lib;{
+    meta = {
       homepage = "https://sourceforge.net/projects/xineliboutput/";
       description = "Xine-lib based software output device for VDR";
-      maintainers = [ maintainers.ck3d ];
-      license = licenses.gpl2;
+      maintainers = [ lib.maintainers.ck3d ];
+      license = lib.licenses.gpl2;
       inherit (vdr.meta) platforms;
     };
   };

@@ -1,45 +1,38 @@
-{ lib
-, buildPythonPackage
-, click
-, colorful
-, docopt
-, fetchFromGitHub
-, freezegun
-, humanize
-, lark
-, lxml
-, parse-type
-, pysingleton
-, pytest-mock
-, pytestCheckHook
-, pythonOlder
-, pyyaml
-, tag-expressions
+{
+  lib,
+  buildPythonPackage,
+  colorful,
+  docopt,
+  fetchFromGitHub,
+  freezegun,
+  humanize,
+  lxml,
+  parse-type,
+  pytest-mock,
+  pytestCheckHook,
+  pyyaml,
+  tag-expressions,
 }:
 
 buildPythonPackage rec {
   pname = "radish-bdd";
-  version = "0.17.1";
+  version = "0.18.4";
   format = "setuptools";
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = pname;
     repo = "radish";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-9Wt+W7PWUVijzAeZMvcOl/Na60OCCGJJqxh2UaAxAcM=";
+    tag = "v${version}";
+    hash = "sha256-pnZ/vqjMd1Q/wF1W6joYrIulZSXAzS2G3E5Ke5VSAQg=";
   };
 
   propagatedBuildInputs = [
-    click
     colorful
     docopt
     humanize
-    lark
     lxml
     parse-type
-    pysingleton
+    pyyaml
     tag-expressions
   ];
 
@@ -47,22 +40,18 @@ buildPythonPackage rec {
     freezegun
     pytest-mock
     pytestCheckHook
-    pyyaml
   ];
 
-  pythonImportsCheck = [
-    "radish"
-  ];
+  pythonImportsCheck = [ "radish" ];
 
-  disabledTests = [
-    "test_main_cli_calls"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Behaviour-Driven-Development tool for python";
     homepage = "https://radish-bdd.github.io/";
-    changelog = "https://github.com/radish-bdd/radish/blob/v${version}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ kalbasit ];
+    changelog = "https://github.com/radish-bdd/radish/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [
+      kalbasit
+      l33tname
+    ];
   };
 }

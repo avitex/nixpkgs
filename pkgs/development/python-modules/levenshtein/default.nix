@@ -1,64 +1,58 @@
-{ lib
-, stdenv
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, cmake
-, cython_3
-, pytestCheckHook
-, rapidfuzz
-, rapidfuzz-cpp
-, scikit-build
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  cmake,
+  cython,
+  ninja,
+  scikit-build-core,
+  rapidfuzz-cpp,
+  rapidfuzz,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "levenshtein";
-  version = "0.23.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.6";
+  version = "0.27.3";
+  pyproject = true;
 
   src = fetchFromGitHub {
-    owner = "maxbachmann";
+    owner = "rapidfuzz";
     repo = "Levenshtein";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-xQimslz/G6nf2uYerLSaRAK5gvmfDmWTzEx/fh+nqg0=";
-    fetchSubmodules = true; ## for vendored `rapidfuzz-cpp`
+    tag = "v${version}";
+    hash = "sha256-iKWS7gm0t3yPgeX5N09cTa3N1C6GXvIALueO8DlfLfE=";
   };
 
-  nativeBuildInputs = [
+  # https://github.com/rapidfuzz/Levenshtein/pull/84
+  patches = [ ./cython-3.2-compat.patch ];
+
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail "Cython>=3.1.6,<3.2.0" Cython
+  '';
+
+  build-system = [
     cmake
-    cython_3
-    scikit-build
+    cython
+    ninja
+    scikit-build-core
   ];
 
   dontUseCmakeConfigure = true;
 
-  buildInputs = [
-    rapidfuzz-cpp
-  ];
+  buildInputs = [ rapidfuzz-cpp ];
 
-  env.NIX_CFLAGS_COMPILE = toString (lib.optionals (stdenv.cc.isClang && stdenv.isDarwin) [
-    "-fno-lto"  # work around https://github.com/NixOS/nixpkgs/issues/19098
-  ]);
+  dependencies = [ rapidfuzz ];
 
-  propagatedBuildInputs = [
-    rapidfuzz
-  ];
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  pythonImportsCheck = [ "Levenshtein" ];
 
-  pythonImportsCheck = [
-    "Levenshtein"
-  ];
-
-  meta = with lib; {
+  meta = {
     description = "Functions for fast computation of Levenshtein distance and string similarity";
-    homepage = "https://github.com/maxbachmann/Levenshtein";
-    changelog = "https://github.com/maxbachmann/Levenshtein/blob/${src.rev}/HISTORY.md";
-    license = licenses.gpl2Plus;
-    maintainers = with maintainers; [ fab ];
+    homepage = "https://github.com/rapidfuzz/Levenshtein";
+    changelog = "https://github.com/rapidfuzz/Levenshtein/blob/v${version}/HISTORY.md";
+    license = lib.licenses.gpl2Plus;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

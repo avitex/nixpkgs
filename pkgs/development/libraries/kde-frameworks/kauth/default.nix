@@ -1,12 +1,22 @@
 {
-  lib, stdenv, mkDerivation, propagate,
-  extra-cmake-modules, kcoreaddons, qttools,
-  enablePolkit ? stdenv.isLinux, polkit-qt
+  lib,
+  stdenv,
+  mkDerivation,
+  propagate,
+  cmake,
+  extra-cmake-modules,
+  kcoreaddons,
+  qttools,
+  enablePolkit ? stdenv.hostPlatform.isLinux,
+  polkit-qt,
 }:
 
 mkDerivation {
   pname = "kauth";
-  nativeBuildInputs = [ extra-cmake-modules ];
+  nativeBuildInputs = [
+    cmake
+    extra-cmake-modules
+  ];
   buildInputs = lib.optional enablePolkit polkit-qt ++ [ qttools ];
   propagatedBuildInputs = [ kcoreaddons ];
   patches = [
@@ -14,6 +24,9 @@ mkDerivation {
   ];
   # library stores reference to plugin path,
   # separating $out from $bin would create a reference cycle
-  outputs = [ "out" "dev" ];
+  outputs = [
+    "out"
+    "dev"
+  ];
   setupHook = propagate "out";
 }

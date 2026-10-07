@@ -1,54 +1,48 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, blurhash
-, cryptography
-, decorator
-, http-ece
-, python-dateutil
-, python-magic
-, requests
-, six
-, pytestCheckHook
-, pytest-mock
-, pytest-vcr
-, requests-mock
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  blurhash,
+  cryptography,
+  decorator,
+  graphemeu,
+  http-ece,
+  python-dateutil,
+  python-magic,
+  requests,
+  pytestCheckHook,
+  pytest-cov-stub,
+  pytest-mock,
+  pytest-vcr,
+  requests-mock,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "mastodon-py";
-  version = "1.8.1";
+  version = "2.2.2";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "halcy";
     repo = "Mastodon.py";
-    rev = "refs/tags/${version}";
-    hash = "sha256-r0AAUjd2MBfZANEpyztMNyaQTlGWvWoUVjJNO1eL218=";
+    tag = "v${version}";
+    hash = "sha256-/1oOouJjCCBCymfl9ps3eMDs099cqRY5f4j2jMKKBfE=";
   };
 
-  postPatch = ''
-    sed -i '/addopts/d' setup.cfg
-  '';
+  build-system = [ setuptools ];
 
-  nativeBuildInputs = [
-    setuptools
-  ];
-
-  propagatedBuildInputs = [
+  dependencies = [
     blurhash
     decorator
     python-dateutil
     python-magic
     requests
-    six
   ];
 
-  passthru.optional-dependencies = {
-    blurhash = [
-      blurhash
-    ];
+  optional-dependencies = {
+    blurhash = [ blurhash ];
+    grapheme = [ graphemeu ];
     webpush = [
       http-ece
       cryptography
@@ -57,26 +51,20 @@ buildPythonPackage rec {
 
   nativeCheckInputs = [
     pytestCheckHook
+    pytest-cov-stub
     pytest-mock
     pytest-vcr
     requests-mock
-    setuptools
-  ] ++ lib.flatten (builtins.attrValues passthru.optional-dependencies);
-
-  disabledTests = [
-    "test_notifications_dismiss_pre_2_9_2"
-    "test_status_card_pre_2_9_2"
-    "test_stream_user_direct"
-    "test_stream_user_local"
-  ];
+  ]
+  ++ lib.concatAttrValues optional-dependencies;
 
   pythonImportsCheck = [ "mastodon" ];
 
-  meta = with lib; {
-    changelog = "https://github.com/halcy/Mastodon.py/blob/${src.rev}/CHANGELOG.rst";
+  meta = {
+    changelog = "https://github.com/halcy/Mastodon.py/blob/${src.tag}/CHANGELOG.rst";
     description = "Python wrapper for the Mastodon API";
     homepage = "https://github.com/halcy/Mastodon.py";
-    license = licenses.mit;
-    maintainers = with maintainers; [ dotlambda ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ dotlambda ];
   };
 }

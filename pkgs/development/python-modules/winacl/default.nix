@@ -1,43 +1,35 @@
-{ lib
-, buildPythonPackage
-, cryptography
-, fetchPypi
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  cryptography,
+  fetchPypi,
+  setuptools,
 }:
 
 buildPythonPackage rec {
   pname = "winacl";
-  version = "0.1.8";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.1.9";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-RCcaMCVi3lFin2jvFUDUDzom57wBc2RrAaZ3nO2tZEw=";
+    hash = "sha256-r3DC7DAXi/njyKHEjCXoeBI1/iwbMhrbRuLyrh+NSqs=";
   };
 
-  propagatedBuildInputs = [
-    cryptography
-  ];
+  build-system = [ setuptools ];
 
-  postPatch = ''
-    substituteInPlace setup.py \
-      --replace "cryptography>=38.0.1" "cryptography"
-  '';
+  dependencies = [ cryptography ];
 
   # Project doesn't have tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "winacl"
-  ];
+  pythonImportsCheck = [ "winacl" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python module for ACL/ACE/Security descriptor manipulation";
     homepage = "https://github.com/skelsec/winacl";
     changelog = "https://github.com/skelsec/winacl/releases/tag/${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

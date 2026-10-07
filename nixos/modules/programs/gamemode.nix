@@ -1,29 +1,36 @@
-{ config, lib, pkgs, ... }:
-
-with lib;
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   cfg = config.programs.gamemode;
-  settingsFormat = pkgs.formats.ini { };
+  settingsFormat = pkgs.formats.ini { listsAsDuplicateKeys = true; };
   configFile = settingsFormat.generate "gamemode.ini" cfg.settings;
 in
 {
   options = {
     programs.gamemode = {
-      enable = mkEnableOption (lib.mdDoc "GameMode to optimise system performance on demand");
+      enable = lib.mkEnableOption "GameMode to optimise system performance on demand";
 
-      enableRenice = mkEnableOption (lib.mdDoc "CAP_SYS_NICE on gamemoded to support lowering process niceness") // {
-        default = true;
-      };
+      package = lib.mkPackageOption pkgs "gamemode" { };
 
-      settings = mkOption {
+      enableRenice =
+        lib.mkEnableOption "CAP_SYS_NICE on gamemoded to support lowering process niceness"
+        // {
+          default = true;
+        };
+
+      settings = lib.mkOption {
         type = settingsFormat.type;
         default = { };
-        description = lib.mdDoc ''
+        description = ''
           System-wide configuration for GameMode (/etc/gamemode.ini).
-          See gamemoded(8) man page for available settings.
+          See {manpage}`gamemoded(8)` man page for available settings.
         '';
-        example = literalExpression ''
+        example = lib.literalExpression ''
           {
             general = {
               renice = 10;
@@ -46,45 +53,51 @@ in
     };
   };
 
-  config = mkIf cfg.enable {
+  config = lib.mkIf cfg.enable {
     environment = {
-      systemPackages = [ pkgs.gamemode ];
+      systemPackages = [ cfg.package ];
       etc."gamemode.ini".source = configFile;
     };
 
     security = {
-      polkit.enable = true;
-      wrappers = mkIf cfg.enableRenice {
+      polkit = {
+        enable = true;
+        enablePkexecWrapper = lib.mkDefault true;
+      };
+      wrappers = lib.mkIf cfg.enableRenice {
         gamemoded = {
           owner = "root";
           group = "root";
-          source = "${pkgs.gamemode}/bin/gamemoded";
+          source = "${cfg.package}/bin/gamemoded";
           capabilities = "cap_sys_nice+ep";
         };
       };
     };
 
     systemd = {
-      packages = [ pkgs.gamemode ];
+      packages = [ cfg.package ];
       user.services.gamemoded = {
-        # The upstream service already defines this, but doesn't get applied.
-        # See https://github.com/NixOS/nixpkgs/issues/81138
-        wantedBy = [ "default.target" ];
-
         # Use pkexec from the security wrappers to allow users to
         # run libexec/cpugovctl & libexec/gpuclockctl as root with
         # the the actions defined in share/polkit-1/actions.
         #
         # This uses a link farm to make sure other wrapped executables
         # aren't included in PATH.
-        environment.PATH = mkForce (pkgs.linkFarm "pkexec" [
-          {
-            name = "pkexec";
-            path = "${config.security.wrapperDir}/pkexec";
-          }
-        ]);
+        environment.PATH = lib.mkForce (
+          pkgs.linkFarm "pkexec" [
+            {
+              name = "pkexec";
+              path = "${config.security.wrapperDir}/pkexec";
+            }
+          ]
+        );
 
-        serviceConfig.ExecStart = mkIf cfg.enableRenice [
+        restartTriggers = [
+          cfg.package
+          config.environment.etc."gamemode.ini".source
+        ];
+
+        serviceConfig.ExecStart = lib.mkIf cfg.enableRenice [
           "" # Tell systemd to clear the existing ExecStart list, to prevent appending to it.
           "${config.security.wrapperDir}/gamemoded"
         ];
@@ -95,6 +108,6 @@ in
   };
 
   meta = {
-    maintainers = with maintainers; [ kira-bruneau ];
+    maintainers = with lib.maintainers; [ kira-bruneau ];
   };
 }

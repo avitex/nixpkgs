@@ -1,28 +1,35 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, transifex-cli
-, babel
-, click
-, setuptools
-, sphinx
-, pytestCheckHook
-, mock
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  transifex-cli,
+  babel,
+  click,
+  setuptools,
+  setuptools-scm,
+  sphinx,
+  pytestCheckHook,
+  mock,
 }:
 
 buildPythonPackage rec {
   pname = "sphinx-intl";
-  version = "2.1.0";
-  format = "setuptools";
+  version = "2.4.0";
+  pyproject = true;
 
- src = fetchFromGitHub {
+  src = fetchFromGitHub {
     owner = "sphinx-doc";
-    repo = pname;
-    rev = version;
-    hash = "sha256-U/YCviGrsZNruVzfP0P2dGcB0K0Afh+XUZtp71OeP6c=";
+    repo = "sphinx-intl";
+    tag = version;
+    hash = "sha256-Q8k/XOT2s7u7IuQ85XrcARLPwMUC9Z6yeRshrIGbJdA=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [
+    setuptools
+    setuptools-scm
+  ];
+
+  dependencies = [
     babel
     click
     setuptools
@@ -37,10 +44,10 @@ buildPythonPackage rec {
 
   pythonImportsCheck = [ "sphinx_intl" ];
 
-  meta = with lib; {
+  meta = {
     description = "Sphinx utility that make it easy to translate and to apply translation";
     homepage = "https://github.com/sphinx-doc/sphinx-intl";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ thornycrackers ];
+    license = lib.licenses.bsd2;
+    maintainers = with lib.maintainers; [ thornycrackers ];
   };
 }

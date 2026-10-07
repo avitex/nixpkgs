@@ -1,4 +1,8 @@
-{ lib, buildPythonPackage, fetchPypi }:
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+}:
 
 buildPythonPackage rec {
   pname = "pycotap";
@@ -10,10 +14,10 @@ buildPythonPackage rec {
     hash = "sha256-Z0NV8BMAvgPff4cXhOSYZSwtiawZzXfujmFlJjSi+Do=";
   };
 
-  meta = with lib; {
+  meta = {
     description = "Test runner for unittest that outputs TAP results to stdout";
     homepage = "https://el-tramo.be/pycotap";
-    license = licenses.mit;
-    maintainers = with maintainers; [ mwolfe ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ mwolfe ];
   };
 }

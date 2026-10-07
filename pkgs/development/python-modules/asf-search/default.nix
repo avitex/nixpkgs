@@ -1,36 +1,39 @@
-{ lib
-, buildPythonPackage
-, dateparser
-, defusedxml
-, fetchFromGitHub
-, importlib-metadata
-, numpy
-, pytestCheckHook
-, python-dateutil
-, pythonOlder
-, pytz
-, remotezip
-, requests
-, requests-mock
-, shapely
-, tenacity
+{
+  lib,
+  buildPythonPackage,
+  dateparser,
+  defusedxml,
+  fetchFromGitHub,
+  importlib-metadata,
+  numpy,
+  pytestCheckHook,
+  python-dateutil,
+  pytz,
+  remotezip,
+  requests-mock,
+  requests,
+  setuptools-scm,
+  shapely,
+  tenacity,
 }:
 
 buildPythonPackage rec {
   pname = "asf-search";
-  version = "6.7.3";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "11.0.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "asfadmin";
     repo = "Discovery-asf_search";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-wtsPnppsW44OdvdkkuyPoqADzpecUytXEc6G4q7HEw0=";
+    tag = "v${version}";
+    hash = "sha256-Z6DZOjXpziCAn9ZqbRa1c0cAVAbPEt5Go63BlA4Umog=";
   };
 
-  propagatedBuildInputs = [
+  pythonRelaxDeps = [ "tenacity" ];
+
+  build-system = [ setuptools-scm ];
+
+  dependencies = [
     dateparser
     importlib-metadata
     numpy
@@ -48,15 +51,20 @@ buildPythonPackage rec {
     tenacity
   ];
 
-  pythonImportsCheck = [
-    "asf_search"
+  disabledTestPaths = [
+    # requires asf_enumeration, not packaged
+    "tests/BaselineSearch/test_baseline_search.py"
+    # requires network
+    "tests/Pair/test_Pair.py"
   ];
 
-  meta = with lib; {
-    changelog = "https://github.com/asfadmin/Discovery-asf_search/blob/${src.rev}/CHANGELOG.md";
+  pythonImportsCheck = [ "asf_search" ];
+
+  meta = {
     description = "Python wrapper for the ASF SearchAPI";
     homepage = "https://github.com/asfadmin/Discovery-asf_search";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ bzizou ];
+    changelog = "https://github.com/asfadmin/Discovery-asf_search/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ bzizou ];
   };
 }

@@ -1,23 +1,26 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
 }:
 
 buildPythonPackage rec {
   pname = "wheezy.template";
-  version = "3.1.0";
+  version = "3.2.2";
+  format = "setuptools";
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-4RAHysczaNzhKZjjS2bEdgFrtGFHH/weTVboQALslg8=";
+    hash = "sha256-hknPXHGPPNjRAr0TYVosPaTntsjwQjOKZBCU+qFlIHw=";
   };
 
   pythonImportsCheck = [ "wheezy.template" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://wheezytemplate.readthedocs.io/en/latest/";
-    description = "A lightweight template library";
-    license = licenses.mit;
-    maintainers = with maintainers; [ lilyinstarlight ];
+    description = "Lightweight template library";
+    mainProgram = "wheezy.template";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

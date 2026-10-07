@@ -1,39 +1,44 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, nix-update-script
-, pkg-config
-, meson
-, ninja
-, vala
-, desktop-file-utils
-, libcanberra
-, gtk3
-, glib
-, libgee
-, libhandy
-, granite
-, pango
-, bamf
-, sqlite
-, zeitgeist
-, libcloudproviders
-, libgit2-glib
-, wrapGAppsHook
-, systemd
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  nix-update-script,
+  pkg-config,
+  meson,
+  ninja,
+  vala,
+  desktop-file-utils,
+  libcanberra,
+  gtk3,
+  glib,
+  libgee,
+  libhandy,
+  libportal-gtk3,
+  granite,
+  pango,
+  poppler_gi,
+  sqlite,
+  zeitgeist,
+  libcloudproviders,
+  libgit2-glib,
+  wrapGAppsHook3,
+  systemdLibs,
 }:
 
 stdenv.mkDerivation rec {
   pname = "elementary-files";
-  version = "6.5.3";
+  version = "7.3.2";
 
-  outputs = [ "out" "dev" ];
+  outputs = [
+    "out"
+    "dev"
+  ];
 
   src = fetchFromGitHub {
     owner = "elementary";
     repo = "files";
     rev = version;
-    sha256 = "sha256-geJLHRo1Bd2oFT+UtirHj9FVSFTFMK/v/5h+NF9woFo=";
+    hash = "sha256-DFW2C9Uoa9RIqP7DoskEK0X0RQxb0nYe85xsgogOaKs=";
   };
 
   nativeBuildInputs = [
@@ -42,11 +47,10 @@ stdenv.mkDerivation rec {
     ninja
     pkg-config
     vala
-    wrapGAppsHook
+    wrapGAppsHook3
   ];
 
   buildInputs = [
-    bamf
     glib
     granite
     gtk3
@@ -55,9 +59,11 @@ stdenv.mkDerivation rec {
     libgee
     libgit2-glib
     libhandy
+    libportal-gtk3
     pango
+    poppler_gi
     sqlite
-    systemd
+    systemdLibs
     zeitgeist
   ];
 
@@ -65,12 +71,12 @@ stdenv.mkDerivation rec {
     updateScript = nix-update-script { };
   };
 
-  meta = with lib; {
+  meta = {
     description = "File browser designed for elementary OS";
     homepage = "https://github.com/elementary/files";
-    license = licenses.gpl3Plus;
-    platforms = platforms.linux;
-    maintainers = teams.pantheon.members;
+    license = lib.licenses.gpl3Plus;
+    platforms = lib.platforms.linux;
+    teams = [ lib.teams.pantheon ];
     mainProgram = "io.elementary.files";
   };
 }

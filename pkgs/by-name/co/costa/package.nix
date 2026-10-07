@@ -1,26 +1,27 @@
-{ stdenv
-, lib
-, fetchFromGitHub
-, cmake
-, mpi
-, scalapack
-, llvmPackages
+{
+  stdenv,
+  lib,
+  fetchFromGitHub,
+  cmake,
+  mpi,
+  scalapack,
+  llvmPackages,
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "COSTA";
-  version = "2.2.2";
+  version = "2.3.3";
 
   src = fetchFromGitHub {
     owner = "eth-cscs";
-    repo = pname;
-    rev = "v${version}";
-    hash = "sha256-jiAyZXC7wiuEnOLsQFFLxhN3AsGXN09q/gHC2Hrb2gg=";
+    repo = "COSTA";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-6U0L5Bthcspv0McMEUWvb68+W+/oaAx2wvE5lVgqlKQ=";
   };
 
   nativeBuildInputs = [ cmake ];
 
-  buildInputs = [ scalapack ] ++ lib.optional stdenv.isDarwin llvmPackages.openmp;
+  buildInputs = [ scalapack ] ++ lib.optional stdenv.hostPlatform.isDarwin llvmPackages.openmp;
 
   propagatedBuildInputs = [ mpi ];
 
@@ -29,12 +30,11 @@ stdenv.mkDerivation rec {
     "-DSCALAPACK_ROOT=${scalapack}"
   ];
 
-
-  meta = with lib; {
+  meta = {
     description = "Distributed Communication-Optimal Shuffle and Transpose Algorithm";
     homepage = "https://github.com/eth-cscs/COSTA";
-    license = licenses.bsd3;
-    platforms = platforms.linux;
-    maintainers = [ maintainers.sheepforce ];
+    license = lib.licenses.bsd3;
+    platforms = lib.platforms.linux;
+    maintainers = [ lib.maintainers.sheepforce ];
   };
-}
+})

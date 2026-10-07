@@ -1,33 +1,31 @@
-{ lib
-, azure-common
-, azure-mgmt-core
-, buildPythonPackage
-, fetchPypi
-, isodate
-, msrest
-, pythonOlder
-, typing-extensions
+{
+  lib,
+  azure-common,
+  azure-mgmt-core,
+  buildPythonPackage,
+  fetchPypi,
+  isodate,
+  setuptools,
+  typing-extensions,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "azure-mgmt-privatedns";
-  version = "1.1.0";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "2.0.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-MtucYFpKj/ANNON1UdXrBrTsJnq53iph3SJ1ypWj+5g=";
-    extension = "zip";
+    pname = "azure_mgmt_privatedns";
+    inherit (finalAttrs) version;
+    hash = "sha256-4GTSIhFTgkk8dr4QluTYMA6zGp70XBmKoZGZM8uQoSQ=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     azure-common
     azure-mgmt-core
     isodate
-    msrest
-  ]  ++ lib.optionals (pythonOlder "3.8") [
     typing-extensions
   ];
 
@@ -39,10 +37,11 @@ buildPythonPackage rec {
     "azure.mgmt.privatedns"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Microsoft Azure DNS Private Zones Client Library for Python";
-    homepage = "https://github.com/Azure/azure-sdk-for-python";
-    license = licenses.mit;
-    maintainers = with maintainers; [ jonringer ];
+    homepage = "https://github.com/Azure/azure-sdk-for-python/tree/main/sdk/network/azure-mgmt-privatedns";
+    changelog = "https://github.com/Azure/azure-sdk-for-python/blob/azure-mgmt-privatedns_${finalAttrs.version}/sdk/network/azure-mgmt-privatedns/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
-}
+})

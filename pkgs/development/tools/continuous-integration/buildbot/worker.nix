@@ -1,48 +1,44 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, buildbot
-, stdenv
+{
+  lib,
+  buildPythonPackage,
+  buildbot,
+  stdenv,
 
-# patch
-, coreutils
+  # patch
+  coreutils,
 
-# propagates
-, autobahn
-, future
-, msgpack
-, twisted
+  # build system
+  setuptools,
 
-# tests
-, parameterized
-, psutil
-, setuptools-trial
+  # propagates
+  autobahn,
+  msgpack,
+  twisted,
 
-# passthru
-, nixosTests
+  # tests
+  parameterized,
+  psutil,
+
+  # passthru
+  nixosTests,
 }:
 
-buildPythonPackage (rec {
-  pname = "buildbot-worker";
-  inherit (buildbot) version;
-
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-jihAPEzeegUEa/BZ93De7728IXjL7BkrwfPk5G6rnUw=";
-  };
+buildPythonPackage {
+  pname = "buildbot_worker";
+  inherit (buildbot) src version;
+  pyproject = true;
 
   postPatch = ''
+    cd worker
+    touch buildbot_worker/py.typed
     substituteInPlace buildbot_worker/scripts/logwatcher.py \
       --replace /usr/bin/tail "${coreutils}/bin/tail"
   '';
 
-  nativeBuildInputs = [
-    setuptools-trial
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     autobahn
-    future
     msgpack
     twisted
   ];
@@ -52,15 +48,17 @@ buildPythonPackage (rec {
     psutil
   ];
 
+  # the date-based version of buildbot-worker doesn't align with buildbot's version
+  dontCheckPythonMetadata = true;
+
   passthru.tests = {
     smoke-test = nixosTests.buildbot;
   };
 
-  meta = with lib; {
+  meta = {
     homepage = "https://buildbot.net/";
     description = "Buildbot Worker Daemon";
-    maintainers = teams.buildbot.members;
-    license = licenses.gpl2;
-    broken = stdenv.isDarwin; # https://hydra.nixos.org/build/243534318/nixlog/6
+    teams = [ lib.teams.buildbot ];
+    license = lib.licenses.gpl2;
   };
-})
+}

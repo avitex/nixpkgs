@@ -1,66 +1,75 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, fetchpatch
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fetchpatch,
 
-# build-system
-, poetry-core
+  # build-system
+  poetry-core,
 
-# docs
-, furo
-, sphinxHook
+  # docs
+  furo,
+  sphinxHook,
 
-# runtime
-, babel
-, flask
-, jinja2
-, pytz
+  # runtime
+  babel,
+  flask,
+  jinja2,
+  pytz,
 
-# tests
-, pytest-mock
-, pytestCheckHook
+  # tests
+  pytest-mock,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "flask-babel";
-  version = "4.0.0";
-  format = "pyproject";
-
-  src = fetchFromGitHub {
-    owner = "python-babel";
-    repo = "flask-babel";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-BAT+oupy4MCSjeZ4hFtSKMkGU9xZtc7Phnz1mIsb2Kc=";
-  };
+  version = "4.1.0";
+  pyproject = true;
 
   outputs = [
     "out"
     "doc"
   ];
 
+  src = fetchFromGitHub {
+    owner = "python-babel";
+    repo = "flask-babel";
+    tag = "v${version}";
+    hash = "sha256-NcwcMLGabWrjbFZhDU1MVWpqAm0prBlqHfTdLV7EqoI=";
+  };
+
+  patches = [
+    # Fix list-translations() ordering in tests
+    # https://github.com/python-babel/flask-babel/pull/242
+    (fetchpatch {
+      url = "https://github.com/python-babel/flask-babel/pull/242/commits/999735d825ee2f94701da29bcf819ad70ee03499.patch";
+      hash = "sha256-vhP/aSWaWpy1sVOJAcrLHJN/yrB+McWO9pkXDI9GeQ4=";
+    })
+  ];
+
   nativeBuildInputs = [
     furo
-    poetry-core
     sphinxHook
   ];
 
-  propagatedBuildInputs = [
+  build-system = [ poetry-core ];
+
+  dependencies = [
     babel
     flask
     jinja2
     pytz
   ];
 
-  pythonImportsCheck = [
-    "flask_babel"
-  ];
+  pythonImportsCheck = [ "flask_babel" ];
 
   checkInputs = [
     pytest-mock
     pytestCheckHook
   ];
 
-  meta = with lib; {
+  meta = {
     changelog = "https://github.com/python-babel/flask-babel/releases/tag/v${version}";
     description = "Adds i18n/l10n support to Flask applications";
     longDescription = ''
@@ -68,8 +77,9 @@ buildPythonPackage rec {
       This is based on the Python babel module as well as pytz both of which are
       installed automatically for you if you install this library.
     '';
-    license = licenses.bsd2;
-    maintainers = teams.sage.members ++ (with maintainers; [ matejc ]);
+    license = lib.licenses.bsd2;
+    maintainers = with lib.maintainers; [ matejc ];
+    teams = [ lib.teams.sage ];
     homepage = "https://github.com/python-babel/flask-babel";
   };
 }

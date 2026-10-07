@@ -1,21 +1,27 @@
-{ lib, stdenv, fetchFromGitHub, kernel, bc }:
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  kernel,
+  bc,
+}:
 
 stdenv.mkDerivation {
   pname = "rtl8188eus-aircrack";
-  version = "${kernel.version}-unstable-2023-09-21";
+  version = "${kernel.version}-unstable-2026-08-18";
 
   src = fetchFromGitHub {
-    owner = "aircrack-ng";
+    owner = "gglluukk";
     repo = "rtl8188eus";
-    rev = "3fae7237ba121f1169e9a2ea55040dc123697d3b";
-    sha256 = "sha256-ILSMEt9nMdg1ZbFeatWm8Yxf6a/E7Vm7KtKhN933KTc=";
+    rev = "f48878a7a66b1281e6eab0cf2b55e7149510daf2";
+    hash = "sha256-uothRY0G4FFKYDDhzoHTWnlLcuULBNWOz22Bps7yujw=";
   };
 
   prePatch = ''
     substituteInPlace ./Makefile \
-      --replace /lib/modules/ "${kernel.dev}/lib/modules/" \
-      --replace /sbin/depmod \# \
-      --replace '$(MODDESTDIR)' "$out/lib/modules/${kernel.modDirVersion}/kernel/net/wireless/"
+      --replace-fail /lib/modules/ "${kernel.dev}/lib/modules/" \
+      --replace-fail /sbin/depmod \# \
+      --replace-fail '$(MODDESTDIR)' "$out/lib/modules/${kernel.modDirVersion}/kernel/net/wireless/"
   '';
 
   hardeningDisable = [ "pic" ];
@@ -28,11 +34,10 @@ stdenv.mkDerivation {
     mkdir -p "$out/lib/modules/${kernel.modDirVersion}/kernel/net/wireless/"
   '';
 
-  meta = with lib; {
+  meta = {
     description = "RealTek RTL8188eus WiFi driver with monitor mode & frame injection support";
-    homepage = "https://github.com/aircrack-ng/rtl8188eus";
-    license = licenses.gpl2Only;
-    maintainers = with maintainers; [ moni ];
-    broken = (lib.versionAtLeast kernel.version "6.6") || ((lib.versions.majorMinor kernel.version) == "5.4" && kernel.isHardened);
+    homepage = "https://github.com/gglluukk/rtl8188eus";
+    license = lib.licenses.gpl2Only;
+    maintainers = with lib.maintainers; [ moni ];
   };
 }

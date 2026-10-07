@@ -1,29 +1,33 @@
-{ buildPythonPackage
-, fetchFromGitHub
-, lib
-, plantuml
-, markdown
-, requests
-, six
-, runCommand
-, writeText
-, plantuml-markdown
-, pythonOlder
+{
+  buildPythonPackage,
+  fetchFromGitHub,
+  pkgs, # Only for pkgs.plantuml,
+  lib,
+  plantuml,
+  markdown,
+  requests,
+  six,
+  runCommand,
+  writeText,
+  plantuml-markdown,
 }:
 
 buildPythonPackage rec {
   pname = "plantuml-markdown";
-  version = "3.9.2";
+  version = "3.11.2";
   format = "setuptools";
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "mikitex70";
-    repo = pname;
-    rev = "refs/tags/${version}";
-    hash = "sha256-k4Xs1w/26QAfNdJY6P1gpJkBzg/tWi7vDFKZi7naVHo=";
+    repo = "plantuml-markdown";
+    tag = version;
+    hash = "sha256-GyV9EHEyW75OWj4iG4MsNV5wEvygaBz4GpyxOzIB8oY=";
   };
+
+  postPatch = ''
+    substituteInPlace plantuml_markdown/plantuml_markdown.py \
+      --replace-fail '"plantuml_cmd": ["plantuml"' '"plantuml_cmd": ["${lib.getExe pkgs.plantuml}"'
+  '';
 
   propagatedBuildInputs = [
     plantuml
@@ -33,11 +37,10 @@ buildPythonPackage rec {
   ];
 
   # The package uses a custom script that downloads a certain version of plantuml for testing.
+  # Missing https://github.com/ezequielramos/http-server-mock which looks unmaintained
   doCheck = false;
 
-  pythonImportsCheck = [
-    "plantuml_markdown"
-  ];
+  pythonImportsCheck = [ "plantuml_markdown" ];
 
   passthru.tests.example-doc =
     let
@@ -47,24 +50,20 @@ buildPythonPackage rec {
         ```
       '';
     in
-    runCommand "plantuml-markdown-example-doc"
-      {
-        nativeBuildInputs = [ plantuml-markdown ];
-      } ''
+    runCommand "plantuml-markdown-example-doc" { nativeBuildInputs = [ plantuml-markdown ]; } ''
       markdown_py -x plantuml_markdown ${exampleDoc} > $out
 
       ! grep -q "Error" $out
     '';
 
-  meta = with lib; {
+  meta = {
     description = "PlantUML plugin for Python-Markdown";
     longDescription = ''
       This plugin implements a block extension which can be used to specify a PlantUML
       diagram which will be converted into an image and inserted in the document.
     '';
     homepage = "https://github.com/mikitex70/plantuml-markdown";
-    changelog = "https://github.com/mikitex70/plantuml-markdown/releases/tag/${version}";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ nikstur ];
+    changelog = "https://github.com/mikitex70/plantuml-markdown/releases/tag/${src.tag}";
+    license = lib.licenses.bsd2;
   };
 }

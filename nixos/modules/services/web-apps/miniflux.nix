@@ -1,49 +1,104 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
-with lib;
 let
+  inherit (lib)
+    mkEnableOption
+    mkPackageOption
+    mkOption
+    types
+    literalExpression
+    mkIf
+    ;
   cfg = config.services.miniflux;
 
-  defaultAddress = "localhost:8080";
-
-  pgbin = "${config.services.postgresql.package}/bin";
-  preStart = pkgs.writeScript "miniflux-pre-start" ''
-    #!${pkgs.runtimeShell}
-    ${pgbin}/psql "miniflux" -c "CREATE EXTENSION IF NOT EXISTS hstore"
-  '';
+  boolToInt = b: if b then 1 else 0;
 in
 
 {
   options = {
     services.miniflux = {
-      enable = mkEnableOption (lib.mdDoc "miniflux and creates a local postgres database for it");
+      enable = mkEnableOption "miniflux";
 
       package = mkPackageOption pkgs "miniflux" { };
 
-      config = mkOption {
-        type = with types; attrsOf (oneOf [ str int ]);
-        example = literalExpression ''
-          {
-            CLEANUP_FREQUENCY = 48;
-            LISTEN_ADDR = "localhost:8080";
-          }
-        '';
-        description = lib.mdDoc ''
-          Configuration for Miniflux, refer to
-          <https://miniflux.app/docs/configuration.html>
-          for documentation on the supported values.
-
-          Correct configuration for the database is already provided.
-          By default, listens on ${defaultAddress}.
+      createDatabaseLocally = mkOption {
+        type = types.bool;
+        default = true;
+        description = ''
+          Whether a PostgreSQL database should be automatically created and
+          configured on the local host. If set to `false`, you need provision a
+          database yourself.
         '';
       };
 
-      adminCredentialsFile = mkOption  {
-        type = types.path;
-        description = lib.mdDoc ''
+      config = mkOption {
+        type = types.submodule {
+          freeformType =
+            with types;
+            attrsOf (oneOf [
+              str
+              int
+            ]);
+          options = {
+            LISTEN_ADDR = mkOption {
+              type = types.str;
+              default = "localhost:8080";
+              description = ''
+                Address to listen on. Use absolute path for a Unix socket.
+                Multiple addresses can be specified, separated by commas.
+              '';
+              example = "127.0.0.1:8080, 127.0.0.1:8081";
+            };
+            DATABASE_URL = mkOption {
+              type = types.nullOr types.str;
+              defaultText = literalExpression ''
+                if createDatabaseLocally then "user=miniflux host=/run/postgresql dbname=miniflux" else null
+              '';
+              default =
+                if cfg.createDatabaseLocally then "user=miniflux host=/run/postgresql dbname=miniflux" else null;
+
+              description = ''
+                Postgresql connection parameters.
+                See [lib/pq](https://pkg.go.dev/github.com/lib/pq#hdr-Connection_String_Parameters) for more details.
+              '';
+            };
+            RUN_MIGRATIONS = mkOption {
+              type = with types; coercedTo bool boolToInt int;
+              default = true;
+              description = "Run database migrations.";
+            };
+            CREATE_ADMIN = mkOption {
+              type = with types; coercedTo bool boolToInt int;
+              default = true;
+              description = "Create an admin user from environment variables.";
+            };
+            WATCHDOG = mkOption {
+              type = with types; coercedTo bool boolToInt int;
+              default = true;
+              description = "Enable or disable Systemd watchdog.";
+            };
+          };
+        };
+        default = { };
+        description = ''
+          Configuration for Miniflux, refer to
+          <https://miniflux.app/docs/configuration.html>
+          for documentation on the supported values.
+        '';
+      };
+
+      adminCredentialsFile = mkOption {
+        type = types.nullOr types.path;
+        default = null;
+        description = ''
           File containing the ADMIN_USERNAME and
           ADMIN_PASSWORD (length >= 6) in the format of
-          an EnvironmentFile=, as described by systemd.exec(5).
+          an EnvironmentFile=, as described by {manpage}`systemd.exec(5)`.
         '';
         example = "/etc/nixos/miniflux-admin-credentials";
       };
@@ -51,46 +106,68 @@ in
   };
 
   config = mkIf cfg.enable {
-    services.miniflux.config =  {
-      LISTEN_ADDR = mkDefault defaultAddress;
-      DATABASE_URL = "user=miniflux host=/run/postgresql dbname=miniflux";
-      RUN_MIGRATIONS = 1;
-      CREATE_ADMIN = 1;
-    };
+    assertions = [
+      {
+        assertion = cfg.config.CREATE_ADMIN == 0 || cfg.adminCredentialsFile != null;
+        message = "services.miniflux.adminCredentialsFile must be set if services.miniflux.config.CREATE_ADMIN is 1";
+      }
+    ];
 
-    services.postgresql = {
+    services.postgresql = lib.mkIf cfg.createDatabaseLocally {
       enable = true;
-      ensureUsers = [ {
-        name = "miniflux";
-        ensureDBOwnership = true;
-      } ];
+      ensureUsers = [
+        {
+          name = "miniflux";
+          ensureDBOwnership = true;
+        }
+      ];
       ensureDatabases = [ "miniflux" ];
     };
 
-    systemd.services.miniflux-dbsetup = {
+    systemd.services.miniflux-dbsetup = lib.mkIf cfg.createDatabaseLocally {
       description = "Miniflux database setup";
-      requires = [ "postgresql.service" ];
-      after = [ "network.target" "postgresql.service" ];
+      requires = [ "postgresql.target" ];
+      after = [
+        "network.target"
+        "postgresql.target"
+      ];
       serviceConfig = {
         Type = "oneshot";
         User = config.services.postgresql.superUser;
-        ExecStart = preStart;
+        # The hstore extension is no longer needed as of v2.2.14
+        # and would prevent Miniflux from starting.
+        ExecStart = ''${config.services.postgresql.package}/bin/psql "miniflux" -c "DROP EXTENSION IF EXISTS hstore"'';
       };
     };
 
     systemd.services.miniflux = {
       description = "Miniflux service";
       wantedBy = [ "multi-user.target" ];
-      requires = [ "miniflux-dbsetup.service" ];
-      after = [ "network.target" "postgresql.service" "miniflux-dbsetup.service" ];
+      requires = lib.optionals cfg.createDatabaseLocally [
+        "miniflux-dbsetup.service"
+        "postgresql.target"
+      ];
+      after = [
+        "network.target"
+      ]
+      ++ lib.optionals cfg.createDatabaseLocally [
+        "postgresql.target"
+        "miniflux-dbsetup.service"
+      ];
 
       serviceConfig = {
-        ExecStart = "${cfg.package}/bin/miniflux";
+        Type = "notify";
+        ExecStart = lib.getExe cfg.package;
         User = "miniflux";
         DynamicUser = true;
         RuntimeDirectory = "miniflux";
         RuntimeDirectoryMode = "0750";
-        EnvironmentFile = cfg.adminCredentialsFile;
+        EnvironmentFile = lib.mkIf (cfg.adminCredentialsFile != null) cfg.adminCredentialsFile;
+        WatchdogSec = 60;
+        WatchdogSignal = "SIGKILL";
+        Restart = "always";
+        RestartSec = 5;
+
         # Hardening
         CapabilityBoundingSet = [ "" ];
         DeviceAllow = [ "" ];
@@ -107,28 +184,47 @@ in
         ProtectKernelModules = true;
         ProtectKernelTunables = true;
         ProtectProc = "invisible";
-        RestrictAddressFamilies = [ "AF_INET" "AF_INET6" "AF_UNIX" ];
+        RestrictAddressFamilies = [
+          "AF_INET"
+          "AF_INET6"
+          "AF_UNIX"
+        ];
         RestrictNamespaces = true;
         RestrictRealtime = true;
         RestrictSUIDSGID = true;
         SystemCallArchitectures = "native";
-        SystemCallFilter = [ "@system-service" "~@privileged" ];
+        SystemCallFilter = [
+          "@system-service"
+          "~@privileged"
+        ];
         UMask = "0077";
       };
 
-      environment = lib.mapAttrs (_: toString) cfg.config;
+      environment = lib.mapAttrs (_: toString) (lib.filterAttrs (_: v: v != null) cfg.config);
     };
     environment.systemPackages = [ cfg.package ];
 
     security.apparmor.policies."bin.miniflux".profile = ''
+      abi <abi/4.0>,
       include <tunables/global>
-      ${cfg.package}/bin/miniflux {
+
+      # Flag `attach_disconnected` is necessary
+      # because the PostgreSQL socket path appears
+      # as a "disconnected" path: `run/postgresql/.s.PGSQL.XXXX`,
+      # without the trailing slash, which AppArmor can't resolve.
+      # The flag prepends a `/`, which isn't recommended,
+      # but there aren't any alternative currently.
+      profile ${cfg.package}/bin/miniflux flags=(attach_disconnected) {
         include <abstractions/base>
         include <abstractions/nameservice>
         include <abstractions/ssl_certs>
+        include <abstractions/golang>
         include "${pkgs.apparmorRulesFromClosure { name = "miniflux"; } cfg.package}"
-        r ${cfg.package}/bin/miniflux,
-        r @{sys}/kernel/mm/transparent_hugepage/hpage_pmd_size,
+        ${cfg.package}/bin/miniflux r,
+        /run/miniflux/** rw,
+        /run/postgresql/.s.PGSQL.* rw,
+        /run/credentials/** r,
+        include if exists <local/bin.miniflux>
       }
     '';
   };

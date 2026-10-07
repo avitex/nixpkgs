@@ -1,20 +1,21 @@
-{ lib
-, fetchurl
-, buildDunePackage
-, angstrom
-, ptime
-, seq
-, timedesc-tzdb
-, timedesc-tzlocal
+{
+  lib,
+  fetchurl,
+  buildDunePackage,
+  angstrom,
+  ptime,
+  seq,
+  timedesc-tzdb,
+  timedesc-tzlocal,
 }:
 
-buildDunePackage rec {
+buildDunePackage (finalAttrs: {
   pname = "timedesc";
-  version = "2.0.0";
+  version = "3.1.2";
 
   src = fetchurl {
-    url = "https://github.com/daypack-dev/timere/releases/download/timedesc-${version}/timedesc-${version}.tar.gz";
-    hash = "sha256-NnnQpWOE1mt/F5lkWRPdDwpqXCUlcNi+Z5GE6YQQLK8=";
+    url = "https://github.com/daypack-dev/timere/releases/download/timedesc-${finalAttrs.version}/timedesc-${finalAttrs.version}.tar.gz";
+    hash = "sha256-hXdijGY0qu+pLR2XtK/KL9gXvCstbZedo1379lqA1r0=";
   };
 
   sourceRoot = ".";
@@ -33,4 +34,4 @@ buildDunePackage rec {
     license = lib.licenses.mit;
     maintainers = [ lib.maintainers.vbgl ];
   };
-}
+})

@@ -1,53 +1,60 @@
-{ lib
-, fetchFromGitHub
-, buildPythonPackage
-, isPyPy
-, setuptools
-, setuptools-scm
-, flask
-, brotli
-, brotlicffi
-, pytestCheckHook
+{
+  lib,
+  fetchFromGitHub,
+  buildPythonPackage,
+  isPyPy,
+  setuptools,
+  setuptools-scm,
+  backports-zstd,
+  flask,
+  flask-caching,
+  zstandard,
+  brotli,
+  brotlicffi,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
-  version = "1.14";
-  pname = "Flask-Compress";
-  format = "pyproject";
+  version = "1.25";
+  pname = "flask-compress";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "colour-science";
     repo = "flask-compress";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-eP6i4h+O4vkjlhfy3kyB+PY7iHVzOnRBRD8lj5yHehU=";
+    tag = "v${version}";
+    hash = "sha256-bzzXq6Lyckr2KfnyK2ZXe8BMWQtHkgtol+z0ek5Jdh8=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
+    backports-zstd
     flask
-  ] ++ lib.optionals (!isPyPy) [
-    brotli
-  ] ++ lib.optionals isPyPy [
-    brotlicffi
-  ];
+  ]
+  ++ lib.optionals (!isPyPy) [ brotli ]
+  ++ lib.optionals isPyPy [ brotlicffi ];
 
   nativeCheckInputs = [
     pytestCheckHook
+    flask-caching
   ];
 
-  pythonImportsCheck = [
-    "flask_compress"
-  ];
+  pythonImportsCheck = [ "flask_compress" ];
 
-  meta = with lib; {
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail "setuptools_scm[toml]<8" "setuptools_scm"
+  '';
+
+  meta = {
     description = "Compress responses in your Flask app with gzip, deflate or brotli";
     homepage = "https://github.com/colour-science/flask-compress";
-    changelog = "https://github.com/colour-science/flask-compress/blob/v${version}/CHANGELOG.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ nickcao ];
+    changelog = "https://github.com/colour-science/flask-compress/blob/${src.tag}/CHANGELOG.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ nickcao ];
   };
 }

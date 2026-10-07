@@ -1,46 +1,63 @@
-{ lib, stdenv, fetchFromGitHub, ocamlPackages, why3, python3 }:
+{
+  lib,
+  stdenv,
+  darwin,
+  fetchFromGitHub,
+  ocamlPackages,
+  dune,
+  why3,
+  python3,
+}:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "easycrypt";
-  version = "2024.01";
+  version = "2026.09";
 
   src = fetchFromGitHub {
-    owner = pname;
-    repo = pname;
-    rev = "r${version}";
-    hash = "sha256-UYDoVMi5TtYxgPq5nkp/oRtcMcHl2p7KAG8ptvuOL5U=";
+    owner = "easycrypt";
+    repo = "easycrypt";
+    tag = "r${finalAttrs.version}";
+    hash = "sha256-7ZnGZOZyV5znDGzg0c3XSsliQyOFOwJp2iyAzJtDNwk=";
   };
 
-  nativeBuildInputs = with ocamlPackages; [
-    dune_3
-    findlib
-    menhir
-    ocaml
-    python3.pkgs.wrapPython
-  ];
+  nativeBuildInputs =
+    with ocamlPackages;
+    [
+      dune
+      findlib
+      menhir
+      ocaml
+      python3.pkgs.wrapPython
+    ]
+    ++ lib.optional stdenv.hostPlatform.isDarwin darwin.sigtool;
+
   buildInputs = with ocamlPackages; [
     batteries
+    bitwuzla-cxx
     dune-build-info
-    inifiles
+    dune-site
+    markdown
+    pcre2
+    why3
     yojson
     zarith
   ];
 
-  propagatedBuildInputs = [ why3 ];
+  propagatedBuildInputs = [ why3.out ];
 
   strictDeps = true;
 
   postPatch = ''
-    substituteInPlace dune-project --replace '(name easycrypt)' '(name easycrypt)(version ${version})'
+    substituteInPlace dune-project --replace-fail '(name easycrypt)' '(name easycrypt)(version ${finalAttrs.version})'
   '';
 
   pythonPath = with python3.pkgs; [ pyyaml ];
 
   installPhase = ''
     runHook preInstall
-    dune install --prefix $out ${pname}
+    dune install --prefix $out easycrypt
     rm $out/bin/ec-runtest
-    wrapPythonProgramsIn "$out/lib/easycrypt/commands" "$pythonPath"
+    wrapPythonProgramsIn "$out/lib/easycrypt/commands" "''${pythonPath[*]}"
     runHook postInstall
   '';
 
@@ -50,5 +67,6 @@ stdenv.mkDerivation rec {
     platforms = lib.platforms.all;
     homepage = "https://easycrypt.info/";
     description = "Computer-Aided Cryptographic Proofs";
+    mainProgram = "easycrypt";
   };
-}
+})

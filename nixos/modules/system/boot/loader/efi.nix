@@ -1,20 +1,23 @@
-{ lib, ... }:
-
-with lib;
-
+{ config, lib, ... }:
 {
   options.boot.loader.efi = {
 
-    canTouchEfiVariables = mkOption {
+    canTouchEfiVariables = lib.mkOption {
       default = false;
-      type = types.bool;
-      description = lib.mdDoc "Whether the installation process is allowed to modify EFI boot variables.";
+      type = lib.types.bool;
+      description = "Whether the installation process is allowed to modify EFI boot variables.";
     };
 
-    efiSysMountPoint = mkOption {
+    efiSysMountPoint = lib.mkOption {
       default = "/boot";
-      type = types.str;
-      description = lib.mdDoc "Where the EFI System Partition is mounted.";
+      type = lib.types.str;
+      description = "Where the EFI System Partition is mounted.";
     };
+  };
+
+  config = {
+    # Applied to all bootloader support random seed initialization
+    systemd.services.systemd-boot-random-seed.environment.SYSTEMD_ESP_PATH =
+      config.boot.loader.efi.efiSysMountPoint;
   };
 }

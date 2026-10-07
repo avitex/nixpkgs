@@ -1,16 +1,17 @@
-{ lib
-, fetchFromGitHub
-, vscode-utils
-, jq
-, rust-analyzer
-, nodePackages
-, moreutils
-, esbuild
-, pkg-config
-, libsecret
-, stdenv
-, darwin
-, setDefaultServerPath ? true
+{
+  clang_20,
+  pkgsBuildBuild,
+  lib,
+  fetchFromGitHub,
+  vscode-utils,
+  jq,
+  rust-analyzer,
+  buildNpmPackage,
+  moreutils,
+  esbuild,
+  pkg-config,
+  stdenv,
+  setDefaultServerPath ? true,
 }:
 
 let
@@ -20,35 +21,36 @@ let
   # Use the plugin version as in vscode marketplace, updated by update script.
   inherit (vsix) version;
 
-  releaseTag = "2023-10-16";
+  releaseTag = "2026-02-16";
 
   src = fetchFromGitHub {
     owner = "rust-lang";
     repo = "rust-analyzer";
-    rev = releaseTag;
-    sha256 = "sha256-PWEdqI+iiHbx4dkIwWHZCGJuTpRfJI3MLSHf3gQEJt4=";
+    tag = releaseTag;
+    hash = "sha256-1TZROjtryMzOJHgHhAUQUoAMnnWal231G7gM1pfNlK4=";
   };
 
-  build-deps = nodePackages."rust-analyzer-build-deps-../../applications/editors/vscode/extensions/rust-lang.rust-analyzer/build-deps";
-  # FIXME: Making a new derivation to link `node_modules` and run `npm run package`
-  # will cause a build failure.
-  vsix = build-deps.override {
+  vsix = buildNpmPackage {
+    inherit pname releaseTag;
+    name = "${pname}-${version}.vsix";
+    version = lib.trim (lib.readFile ./version.txt);
     src = "${src}/editors/code";
-    outputs = [ "vsix" "out" ];
-
-    inherit releaseTag;
-
-    nativeBuildInputs = [
-      jq moreutils esbuild
-      # Required by `keytar`, which is a dependency of `vsce`.
-      pkg-config libsecret
-    ] ++ lib.optionals stdenv.isDarwin [
-      darwin.apple_sdk.frameworks.AppKit
-      darwin.apple_sdk.frameworks.Security
+    npmDepsHash = "sha256-rg4ARGB9NzI8rxEOONWq+mwSG9hd3yyFRhOUomMLN6w=";
+    buildInputs = [
+      pkgsBuildBuild.libsecret
     ];
+    nativeBuildInputs = [
+      jq
+      moreutils
+      esbuild
+      # Required by `keytar`, which is a dependency of `vsce`.
+      pkg-config
+
+    ]
+    ++ lib.optionals stdenv.hostPlatform.isDarwin [ clang_20 ]; # clang_21 breaks keytar
 
     # Follows https://github.com/rust-lang/rust-analyzer/blob/41949748a6123fd6061eb984a47f4fe780525e63/xtask/src/dist.rs#L39-L65
-    postRebuild = ''
+    installPhase = ''
       jq '
         .version = $ENV.version |
         .releaseTag = $ENV.releaseTag |
@@ -56,36 +58,43 @@ let
         walk(del(.["$generated-start"]?) | del(.["$generated-end"]?))
       ' package.json | sponge package.json
 
-      mkdir -p $vsix
-      # vsce ask for continue due to missing LICENSE.md
-      # Should be removed after https://github.com/rust-lang/rust-analyzer/commit/acd5c1f19bf7246107aaae7b6fe3f676a516c6d2
-      echo y | npx vsce package -o $vsix/${pname}.zip
+      npm exec --package=@vscode/vsce -- vsce package --out $out
     '';
   };
 
 in
 vscode-utils.buildVscodeExtension {
-  inherit version vsix;
-  name = "${pname}-${version}";
-  src = "${vsix}/${pname}.zip";
+  inherit version vsix pname;
+  src = vsix;
   vscodeExtUniqueId = "${publisher}.${pname}";
   vscodeExtPublisher = publisher;
   vscodeExtName = pname;
 
-  nativeBuildInputs = lib.optionals setDefaultServerPath [ jq moreutils ];
+  nativeBuildInputs = lib.optionals setDefaultServerPath [
+    jq
+    moreutils
+  ];
 
   preInstall = lib.optionalString setDefaultServerPath ''
-    jq '.contributes.configuration.properties."rust-analyzer.server.path".default = $s' \
+    jq '(.contributes.configuration[] | select(.title == "Server") | .properties."rust-analyzer.server.path".default) = $s' \
       --arg s "${rust-analyzer}/bin/rust-analyzer" \
       package.json | sponge package.json
+
+    # Ensure that the previous modification worked, by searching for the binary path
+    grep -Fq ${rust-analyzer}/bin/rust-analyzer package.json || {
+      echo "Modifying 'rust-analyzer.server.path' in 'package.json' failed."
+      exit 1
+    }
   '';
 
   meta = {
-    description = "An alternative rust language server to the RLS";
+    description = "Alternative rust language server to the RLS";
     homepage = "https://github.com/rust-lang/rust-analyzer";
-    license = [ lib.licenses.mit lib.licenses.asl20 ];
+    license = [
+      lib.licenses.mit
+      lib.licenses.asl20
+    ];
     maintainers = [ ];
     platforms = lib.platforms.all;
   };
 }
-

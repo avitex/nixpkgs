@@ -2,16 +2,16 @@
 
 buildDotnetGlobalTool {
   pname = "fantomas";
-  version = "6.2.3";
+  version = "7.0.3";
 
-  nugetSha256 = "sha256-Aol10o5Q7l8s6SdX0smVdi3ec2IgAx+gMksAMjXhIfU=";
+  nugetHash = "sha256-0XlfV7SxXPDnk/CjkUesJSaH0cxlNHJ+Jj86zNUhkNA=";
 
-  meta = with lib; {
+  meta = {
     description = "F# source code formatter";
     homepage = "https://github.com/fsprojects/fantomas";
-    license = licenses.asl20;
-    platforms = platforms.linux;
-    maintainers = with maintainers; [ mikaelfangel ];
+    license = lib.licenses.asl20;
+    platforms = lib.platforms.linux ++ lib.platforms.darwin;
+    maintainers = with lib.maintainers; [ mikaelfangel ];
     mainProgram = "fantomas";
   };
 }

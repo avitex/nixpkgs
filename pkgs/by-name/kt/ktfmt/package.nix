@@ -1,25 +1,46 @@
-{ lib, fetchFromGitHub, jre_headless, makeWrapper, maven }:
+{
+  lib,
+  stdenv,
+  jdk17,
+  fetchFromGitHub,
+  jre_headless,
+  makeWrapper,
+  gradle,
+}:
 
-maven.buildMavenPackage rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "ktfmt";
-  version = "0.47";
+  version = "0.63";
 
   src = fetchFromGitHub {
-    owner = "facebook";
+    owner = "Kotlin";
     repo = "ktfmt";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-vdvKHTTD84OAQacv/VE/5BxYdW4n3bxPUHF2MdH+sQQ=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-wAnlUEPFyilAbEXN6DGXHXeYfZgx2tlp4vDENP4O2Hw=";
   };
 
-  mvnHash = "sha256-Cl7P2i4VFJ/yk7700u62YPcacfKkhBztFvcDkYBfZEA=";
+  patches = ./remove-idea-plugin.patch;
 
-  nativeBuildInputs = [ makeWrapper ];
+  nativeBuildInputs = [
+    gradle
+    jdk17
+    makeWrapper
+  ];
+
+  mitmCache = gradle.fetchDeps {
+    inherit (finalAttrs) pname;
+    data = ./deps.json;
+  };
+  __darwinAllowLocalNetworking = true; # this is required for using mitm-cache on Darwin
+
+  gradleFlags = [ "-Dfile.encoding=utf-8" ];
+
+  doCheck = true;
 
   installPhase = ''
     runHook preInstall
 
-    mkdir -p $out/bin
-    install -Dm644 core/target/ktfmt-*-jar-with-dependencies.jar $out/share/ktfmt/ktfmt.jar
+    install -Dm644 core/build/libs/ktfmt-*-with-dependencies.jar $out/share/ktfmt/ktfmt.jar
 
     makeWrapper ${jre_headless}/bin/java $out/bin/ktfmt \
       --add-flags "-jar $out/share/ktfmt/ktfmt.jar"
@@ -27,12 +48,16 @@ maven.buildMavenPackage rec {
     runHook postInstall
   '';
 
-  meta = with lib; {
-    description = "A program that reformats Kotlin source code to comply with the common community standard for Kotlin code conventions.";
-    homepage = "https://github.com/facebook/ktfmt";
-    license = licenses.asl20;
+  meta = {
+    description = "Program that reformats Kotlin source code to comply with the common community standard for Kotlin code conventions";
+    homepage = "https://github.com/Kotlin/ktfmt";
+    license = lib.licenses.asl20;
     mainProgram = "ktfmt";
-    maintainers = with maintainers; [ ghostbuster91 ];
+    maintainers = with lib.maintainers; [ ghostbuster91 ];
+    sourceProvenance = with lib.sourceTypes; [
+      fromSource
+      binaryBytecode # mitm cache
+    ];
     inherit (jre_headless.meta) platforms;
   };
-}
+})

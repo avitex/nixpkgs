@@ -1,45 +1,39 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, buildPythonPackage
-, pythonOlder
-, setuptools
-, regex
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  buildPythonPackage,
+  pytestCheckHook,
+  setuptools,
+  regex,
 }:
 
 buildPythonPackage rec {
   pname = "somajo";
-  version = "2.4.0";
+  version = "2.5.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "tsproisl";
     repo = "SoMaJo";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-k0sjA6IgFKwS1dCAeCHSLdU4GJZ3uMSQ/my0KQvVx50=";
+    tag = "v${version}";
+    hash = "sha256-2ddFfwTZGAWBnZprkD5qTBezAOl9DaraNwwWWVGQz8I=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
-    regex
-  ];
+  dependencies = [ regex ];
 
-  # loops forever
-  doCheck = !stdenv.isDarwin;
+  nativeCheckInputs = [ pytestCheckHook ];
 
-  pythonImportsCheck = [
-    "somajo"
-  ];
+  pythonImportsCheck = [ "somajo" ];
 
-  meta = with lib; {
+  meta = {
     description = "Tokenizer and sentence splitter for German and English web texts";
     homepage = "https://github.com/tsproisl/SoMaJo";
-    license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/tsproisl/SoMaJo/blob/v${version}/CHANGES.txt";
+    license = lib.licenses.gpl3Plus;
+    maintainers = [ ];
+    mainProgram = "somajo-tokenizer";
   };
 }

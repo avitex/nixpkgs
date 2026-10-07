@@ -1,45 +1,38 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, flit-core
-, linkify-it-py
-, markdown-it-py
-, mdformat
-, mdit-py-plugins
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  flit-core,
+  mdformat,
+  mdit-py-plugins,
 }:
 
 buildPythonPackage rec {
   pname = "mdformat-footnote";
-  version = "0.1.1";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "0.1.3";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "executablebooks";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-DUCBWcmB5i6/HkqxjlU3aTRO7i0n2sj+e/doKB8ffeo=";
+    repo = "mdformat-footnote";
+    tag = "v${version}";
+    hash = "sha256-KPxPDKG3aC5zLdrJRL3kzFMpLJ0Yk5UZXW4CamC1/NQ=";
   };
 
-  nativeBuildInputs = [
-    flit-core
-  ];
+  build-system = [ flit-core ];
 
-  buildInputs = [
+  dependencies = [
     mdformat
     mdit-py-plugins
   ];
 
-  pythonImportsCheck = [
-    "mdformat_footnote"
-  ];
+  pythonImportsCheck = [ "mdformat_footnote" ];
 
-  meta = with lib; {
+  meta = {
     description = "Footnote format addition for mdformat";
     homepage = "https://github.com/executablebooks/mdformat-footnote";
-    license = licenses.mit;
-    maintainers = with maintainers; [ aldoborrero ];
+    changelog = "https://github.com/executablebooks/mdformat-footnote/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ aldoborrero ];
   };
 }

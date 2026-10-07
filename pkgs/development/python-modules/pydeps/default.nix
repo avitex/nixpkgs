@@ -1,38 +1,32 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, graphviz
-, stdlib-list
-, pytestCheckHook
-, pythonOlder
-, pyyaml
-, setuptools
-, toml
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  graphviz,
+  stdlib-list,
+  pytestCheckHook,
+  pyyaml,
+  setuptools,
+  toml,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "pydeps";
-  version = "1.12.18";
+  version = "3.0.9";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "thebjorn";
     repo = "pydeps";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-89RrAf09n42mRiWOUdHFNP4JoCP9bXMofkISyVqd+4I=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-NJTKVXtJBGFI3MbTHkQQI+pMKodUoOHMoLfGl9prCtc=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  buildInputs = [
-    graphviz
-  ];
+  buildInputs = [ graphviz ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     graphviz
     stdlib-list
   ];
@@ -54,15 +48,14 @@ buildPythonPackage rec {
     "test_find_package_names"
   ];
 
-  pythonImportsCheck = [
-    "pydeps"
-  ];
+  pythonImportsCheck = [ "pydeps" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python module dependency visualization";
     homepage = "https://github.com/thebjorn/pydeps";
-    changelog = "https://github.com/thebjorn/pydeps/releases/tag/v${version}";
-    license = licenses.bsd2;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/thebjorn/pydeps/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.bsd2;
+    maintainers = with lib.maintainers; [ fab ];
+    mainProgram = "pydeps";
   };
-}
+})

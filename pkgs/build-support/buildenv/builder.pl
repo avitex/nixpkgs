@@ -1,6 +1,5 @@
-#! @perl@ -w
-
 use strict;
+use feature 'signatures';
 use Cwd 'abs_path';
 use IO::Handle;
 use File::Path;
@@ -10,16 +9,40 @@ use JSON::PP;
 
 STDOUT->autoflush(1);
 
-$SIG{__WARN__} = sub { warn "warning: ", @_ };
-$SIG{__DIE__}  = sub { die "error: ", @_ };
+$SIG{__WARN__} = sub { warn "pkgs.buildEnv warning: ", @_ };
+$SIG{__DIE__}  = sub { die "pkgs.buildEnv error: ", @_ };
 
-my $out = $ENV{"out"};
-my $extraPrefix = $ENV{"extraPrefix"};
+my $out;
+my $extraPrefix;
+my @pathsToLink;
+my $ignoreCollisions;
+my $checkCollisionContents;
+my $ignoreSingleFileOutputs;
+my @chosenOutputsRefs;
+my $extraPathsFrom;
+my $manifest;
 
-my @pathsToLink = split ' ', $ENV{"pathsToLink"};
+if ($ENV{"NIX_ATTRS_JSON_FILE"} // "") {
+    open FILE, $ENV{"NIX_ATTRS_JSON_FILE"} or die "cannot open structured attrs JSON file $ENV{NIX_ATTRS_JSON_FILE}: $!";
+    my $json_text = do { local $/; <FILE> };
+    my $attrsFromJSONRef = decode_json $json_text;
+    close FILE;
 
-sub isInPathsToLink {
-    my $path = shift;
+    my $outputsRef = $attrsFromJSONRef->{"outputs"};
+    $out = $outputsRef->{"out"} // (values %{$outputsRef})[0];
+    $extraPrefix = $attrsFromJSONRef->{"extraPrefix"};
+    @pathsToLink = @{$attrsFromJSONRef->{"pathsToLink"}};
+    $ignoreCollisions = $attrsFromJSONRef->{"ignoreCollisions"};
+    $checkCollisionContents = $attrsFromJSONRef->{"checkCollisionContents"};
+    $ignoreSingleFileOutputs = $attrsFromJSONRef->{"ignoreSingleFileOutputs"};
+    @chosenOutputsRefs = @{$attrsFromJSONRef->{"chosenOutputs"}};
+    $extraPathsFrom = $attrsFromJSONRef->{"extraPathsFrom"};
+    $manifest = $attrsFromJSONRef->{"manifest"};
+} else {
+    die "missing required environment variable NIX_ATTRS_JSON_FILE";
+}
+
+sub isInPathsToLink($path) {
     $path = "/" if $path eq "";
     foreach my $elem (@pathsToLink) {
         return 1 if
@@ -32,8 +55,7 @@ sub isInPathsToLink {
 
 # Returns whether a path in one of the linked packages may contain
 # files in one of the elements of pathsToLink.
-sub hasPathsToLink {
-    my $path = shift;
+sub hasPathsToLink($path) {
     foreach my $elem (@pathsToLink) {
         return 1 if
             $path eq "" ||
@@ -44,8 +66,7 @@ sub hasPathsToLink {
 }
 
 # Similar to `lib.isStorePath`
-sub isStorePath {
-    my $path = shift;
+sub isStorePath($path) {
     my $storePath = "@storeDir@";
 
     return substr($path, 0, 1) eq "/" && dirname($path) eq $storePath;
@@ -76,22 +97,18 @@ for my $p (@pathsToLink) {
 
 sub findFiles;
 
-sub findFilesInDir {
-    my ($relName, $target, $ignoreCollisions, $checkCollisionContents, $priority) = @_;
-
+sub findFilesInDir($relName, $target, $ignoreCollisions, $checkCollisionContents, $priority, $ignoreSingleFileOutputs) {
     opendir DIR, "$target" or die "cannot open `$target': $!";
-    my @names = readdir DIR or die;
+    my @names = readdir DIR;
     closedir DIR;
 
     foreach my $name (@names) {
         next if $name eq "." || $name eq "..";
-        findFiles("$relName/$name", "$target/$name", $name, $ignoreCollisions, $checkCollisionContents, $priority);
+        findFiles("$relName/$name", "$target/$name", $name, $ignoreCollisions, $checkCollisionContents, $priority, $ignoreSingleFileOutputs);
     }
 }
 
-sub checkCollision {
-    my ($path1, $path2) = @_;
-
+sub checkCollision($path1, $path2) {
     if (! -e $path1 || ! -e $path2) {
         return 0;
     }
@@ -109,17 +126,19 @@ sub checkCollision {
     return compare($path1, $path2) == 0;
 }
 
-sub prependDangling {
-    my $path = shift;
+sub prependDangling($path) {
     return (-l $path && ! -e $path ? "dangling symlink " : "") . "`$path'";
 }
 
-sub findFiles {
-    my ($relName, $target, $baseName, $ignoreCollisions, $checkCollisionContents, $priority) = @_;
-
-    # The store path must not be a file
+sub findFiles($relName, $target, $baseName, $ignoreCollisions, $checkCollisionContents, $priority, $ignoreSingleFileOutputs) {
+    # The store path must not be a file when not ignoreSingleFileOutputs
     if (-f $target && isStorePath $target) {
-        die "The store path $target is a file and can't be merged into an environment using pkgs.buildEnv!";
+        if ($ignoreSingleFileOutputs) {
+            warn "The store path $target is a file and can't be merged into an environment using pkgs.buildEnv, ignoring it";
+            return;
+        } else {
+            die "The store path $target is a file and can't be merged into an environment using pkgs.buildEnv!";
+        }
     }
 
     # Urgh, hacky...
@@ -179,17 +198,17 @@ sub findFiles {
         my $oldTargetRef = prependDangling($oldTarget);
 
         if ($ignoreCollisions) {
-            warn "collision between $targetRef and $oldTargetRef\n" if $ignoreCollisions == 1;
+            warn "colliding subpath (ignored): $targetRef and $oldTargetRef\n" if $ignoreCollisions == 1;
             return;
         } elsif ($checkCollisionContents && checkCollision($oldTarget, $target)) {
             return;
         } else {
-            die "collision between $targetRef and $oldTargetRef\n";
+            die "two given paths contain a conflicting subpath:\n  $targetRef and\n  $oldTargetRef\nhint: this may be caused by two different versions of the same package in buildEnv's `paths` parameter\nhint: `pkgs.nix-diff` can be used to compare derivations\n";
         }
     }
 
-    findFilesInDir($relName, $oldTarget, $ignoreCollisions, $checkCollisionContents, $oldPriority) unless $oldTarget eq "";
-    findFilesInDir($relName, $target, $ignoreCollisions, $checkCollisionContents, $priority);
+    findFilesInDir($relName, $oldTarget, $ignoreCollisions, $checkCollisionContents, $oldPriority, $ignoreSingleFileOutputs) unless $oldTarget eq "";
+    findFilesInDir($relName, $target, $ignoreCollisions, $checkCollisionContents, $priority, $ignoreSingleFileOutputs);
 
     $symlinks{$relName} = ["", $priority]; # denotes directory
 }
@@ -198,13 +217,11 @@ sub findFiles {
 my %done;
 my %postponed;
 
-sub addPkg {
-    my ($pkgDir, $ignoreCollisions, $checkCollisionContents, $priority)  = @_;
-
+sub addPkg($pkgDir, $ignoreCollisions, $checkCollisionContents, $priority, $ignoreSingleFileOutputs) {
     return if (defined $done{$pkgDir});
     $done{$pkgDir} = 1;
 
-    findFiles("", $pkgDir, "", $ignoreCollisions, $checkCollisionContents, $priority);
+    findFiles("", $pkgDir, "", $ignoreCollisions, $checkCollisionContents, $priority, $ignoreSingleFileOutputs);
 
     my $propagatedFN = "$pkgDir/nix-support/propagated-user-env-packages";
     if (-e $propagatedFN) {
@@ -218,25 +235,15 @@ sub addPkg {
     }
 }
 
-# Read packages list.
-my $pkgs;
-
-if (exists $ENV{"pkgsPath"}) {
-    open FILE, $ENV{"pkgsPath"};
-    $pkgs = <FILE>;
-    close FILE;
-} else {
-    $pkgs = $ENV{"pkgs"}
-}
-
 # Symlink to the packages that have been installed explicitly by the
 # user.
-for my $pkg (@{decode_json $pkgs}) {
+for my $pkg (@chosenOutputsRefs) {
     for my $path (@{$pkg->{paths}}) {
         addPkg($path,
-               $ENV{"ignoreCollisions"} eq "1",
-               $ENV{"checkCollisionContents"} eq "1",
-               $pkg->{priority})
+               $ignoreCollisions,
+               $checkCollisionContents,
+               $pkg->{priority},
+               $ignoreSingleFileOutputs)
            if -e $path;
     }
 }
@@ -251,10 +258,25 @@ while (scalar(keys %postponed) > 0) {
     my @pkgDirs = keys %postponed;
     %postponed = ();
     foreach my $pkgDir (sort @pkgDirs) {
-        addPkg($pkgDir, 2, $ENV{"checkCollisionContents"} eq "1", $priorityCounter++);
+        addPkg($pkgDir, 2, $checkCollisionContents, $priorityCounter++, $ignoreSingleFileOutputs);
     }
 }
 
+if ($extraPathsFrom) {
+    open FILE, $extraPathsFrom or die "cannot open extra paths file $extraPathsFrom: $!";
+
+    while(my $line = <FILE>) {
+        chomp $line;
+        addPkg($line,
+               $ignoreCollisions,
+               $checkCollisionContents,
+               1000,
+               $ignoreSingleFileOutputs)
+            if -d $line;
+    }
+
+    close FILE;
+}
 
 # Create the symlinks.
 my $nrLinks = 0;
@@ -277,7 +299,6 @@ foreach my $relName (sort keys %symlinks) {
 print STDERR "created $nrLinks symlinks in user environment\n";
 
 
-my $manifest = $ENV{"manifest"};
 if ($manifest) {
     symlink($manifest, "$out/manifest") or die "cannot create manifest";
 }

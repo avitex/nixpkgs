@@ -1,20 +1,29 @@
-{ lib, fetchFromGitHub, buildDunePackage
-, lwt, lwt_ppx, stringext
-, alcotest }:
+{
+  lib,
+  fetchFromGitHub,
+  buildDunePackage,
+  lwt,
+  lwt_ppx,
+  stringext,
+  alcotest,
+}:
 
-buildDunePackage rec {
+buildDunePackage (finalAttrs: {
   pname = "multipart-form-data";
   version = "0.3.0";
 
   src = fetchFromGitHub {
     owner = "cryptosense";
-    repo = pname;
-    rev = version;
+    repo = "multipart-form-data";
+    rev = finalAttrs.version;
     hash = "sha256-3MYJDvVbPIv/JDiB9nKcLRFC5Qa0afyEfz7hk8MWRII=";
   };
 
   buildInputs = [ lwt_ppx ];
-  propagatedBuildInputs = [ lwt stringext ];
+  propagatedBuildInputs = [
+    lwt
+    stringext
+  ];
 
   duneVersion = "3";
 
@@ -27,4 +36,4 @@ buildDunePackage rec {
     license = lib.licenses.bsd2;
     maintainers = [ lib.maintainers.vbgl ];
   };
-}
+})

@@ -1,15 +1,16 @@
-{ accountsservice
-, glib
-, gobject-introspection
-, python3
-, wrapGAppsNoGuiHook
-, lib
+{
+  accountsservice,
+  glib,
+  gobject-introspection,
+  python3,
+  wrapGAppsNoGuiHook,
+  lib,
 }:
 
 python3.pkgs.buildPythonApplication {
   name = "set-session";
 
-  format = "other";
+  pyproject = false;
 
   src = ./set-session.py;
 
@@ -38,7 +39,7 @@ python3.pkgs.buildPythonApplication {
     chmod +x $out/bin/set-session
   '';
 
-  meta = with lib; {
-    maintainers = with maintainers; [ ] ++ teams.pantheon.members;
+  meta = {
+    teams = [ lib.teams.pantheon ];
   };
 }

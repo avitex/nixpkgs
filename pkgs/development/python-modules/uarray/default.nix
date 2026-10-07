@@ -1,50 +1,57 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, fetchpatch
-, matchpy
-, numpy
-, astunparse
-, typing-extensions
-, pytestCheckHook
-, pytest-cov
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  meson-python,
+  versioningit,
+  pkg-config,
+  nix-update-script,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "uarray";
-  version = "0.8.2";
-  format = "setuptools";
+  version = "0.9.5";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "Quansight-Labs";
-    repo = pname;
-    rev = version;
-    sha256 = "1x2jp7w2wmn2awyv05xs0frpq0fa0rprwcxyg72wgiss0bnzxnhm";
+    repo = "uarray";
+    tag = version;
+    hash = "sha256-Jut/V0/na+dcVpD7buW0DIS+KpA+dGRRb6QpPDt2/hY=";
   };
 
-  patches = [(
-    # Fixes a compile error with newer versions of GCC -- should be included
-    # in the next release after 0.8.2
-    fetchpatch {
-      url = "https://github.com/Quansight-Labs/uarray/commit/a2012fc7bb94b3773eb402c6fe1ba1a894ea3d18.patch";
-      sha256 = "1qqh407qg5dz6x766mya2bxrk0ffw5h17k478f5kcs53g4dyfc3s";
-    }
-  )];
-
-  nativeCheckInputs = [ pytestCheckHook pytest-cov ];
-  propagatedBuildInputs = [ matchpy numpy astunparse typing-extensions ];
-
-  # Tests must be run from outside the source directory
-  preCheck = ''
-    cd $TMP
+  preBuild = ''
+    echo "__version__ = '$version'" > src/uarray/_version.py
   '';
-  pytestFlagsArray = ["--pyargs" "uarray"];
+
+  build-system = [
+    meson-python
+    versioningit
+  ];
+
+  nativeBuildInputs = [
+    pkg-config
+  ];
+
+  nativeCheckInputs = [
+    pytestCheckHook
+  ];
+
+  pytestFlags = [
+    "--pyargs"
+    "uarray"
+  ];
+
   pythonImportsCheck = [ "uarray" ];
 
-  meta = with lib; {
+  passthru.updateScript = nix-update-script { };
+
+  meta = {
     description = "Universal array library";
     homepage = "https://github.com/Quansight-Labs/uarray";
-    license = licenses.bsd0;
-    maintainers = [ ];
+    changelog = "https://github.com/Quansight-Labs/uarray/releases/tag/${src.tag}";
+    license = lib.licenses.bsd0;
+    maintainers = [ lib.maintainers.pbsds ];
   };
 }

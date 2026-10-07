@@ -1,16 +1,17 @@
-{ stdenv
-, lib
-, fetchFromGitHub
-, gettext
-, pkg-config
-, wrapGAppsHook
-, ibus
-, glib
-, gobject-introspection
-, gtk3
-, python3
-, autoreconfHook
-, intltool
+{
+  stdenv,
+  lib,
+  fetchFromGitLab,
+  gettext,
+  pkg-config,
+  wrapGAppsHook3,
+  ibus,
+  glib,
+  gobject-introspection,
+  gtk3,
+  python3,
+  autoreconfHook,
+  intltool,
 }:
 
 let
@@ -28,13 +29,17 @@ let
 in
 stdenv.mkDerivation {
   pname = "ibus-cangjie";
-  version = "unstable-2023-07-25";
+  version = "2.4-unstable-2023-07-24";
 
-  src = fetchFromGitHub {
-    owner = "Cangjians";
+  strictDeps = true;
+  __structuredAttrs = true;
+
+  src = fetchFromGitLab {
+    domain = "gitlab.freedesktop.org";
+    owner = "Cangjie";
     repo = "ibus-cangjie";
     rev = "46c36f578047bb3cb2ce777217abf528649bc58d";
-    sha256 = "sha256-msVqWougc40bVXIonJA6K/VgurnDeR2TdtGKfd9rzwM=";
+    hash = "sha256-msVqWougc40bVXIonJA6K/VgurnDeR2TdtGKfd9rzwM=";
   };
 
   buildInputs = [
@@ -42,7 +47,8 @@ stdenv.mkDerivation {
     gtk3
     ibus
     python3
-  ] ++ pythonModules;
+  ]
+  ++ pythonModules;
 
   nativeBuildInputs = [
     autoreconfHook
@@ -50,7 +56,8 @@ stdenv.mkDerivation {
     gettext
     gobject-introspection
     pkg-config
-    wrapGAppsHook
+    python3
+    wrapGAppsHook3
   ];
 
   # Upstream builds Python packages as a part of a non-python
@@ -65,10 +72,11 @@ stdenv.mkDerivation {
 
   meta = {
     isIbusEngine = true;
-    description = "An IBus engine for users of the Cangjie and Quick input methods";
-    homepage = "https://github.com/Cangjians/ibus-cangjie";
+    description = "IBus engine for users of the Cangjie and Quick input methods";
+    mainProgram = "ibus-setup-cangjie";
+    homepage = "https://gitlab.freedesktop.org/cangjie/ibus-cangjie";
     license = lib.licenses.gpl3Plus;
     platforms = lib.platforms.linux;
-    maintainers = with lib.maintainers; [ adisbladis ];
+    maintainers = [ ];
   };
 }

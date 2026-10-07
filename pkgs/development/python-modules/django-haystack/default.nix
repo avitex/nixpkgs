@@ -1,68 +1,56 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchPypi
-
-# build dependencies
-, setuptools
-, setuptools-scm
-
-# dependencies
-, django
-
-# tests
-, elasticsearch
-, geopy
-, nose
-, pysolr
-, python-dateutil
-, requests
-, whoosh
+{
+  lib,
+  buildPythonPackage,
+  django,
+  elasticsearch,
+  fetchPypi,
+  geopy,
+  packaging,
+  pysolr,
+  pythonAtLeast,
+  python-dateutil,
+  requests,
+  setuptools-scm,
+  setuptools,
+  stdenv,
+  whoosh,
 }:
 
 buildPythonPackage rec {
   pname = "django-haystack";
-  version = "3.2.1";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.5";
+  version = "3.4.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-l+MZeu/CJf5AW28XYAolNL+CfLTWdDEwwgvBoG9yk6Q=";
+    pname = "django_haystack";
+    inherit version;
+    hash = "sha256-Eianyc4T4efq2KyD9uh7/vSZbxRu0klx/eeJYRWxxTA=";
   };
 
-  postPatch = ''
-    substituteInPlace setup.py \
-      --replace "geopy==" "geopy>="
-  '';
-
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     setuptools-scm
   ];
 
-  buildInputs = [
-    django
-  ];
+  buildInputs = [ django ];
 
-  passthru.optional-dependencies = {
-    elasticsearch = [
-      elasticsearch
-    ];
+  dependencies = [ packaging ];
+
+  optional-dependencies = {
+    elasticsearch = [ elasticsearch ];
   };
 
-  doCheck = lib.versionOlder django.version "4";
+  # tests fail and get stuck on darwin
+  doCheck = !stdenv.hostPlatform.isDarwin;
 
   nativeCheckInputs = [
     geopy
-    nose
     pysolr
     python-dateutil
     requests
     whoosh
   ]
-  ++ passthru.optional-dependencies.elasticsearch;
+  ++ optional-dependencies.elasticsearch;
 
   checkPhase = ''
     runHook preCheck
@@ -70,10 +58,11 @@ buildPythonPackage rec {
     runHook postCheck
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Pluggable search for Django";
     homepage = "http://haystacksearch.org/";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ ];
+    changelog = "https://github.com/django-haystack/django-haystack/releases/tag/v${version}";
+    license = lib.licenses.bsd3;
+    maintainers = [ ];
   };
 }

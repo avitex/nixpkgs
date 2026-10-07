@@ -1,55 +1,48 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, cython
-, numpy
-, oldest-supported-numpy
-, scipy
-, scikit-learn
-, pytestCheckHook
-, pythonOlder
-, setuptools
-, wheel
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  cython,
+  numpy,
+  scipy,
+  scikit-learn,
+  pytestCheckHook,
+  setuptools,
 }:
 
 let
   self = buildPythonPackage rec {
     pname = "opentsne";
-    version = "1.0.1";
+    version = "1.0.4";
     pyproject = true;
-
-    disabled = pythonOlder "3.7";
 
     src = fetchFromGitHub {
       owner = "pavlin-policar";
       repo = "openTSNE";
-      rev = "refs/tags/v${version}";
-      hash = "sha256-UTfEjjNz1mm5fhyTw9GRlMNURwWlr6kLMjrMngkFV3Y=";
+      tag = "v${version}";
+      hash = "sha256-cGnhdGpDiBlTeeveCtnveslDytpNO8vtYkxQQ7FhsuA=";
     };
 
-    nativeBuildInputs = [
+    build-system = [
       cython
-      oldest-supported-numpy
+      numpy
       setuptools
-      wheel
     ];
 
-    propagatedBuildInputs = [
+    dependencies = [
       numpy
       scipy
       scikit-learn
     ];
 
-    pythonImportsCheck = [
-      "openTSNE"
-    ];
+    pythonImportsCheck = [ "openTSNE" ];
 
     doCheck = false;
 
     passthru = {
       tests.pytest = self.overridePythonAttrs (old: {
         pname = "${old.pname}-tests";
-        format = "other";
+        pyproject = false;
 
         postPatch = "rm openTSNE -rf";
 
@@ -57,16 +50,20 @@ let
         doInstall = false;
 
         doCheck = true;
-        nativeCheckInputs = [ pytestCheckHook self ];
+        nativeCheckInputs = [
+          pytestCheckHook
+          self
+        ];
       });
     };
 
-    meta = with lib; {
+    meta = {
       description = "Modular Python implementation of t-Distributed Stochasitc Neighbor Embedding";
       homepage = "https://github.com/pavlin-policar/openTSNE";
       changelog = "https://github.com/pavlin-policar/openTSNE/releases/tag/v${version}";
-      license = licenses.bsd3;
-      maintainers = with maintainers; [ lucasew ];
+      license = lib.licenses.bsd3;
+      maintainers = [ ];
     };
   };
-in self
+in
+self

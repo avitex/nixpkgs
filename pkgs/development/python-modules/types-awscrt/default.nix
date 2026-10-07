@@ -1,36 +1,33 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, poetry-core
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "types-awscrt";
-  version = "0.20.3";
+  version = "0.36.2";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     pname = "types_awscrt";
-    inherit version;
-    hash = "sha256-BqhZGJoynKjmbVbO7vI5FIjjm4ePvSFB8RXqtNQW/iI=";
+    inherit (finalAttrs) version;
+    hash = "sha256-m9ZpldIQrLjpKnDg0QeHUrCDOja8pz8Ih0K8P9ims2M=";
   };
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ setuptools ];
 
-  pythonImportsCheck = [
-    "awscrt-stubs"
-  ];
+  pythonImportsCheck = [ "awscrt-stubs" ];
 
-  meta = with lib; {
+  # Module has no tests
+  doCheck = false;
+
+  meta = {
     description = "Type annotations and code completion for awscrt";
     homepage = "https://github.com/youtype/types-awscrt";
-    changelog = "https://github.com/youtype/types-awscrt/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/youtype/types-awscrt/releases/tag/${finalAttrs.version}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

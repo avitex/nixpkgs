@@ -1,69 +1,52 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, callPackage
-, buildEnv
-, linkFarm
-, substituteAll
-, R
-, rPackages
-, cmake
-, ninja
-, pkg-config
-, boost
-, libarchive
-, readstat
-, qt6
+{
+  lib,
+  stdenv,
+
+  fetchFromGitHub,
+
+  buildEnv,
+  linkFarm,
+  writers,
+
+  cmake,
+  ninja,
+  pkg-config,
+
+  boost,
+  freexl,
+  libarchive,
+  librdata,
+  libsodium,
+  qt6,
+  R,
+  readstat,
+  rPackages,
 }:
 
-let
-  version = "0.18.3";
-
+stdenv.mkDerivation (finalAttrs: {
+  pname = "jasp-desktop";
+  version = "0.98.1";
   src = fetchFromGitHub {
     owner = "jasp-stats";
     repo = "jasp-desktop";
-    rev = "v${version}";
-    hash = "sha256-eKBxCIamNhUig+0vUEqXYbPjiaOsZk6QnOw8cnpjKFY=";
+    tag = "v${finalAttrs.version}";
     fetchSubmodules = true;
+    hash = "sha256-73RxbWVa03V6MdcW9k4Hv8EBsSNw0Feg91SioWLgC5U=";
   };
-
-  inherit (callPackage ./modules.nix {
-    jasp-src = src;
-    jasp-version = version;
-  }) engine modules;
-
-  # Merges ${R}/lib/R with all used R packages (even propagated ones)
-  customREnv = buildEnv {
-    name = "jasp-${version}-env";
-    paths = [
-      "${R}/lib/R"
-      rPackages.RInside
-      engine.jaspBase # Should already be propagated from modules, but include it again, just in case
-    ] ++ lib.attrValues modules;
-  };
-
-  modulesDir = linkFarm "jasp-${version}-modules"
-    (lib.mapAttrsToList (name: drv: { name = name; path = "${drv}/library"; }) modules);
-in
-stdenv.mkDerivation {
-  pname = "jasp-desktop";
-  inherit version src;
 
   patches = [
-    # remove unused cmake deps, ensure boost is dynamically linked, patch readstat path
-    (substituteAll {
-      src = ./cmake.patch;
-      inherit readstat;
-    })
+    ./boost.patch # link boost dynamically
+    ./disable-module-install-logic.patch # don't try to install modules via cmake
+    ./disable-renv-logic.patch
+    ./dont-check-for-module-deps.patch # dont't check for dependencies required for building modules
   ];
 
   cmakeFlags = [
-    "-DGITHUB_PAT=dummy"
-    "-DGITHUB_PAT_DEF=dummy"
-    "-DINSTALL_R_FRAMEWORK=OFF"
-    "-DLINUX_LOCAL_BUILD=OFF"
-    "-DINSTALL_R_MODULES=OFF"
-    "-DCUSTOM_R_PATH=${customREnv}"
+    (lib.cmakeFeature "GITHUB_PAT" "dummy")
+    (lib.cmakeFeature "GITHUB_PAT_DEF" "dummy")
+    (lib.cmakeBool "LINUX_LOCAL_BUILD" false)
+    (lib.cmakeBool "INSTALL_R_MODULES" false)
+    (lib.cmakeFeature "CUSTOM_R_PATH" "${finalAttrs.passthru.customREnv}")
   ];
 
   nativeBuildInputs = [
@@ -74,48 +57,85 @@ stdenv.mkDerivation {
   ];
 
   buildInputs = [
-    customREnv
+    finalAttrs.passthru.customREnv
     boost
+    freexl
     libarchive
+    librdata
+    libsodium
     readstat
-  ] ++ (with qt6; [
-    qtbase
-    qtdeclarative
-    qtwebengine
-    qtsvg
-    qt5compat
-  ]);
 
+    qt6.qtbase
+    qt6.qtdeclarative
+    qt6.qtwebengine
+    qt6.qthttpserver
+  ];
+
+  # needed so that the linker can find libRInside.so
   env.NIX_LDFLAGS = "-L${rPackages.RInside}/library/RInside/lib";
 
   postInstall = ''
-    # Remove unused cache locations
-    rm -r $out/lib64 $out/Modules
-
     # Remove flatpak proxy script
     rm $out/bin/org.jaspstats.JASP
     substituteInPlace $out/share/applications/org.jaspstats.JASP.desktop \
-        --replace "Exec=org.jaspstats.JASP" "Exec=JASP"
+      --replace-fail "Exec=org.jaspstats.JASP" "Exec=JASP"
 
     # symlink modules from the store
-    ln -s ${modulesDir} $out/Modules
+    ln -s ${finalAttrs.passthru.moduleLibs} $out/Modules/module_libs
+    ln -s ${finalAttrs.passthru.moduleManifests} $out/Modules/manifests
   '';
 
   passthru = {
-    inherit modules engine;
-    env = customREnv;
+    inherit
+      (import ./modules.nix {
+        inherit lib fetchFromGitHub rPackages;
+        jasp-src = finalAttrs.src;
+        jasp-version = finalAttrs.version;
+      })
+      customRPackages
+      jaspModules
+      ;
+
+    # Merges ${R}/lib/R with all used R packages (even propagated ones)
+    customREnv = buildEnv {
+      name = "jasp-desktop-${finalAttrs.version}-env";
+      paths = [
+        "${R}/lib/R"
+        rPackages.RInside
+        finalAttrs.passthru.customRPackages.jaspBase # Should already be propagated from modules, but include it again, just in case
+      ]
+      ++ lib.attrValues finalAttrs.passthru.jaspModules;
+    };
+
+    moduleLibs = linkFarm "jasp-desktop-${finalAttrs.version}-module-libs" (
+      lib.mapAttrsToList (name: drv: {
+        name = name;
+        path = "${drv}/library";
+      }) finalAttrs.passthru.jaspModules
+    );
+
+    moduleManifests = linkFarm "jasp-desktop-${finalAttrs.version}-module-manifests" (
+      lib.mapAttrsToList (name: drv: {
+        name = "${name}_manifest.json";
+        path = writers.writeJSON "${name}_manifest.json" {
+          name = name;
+          version = drv.version;
+        };
+      }) finalAttrs.passthru.jaspModules
+    );
+
+    updateScript = ./update.sh;
   };
 
   meta = {
     changelog = "https://jasp-stats.org/release-notes";
-    description = "A complete statistical package for both Bayesian and Frequentist statistical methods";
+    description = "Complete statistical package for both Bayesian and Frequentist statistical methods";
     homepage = "https://github.com/jasp-stats/jasp-desktop";
-    license = lib.licenses.agpl3;
+    license = lib.licenses.agpl3Plus;
     mainProgram = "JASP";
     maintainers = with lib.maintainers; [ tomasajt ];
     # JASP's cmake build steps are really different on Darwin
     # Perhaps the Darwin-specific things could be changed to be the same as Linux
     platforms = lib.platforms.linux;
   };
-}
-
+})

@@ -1,30 +1,44 @@
-{ lib, skawarePackages }:
+{
+  lib,
+  skawarePackages,
+  skalibs,
+  execline,
+}:
 
-with skawarePackages;
-
-buildPackage {
+skawarePackages.buildPackage {
   pname = "s6-linux-utils";
-  version = "2.6.2.0";
-  sha256 = "j5RGM8qH09I+DwPJw4PRUC1QjJusFtOMP79yOl6rK7c=";
+  version = "2.6.4.1";
+  sha256 = "sha256-FuGltaK0qYZ0tKlxlhKtt5WI48IMQIM2AnjqOPLTISk=";
 
-  description = "A set of minimalistic Linux-specific system utilities";
-  platforms = lib.platforms.linux;
+  meta.description = "Set of minimalistic Linux-specific system utilities";
+  meta.platforms = lib.platforms.linux;
 
-  outputs = [ "bin" "dev" "doc" "out" ];
+  outputs = [
+    "bin"
+    "dev"
+    "doc"
+    "out"
+  ];
+
+  buildInputs = [
+    skalibs
+    execline
+  ];
 
   # TODO: nsss support
   configureFlags = [
-    "--bindir=\${bin}/bin"
-    "--includedir=\${dev}/include"
+    "--libdir=${placeholder "out"}/lib"
+    "--dynlibdir=${placeholder "out"}/lib"
+    "--libexecdir=${placeholder "out"}/libexec"
+    "--bindir=${placeholder "bin"}/bin"
+    "--includedir=${placeholder "dev"}/include"
+    "--pkgconfdir=${placeholder "dev"}/lib/pkgconfig"
     "--with-sysdeps=${skalibs.lib}/lib/skalibs/sysdeps"
-    "--with-include=${skalibs.dev}/include"
-    "--with-lib=${skalibs.lib}/lib"
-    "--with-dynlib=${skalibs.lib}/lib"
   ];
 
   postInstall = ''
     # remove all s6 executables from build directory
-    rm $(find -name "s6-*" -type f -mindepth 1 -maxdepth 1 -executable) rngseed
+    rm $(find -name "s6-*" -type f -mindepth 1 -maxdepth 1 -executable) fstab2s6rc rngseed
     rm libs6ps.a.xyzzy
 
     mv doc $doc/share/doc/s6-linux-utils/html

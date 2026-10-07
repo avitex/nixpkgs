@@ -1,37 +1,36 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, fonttools
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fonttools,
+  pytestCheckHook,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "dehinter";
   version = "4.0.0";
-  format = "setuptools";
+  pyproject = true;
 
   # PyPI source tarballs omit tests, fetch from Github instead
   src = fetchFromGitHub {
     owner = "source-foundry";
     repo = "dehinter";
-    rev = "v${version}";
+    rev = "v${finalAttrs.version}";
     hash = "sha256-l988SW6OWKXzJK0WGAJZR/QDFvgnSir+5TwMMvFcOxg=";
   };
 
-  propagatedBuildInputs = [
-    fonttools
-  ];
+  build-system = [ setuptools ];
 
-  doCheck = true;
-  nativeCheckInputs = [
-    pytestCheckHook
-  ];
+  propagatedBuildInputs = [ fonttools ];
 
-  meta = with lib; {
+  nativeCheckInputs = [ pytestCheckHook ];
+
+  meta = {
     description = "Utility for removing hinting data from TrueType and OpenType fonts";
+    mainProgram = "dehinter";
     homepage = "https://github.com/source-foundry/dehinter";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ danc86 ];
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ danc86 ];
   };
-}
-
+})

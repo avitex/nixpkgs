@@ -1,6 +1,13 @@
-{ lib, buildDunePackage, ocaml, fetchurl, seq, qcheck-alcotest }:
+{
+  lib,
+  buildDunePackage,
+  ocaml,
+  fetchurl,
+  seq,
+  qcheck-alcotest,
+}:
 
-buildDunePackage rec {
+buildDunePackage (finalAttrs: {
   minimalOCamlVersion = "4.03";
   pname = "psq";
   version = "0.2.1";
@@ -8,7 +15,7 @@ buildDunePackage rec {
   duneVersion = "3";
 
   src = fetchurl {
-    url = "https://github.com/pqwy/psq/releases/download/v${version}/psq-${version}.tbz";
+    url = "https://github.com/pqwy/psq/releases/download/v${finalAttrs.version}/psq-${finalAttrs.version}.tbz";
     hash = "sha256-QgBfUz6r50sXme4yuJBWVM1moivtSvK9Jmso2EYs00Q=";
   };
 
@@ -23,4 +30,4 @@ buildDunePackage rec {
     maintainers = [ lib.maintainers.vbgl ];
     license = lib.licenses.isc;
   };
-}
+})

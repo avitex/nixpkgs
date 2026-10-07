@@ -1,56 +1,60 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, pythonOlder
-, paho-mqtt
-, python-dateutil
-, weconnect
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  paho-mqtt,
+  pytest-cov-stub,
+  pytestCheckHook,
+  python-dateutil,
+  setuptools,
+  weconnect,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "weconnect-mqtt";
-  version = "0.48.3";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.8";
+  version = "0.49.5";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "tillsteinbach";
     repo = "WeConnect-mqtt";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-Pja9BP0gbWXTgOokEngNS364tJp1oWJYNKcTxyYJHGw=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-69p7lAO7W+odrm1kLhvB8v4kNKx6IWBUSOQKgrxVCCY=";
   };
 
   postPatch = ''
-    substituteInPlace requirements.txt \
-      --replace "weconnect[Images]~=" "weconnect>="
     substituteInPlace weconnect_mqtt/__version.py \
-      --replace "develop" "${version}"
+      --replace-fail "0.0.0dev" "${finalAttrs.version}"
+    substituteInPlace requirements.txt \
+      --replace-fail "weconnect[Images]~=" "weconnect>="
     substituteInPlace pytest.ini \
-      --replace "--cov=weconnect_mqtt --cov-config=.coveragerc --cov-report html" "" \
-      --replace "pytest-cov" ""
+      --replace-fail "required_plugins = pytest-cov" ""
   '';
 
-  propagatedBuildInputs = [
+  pythonRelaxDeps = [ "python-dateutil" ];
+
+  build-system = [ setuptools ];
+
+  dependencies = [
     paho-mqtt
     python-dateutil
     weconnect
-  ] ++ weconnect.optional-dependencies.Images;
+  ]
+  ++ weconnect.optional-dependencies.Images;
 
   nativeCheckInputs = [
+    pytest-cov-stub
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "weconnect_mqtt"
-  ];
+  pythonImportsCheck = [ "weconnect_mqtt" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python client that publishes data from Volkswagen WeConnect";
     homepage = "https://github.com/tillsteinbach/WeConnect-mqtt";
-    changelog = "https://github.com/tillsteinbach/WeConnect-mqtt/releases/tag/v${version}";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/tillsteinbach/WeConnect-mqtt/releases/tag/v${finalAttrs.src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
+    mainProgram = "weconnect-mqtt";
   };
-}
+})

@@ -1,35 +1,40 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools
-# documentation build dependencies
-, sphinxHook
-, sphinx-rtd-theme
-, matplotlib
-, ipython
-# runtime dependencies
-, sphinx
-, beautifulsoup4
-# check dependencies
-, pytest
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  # documentation build dependencies
+  sphinxHook,
+  sphinx-rtd-theme,
+  matplotlib,
+  ipython,
+  # runtime dependencies
+  sphinx,
+  beautifulsoup4,
+  # check dependencies
+  pytest,
 }:
 
 buildPythonPackage rec {
   pname = "sphinx-codeautolink";
-  version = "0.15.0";
-  format = "pyproject";
+  version = "0.19.0";
+  pyproject = true;
 
-  outputs = [ "out" "doc" ];
+  outputs = [
+    "out"
+    "doc"
+  ];
 
   src = fetchFromGitHub {
     owner = "felix-hilden";
     repo = "sphinx-codeautolink";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-iXUdOwyTRViDTDRPCcteiJ2Rcdbpiol7JPEzqbUwIPc=";
+    tag = "v${version}";
+    hash = "sha256-bL0pxtYeu1ktC6K3K9uPBkJYR82C5q2kpZRoQiOKUJI=";
   };
 
+  build-system = [ setuptools ];
+
   nativeBuildInputs = [
-    setuptools
     sphinxHook
     sphinx-rtd-theme
     matplotlib
@@ -38,16 +43,20 @@ buildPythonPackage rec {
 
   sphinxRoot = "docs/src";
 
-  propagatedBuildInputs = [ sphinx beautifulsoup4 ];
+  dependencies = [
+    sphinx
+    beautifulsoup4
+  ];
 
   nativeCheckInputs = [ pytest ];
 
   pythonImportsCheck = [ "sphinx_codeautolink" ];
 
-  meta = with lib; {
-    description = "A sphinx extension that makes code examples clickable";
+  meta = {
+    description = "Sphinx extension that makes code examples clickable";
     homepage = "https://github.com/felix-hilden/sphinx-codeautolink";
-    license = licenses.mit;
-    maintainers = with maintainers; [ kaction ];
+    changelog = "https://github.com/felix-hilden/sphinx-codeautolink/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ kaction ];
   };
 }

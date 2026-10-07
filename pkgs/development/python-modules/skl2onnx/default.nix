@@ -1,27 +1,30 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, numpy
-, scipy
-, protobuf
-, onnx
-, scikit-learn
-, onnxconverter-common
-, onnxruntime
-, pandas
-, unittestCheckHook
-, pythonRelaxDepsHook
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  numpy,
+  scipy,
+  setuptools,
+  protobuf,
+  onnx,
+  scikit-learn,
+  onnxconverter-common,
+  onnxruntime,
+  pandas,
+  unittestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "skl2onnx";
-  version = "1.16.0";
-  format = "setuptools";
+  version = "1.20.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-M3Cz1AZc4txZM4eMMnP0rqQflFzGUUVDsTrS1X82nOU=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-x06oJ9kroYb+ZZaV6PyYnNl7/DIO3OPTK5k2pYeNoQo=";
   };
+
+  build-system = [ setuptools ];
 
   propagatedBuildInputs = [
     numpy
@@ -32,10 +35,6 @@ buildPythonPackage rec {
     onnxconverter-common
   ];
 
-  nativeBuildInputs = [
-    pythonRelaxDepsHook
-  ];
-
   pythonRelaxDeps = [ "scikit-learn" ];
 
   nativeCheckInputs = [
@@ -44,14 +43,19 @@ buildPythonPackage rec {
     unittestCheckHook
   ];
 
-  unittestFlagsArray = [ "-s" "tests" ];
+  unittestFlagsArray = [
+    "-s"
+    "tests"
+  ];
 
   # Core dump
   doCheck = false;
 
+  pythonImportsCheck = [ "skl2onnx" ];
+
   meta = {
     description = "Convert scikit-learn models to ONNX";
-    maintainers = with lib.maintainers; [ fridh ];
-    license = with lib.licenses; [ asl20 ];
+    changelog = "https://github.com/onnx/sklearn-onnx/releases/tag/${finalAttrs.version}";
+    license = lib.licenses.asl20;
   };
-}
+})

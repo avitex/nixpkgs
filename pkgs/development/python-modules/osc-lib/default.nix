@@ -1,65 +1,80 @@
-{ stdenv
-, lib
-, buildPythonPackage
-, fetchFromGitHub
-, cliff
-, oslo-i18n
-, oslo-utils
-, openstacksdk
-, pbr
-, requests-mock
-, simplejson
-, stestr
+{
+  lib,
+  buildPythonPackage,
+  cliff,
+  fetchFromGitHub,
+  keystoneauth1,
+  openstacksdk,
+  oslo-i18n,
+  oslo-utils,
+  pbr,
+  requests,
+  requests-mock,
+  setuptools,
+  stdenv,
+  stestrCheckHook,
+  stevedore,
 }:
 
 buildPythonPackage rec {
   pname = "osc-lib";
-  version = "2.8.0";
-  format = "setuptools";
+  version = "4.7.0";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "openstack";
     repo = "osc-lib";
-    rev = version;
-    hash = "sha256-ijL/m9BTAgDUjqy77nkl3rDppeUPBycmEqlL6uMruIA=";
+    tag = version;
+    hash = "sha256-GVjzDPmASEItGsZCjH+tjgP8bRf5WgEOoDr+uOhQtws=";
   };
 
-  # fake version to make pbr.packaging happy and not reject it...
-  PBR_VERSION = version;
+  env.PBR_VERSION = version;
 
-  nativeBuildInputs = [
+  build-system = [
     pbr
+    setuptools
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     cliff
+    keystoneauth1
     openstacksdk
     oslo-i18n
     oslo-utils
-    simplejson
+    requests
+    stevedore
   ];
 
   nativeCheckInputs = [
     requests-mock
-    stestr
+    stestrCheckHook
   ];
 
-  checkPhase = ''
-    # tests parse cli output which slightly changed
-    stestr run -e <(echo "
-      osc_lib.tests.utils.test_tags.TestTagHelps.test_add_tag_filtering_option_to_parser
-      osc_lib.tests.utils.test_tags.TestTagHelps.test_add_tag_option_to_parser_for_create
-      osc_lib.tests.utils.test_tags.TestTagHelps.test_add_tag_option_to_parser_for_set
-      osc_lib.tests.utils.test_tags.TestTagHelps.test_add_tag_option_to_parser_for_unset
-    ")
-  '';
+  disabledTests = lib.optionals stdenv.hostPlatform.isDarwin [
+    "osc_lib.tests.test_shell.TestShellCli.test_shell_args_cloud_public"
+    "osc_lib.tests.test_shell.TestShellCli.test_shell_args_precedence"
+    "osc_lib.tests.test_shell.TestShellCliPrecedence.test_shell_args_precedence_1"
+    "osc_lib.tests.test_shell.TestShellCliPrecedence.test_shell_args_precedence_2"
+  ];
 
-  pythonImportsCheck = [ "osc_lib" ];
+  pythonImportsCheck = [
+    "osc_lib"
+    "osc_lib.api"
+    "osc_lib.cli"
+    "osc_lib.command"
+    "osc_lib.test"
+    "osc_lib.tests"
+    "osc_lib.tests.api"
+    "osc_lib.tests.cli"
+    "osc_lib.tests.command"
+    "osc_lib.tests.utils"
+    "osc_lib.utils"
+  ];
 
-  meta = with lib; {
+  meta = {
     description = "OpenStackClient Library";
     homepage = "https://github.com/openstack/osc-lib";
-    license = licenses.asl20;
-    maintainers = teams.openstack.members;
+    license = lib.licenses.asl20;
+    teams = [ lib.teams.openstack ];
   };
 }

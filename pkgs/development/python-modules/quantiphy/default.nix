@@ -1,34 +1,30 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, flit-core
-, pytestCheckHook
-, pythonOlder
-, inform
-, parametrize-from-file
-, setuptools
-, voluptuous
-, quantiphy-eval
-, rkm-codes
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  flit-core,
+  pytestCheckHook,
+  inform,
+  parametrize-from-file,
+  setuptools,
+  voluptuous,
+  quantiphy-eval,
+  rkm-codes,
 }:
 
 buildPythonPackage rec {
   pname = "quantiphy";
-  version = "2.19";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "2.23";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "KenKundert";
     repo = "quantiphy";
-    rev = "v${version}";
-    hash = "sha256-oSWq/D1EX6mxUDElfujyOSEtql0csAm72u2B5RuQddE=";
+    tag = "v${version}";
+    hash = "sha256-9sCPVr0EYoRXQwh2jyjMmdcrg0KPssNGx8fbzj84k+o=";
   };
 
-  nativeBuildInputs = [
-    flit-core
-  ];
+  nativeBuildInputs = [ flit-core ];
 
   propagatedBuildInputs = [
     quantiphy-eval
@@ -43,15 +39,13 @@ buildPythonPackage rec {
     voluptuous
   ];
 
-  pythonImportsCheck = [
-    "quantiphy"
-  ];
+  pythonImportsCheck = [ "quantiphy" ];
 
-  meta = with lib; {
+  meta = {
     description = "Module for physical quantities (numbers with units)";
     homepage = "https://quantiphy.readthedocs.io";
     changelog = "https://github.com/KenKundert/quantiphy/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ jpetrucciani ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ jpetrucciani ];
   };
 }

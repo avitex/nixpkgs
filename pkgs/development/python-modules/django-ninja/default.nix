@@ -1,33 +1,34 @@
-{ lib
-, buildPythonPackage
-, django
-, fetchFromGitHub
-, flit-core
-, psycopg2
-, pydantic
-, pytest-asyncio
-, pytest-django
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  django,
+  fetchFromGitHub,
+  flit-core,
+  psycopg2,
+  pydantic,
+  pytest-asyncio,
+  pytest-django,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "django-ninja";
-  version = "1.1.0";
+  version = "1.7.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "vitalik";
     repo = "django-ninja";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-pvpYDuUZi0Gr5RbBWc91LzgmRLhihrhsKaD/AWN5+Bo=";
+    tag = "v${version}";
+    hash = "sha256-/KsFq6LgaRMxMHmWO5vuzeVZTsmnERTbuS2ne4jc6eA=";
   };
 
-  propagatedBuildInputs = [ django pydantic ];
+  build-system = [ flit-core ];
 
-  nativeBuildInputs = [ flit-core ];
+  dependencies = [
+    django
+    pydantic
+  ];
 
   nativeCheckInputs = [
     psycopg2
@@ -36,11 +37,11 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  meta = with lib; {
-    changelog = "https://github.com/vitalik/django-ninja/releases/tag/v${version}";
+  meta = {
+    changelog = "https://github.com/vitalik/django-ninja/releases/tag/${src.tag}";
     description = "Web framework for building APIs with Django and Python type hints";
     homepage = "https://django-ninja.dev";
-    license = licenses.mit;
-    maintainers = with maintainers; [ elohmeier ];
+    license = lib.licenses.mit;
+    maintainers = [ ];
   };
 }

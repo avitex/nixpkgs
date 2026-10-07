@@ -1,27 +1,25 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, fetchpatch
-, freezegun
-, isodate
-, lxml
-, pytestCheckHook
-, pythonOlder
-, poetry-core
-, xmlsec
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fetchpatch,
+  freezegun,
+  isodate,
+  lxml,
+  pytestCheckHook,
+  poetry-core,
+  xmlsec,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "python3-saml";
   version = "1.16.0";
   pyproject = true;
 
-  disabled = pythonOlder "3.7";
-
   src = fetchFromGitHub {
     owner = "onelogin";
     repo = "python3-saml";
-    rev = "refs/tags/v${version}";
+    tag = "v${finalAttrs.version}";
     hash = "sha256-KyDGmqhg/c29FaXPKK8rWKSBP6BOCpKKpOujCavXUcc=";
   };
 
@@ -34,9 +32,7 @@ buildPythonPackage rec {
     })
   ];
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  nativeBuildInputs = [ poetry-core ];
 
   propagatedBuildInputs = [
     isodate
@@ -49,12 +45,10 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
-  pythonImportsCheck = [
-    "onelogin.saml2"
-  ];
+  pythonImportsCheck = [ "onelogin.saml2" ];
 
   disabledTests = [
-    # Tests require network acces or additions files
+    # Tests require network access or additions files
     "OneLogin_Saml2_Metadata_Test"
     "OneLogin_Saml2_Response_Test"
     "OneLogin_Saml2_Utils_Test"
@@ -65,11 +59,11 @@ buildPythonPackage rec {
     "OneLogin_Saml2_Logout_Request_Test"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "OneLogin's SAML Python Toolkit";
     homepage = "https://github.com/onelogin/python3-saml";
-    changelog = "https://github.com/SAML-Toolkits/python3-saml/blob/v${version}/changelog.md";
-    license = licenses.mit;
-    maintainers = with maintainers; [ zhaofengli ];
+    changelog = "https://github.com/SAML-Toolkits/python3-saml/blob/v${finalAttrs.version}/changelog.md";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ zhaofengli ];
   };
-}
+})

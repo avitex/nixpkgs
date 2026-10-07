@@ -1,48 +1,40 @@
-{ lib
-, buildPythonPackage
-, click
-, click-log
-, fetchFromGitHub
-, pure-pcapy3
-, pyserial-asyncio
-, pytest-asyncio
-, pytest-timeout
-, pytestCheckHook
-, pythonOlder
-, setuptools
-, voluptuous
-, zigpy
+{
+  lib,
+  buildPythonPackage,
+  click,
+  click-log,
+  fetchFromGitHub,
+  pytest-asyncio,
+  pytest-timeout,
+  pytestCheckHook,
+  setuptools,
+  voluptuous,
+  zigpy,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "bellows";
-  version = "0.37.6";
+  version = "1.0.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "zigpy";
     repo = "bellows";
-    rev = "refs/tags/${version}";
-    hash = "sha256-S3Yf0C+KInYoDaixlJf+9WSPIcEhfQCdcwEuNQYxugU=";
+    tag = finalAttrs.version;
+    hash = "sha256-UxvVV0zcBr21l5rgekRHqzNUP+4eg8BGp03czuULYQk=";
   };
 
   postPatch = ''
     substituteInPlace pyproject.toml \
-      --replace '"setuptools-git-versioning<2"' "" \
-      --replace 'dynamic = ["version"]' 'version = "${version}"'
+      --replace-fail '"setuptools-git-versioning<2"' "" \
+      --replace-fail 'dynamic = ["version"]' 'version = "${finalAttrs.version}"'
   '';
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     click
     click-log
-    pure-pcapy3
-    pyserial-asyncio
     voluptuous
     zigpy
   ];
@@ -53,15 +45,14 @@ buildPythonPackage rec {
     pytest-timeout
   ];
 
-  pythonImportsCheck = [
-    "bellows"
-  ];
+  pythonImportsCheck = [ "bellows" ];
 
-  meta = with lib; {
+  meta = {
     description = "Python module to implement EZSP for EmberZNet devices";
     homepage = "https://github.com/zigpy/bellows";
-    changelog = "https://github.com/zigpy/bellows/releases/tag/${version}";
-    license = licenses.gpl3Plus;
-    maintainers = with maintainers; [ mvnetbiz ];
+    changelog = "https://github.com/zigpy/bellows/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.gpl3Plus;
+    maintainers = with lib.maintainers; [ mvnetbiz ];
+    mainProgram = "bellows";
   };
-}
+})

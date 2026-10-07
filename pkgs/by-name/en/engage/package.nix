@@ -1,46 +1,60 @@
-{ lib
-, installShellFiles
-, rustPlatform
-, fetchgit
+{
+  lib,
+  installShellFiles,
+  rustPlatform,
+  fetchFromGitLab,
+  mdbook,
 }:
 
-let
+rustPlatform.buildRustPackage (finalAttrs: {
   pname = "engage";
-  version = "0.2.0";
-in
-rustPlatform.buildRustPackage {
-  inherit pname version;
+  version = "0.3.0";
 
-  # fetchFromGitLab doesn't work on GitLab's end for unknown reasons
-  src = fetchgit {
-    url = "https://or.computer.surgery/charles/${pname}";
-    rev = "v${version}";
-    hash = "sha256-niXh63xTpXSp9Wqwfi8hUBKJSClOUSvB+TPCTaqHfZk=";
+  env = {
+    ENGAGE_BOOK_PATH = "${placeholder "out"}/share/doc/${finalAttrs.pname}";
   };
 
-  cargoHash = "sha256-CKe0nb5JHi5+1UlVOl01Q3qSXQLlpEBdat/IzRKfaz0=";
+  src = fetchFromGitLab {
+    domain = "gitlab.computer.surgery";
+    owner = "charles";
+    repo = "engage";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-dKnpovsBcx3fyDK2eSVf4vzJaQ0uNGcKoYSE56kUDEg=";
+  };
+
+  cargoHash = "sha256-wHPjVP/hzMdmKVYDzjUGoaSKwcf7A9nYeM5HhvBQ+bc=";
 
   nativeBuildInputs = [
     installShellFiles
   ];
 
-  postInstall = "installShellCompletion --cmd ${pname} "
-    + builtins.concatStringsSep
-      " "
-      (builtins.map
-        (shell: "--${shell} <($out/bin/${pname} completions ${shell})")
-        [
+  buildAndTestSubdir = "crates/engage";
+
+  postInstall = ''
+    installShellCompletion --cmd engage ${
+      builtins.concatStringsSep " " (
+        map (shell: "--${shell} <(cargo xtask completions ${shell})") [
           "bash"
-          "fish"
           "zsh"
+          "fish"
         ]
-      );
+      )
+    }
+
+    ${lib.getExe mdbook} build
+    mkdir -p $out/share/doc
+    mv public $out/share/doc/${finalAttrs.pname}
+  '';
 
   meta = {
-    description = "A task runner with DAG-based parallelism";
-    homepage = "https://or.computer.surgery/charles/engage";
-    changelog = "https://or.computer.surgery/charles/engage/-/blob/v${version}/CHANGELOG.md";
-    license = with lib.licenses; [ asl20 mit ];
+    description = "Process composer with ordering and parallelism based on directed acyclic graphs";
+    mainProgram = "engage";
+    homepage = "https://engage.computer.surgery";
+    changelog = "https://engage.computer.surgery/changelog.html";
+    license = with lib.licenses; [
+      asl20
+      mit
+    ];
     maintainers = with lib.maintainers; [ CobaltCause ];
   };
-}
+})

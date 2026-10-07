@@ -1,27 +1,33 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pillow
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  setuptools,
+  pillow,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "wheezy.captcha";
   version = "3.2.0";
-  format = "setuptools";
+  pyproject = true;
+
+  __structuredAttrs = true;
 
   src = fetchPypi {
-    inherit pname version;
+    inherit (finalAttrs) pname version;
     hash = "sha256-UtTpgrPK5eRr7sq97jptjdJyvAyrM2oU07+GZr2Ad7s=";
   };
 
-  propagatedBuildInputs = [ pillow ];
+  build-system = [ setuptools ];
+
+  dependencies = [ pillow ];
 
   pythonImportsCheck = [ "wheezy.captcha" ];
 
-  meta = with lib; {
+  meta = {
     homepage = "https://wheezycaptcha.readthedocs.io/en/latest/";
-    description = "A lightweight CAPTCHA library";
-    license = licenses.mit;
-    maintainers = with maintainers; [ Flakebi ];
+    description = "Lightweight CAPTCHA library";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ Flakebi ];
   };
-}
+})

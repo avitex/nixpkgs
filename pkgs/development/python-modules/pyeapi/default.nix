@@ -1,52 +1,43 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, setuptools
-, mock
-, netaddr
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  mock,
+  netaddr,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "pyeapi";
-  version = "1.0.2";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.7";
+  version = "1.0.4";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "arista-eosplus";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    sha256 = "sha256-GZBoCoAqij54rZezRDF/ihJDQ5T6FFyDSRXGV3//avQ=";
+    repo = "pyeapi";
+    tag = "v${version}";
+    hash = "sha256-eGNBQSnYMC9YVCw5mBRH6XRq139AcqFm6HnO2FUzLEE=";
   };
 
-  nativeBuildInputs = [
-    setuptools
-  ];
+  build-system = [ setuptools ];
 
-  propagatedBuildInputs = [
-    netaddr
-  ];
+  dependencies = [ netaddr ];
 
   nativeCheckInputs = [
     mock
     pytestCheckHook
   ];
 
-  pytestFlagsArray = [
-    "test/unit"
-  ];
+  enabledTestPaths = [ "test/unit" ];
 
-  pythonImportsCheck = [
-    "pyeapi"
-  ];
+  pythonImportsCheck = [ "pyeapi" ];
 
-  meta = with lib; {
+  meta = {
     description = "Client for Arista eAPI";
     homepage = "https://github.com/arista-eosplus/pyeapi";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ astro ];
+    changelog = "https://github.com/arista-eosplus/pyeapi/releases/tag/v${version}";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ astro ];
   };
 }

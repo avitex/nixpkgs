@@ -1,21 +1,22 @@
-{ lib
-, stdenv
-, fetchurl
-, callPackage
-, cmake
-, gmp
-, halibut
-, ncurses
-, perl
+{
+  lib,
+  stdenv,
+  fetchurl,
+  callPackage,
+  cmake,
+  gmp,
+  halibut,
+  ncurses,
+  perl,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "spigot";
-  version = "20220606.eb585f8";
+  version = "20240909.f158e08";
 
   src = fetchurl {
     url = "https://www.chiark.greenend.org.uk/~sgtatham/spigot/spigot-${finalAttrs.version}.tar.gz";
-    hash = "sha256-JyNNZo/HUPWv5rYtlNYp8Hl0C7i3yxEyKm+77ysN7Ao=";
+    hash = "sha256-8re4ubDgsTjc/WrE60b6eXBrGEJSKJTEXd/XMdJ79nM=";
   };
 
   nativeBuildInputs = [
@@ -29,7 +30,10 @@ stdenv.mkDerivation (finalAttrs: {
     ncurses
   ];
 
-  outputs = [ "out" "man" ];
+  outputs = [
+    "out"
+    "man"
+  ];
 
   strictDeps = true;
 
@@ -41,9 +45,10 @@ stdenv.mkDerivation (finalAttrs: {
 
   meta = {
     homepage = "https://www.chiark.greenend.org.uk/~sgtatham/spigot/";
-    description = "A command-line exact real calculator";
+    description = "Command-line exact real calculator";
+    mainProgram = "spigot";
     license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ AndersonTorres ];
+    maintainers = [ ];
     platforms = lib.platforms.unix;
   };
 })

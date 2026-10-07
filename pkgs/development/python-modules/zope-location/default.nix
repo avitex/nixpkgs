@@ -1,32 +1,61 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, zope-proxy
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
+  zope-interface,
+  zope-proxy,
+  zope-schema,
+  zope-component,
+  zope-configuration,
+  zope-copy,
+  unittestCheckHook,
 }:
 
 buildPythonPackage rec {
-  pname = "zope.location";
-  version = "4.3";
+  pname = "zope-location";
+  version = "6.0";
+  pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-Fx7tyKIOw6isJxOaqQzyd/93dy6gMrVLaicBp5J7OsU=";
+  src = fetchFromGitHub {
+    owner = "zopefoundation";
+    repo = "zope.location";
+    tag = version;
+    hash = "sha256-s7HZda+U87P62elX/KbDp2o9zAplgFVmnedDI/uq2sk=";
   };
 
-  propagatedBuildInputs = [ zope-proxy ];
-
-  # ignore circular dependency on zope-schema
-  preBuild = ''
-    sed -i '/zope.schema/d' setup.py
+  postPatch = ''
+    substituteInPlace pyproject.toml \
+      --replace-fail "setuptools ==" "setuptools >="
   '';
 
-  doCheck = false;
+  build-system = [ setuptools ];
 
-  meta = with lib; {
-    homepage = "https://github.com/zopefoundation/zope.location/";
-    description = "Zope Location";
-    license = licenses.zpl20;
-    maintainers = with maintainers; [ goibhniu ];
+  dependencies = [
+    zope-interface
+    zope-proxy
+    zope-schema
+  ];
+
+  optional-dependencies = {
+    zcml = [ zope-configuration ];
+    component = [ zope-component ];
+    copy = [ zope-copy ];
   };
 
+  pythonImportsCheck = [ "zope.location" ];
+
+  nativeCheckInputs = [ unittestCheckHook ];
+
+  unittestFlagsArray = [ "src/zope/location/tests" ];
+
+  pythonNamespaces = [ "zope" ];
+
+  meta = {
+    homepage = "https://github.com/zopefoundation/zope.location/";
+    description = "Zope Location";
+    changelog = "https://github.com/zopefoundation/zope.location/blob/${src.tag}/CHANGES.rst";
+    license = lib.licenses.zpl21;
+    maintainers = [ ];
+  };
 }

@@ -1,17 +1,30 @@
-{ lib, stdenv, fetchFromGitHub, pkg-config, hidapi }:
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  pkg-config,
+  hidapi,
+  udevCheckHook,
+}:
 
 stdenv.mkDerivation {
   pname = "footswitch";
-  version = "unstable-2023-10-10";
+  version = "1.0-unstable-2023-10-10";
+
+  __finalAttrs = true;
+  strictDeps = true;
 
   src = fetchFromGitHub {
     owner = "rgerganov";
     repo = "footswitch";
     rev = "b7493170ecc956ac87df2c36183253c945be2dcf";
-    sha256 = "sha256-vwjeWjIXQiFJ0o/wgEBrKP3hQi8Xa/azVS1IE/Q/MyY=";
+    hash = "sha256-vwjeWjIXQiFJ0o/wgEBrKP3hQi8Xa/azVS1IE/Q/MyY=";
   };
 
-  nativeBuildInputs = [ pkg-config ];
+  nativeBuildInputs = [
+    pkg-config
+    udevCheckHook
+  ];
   buildInputs = [ hidapi ];
 
   postPatch = ''
@@ -25,11 +38,13 @@ stdenv.mkDerivation {
     mkdir -p $out/bin $out/lib/udev/rules.d
   '';
 
-  meta = with lib; {
-    description = "Command line utlities for programming PCsensor and Scythe foot switches.";
+  doInstallCheck = true;
+
+  meta = {
+    description = "Command line utilities for programming PCsensor and Scythe foot switches";
     homepage = "https://github.com/rgerganov/footswitch";
-    license = licenses.mit;
-    platforms = platforms.linux;
-    maintainers = with maintainers; [ baloo ];
+    license = lib.licenses.mit;
+    platforms = lib.platforms.linux;
+    maintainers = with lib.maintainers; [ baloo ];
   };
 }

@@ -1,36 +1,42 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, makefun
-, decopatch
-, pythonOlder
-, pytest
-, setuptools-scm
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  makefun,
+  decopatch,
+  packaging,
+  pytest,
+  setuptools_80,
+  setuptools-scm,
 }:
 
 buildPythonPackage rec {
   pname = "pytest-cases";
-  version = "3.8.2";
+  version = "3.10.1";
   pyproject = true;
 
-  disabled = pythonOlder "3.6";
-
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-JM7AEoyCL1G19AL6zgnnBJlU2WddsspnX84e9/j3Seg=";
+    pname = "pytest_cases";
+    inherit version;
+    hash = "sha256-RR+ePs1dLYGkNiwQxEESb1s9GuOn769Z9gsfuTDfLWk=";
   };
 
-  nativeBuildInputs = [
+  patches = [
+    # https://github.com/smarie/python-pytest-cases/issues/385
+    # https://github.com/smarie/python-pytest-cases/pull/386
+    ./pytest-9.1-compat.patch
+  ];
+
+  build-system = [
+    setuptools_80
     setuptools-scm
   ];
 
-  buildInputs = [
-    pytest
-  ];
-
-  propagatedBuildInputs = [
+  dependencies = [
     decopatch
     makefun
+    packaging
+    pytest
   ];
 
   # Tests have dependencies (pytest-harvest, pytest-steps) which
@@ -38,15 +44,13 @@ buildPythonPackage rec {
   # makefun, pytest-*) have circular dependencies.
   doCheck = false;
 
-  pythonImportsCheck = [
-    "pytest_cases"
-  ];
+  pythonImportsCheck = [ "pytest_cases" ];
 
-  meta = with lib; {
+  meta = {
     description = "Separate test code from test cases in pytest";
     homepage = "https://github.com/smarie/python-pytest-cases";
     changelog = "https://github.com/smarie/python-pytest-cases/releases/tag/${version}";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

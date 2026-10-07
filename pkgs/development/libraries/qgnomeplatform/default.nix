@@ -1,21 +1,28 @@
-{ stdenv
-, lib
-, fetchFromGitHub
-, nix-update-script
-, cmake
-, pkg-config
-, adwaita-qt
-, adwaita-qt6
-, glib
-, gtk3
-, qtbase
-, qtwayland
-, pantheon
-, substituteAll
-, gsettings-desktop-schemas
-, useQt6 ? false
+{
+  stdenv,
+  lib,
+  fetchFromGitHub,
+  nix-update-script,
+  cmake,
+  pkg-config,
+  adwaita-qt,
+  adwaita-qt6,
+  glib,
+  gtk3,
+  qt5,
+  qt6,
+  replaceVars,
+  gsettings-desktop-schemas,
+  useQt6 ? false,
 }:
 
+let
+  qt = if useQt6 then qt6 else qt5;
+  inherit (qt)
+    qtbase
+    qtwayland
+    ;
+in
 stdenv.mkDerivation rec {
   pname = "qgnomeplatform";
   version = "0.8.4";
@@ -29,14 +36,16 @@ stdenv.mkDerivation rec {
 
   patches = [
     # Hardcode GSettings schema path to avoid crashes from missing schemas
-    (substituteAll {
-      src = ./hardcode-gsettings.patch;
+    (replaceVars ./hardcode-gsettings.patch {
       gds_gsettings_path = glib.getSchemaPath gsettings-desktop-schemas;
     })
 
     # Backport cursor fix for Qt6 apps
-    # Ajusted from https://github.com/FedoraQt/QGnomePlatform/pull/138
+    # Adjusted from https://github.com/FedoraQt/QGnomePlatform/pull/138
     ./qt6-cursor-fix.patch
+
+    # fixing build with Qt>=6.10
+    ./qt6_10.patch
   ];
 
   nativeBuildInputs = [
@@ -49,9 +58,11 @@ stdenv.mkDerivation rec {
     gtk3
     qtbase
     qtwayland
-  ] ++ lib.optionals (!useQt6) [
+  ]
+  ++ lib.optionals (!useQt6) [
     adwaita-qt
-  ] ++ lib.optionals useQt6 [
+  ]
+  ++ lib.optionals useQt6 [
     adwaita-qt6
   ];
 
@@ -61,7 +72,11 @@ stdenv.mkDerivation rec {
   cmakeFlags = [
     "-DGLIB_SCHEMAS_DIR=${glib.getSchemaPath gsettings-desktop-schemas}"
     "-DQT_PLUGINS_DIR=${placeholder "out"}/${qtbase.qtPluginPrefix}"
-  ] ++ lib.optionals useQt6 [
+
+    # Workaround CMake 4 compat
+    (lib.cmakeFeature "CMAKE_POLICY_VERSION_MINIMUM" "3.31")
+  ]
+  ++ lib.optionals useQt6 [
     "-DUSE_QT6=true"
   ];
 
@@ -69,11 +84,11 @@ stdenv.mkDerivation rec {
     updateScript = nix-update-script { };
   };
 
-  meta = with lib; {
+  meta = {
     description = "QPlatformTheme for a better Qt application inclusion in GNOME";
     homepage = "https://github.com/FedoraQt/QGnomePlatform";
-    license = licenses.lgpl21Plus;
-    maintainers = with maintainers; [ ];
-    platforms = platforms.linux;
+    license = lib.licenses.lgpl21Plus;
+    maintainers = [ ];
+    platforms = lib.platforms.linux;
   };
 }

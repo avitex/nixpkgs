@@ -1,28 +1,51 @@
-{ lib
-, buildGoModule
-, fetchFromGitHub
+{
+  lib,
+  buildGoModule,
+  fetchFromGitHub,
+  nix-update-script,
+  pkg-config,
+  portaudio,
+  versionCheckHook,
 }:
 
-buildGoModule rec {
+buildGoModule (finalAttrs: {
   pname = "livekit-cli";
-  version = "1.3.4";
+  version = "2.18.8";
+
+  __structuredAttrs = true;
+  __darwinAllowLocalNetworking = true;
 
   src = fetchFromGitHub {
     owner = "livekit";
     repo = "livekit-cli";
-    rev = "v${version}";
-    hash = "sha256-pzVzfs0bwG9n7fa0ouQiCFrbXAqkfovEIjVmrHFdqtI=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-IuqgAaaZZblAl8a/rs2xE+zhuY4s3UNND+kmQOq/yPg=";
   };
 
-  vendorHash = "sha256-pM5DeaukY6x4RDryLvSEQASSwtOaLiiLObjhdWBYd8k=";
+  vendorHash = "sha256-B/woYmWYrdtL+qFDQzvBmyXLEo2HarOjRQlEX/GcPNQ=";
 
-  subPackages = [ "cmd/livekit-cli" ];
+  # Use nixpkgs portaudio package + pkg-config rather than relying on a vendored
+  # git submodule, similar to the homebrew solution
+  nativeBuildInputs = [ pkg-config ];
+  buildInputs = [ portaudio ];
+  tags = [ "portaudio_system" ];
 
-  meta = with lib; {
+  subPackages = [ "cmd/lk" ];
+
+  nativeInstallCheckInputs = [ versionCheckHook ];
+  doInstallCheck = true;
+
+  passthru.updateScript = nix-update-script { };
+
+  meta = {
     description = "Command line interface to LiveKit";
     homepage = "https://livekit.io/";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ mgdelacroix ];
-    mainProgram = "livekit-cli";
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [
+      mgdelacroix
+      faukah
+      carschandler
+    ];
+    mainProgram = "lk";
   };
-}
+})

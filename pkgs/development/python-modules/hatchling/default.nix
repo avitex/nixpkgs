@@ -1,43 +1,39 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
 
-# runtime
-, editables
-, packaging
-, pathspec
-, pluggy
-, tomli
-, trove-classifiers
+  # runtime
+  editables,
+  packaging,
+  pathspec,
+  pluggy,
+  trove-classifiers,
 
-# tests
-, build
-, python
-, requests
-, virtualenv
+  # tests
+  build,
+  python,
+  requests,
+  virtualenv,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "hatchling";
-  version = "1.21.0";
-  format = "pyproject";
-  disabled = pythonOlder "3.8";
+  version = "1.31.0";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-XAhncjV6UHI7gl/V2lJ4rH42l833eX0HVBpskLb/dUw=";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-a0itQGikgu1yObOoIVvFW0eq0zRdWN/JTlU8XS1GIRs=";
   };
 
   # listed in backend/pyproject.toml
-  propagatedBuildInputs = [
+  dependencies = [
     editables
     packaging
     pathspec
     pluggy
     trove-classifiers
-  ] ++ lib.optionals (pythonOlder "3.11") [
-    tomli
   ];
 
   pythonImportsCheck = [
@@ -56,7 +52,7 @@ buildPythonPackage rec {
   ];
 
   preCheck = ''
-    export HOME=$TMPDIR
+    export HOME=$(mktemp -d)
   '';
 
   checkPhase = ''
@@ -65,11 +61,15 @@ buildPythonPackage rec {
     runHook postCheck
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Modern, extensible Python build backend";
+    mainProgram = "hatchling";
     homepage = "https://hatch.pypa.io/latest/";
-    changelog = "https://github.com/pypa/hatch/releases/tag/hatchling-v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ hexa ofek ];
+    changelog = "https://github.com/pypa/hatch/releases/tag/hatchling-v${finalAttrs.version}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [
+      hexa
+      ofek
+    ];
   };
-}
+})

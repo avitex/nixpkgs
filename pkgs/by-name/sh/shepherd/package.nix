@@ -1,33 +1,34 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, fetchYarnDeps
-, makeWrapper
-, nodejs
-, prefetch-yarn-deps
-, yarn
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  fetchYarnDeps,
+  makeWrapper,
+  nodejs,
+  fixup-yarn-lock,
+  yarn,
 }:
 
-stdenv.mkDerivation rec {
+stdenv.mkDerivation (finalAttrs: {
   pname = "shepherd";
   version = "1.16.0";
 
   src = fetchFromGitHub {
-    owner = "NerdWalletOSS";
+    owner = "shepherd-tools";
     repo = "shepherd";
-    rev = "v${version}";
+    rev = "v${finalAttrs.version}";
     hash = "sha256-LY8Vde4YpGuKnQ5UnSOpsQDY7AOyZRziUrfZb5dRiX4=";
   };
 
   offlineCache = fetchYarnDeps {
-    yarnLock = "${src}/yarn.lock";
+    yarnLock = "${finalAttrs.src}/yarn.lock";
     hash = "sha256-tJXJ8ePr5ArAV+0JcuJsTo/B2PUcgsXfZrSDCpna/9k=";
   };
 
-  nativeBuildInputs  = [
+  nativeBuildInputs = [
     makeWrapper
     nodejs
-    prefetch-yarn-deps
+    fixup-yarn-lock
     yarn
   ];
 
@@ -66,12 +67,12 @@ stdenv.mkDerivation rec {
   '';
 
   meta = {
-    changelog = "https://github.com/NerdWalletOSS/shepherd/blob/${src.rev}/CHANGELOG.md";
-    description = "A utility for applying code changes across many repositories";
-    homepage = "https://github.com/NerdWalletOSS/shepherd";
+    changelog = "https://github.com/shepherd-tools/shepherd/blob/${finalAttrs.src.rev}/CHANGELOG.md";
+    description = "Utility for applying code changes across many repositories";
+    homepage = "https://github.com/shepherd-tools/shepherd";
     license = lib.licenses.asl20;
     mainProgram = "shepherd";
     maintainers = with lib.maintainers; [ dbirks ];
     platforms = lib.platforms.all;
   };
-}
+})

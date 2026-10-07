@@ -1,67 +1,110 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, cmake
-, numpy
-, scikit-build
-, setuptools
-, setuptools-scm
-, wheel
-, pybind11
-, pydantic
-, rich
-, awkward
-, pytestCheckHook
-, scipy
-, zlib
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+
+  # build-system
+  pybind11,
+  scikit-build-core,
+  setuptools-scm,
+
+  # nativeBuildInputs
+  cmake,
+  ninja,
+
+  # buildInputs
+  boost,
+  eigen,
+  zlib,
+
+  # dependencies
+  numpy,
+  packaging,
+  pydantic,
+  rich,
+
+  # tests
+  addBinToPathHook,
+  awkward,
+  pytestCheckHook,
+  scipy,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "correctionlib";
-  version = "2.4.0";
+  version = "2.9.0";
   pyproject = true;
+  __structuredAttrs = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-bQKcS8vktvD62zvSeaBtoJw36TSpo0gEpKm0HI3AuXg=";
+  src = fetchFromGitHub {
+    owner = "cms-nanoAOD";
+    repo = "correctionlib";
+    tag = "v${finalAttrs.version}";
+    fetchSubmodules = true;
+    hash = "sha256-jxn5AYqHPtEPE9C5Gv9s556UH6KE1liC8JDw00vMaLg=";
   };
+
+  postPatch = ''
+    substituteInPlace CMakeLists.txt \
+      --replace-fail \
+        "-Wall -Wextra -Wpedantic -Werror" \
+        "" \
+      --replace-fail \
+        "set(BUILTIN_BOOST ON)" \
+        "set(BUILTIN_BOOST OFF)" \
+      --replace-fail \
+        "set(BUILTIN_EIGEN ON)" \
+        "set(BUILTIN_EIGEN OFF)"
+  '';
+
+  build-system = [
+    pybind11
+    scikit-build-core
+    setuptools-scm
+  ];
 
   nativeBuildInputs = [
     cmake
-    numpy
-    scikit-build
-    setuptools
-    setuptools-scm
-    wheel
-    pybind11
+    ninja
   ];
+  dontUseCmakeConfigure = true;
 
   buildInputs = [
+    boost
+    eigen
     zlib
   ];
 
-  propagatedBuildInputs = [
+  dependencies = [
+    numpy
+    packaging
     pydantic
     rich
   ];
 
-  dontUseCmakeConfigure = true;
+  pythonImportsCheck = [ "correctionlib" ];
 
   nativeCheckInputs = [
+    # One test requires running the produced `correctionlib` binary
+    addBinToPathHook
+
     awkward
     pytestCheckHook
     scipy
   ];
 
-  pythonImportsCheck = [
-    "correctionlib"
+  disabledTests = lib.optionals stdenv.hostPlatform.isAarch64 [
+    # AssertionError: assert 0.9518682535564676 == 0.9518682535564679
+    "test_lwtnn_example"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Provides a well-structured JSON data format for a wide variety of ad-hoc correction factors encountered in a typical HEP analysis";
+    mainProgram = "correction";
     homepage = "https://cms-nanoaod.github.io/correctionlib/";
-    license = with licenses; [ bsd3 ];
-    maintainers = with maintainers; [ veprbl ];
-    broken = versionAtLeast pydantic.version "2";
+    changelog = "https://github.com/cms-nanoAOD/correctionlib/releases/tag/${finalAttrs.src.tag}";
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ veprbl ];
   };
-}
+})

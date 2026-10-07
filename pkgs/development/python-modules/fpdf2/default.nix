@@ -1,48 +1,47 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-
-, setuptools
-
-, defusedxml
-, pillow
-, fonttools
-
-, pytestCheckHook
-, qrcode
-, camelot
-, uharfbuzz
+{
+  lib,
+  buildPythonPackage,
+  camelot,
+  defusedxml,
+  fetchFromGitHub,
+  fonttools,
+  lxml,
+  pikepdf,
+  pillow,
+  pytest-cov-stub,
+  pytestCheckHook,
+  qrcode,
+  setuptools,
+  uharfbuzz,
 }:
 
 buildPythonPackage rec {
   pname = "fpdf2";
-  version = "2.7.6";
+  version = "2.8.5";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "py-pdf";
     repo = "fpdf2";
-    rev = version;
-    hash = "sha256-wiCKmS+GlrYV2/6TEdXUbmWIMWU4hyzswFJZR9EOWxc=";
+    tag = version;
+    hash = "sha256-LQZ7OMfL+PFxEc7q/dSw+YJoKr+eYEaZF8XCzd7AdBI=";
   };
 
-  postPatch = ''
-    substituteInPlace setup.cfg \
-      --replace "--cov=fpdf --cov-report=xml" ""
-  '';
+  build-system = [ setuptools ];
 
-  nativeBuildInputs = [ setuptools ];
-
-  propagatedBuildInputs = [
+  dependencies = [
     defusedxml
-    pillow
     fonttools
+    pillow
   ];
 
   nativeCheckInputs = [
+    camelot
+    lxml
+    pikepdf
+    pytest-cov-stub
     pytestCheckHook
     qrcode
-    camelot
     uharfbuzz
   ];
 
@@ -55,12 +54,15 @@ buildPythonPackage rec {
     "test_png_url" # tries to download file
     "test_page_background" # tries to download file
     "test_share_images_cache" # uses timing functions
+    "test_bidi_character" # tries to download file
+    "test_bidi_conformance" # tries to download file
+    "test_insert_jpg_jpxdecode" # JPEG2000 is broken
   ];
 
   meta = {
     homepage = "https://github.com/py-pdf/fpdf2";
     description = "Simple PDF generation for Python";
-    changelog = "https://github.com/py-pdf/fpdf2/blob/${version}/CHANGELOG.md";
+    changelog = "https://github.com/py-pdf/fpdf2/blob/${src.tag}/CHANGELOG.md";
     license = lib.licenses.lgpl3Only;
     maintainers = with lib.maintainers; [ jfvillablanca ];
   };

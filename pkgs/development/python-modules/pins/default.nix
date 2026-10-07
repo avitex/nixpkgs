@@ -1,51 +1,56 @@
-{ lib
-, adlfs
-, appdirs
-, buildPythonPackage
-, fastparquet
-, fetchFromGitHub
-, fsspec
-, gcsfs
-, humanize
-, importlib-metadata
-, importlib-resources
-, jinja2
-, joblib
-, pandas
-, pyarrow
-, pytest-cases
-, pytest-parallel
-, pytestCheckHook
-, pythonOlder
-, pyyaml
-, requests
-, s3fs
-, setuptools
-, setuptools-scm
-, xxhash
+{
+  lib,
+  adlfs,
+  appdirs,
+  buildPythonPackage,
+  databackend,
+  fastparquet,
+  fetchFromGitHub,
+  fsspec,
+  gcsfs,
+  humanize,
+  importlib-metadata,
+  importlib-resources,
+  jinja2,
+  joblib,
+  pandas,
+  pyarrow,
+  pytest-cases,
+  pytest-parallel,
+  pytestCheckHook,
+  pyyaml,
+  requests,
+  s3fs,
+  setuptools-scm,
+  setuptools,
+  typing-extensions,
+  xxhash,
 }:
 
 buildPythonPackage rec {
   pname = "pins";
-  version = "0.8.4";
+  version = "0.9.1";
   pyproject = true;
-
-  disabled = pythonOlder "3.8";
 
   src = fetchFromGitHub {
     owner = "rstudio";
     repo = "pins-python";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-rNIjHwFELHoxDxC/T5vPzHA6Ifjz01rJpTK6kjUxOIM=";
+    tag = "v${version}";
+    hash = "sha256-fDbgas4RG4cJRqrISWmrMUQUycQindlqF9/jA5R1TF8=";
   };
 
-  nativeBuildInputs = [
+  build-system = [
     setuptools
     setuptools-scm
   ];
 
-  propagatedBuildInputs = [
+  pythonRelaxDeps = [
+    "fsspec"
+  ];
+
+  dependencies = [
     appdirs
+    databackend
     fsspec
     humanize
     importlib-metadata
@@ -55,19 +60,14 @@ buildPythonPackage rec {
     pandas
     pyyaml
     requests
+    typing-extensions
     xxhash
   ];
 
-  passthru.optional-dependencies = {
-    aws = [
-      s3fs
-    ];
-    azure = [
-      adlfs
-    ];
-    gcs = [
-      gcsfs
-    ];
+  optional-dependencies = {
+    aws = [ s3fs ];
+    azure = [ adlfs ];
+    gcs = [ gcsfs ];
   };
 
   nativeCheckInputs = [
@@ -76,15 +76,12 @@ buildPythonPackage rec {
     pytest-cases
     pytest-parallel
     pytestCheckHook
-  ] ++ lib.flatten (builtins.attrValues passthru.optional-dependencies);
+  ]
+  ++ lib.concatAttrValues optional-dependencies;
 
-  pythonImportsCheck = [
-    "pins"
-  ];
+  pythonImportsCheck = [ "pins" ];
 
-  pytestFlagsArray = [
-    "pins/tests/"
-  ];
+  enabledTestPaths = [ "pins/tests/" ];
 
   disabledTestPaths = [
     # Tests require network access
@@ -94,11 +91,11 @@ buildPythonPackage rec {
     "pins/tests/test_rsconnect_api.py"
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Module to publishes data, models and other Python objects";
     homepage = "https://github.com/rstudio/pins-python";
-    changelog = "https://github.com/rstudio/pins-python/releases/tag/v${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/rstudio/pins-python/releases/tag/${src.tag}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

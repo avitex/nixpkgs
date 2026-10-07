@@ -1,49 +1,57 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, pkgsStatic
-, byacc
-, ed
-, ncurses
-, readline
-, installShellFiles
-, historySupport ? true
-, readlineSupport ? true
-, lineEditingLibrary ? if (stdenv.hostPlatform.isDarwin
-                           || stdenv.hostPlatform.isStatic)
-                       then "null"
-                       else "readline"
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  fetchpatch2,
+  pkgsStatic,
+  rc,
+  byacc,
+  ed,
+  ncurses,
+  readline,
+  editline,
+  installShellFiles,
+  historySupport ? true,
+  readlineSupport ? true,
+  editlineSupport ? false,
+  lineEditingLibrary ? if stdenv.hostPlatform.isDarwin then "null" else "readline",
 }:
 
-assert lib.elem lineEditingLibrary [ "null" "edit" "editline" "readline" "vrl" ];
-assert !(lib.elem lineEditingLibrary [ "edit" "editline" "vrl" ]); # broken
+assert lib.elem lineEditingLibrary [
+  "null"
+  "edit"
+  "editline"
+  "readline"
+  "vrl"
+];
+assert
+  !(lib.elem lineEditingLibrary [
+    "edit"
+    "vrl"
+  ]); # broken
 assert (lineEditingLibrary == "readline") -> readlineSupport;
+assert (lineEditingLibrary == "editline") -> editlineSupport;
 stdenv.mkDerivation (finalAttrs: {
   pname = "rc";
-  version = "unstable-2023-06-14";
+  version = "1.7.4-unstable-2025-10-01";
 
   src = fetchFromGitHub {
     owner = "rakitzis";
     repo = "rc";
-    rev = "4aaba1a9cb9fdbb8660696a87850836ffdb09599";
-    hash = "sha256-Yql3mt7hTO2W7wTfPje+X2zBGTHiNXGGXYORJewJIM8=";
+    rev = "2bab312ea11cb77d2654a731357842971c0b5d18";
+    hash = "sha256-ViyO3i7P2RU5HZvbenANOT1WTF7JCLexeqeHPUT8PCQ=";
   };
 
-  outputs = [ "out" "man" ];
+  outputs = [
+    "out"
+    "man"
+  ];
 
-  # TODO: think on a less ugly fixup
   postPatch = ''
-    ed -v -s Makefile << EOS
-    # - remove reference to now-inexistent git index file
-    /version.h:/ s| .git/index||
-    # - manually insert the git revision string
-    /v=/ c
-    ${"\t"}v=${builtins.substring 0 7 finalAttrs.src.rev}
-    .
-    /\.git\/index:/ d
-    w
-    q
-    EOS
+    sed -i '/main.o: version.h/ d' Makefile
+    cat << EOF > version.h
+    #define VERSION "1.7.4+${finalAttrs.src.rev}"
+    EOF
   '';
 
   nativeBuildInputs = [
@@ -55,23 +63,25 @@ stdenv.mkDerivation (finalAttrs: {
   buildInputs = [
     ncurses
   ]
-  ++ lib.optionals readlineSupport [
-    readline
-  ];
+  ++ lib.optional readlineSupport readline
+  ++ lib.optional editlineSupport editline;
 
   strictDeps = true;
 
-  makeFlags  = [
+  makeFlags = [
     "CC=${stdenv.cc.targetPrefix}cc"
     "PREFIX=${placeholder "out"}"
     "MANPREFIX=${placeholder "man"}/share/man"
     "CPPFLAGS=\"-DSIGCLD=SIGCHLD\""
     "EDIT=${lineEditingLibrary}"
-  ];
+  ]
+  # Required to fix static build, harmless for dynamic builds.
+  ++ lib.optional (lineEditingLibrary == "readline") "LDLIBS=-lncurses";
 
   buildFlags = [
     "all"
-  ] ++ lib.optionals historySupport [
+  ]
+  ++ lib.optionals historySupport [
     "history"
   ];
 
@@ -81,15 +91,29 @@ stdenv.mkDerivation (finalAttrs: {
 
   passthru = {
     shellPath = "/bin/rc";
-    tests.static = pkgsStatic.rc;
+    tests = {
+      static = pkgsStatic.rc;
+      readline = lib.optionalDrvAttr (!stdenv.hostPlatform.isDarwin) (
+        rc.override {
+          readlineSupport = true;
+          lineEditingLibrary = "readline";
+        }
+      );
+      editline = lib.optionalDrvAttr (!stdenv.hostPlatform.isDarwin) (
+        rc.override {
+          editlineSupport = true;
+          lineEditingLibrary = "editline";
+        }
+      );
+    };
   };
 
   meta = {
     homepage = "https://github.com/rakitzis/rc";
-    description = "The Plan 9 shell";
-    license = [ lib.licenses.zlib ];
+    description = "Plan 9 shell";
+    license = lib.licenses.zlib;
     mainProgram = "rc";
-    maintainers = with lib.maintainers; [ ramkromberg AndersonTorres ];
+    maintainers = with lib.maintainers; [ ramkromberg ];
     platforms = lib.platforms.unix;
   };
 })

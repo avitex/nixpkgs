@@ -1,28 +1,41 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pyopenssl
+{
+  lib,
+  buildPythonPackage,
+  cryptography,
+  fetchPypi,
+  flask,
+  pytestCheckHook,
+  requests,
+  setuptools-scm,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "certipy";
-  version = "0.1.3";
-  format = "setuptools";
+  version = "0.2.3";
+  pyproject = true;
 
   src = fetchPypi {
-    inherit pname version;
-    sha256 = "0n980gqpzh0fm58h3i4mi2i10wgj606lscm1r5sk60vbf6vh8mv9";
+    inherit (finalAttrs) pname version;
+    hash = "sha256-TocB5qLygeehVMLzaM/07fN0AJCE0peIy+jDg4iXeE8=";
   };
 
-  propagatedBuildInputs = [ pyopenssl ];
+  build-system = [ setuptools-scm ];
 
-  doCheck = false; #no tests were included
+  dependencies = [ cryptography ];
 
-  meta = with lib; {
+  nativeCheckInputs = [
+    flask
+    pytestCheckHook
+    requests
+  ];
+
+  pythonImportsCheck = [ "certipy" ];
+
+  meta = {
+    description = "Utility to create and sign CAs and certificates";
     homepage = "https://github.com/LLNL/certipy";
-    description = "wrapper for pyOpenSSL";
-    license = licenses.bsd3;
-    maintainers = with maintainers; [ isgy ];
+    license = lib.licenses.bsd3;
+    maintainers = with lib.maintainers; [ isgy ];
+    mainProgram = "certipy";
   };
-
-}
+})

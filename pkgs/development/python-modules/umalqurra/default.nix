@@ -1,6 +1,7 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
 }:
 
 buildPythonPackage rec {
@@ -18,10 +19,9 @@ buildPythonPackage rec {
 
   # See for license
   # https://github.com/tytkal/python-hijiri-ummalqura/issues/4
-  meta = with lib; {
+  meta = {
     description = "Date Api that support Hijri Umalqurra calendar";
     homepage = "https://github.com/tytkal/python-hijiri-ummalqura";
-    license = with licenses; [ publicDomain ];
+    license = lib.licenses.publicDomain;
   };
-
 }

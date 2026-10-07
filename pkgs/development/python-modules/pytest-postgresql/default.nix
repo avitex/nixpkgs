@@ -1,73 +1,79 @@
-{ lib
-, buildPythonPackage
-, fetchFromGitHub
-, pythonOlder
-, pytestCheckHook
-, setuptools
-, mirakuru
-, port-for
-, psycopg
-, pytest
-, postgresql
+{
+  lib,
+  stdenv,
+  buildPythonPackage,
+  fetchFromGitHub,
+  pytestCheckHook,
+  pytest-cov-stub,
+  setuptools,
+  mirakuru,
+  packaging,
+  port-for,
+  psycopg,
+  pytest,
+  postgresql,
 }:
 
 buildPythonPackage rec {
   pname = "pytest-postgresql";
-  version = "5.0.0";
-  format = "pyproject";
-
-  disabled = pythonOlder "3.8";
+  version = "7.0.2";
+  pyproject = true;
 
   src = fetchFromGitHub {
-    owner = "ClearcodeHQ";
+    owner = "dbfixtures";
     repo = "pytest-postgresql";
-    rev = "refs/tags/v${version}";
-    hash = "sha256-uWKp9yxTdlswoDPMlhx+2mF1cdhFzhGYKGHdXPGlz+w=";
+    tag = "v${version}";
+    hash = "sha256-/EekUveW3wb8NlcKacMJpjjU7bpFvnNMpAuZ9h0sbpw=";
   };
 
   postPatch = ''
-    substituteInPlace pyproject.toml  \
-      --replace "--cov" ""  \
-      --replace "--max-worker-restart=0" ""
     sed -i 's#/usr/lib/postgresql/.*/bin/pg_ctl#${postgresql}/bin/pg_ctl#' pytest_postgresql/plugin.py
   '';
 
+  build-system = [ setuptools ];
+
   buildInputs = [ pytest ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     mirakuru
     port-for
     psycopg
-    setuptools  # requires 'pkg_resources' at runtime
+    packaging
   ];
 
   nativeCheckInputs = [
     postgresql
     pytestCheckHook
+    pytest-cov-stub
   ];
-  pytestFlagsArray = [
-    "-p"
-    "no:postgresql"
+  pytestFlags = [
+    "-pno:postgresql"
   ];
-  disabledTestPaths = [ "tests/docker/test_noproc_docker.py" ];  # requires Docker
+  disabledTestPaths = [ "tests/docker/test_noproc_docker.py" ]; # requires Docker
   disabledTests = [
-    # permissions issue running pg as Nixbld user
-    "test_executor_init_with_password"
     # "ValueError: Pytest terminal summary report not found"
+    "test_postgres_drop_test_database"
+    "test_postgres_loader_in_cli"
+    "test_postgres_loader_in_ini"
     "test_postgres_options_config_in_cli"
     "test_postgres_options_config_in_ini"
+    "test_postgres_port_search_count_in_cli_is_int"
+    "test_postgres_port_search_count_in_ini_is_int"
   ];
   pythonImportsCheck = [
     "pytest_postgresql"
     "pytest_postgresql.executor"
   ];
 
+  # Can't reliably run checkPhase on darwin because of nix bug, see:
+  #  https://github.com/NixOS/nixpkgs/issues/371242
+  doCheck = !stdenv.buildPlatform.isDarwin;
 
-  meta = with lib; {
-    homepage = "https://pypi.python.org/pypi/pytest-postgresql";
+  meta = {
+    homepage = "https://pypi.org/project/pytest-postgresql/";
     description = "Pytest plugin that enables you to test code on a temporary PostgreSQL database";
-    changelog = "https://github.com/ClearcodeHQ/pytest-postgresql/blob/v${version}/CHANGES.rst";
-    license = licenses.lgpl3Plus;
-    maintainers = with maintainers; [ bcdarwin ];
+    changelog = "https://github.com/dbfixtures/pytest-postgresql/blob/v${version}/CHANGES.rst";
+    license = lib.licenses.lgpl3Plus;
+    maintainers = with lib.maintainers; [ bcdarwin ];
   };
 }

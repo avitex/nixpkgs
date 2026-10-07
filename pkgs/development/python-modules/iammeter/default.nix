@@ -1,15 +1,13 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, pythonOlder
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
 }:
 
 buildPythonPackage rec {
   pname = "iammeter";
   version = "0.2.1";
   format = "setuptools";
-
-  disabled = pythonOlder "3.7";
 
   src = fetchPypi {
     inherit pname version;
@@ -19,14 +17,12 @@ buildPythonPackage rec {
   # Module has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "iammeter"
-  ];
+  pythonImportsCheck = [ "iammeter" ];
 
-  meta = with lib; {
+  meta = {
     description = "Module to work with the IamMeter API";
     homepage = "https://pypi.org/project/iammeter/";
-    license = with licenses; [ mit ];
-    maintainers = with maintainers; [ fab ];
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
 }

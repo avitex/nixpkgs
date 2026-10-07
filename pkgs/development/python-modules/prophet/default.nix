@@ -1,38 +1,36 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, setuptools
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
 
-, cmdstanpy
-, numpy
-, matplotlib
-, pandas
-, holidays
-, tqdm
-, importlib-resources
+  cmdstanpy,
+  numpy,
+  matplotlib,
+  pandas,
+  holidays,
+  tqdm,
+  importlib-resources,
 
-, dask
-, distributed
+  dask,
+  distributed,
 
-, pytestCheckHook
+  pytestCheckHook,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "prophet";
-  version = "1.1.5";
+  version = "1.3.0";
   pyproject = true;
-
-  disabled = pythonOlder "3.7";
 
   src = fetchFromGitHub {
     owner = "facebook";
     repo = "prophet";
-    rev = version;
-    hash = "sha256-liTg5Hm+FPpRQajBnnJKBh3JPGyu0Hflntf0isj1FiQ=";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-Bu+ztg6sj1jh2iair6v1CdbF0Fi4b+h8yLzB3xTMD3Y=";
   };
 
-  sourceRoot = "source/python";
+  sourceRoot = "${finalAttrs.src.name}/python";
 
   env.PROPHET_REPACKAGE_CMDSTAN = "false";
 
@@ -48,7 +46,11 @@ buildPythonPackage rec {
     importlib-resources
   ];
 
-  passthru.optional-dependencies.parallel = [ dask distributed ] ++ dask.optional-dependencies.dataframe;
+  optional-dependencies.parallel = [
+    dask
+    distributed
+  ]
+  ++ dask.optional-dependencies.dataframe;
 
   preCheck = ''
     # use the generated files from $out for testing
@@ -61,11 +63,10 @@ buildPythonPackage rec {
   pythonImportsCheck = [ "prophet" ];
 
   meta = {
-    changelog = "https://github.com/facebook/prophet/releases/tag/${src.rev}";
-    description = "A tool for producing high quality forecasts for time series data that has multiple seasonality with linear or non-linear growth";
+    changelog = "https://github.com/facebook/prophet/releases/tag/${finalAttrs.src.tag}";
+    description = "Tool for producing high quality forecasts for time series data that has multiple seasonality with linear or non-linear growth";
     homepage = "https://facebook.github.io/prophet/";
     license = lib.licenses.mit;
     maintainers = with lib.maintainers; [ tomasajt ];
-    platforms = lib.platforms.linux; # cmdstanpy doesn't currently build on darwin
   };
-}
+})

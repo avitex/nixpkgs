@@ -1,29 +1,31 @@
-{ lib
-, buildPythonPackage
-, fetchPypi
-, fetchpatch
-, google-cloud-storage
-, mock
-, pytestCheckHook
-, pythonOlder
-, smart-open
-, typer
+{
+  lib,
+  buildPythonPackage,
+  fetchPypi,
+  mock,
+  pathlib-abc,
+  pytestCheckHook,
+  setuptools,
+  smart-open,
+  typer,
 }:
 
 buildPythonPackage rec {
   pname = "pathy";
-  version = "0.10.3";
-  format = "setuptools";
-
-  disabled = pythonOlder "3.7";
+  version = "0.11.0";
+  pyproject = true;
 
   src = fetchPypi {
     inherit pname version;
-    hash = "sha256-tFGF0G+bGMbTNG06q4gauWh0VT9mHuiMzS5gJG4QPCI=";
+    hash = "sha256-uz0OawuL92709jxxkeluCvLtZcj9tfoXSI+ch55jcG0=";
   };
 
-  propagatedBuildInputs = [
-    google-cloud-storage
+  pythonRelaxDeps = [ "smart-open" ];
+
+  build-system = [ setuptools ];
+
+  dependencies = [
+    pathlib-abc
     smart-open
     typer
   ];
@@ -40,14 +42,15 @@ buildPythonPackage rec {
     "pathy/_tests/test_s3.py"
   ];
 
-  pythonImportsCheck = [
-    "pathy"
-  ];
+  pythonImportsCheck = [ "pathy" ];
 
-  meta = with lib; {
-    description = "A Path interface for local and cloud bucket storage";
+  meta = {
+    # Marked broken 2025-11-28 because it has failed on Hydra for at least one year.
+    broken = true;
+    # https://github.com/justindujardin/pathy/issues/113
+    description = "Path interface for local and cloud bucket storage";
+    mainProgram = "pathy";
     homepage = "https://github.com/justindujardin/pathy";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ melling ];
+    license = lib.licenses.asl20;
   };
 }

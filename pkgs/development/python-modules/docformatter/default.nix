@@ -1,48 +1,37 @@
-{ lib
-, buildPythonPackage
-, pythonOlder
-, fetchFromGitHub
-, poetry-core
-, charset-normalizer
-, tomli
-, untokenize
-, mock
-, pytestCheckHook
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  poetry-core,
+  charset-normalizer,
+  untokenize,
+  mock,
+  pytestCheckHook,
 }:
 
 buildPythonPackage rec {
   pname = "docformatter";
-  version = "1.7.5";
-
-  disabled = pythonOlder "3.7";
-
-  format = "pyproject";
+  version = "1.7.8";
+  pyproject = true;
 
   src = fetchFromGitHub {
     owner = "PyCQA";
-    repo = pname;
-    rev = "refs/tags/v${version}";
-    hash = "sha256-QUjeG84KwI5Y3MU1wrmjHBXU2tEJ0CuiR3Y/S+dX7Gs=";
+    repo = "docformatter";
+    tag = "v${version}";
+    hash = "sha256-Z1ZW5ljWRDnS2mlAmbQyAcE97nU+PrpKaP1aox3VQtQ=";
   };
 
-  patches = [
-    ./test-path.patch
-  ];
+  patches = [ ./test-path.patch ];
 
   postPatch = ''
-    substituteInPlace pyproject.toml \
-      --replace 'charset_normalizer = "^2.0.0"' 'charset_normalizer = ">=2.0.0"'
     substituteInPlace tests/conftest.py \
       --subst-var-by docformatter $out/bin/docformatter
   '';
 
-  nativeBuildInputs = [
-    poetry-core
-  ];
+  build-system = [ poetry-core ];
 
-  propagatedBuildInputs = [
+  dependencies = [
     charset-normalizer
-    tomli
     untokenize
   ];
 
@@ -51,11 +40,18 @@ buildPythonPackage rec {
     pytestCheckHook
   ];
 
+  disabledTests = [
+    # AssertionError: assert 'utf_16' == 'latin-1'
+    # fixed by https://github.com/PyCQA/docformatter/pull/323
+    "test_detect_encoding_with_undetectable_encoding"
+  ];
+
   pythonImportsCheck = [ "docformatter" ];
 
   meta = {
-    changelog = "https://github.com/PyCQA/docformatter/blob/${src.rev}/CHANGELOG.md";
+    changelog = "https://github.com/PyCQA/docformatter/blob/${src.tag}/CHANGELOG.md";
     description = "Formats docstrings to follow PEP 257";
+    mainProgram = "docformatter";
     homepage = "https://github.com/myint/docformatter";
     license = lib.licenses.mit;
     maintainers = with lib.maintainers; [ dotlambda ];

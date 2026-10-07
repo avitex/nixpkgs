@@ -1,27 +1,29 @@
-{ lib
-, aiohttp
-, async-timeout
-, buildPythonPackage
-, fetchFromGitHub
-, pytestCheckHook
-, pythonOlder
+{
+  lib,
+  aiohttp,
+  async-timeout,
+  buildPythonPackage,
+  fetchFromGitHub,
+  setuptools,
 }:
 
-buildPythonPackage rec {
+buildPythonPackage (finalAttrs: {
   pname = "webthing-ws";
   version = "0.2.0";
-  format = "setuptools";
+  pyproject = true;
 
-  disabled = pythonOlder "3.9";
+  __structuredAttrs = true;
 
   src = fetchFromGitHub {
     owner = "home-assistant-ecosystem";
-    repo = pname;
-    rev = "refs/tags/${version}";
+    repo = "webthing-ws";
+    tag = finalAttrs.version;
     hash = "sha256-j7nc4yJczDs28RVFDHeQ2ZIG9mIW2m25AAeErVKi4E4=";
   };
 
-  propagatedBuildInputs = [
+  build-system = [ setuptools ];
+
+  dependencies = [
     aiohttp
     async-timeout
   ];
@@ -29,15 +31,13 @@ buildPythonPackage rec {
   # Module has no tests
   doCheck = false;
 
-  pythonImportsCheck = [
-    "webthing_ws"
-  ];
+  pythonImportsCheck = [ "webthing_ws" ];
 
-  meta = with lib; {
+  meta = {
     description = "WebThing WebSocket consumer and API client";
     homepage = "https://github.com/home-assistant-ecosystem/webthing-ws";
-    changelog = "https://github.com/home-assistant-ecosystem/webthing-ws/releases/tag/${version}";
-    license = licenses.mit;
-    maintainers = with maintainers; [ fab ];
+    changelog = "https://github.com/home-assistant-ecosystem/webthing-ws/releases/tag/${finalAttrs.version}";
+    license = lib.licenses.mit;
+    maintainers = with lib.maintainers; [ fab ];
   };
-}
+})

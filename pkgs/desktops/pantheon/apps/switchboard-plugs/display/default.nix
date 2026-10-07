@@ -1,30 +1,35 @@
-{ lib
-, stdenv
-, fetchFromGitHub
-, nix-update-script
-, meson
-, ninja
-, pkg-config
-, vala
-, libgee
-, libhandy
-, granite
-, gtk3
-, switchboard
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  nix-update-script,
+  meson,
+  ninja,
+  pkg-config,
+  vala,
+  libadwaita,
+  libgee,
+  gettext,
+  glib,
+  granite7,
+  gtk4,
+  switchboard,
 }:
 
 stdenv.mkDerivation rec {
   pname = "switchboard-plug-display";
-  version = "7.0.0";
+  version = "8.0.3";
 
   src = fetchFromGitHub {
     owner = "elementary";
-    repo = pname;
+    repo = "settings-display";
     rev = version;
-    sha256 = "sha256-NgTpV/hbPttAsDY8Y9AsqdpjRlZqTy2rTu3v1jQZjBo=";
+    sha256 = "sha256-5erlD+w9KN1/mbajdnQyevFm+uYavLYx7NsIbf85BVc=";
   };
 
   nativeBuildInputs = [
+    gettext # msgfmt
+    glib # glib-compile-resources
     meson
     ninja
     pkg-config
@@ -32,10 +37,10 @@ stdenv.mkDerivation rec {
   ];
 
   buildInputs = [
-    granite
-    gtk3
+    granite7
+    gtk4
+    libadwaita
     libgee
-    libhandy
     switchboard
   ];
 
@@ -43,11 +48,11 @@ stdenv.mkDerivation rec {
     updateScript = nix-update-script { };
   };
 
-  meta = with lib; {
+  meta = {
     description = "Switchboard Displays Plug";
-    homepage = "https://github.com/elementary/switchboard-plug-display";
-    license = licenses.gpl3Plus;
-    platforms = platforms.linux;
-    maintainers = teams.pantheon.members;
+    homepage = "https://github.com/elementary/settings-display";
+    license = lib.licenses.gpl3Plus;
+    platforms = lib.platforms.linux;
+    teams = [ lib.teams.pantheon ];
   };
 }

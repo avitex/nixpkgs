@@ -1,20 +1,37 @@
-{ lib, buildPythonPackage, fetchPypi, fonttools }:
+{
+  lib,
+  buildPythonPackage,
+  fetchFromGitHub,
+  fonttools,
+  hatch-vcs,
+  hatchling,
+}:
 
-buildPythonPackage rec {
-  pname = "fontPens";
-  version = "0.2.4";
+buildPythonPackage (finalAttrs: {
+  pname = "fontpens";
+  version = "0.4.0";
+  pyproject = true;
 
-  src = fetchPypi {
-    inherit pname version;
-    sha256 = "1za15dzsnymq6d9x7xdfqwgw4a3003wj75fn2crhyidkfd2s3nd6";
-    extension = "zip";
+  src = fetchFromGitHub {
+    owner = "robotools";
+    repo = "fontpens";
+    tag = "v${finalAttrs.version}";
+    hash = "sha256-K768vbhacnuSRlmC3QG+7p+y8QiBtvqETvCYOuO1IxM=";
   };
 
-  propagatedBuildInputs = [ fonttools ];
+  build-system = [
+    hatch-vcs
+    hatchling
+  ];
+
+  dependencies = [ fonttools ];
 
   # can't run normal tests due to circular dependency with fontParts
   doCheck = false;
-  pythonImportsCheck = [ "fontPens" ] ++ (builtins.map (s: "fontPens." + s) [
+  pythonImportsCheck = [
+    "fontPens"
+  ]
+  ++ (map (s: "fontPens." + s) [
     "angledMarginPen"
     "digestPointPen"
     "flattenPen"
@@ -29,10 +46,11 @@ buildPythonPackage rec {
     "transformPointPen"
   ]);
 
-  meta = with lib; {
-    description = "A collection of classes implementing the pen protocol for manipulating glyphs";
+  meta = {
+    changelog = "https://github.com/robotools/fontPens/releases/tag/${finalAttrs.src.tag}";
+    description = "Collection of classes implementing the pen protocol for manipulating glyphs";
     homepage = "https://github.com/robotools/fontPens";
-    license = licenses.bsd3;
-    maintainers = [ maintainers.sternenseemann ];
+    license = lib.licenses.bsd3;
+    maintainers = [ lib.maintainers.sternenseemann ];
   };
-}
+})
